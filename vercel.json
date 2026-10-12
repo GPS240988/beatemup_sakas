@@ -1,7 +1,8 @@
 {
-  "buildCommand": null,
+  "framework": null,
+  "buildCommand": "",
   "outputDirectory": "public",
-  "cleanUrls": true,
+  "installCommand": "",
   "headers": [
     {
       "source": "/(.*)",
