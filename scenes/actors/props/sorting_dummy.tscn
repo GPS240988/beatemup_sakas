@@ -1,0 +1,41 @@
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_base"]
+radius = 6.0
+height = 30.0
+
+[node name="SortingDummy" type="StaticBody2D"]
+y_sort_enabled = true
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -5)
+rotation = 1.5707963
+shape = SubResource("CapsuleShape2D_base")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Shadow" type="Polygon2D" parent="Visual"]
+color = Color(0.08, 0.08, 0.12, 0.45)
+polygon = PackedVector2Array(-20, 0, -14, -5, 0, -6, 14, -5, 20, 0, 14, 5, 0, 6, -14, 5)
+
+[node name="Base" type="Polygon2D" parent="Visual"]
+color = Color(0.35, 0.25, 0.18, 1)
+polygon = PackedVector2Array(-8, -4, 8, -4, 10, -38, -10, -38)
+
+[node name="Crossbar" type="Polygon2D" parent="Visual"]
+color = Color(0.48, 0.36, 0.24, 1)
+polygon = PackedVector2Array(-24, -48, 24, -48, 24, -40, -24, -40)
+
+[node name="Body" type="Polygon2D" parent="Visual"]
+color = Color(0.55, 0.42, 0.28, 1)
+polygon = PackedVector2Array(-9, -38, 9, -38, 9, -68, -9, -68)
+
+[node name="Head" type="Polygon2D" parent="Visual"]
+color = Color(0.72, 0.58, 0.42, 1)
+polygon = PackedVector2Array(-7, -68, 7, -68, 6, -82, -6, -82)
+
+[node name="Band" type="Polygon2D" parent="Visual"]
+color = Color(0.85, 0.25, 0.25, 1)
+polygon = PackedVector2Array(-8, -56, 8, -56, 8, -50, -8, -50)

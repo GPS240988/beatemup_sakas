@@ -1,0 +1,125 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="1_hud_script"]
+[ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="2_touch_script"]
+
+[node name="PrototypeHud" type="CanvasLayer"]
+script = ExtResource("1_hud_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+offset_right = 440.0
+offset_bottom = 260.0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LevelNameLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "FASE: TEST STREET (PC / Mobile)"
+
+[node name="ControlsLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "PC: [W/A/S/D] Mover | [J/Espaço] Atacar | [R] Reiniciar"
+
+[node name="HSeparator1" type="HSeparator" parent="MarginContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PlayerHealthLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Jogador: 100 / 100 HP"
+
+[node name="PlayerHealthBar" type="ProgressBar" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+value = 100.0
+show_percentage = false
+
+[node name="EnemyHealthLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Inimigo: 80 / 80 HP"
+
+[node name="EnemyHealthBar" type="ProgressBar" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+value = 100.0
+show_percentage = false
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugPosLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Posição (Chão): X=0.0 | Y=0.0"
+
+[node name="DebugStatusLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Estado: Normal"
+
+[node name="TopRightControls" type="MarginContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_bottom = 70.0
+grow_horizontal = 0
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+
+[node name="TouchToggleBtn" type="Button" parent="TopRightControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 42)
+layout_mode = 2
+text = "📱 Controles Touch: DESLIGADO"
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BannerPanel" type="PanelContainer" parent="CenterContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="CenterContainer/BannerPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 20
+
+[node name="BannerLabel" type="Label" parent="CenterContainer/BannerPanel/MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "STATUS DO COMBATE"
+horizontal_alignment = 1
+
+[node name="TouchControls" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("2_touch_script")
