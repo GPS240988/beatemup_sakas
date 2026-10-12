@@ -1,0 +1,220 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.04, 0.05, 0.1, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.94, 1, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0.94, 1, 0.3)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_led_bar"]
+bg_color = Color(0, 0.94, 1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0, 0.94, 1, 0.6)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_magenta_bar"]
+bg_color = Color(1, 0, 0.5, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(1, 0, 0.5, 0.6)
+shadow_size = 8
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main_menu_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.07, 1)
+
+[node name="GridPattern" type="Control" parent="."]
+modulate = Color(0, 0.94, 1, 0.05)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BackgroundSlot" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="LedTop" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_led_bar")
+
+[node name="LedBottom" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_magenta_bar")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 80
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 80
+theme_override_constants/margin_bottom = 40
+
+[node name="VBoxMain" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="HeaderContainer" type="VBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SubTitleTop" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.94, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.94, 1, 0.4)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 6
+theme_override_font_sizes/font_size = 14
+text = "// CYBERPUNK ARCADE EDITION // 2.5D ACTION"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.96, 1, 1)
+theme_override_colors/font_shadow_color = Color(1, 0, 0.5, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_constants/shadow_outline_size = 12
+theme_override_font_sizes/font_size = 52
+text = "BEAT 'EM UP : SAKAS"
+horizontal_alignment = 1
+
+[node name="TaglineLabel" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0.5, 1)
+theme_override_colors/font_shadow_color = Color(1, 0, 0.5, 0.5)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 4
+theme_override_font_sizes/font_size = 16
+text = "PROJETO SAKAS — SISTEMA DE COMBATE EM ALTA DEFINIÇÃO"
+horizontal_alignment = 1
+
+[node name="ContentContainer" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="MenuPanel" type="PanelContainer" parent="MarginContainer/VBoxMain/ContentContainer"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="MarginMenu" type="MarginContainer" parent="MarginContainer/VBoxMain/ContentContainer/MenuPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 28
+
+[node name="VBoxButtons" type="VBoxContainer" parent="MarginContainer/VBoxMain/ContentContainer/MenuPanel/MarginMenu"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MenuHeaderLabel" type="Label" parent="MarginContainer/VBoxMain/ContentContainer/MenuPanel/MarginMenu/VBoxButtons"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "▶ MENU PRINCIPAL"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxMain/ContentContainer/MenuPanel/MarginMenu/VBoxButtons"]
+modulate = Color(0, 0.94, 1, 0.4)
+layout_mode = 2
+
+[node name="BtnNewGame" type="Button" parent="MarginContainer/VBoxMain/ContentContainer/MenuPanel/MarginMenu/VBoxButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "⚡ NOVO JOGO"
+
+[node name="BtnContinue" type="Button" parent="MarginContainer/VBoxMain/ContentContainer/MenuPanel/MarginMenu/VBoxButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+disabled = true
+text = "🔒 CONTINUAR"
+
+[node name="BtnCredits" type="Button" parent="MarginContainer/VBoxMain/ContentContainer/MenuPanel/MarginMenu/VBoxButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "📜 CRÉDITOS"
+
+[node name="FooterContainer" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="MarginContainer/VBoxMain/FooterContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.4, 0.45, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+text = "Teclado: [W/S/Cima/Baixo] Selecionar | [Espaço/Enter] Confirmar"
+
+[node name="VersionLabel" type="Label" parent="MarginContainer/VBoxMain/FooterContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.94, 1, 0.7)
+theme_override_font_sizes/font_size = 12
+text = "v0.9.4 // GODOT 4.7"
+horizontal_alignment = 2

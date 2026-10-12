@@ -1,0 +1,436 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/character_select.gd" id="1_char_select_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="2_guilherme_idle"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header_bar"]
+bg_color = Color(0, 0.94, 1, 1)
+shadow_color = Color(0, 0.94, 1, 0.6)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_base"]
+bg_color = Color(0.04, 0.05, 0.09, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.15, 0.45, 0.6, 0.5)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="CharacterSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_char_select_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.07, 1)
+
+[node name="LedTop" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header_bar")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 60
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 60
+theme_override_constants/margin_bottom = 25
+
+[node name="VBoxMain" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="HeaderContainer" type="VBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SubTitle" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "// PROTOCOLO DE COMBATE SAKAS // SELECIONE SEU GUERREIRO"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.96, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.94, 1, 0.6)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 8
+theme_override_font_sizes/font_size = 32
+text = "SELEÇÃO DE PERSONAGEM"
+horizontal_alignment = 1
+
+[node name="GridCharacters" type="GridContainer" parent="MarginContainer/VBoxMain"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 14
+columns = 6
+
+[node name="Card_guilherme" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="PreviewContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PreviewImg" type="TextureRect" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox/PreviewContainer"]
+custom_minimum_size = Vector2(120, 200)
+layout_mode = 2
+texture = ExtResource("2_guilherme_idle")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "GUILHERME"
+horizontal_alignment = 1
+
+[node name="StatusTag" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 1, 0.08, 1)
+theme_override_font_sizes/font_size = 12
+text = "DESBLOQUEADO"
+horizontal_alignment = 1
+
+[node name="SelectTag_guilherme" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0.5, 1)
+theme_override_font_sizes/font_size = 11
+text = "◀ ATIVO ▶"
+horizontal_alignment = 1
+
+[node name="Card_alessandro" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_alessandro"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="SilhouetteContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_alessandro/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Silhouette" type="ColorRect" parent="MarginContainer/VBoxMain/GridCharacters/Card_alessandro/VBox/SilhouetteContainer"]
+custom_minimum_size = Vector2(80, 160)
+layout_mode = 2
+color = Color(0.08, 0.1, 0.16, 0.7)
+
+[node name="LockIcon" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_alessandro/VBox/SilhouetteContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🔒"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_alessandro/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "ALESSANDRO"
+horizontal_alignment = 1
+
+[node name="StatusTag" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_alessandro/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "BLOQUEADO"
+horizontal_alignment = 1
+
+[node name="SelectTag_alessandro" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_alessandro/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = " "
+horizontal_alignment = 1
+
+[node name="Card_andre" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="SilhouetteContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Silhouette" type="ColorRect" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox/SilhouetteContainer"]
+custom_minimum_size = Vector2(80, 160)
+layout_mode = 2
+color = Color(0.08, 0.1, 0.16, 0.7)
+
+[node name="LockIcon" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox/SilhouetteContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🔒"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "ANDRÉ"
+horizontal_alignment = 1
+
+[node name="StatusTag" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "BLOQUEADO"
+horizontal_alignment = 1
+
+[node name="SelectTag_andre" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = " "
+horizontal_alignment = 1
+
+[node name="Card_fernando" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_fernando"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="SilhouetteContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_fernando/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Silhouette" type="ColorRect" parent="MarginContainer/VBoxMain/GridCharacters/Card_fernando/VBox/SilhouetteContainer"]
+custom_minimum_size = Vector2(80, 160)
+layout_mode = 2
+color = Color(0.08, 0.1, 0.16, 0.7)
+
+[node name="LockIcon" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_fernando/VBox/SilhouetteContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🔒"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_fernando/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "FERNANDO"
+horizontal_alignment = 1
+
+[node name="StatusTag" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_fernando/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "BLOQUEADO"
+horizontal_alignment = 1
+
+[node name="SelectTag_fernando" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_fernando/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = " "
+horizontal_alignment = 1
+
+[node name="Card_gabriel" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="SilhouetteContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Silhouette" type="ColorRect" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox/SilhouetteContainer"]
+custom_minimum_size = Vector2(80, 160)
+layout_mode = 2
+color = Color(0.08, 0.1, 0.16, 0.7)
+
+[node name="LockIcon" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox/SilhouetteContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🔒"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "GABRIEL"
+horizontal_alignment = 1
+
+[node name="StatusTag" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "BLOQUEADO"
+horizontal_alignment = 1
+
+[node name="SelectTag_gabriel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = " "
+horizontal_alignment = 1
+
+[node name="Card_juliana" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="SilhouetteContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Silhouette" type="ColorRect" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox/SilhouetteContainer"]
+custom_minimum_size = Vector2(80, 160)
+layout_mode = 2
+color = Color(0.08, 0.1, 0.16, 0.7)
+
+[node name="LockIcon" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox/SilhouetteContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🔒"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "JULIANA"
+horizontal_alignment = 1
+
+[node name="StatusTag" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "BLOQUEADO"
+horizontal_alignment = 1
+
+[node name="SelectTag_juliana" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = " "
+horizontal_alignment = 1
+
+[node name="SelectedInfoLabel" type="Label" parent="MarginContainer/VBoxMain"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.94, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "HERÓI: GUILHERME // STATUS: DESBLOQUEADO (PRONTO PARA BATALHA)"
+horizontal_alignment = 1
+
+[node name="StatusNoticeLabel" type="Label" parent="MarginContainer/VBoxMain"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+text = "Selecione com as teclas direcionais e clique em Escolher Personagem"
+horizontal_alignment = 1
+
+[node name="BottomButtons" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="BtnBack" type="Button" parent="MarginContainer/VBoxMain/BottomButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "◀ VOLTAR AO MENU"
+
+[node name="BtnConfirm" type="Button" parent="MarginContainer/VBoxMain/BottomButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "ESCOLHER PERSONAGEM ▶"
