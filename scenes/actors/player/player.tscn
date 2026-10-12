@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/actors/player_controller.gd" id="1_player_script"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health_script"]
@@ -8,6 +8,9 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/walk2.png" id="6_walk2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/walk3.png" id="7_walk3"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/walk4.png" id="8_walk4"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_01.png" id="9_punch1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_02.png" id="10_punch2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_03.png" id="11_punch3"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
 radius = 8.0
@@ -45,6 +48,20 @@ animations = [{
 "loop": true,
 "name": &"walk",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("9_punch1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_punch2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_punch3")
+}],
+"loop": false,
+"name": &"punch",
+"speed": 10.0
 }]
 
 [node name="Player" type="CharacterBody2D"]

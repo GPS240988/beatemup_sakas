@@ -253,7 +253,15 @@ func test_player_scene_integration() -> void:
 	var player_instance: Node = player_scene.instantiate()
 	assert_test(player_instance is CharacterBody2D, "Player é um CharacterBody2D")
 	assert_test(player_instance.get_node_or_null("HealthComponent") != null, "Player possui HealthComponent")
-	assert_test(player_instance.get_node_or_null("MeleeAttack") != null, "Player possui MeleeAttack")
+	var anim_sprite: AnimatedSprite2D = player_instance.get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
+	assert_test(anim_sprite != null, "Player possui AnimatedSprite2D no nó Visual")
+	if anim_sprite != null and anim_sprite.sprite_frames != null:
+		var has_punch: bool = anim_sprite.sprite_frames.has_animation(&"punch")
+		assert_test(has_punch, "Player possui animacao 'punch' no SpriteFrames")
+		if has_punch:
+			var frame_count: int = anim_sprite.sprite_frames.get_frame_count(&"punch")
+			assert_test(frame_count == 3, "Animacao 'punch' possui exatamente 3 frames (punch_01, 02, 03)")
+			assert_test(not anim_sprite.sprite_frames.get_animation_loop(&"punch"), "Animacao 'punch' nao deve repetir em loop")
 	player_instance.free()
 
 

@@ -64,6 +64,15 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("attack"):
 		_try_attack()
 
+	# Se estiver executando o ataque, mantém os pés firmes no solo e não sobrescreve a animação
+	if melee_attack != null and melee_attack.is_attacking:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		if enable_manual_bounds:
+			_clamp_to_bounds()
+		player_moved.emit(global_position, velocity)
+		return
+
 	# Leitura do movimento dos eixos
 	var input_vector: Vector2 = _get_movement_input()
 	
@@ -131,8 +140,11 @@ func _clamp_to_bounds() -> void:
 
 ## Feedback visual quando o ataque inicia
 func _on_attack_started() -> void:
+	if anim_sprite != null:
+		anim_sprite.play("punch")
+		anim_sprite.frame = 0
 	if punch_visual != null:
-		punch_visual.visible = true
+		punch_visual.visible = false
 
 
 ## Feedback visual quando o ataque termina
@@ -141,6 +153,8 @@ func _on_attack_ended() -> void:
 		punch_visual.visible = false
 	if health_component != null and not health_component.is_dead:
 		state_changed.emit("Normal")
+		if anim_sprite != null and anim_sprite.animation == &"punch":
+			anim_sprite.play("idle")
 
 
 ## Feedback visual de dano sofrido
