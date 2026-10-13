@@ -262,6 +262,28 @@ func test_player_scene_integration() -> void:
 			var frame_count: int = anim_sprite.sprite_frames.get_frame_count(&"punch")
 			assert_test(frame_count == 3, "Animacao 'punch' possui exatamente 3 frames (punch_01, 02, 03)")
 			assert_test(not anim_sprite.sprite_frames.get_animation_loop(&"punch"), "Animacao 'punch' nao deve repetir em loop")
+
+		assert_test(anim_sprite.sprite_frames.has_animation(&"kick"), "Player possui animacao 'kick' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.get_frame_count(&"kick") == 3, "Animacao 'kick' possui 3 frames")
+
+		assert_test(anim_sprite.sprite_frames.has_animation(&"heavy"), "Player possui animacao 'heavy' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.get_frame_count(&"heavy") == 3, "Animacao 'heavy' possui 3 frames")
+
+		assert_test(anim_sprite.sprite_frames.has_animation(&"guard"), "Player possui animacao 'guard' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.has_animation(&"hurt"), "Player possui animacao 'hurt' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.get_frame_count(&"hurt") == 2, "Animacao 'hurt' possui 2 frames")
+
+		assert_test(anim_sprite.sprite_frames.has_animation(&"fall"), "Player possui animacao 'fall' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.get_frame_count(&"fall") == 3, "Animacao 'fall' possui 3 frames")
+
+		assert_test(anim_sprite.sprite_frames.has_animation(&"getup"), "Player possui animacao 'getup' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.has_animation(&"death"), "Player possui animacao 'death' no SpriteFrames")
+
+		assert_test(anim_sprite.sprite_frames.has_animation(&"jump"), "Player possui animacao 'jump' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.get_frame_count(&"jump") == 3, "Animacao 'jump' possui 3 frames")
+
+		assert_test(anim_sprite.sprite_frames.has_animation(&"jump_atk"), "Player possui animacao 'jump_atk' no SpriteFrames")
+		assert_test(anim_sprite.sprite_frames.get_frame_count(&"jump_atk") == 2, "Animacao 'jump_atk' possui 2 frames")
 	player_instance.free()
 
 

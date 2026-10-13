@@ -17,6 +17,10 @@ signal state_changed(new_state: String)
 @export var enable_manual_bounds: bool = false
 @export var walkable_bounds: Rect2 = Rect2(Vector2(60, 360), Vector2(1160, 260))
 
+## Parâmetros físicos do salto 2.5D
+@export var jump_force: float = 460.0
+@export var jump_gravity: float = 1350.0
+
 ## Referências internas
 @onready var visual_root: Node2D = $Visual
 @onready var anim_sprite: AnimatedSprite2D = $Visual/AnimatedSprite2D
@@ -26,6 +30,18 @@ signal state_changed(new_state: String)
 
 var facing_direction: float = 1.0
 var _hurt_timer: float = 0.0
+
+# Controle do sistema de combos (punch -> kick -> heavy)
+var _combo_step: int = 0
+var _combo_window_timer: float = 0.0
+var _current_attack_anim: StringName = &"punch"
+
+# Controle do salto vertical 2.5D (Visual se projeta para cima, mantendo os pés na colisão de solo)
+var _is_jumping: bool = false
+var _jump_v_velocity: float = 0.0
+
+# Controle de guarda
+var _is_guarding: bool = false
 
 
 func _ready() -> void:
@@ -60,12 +76,48 @@ func _physics_process(delta: float) -> void:
 		player_moved.emit(global_position, velocity)
 		return
 
-	# Comando de ataque
+	# Decrementa a janela de encadeamento de combo
+	if _combo_window_timer > 0.0:
+		_combo_window_timer -= delta
+		if _combo_window_timer <= 0.0 and (melee_attack == null or not melee_attack.is_attacking):
+			_combo_step = 0
+
+	# Processa física de salto 2.5D no nó Visual
+	if _is_jumping:
+		_jump_v_velocity += jump_gravity * delta
+		if visual_root != null:
+			visual_root.position.y += _jump_v_velocity * delta
+			if visual_root.position.y >= 0.0:
+				visual_root.position.y = 0.0
+				_is_jumping = false
+				_jump_v_velocity = 0.0
+				if melee_attack != null and not melee_attack.is_attacking:
+					_update_animation("idle")
+
+	# Leitura de comando de Guarda (apenas no chão e fora de ataque)
+	if not _is_jumping and (melee_attack == null or not melee_attack.is_attacking):
+		if Input.is_action_pressed("guard"):
+			_is_guarding = true
+			velocity = Vector2.ZERO
+			_update_animation("guard")
+			move_and_slide()
+			if enable_manual_bounds:
+				_clamp_to_bounds()
+			player_moved.emit(global_position, velocity)
+			return
+		else:
+			_is_guarding = false
+
+	# Leitura de comando de Salto
+	if Input.is_action_just_pressed("jump") and not _is_jumping and (melee_attack == null or not melee_attack.is_attacking):
+		_start_jump()
+
+	# Comando de ataque (ataque aéreo ou combo no solo)
 	if Input.is_action_just_pressed("attack"):
 		_try_attack()
 
-	# Se estiver executando o ataque, mantém os pés firmes no solo e não sobrescreve a animação
-	if melee_attack != null and melee_attack.is_attacking:
+	# Se estiver executando o ataque no solo, mantém os pés firmes no solo e não sobrescreve a animação
+	if melee_attack != null and melee_attack.is_attacking and not _is_jumping:
 		velocity = Vector2.ZERO
 		move_and_slide()
 		if enable_manual_bounds:
@@ -80,10 +132,12 @@ func _physics_process(delta: float) -> void:
 		velocity.x = input_vector.x * speed_x
 		velocity.y = input_vector.y * speed_y
 		_update_facing_direction(input_vector.x)
-		_update_animation("walk")
+		if not _is_jumping and (melee_attack == null or not melee_attack.is_attacking) and _hurt_timer <= 0.0:
+			_update_animation("walk")
 	else:
 		velocity = Vector2.ZERO
-		_update_animation("idle")
+		if not _is_jumping and (melee_attack == null or not melee_attack.is_attacking) and _hurt_timer <= 0.0:
+			_update_animation("idle")
 
 	move_and_slide()
 
@@ -93,13 +147,44 @@ func _physics_process(delta: float) -> void:
 	player_moved.emit(global_position, velocity)
 
 
-## Tenta desferir um golpe na direção atual
+## Inicia o salto 2.5D
+func _start_jump() -> void:
+	_is_jumping = true
+	_jump_v_velocity = -jump_force
+	_update_animation("jump")
+	state_changed.emit("Pulando")
+
+
+## Tenta desferir um golpe na direção atual (suporta combo no solo e voadora aérea)
 func _try_attack() -> void:
 	if melee_attack == null:
 		return
+
+	if _is_jumping:
+		# Ataque aéreo (voadora / jump kick)
+		var aerial_started: bool = melee_attack.execute_attack(facing_direction)
+		if aerial_started:
+			_current_attack_anim = &"jump_atk"
+			if anim_sprite != null:
+				anim_sprite.play("jump_atk")
+			state_changed.emit("Ataque Aéreo")
+		return
+
+	# Ataque no solo: combo encadeado de 3 fases (Soco -> Chute -> Ataque Pesado)
+	var chosen_anim: StringName = &"punch"
+	if _combo_step == 0:
+		chosen_anim = &"punch"
+	elif _combo_step == 1:
+		chosen_anim = &"kick"
+	else:
+		chosen_anim = &"heavy"
+
+	_current_attack_anim = chosen_anim
 	var started: bool = melee_attack.execute_attack(facing_direction)
 	if started:
-		state_changed.emit("Atacando")
+		state_changed.emit("Atacando (%s)" % chosen_anim)
+		_combo_step = (_combo_step + 1) % 3
+		_combo_window_timer = 0.55
 
 
 ## Lê e normaliza o vetor de entrada analógico ou digital dos eixos X e Y
@@ -141,7 +226,7 @@ func _clamp_to_bounds() -> void:
 ## Feedback visual quando o ataque inicia
 func _on_attack_started() -> void:
 	if anim_sprite != null:
-		anim_sprite.play("punch")
+		anim_sprite.play(_current_attack_anim)
 		anim_sprite.frame = 0
 	if punch_visual != null:
 		punch_visual.visible = false
@@ -153,15 +238,19 @@ func _on_attack_ended() -> void:
 		punch_visual.visible = false
 	if health_component != null and not health_component.is_dead:
 		state_changed.emit("Normal")
-		if anim_sprite != null and anim_sprite.animation == &"punch":
-			anim_sprite.play("idle")
+		if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
+			if not _is_jumping and not _is_guarding:
+				anim_sprite.play("idle")
 
 
 ## Feedback visual de dano sofrido
 func _on_damaged(_amount: float) -> void:
-	_hurt_timer = 0.18
+	_hurt_timer = 0.22
 	if visual_root != null:
 		visual_root.modulate = Color(2.0, 0.4, 0.4, 1.0)
+	if anim_sprite != null and not (health_component != null and health_component.is_dead):
+		anim_sprite.play("hurt")
+		anim_sprite.frame = 0
 	state_changed.emit("Sofreu Dano")
 
 
@@ -170,6 +259,8 @@ func _restore_visual_modulation() -> void:
 	if visual_root != null and (health_component == null or not health_component.is_dead):
 		visual_root.modulate = Color.WHITE
 		state_changed.emit("Normal")
+		if anim_sprite != null and anim_sprite.animation == &"hurt":
+			anim_sprite.play("idle")
 
 
 ## Reação ao estado de derrota
@@ -178,12 +269,12 @@ func _on_died() -> void:
 		melee_attack.cancel_attack()
 	if punch_visual != null:
 		punch_visual.visible = false
-	if anim_sprite != null:
-		anim_sprite.stop()
 	if visual_root != null:
-		visual_root.rotation_degrees = 90.0
-		visual_root.position.y = -10.0
-		visual_root.modulate = Color(0.5, 0.5, 0.5, 0.8)
+		visual_root.rotation_degrees = 0.0
+		visual_root.position.y = 0.0
+		visual_root.modulate = Color(0.85, 0.85, 0.9, 0.9)
+	if anim_sprite != null:
+		anim_sprite.play("death")
 	state_changed.emit("Derrotado")
 
 
@@ -193,7 +284,9 @@ func _ensure_fallback_inputs() -> void:
 	_register_key_if_missing("move_right", KEY_D, KEY_RIGHT)
 	_register_key_if_missing("move_up", KEY_W, KEY_UP)
 	_register_key_if_missing("move_down", KEY_S, KEY_DOWN)
-	_register_key_if_missing("attack", KEY_J, KEY_SPACE)
+	_register_key_if_missing("attack", KEY_J, KEY_Z)
+	_register_key_if_missing("jump", KEY_K, KEY_SPACE)
+	_register_key_if_missing("guard", KEY_L, KEY_SHIFT)
 	_register_key_if_missing("restart", KEY_R, KEY_NONE)
 
 

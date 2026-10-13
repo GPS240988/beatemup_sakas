@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=36 format=3]
 
 [ext_resource type="Script" path="res://scripts/actors/player_controller.gd" id="1_player_script"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health_script"]
@@ -11,6 +11,26 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_01.png" id="9_punch1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_02.png" id="10_punch2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_03.png" id="11_punch3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/kick_01.png" id="12_kick1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/kick_02.png" id="13_kick2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/kick_03.png" id="14_kick3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/heavy_01.png" id="15_heavy1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/heavy_02.png" id="16_heavy2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/heavy_03.png" id="17_heavy3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/guard.png" id="18_guard"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/hurt_01.png" id="19_hurt1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/hurt_02.png" id="20_hurt2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/fall_01.png" id="21_fall1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/fall_02.png" id="22_fall2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/fall_03.png" id="23_fall3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/getup_01.png" id="24_getup1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/getup_02.png" id="25_getup2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/death.png" id="26_death"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_01.png" id="27_jump1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_02.png" id="28_jump2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_03.png" id="29_jump3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_atk_01.png" id="30_jumpatk1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_atk_02.png" id="31_jumpatk2"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
 radius = 8.0
@@ -61,6 +81,111 @@ animations = [{
 }],
 "loop": false,
 "name": &"punch",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("12_kick1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_kick2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_kick3")
+}],
+"loop": false,
+"name": &"kick",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("15_heavy1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_heavy2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_heavy3")
+}],
+"loop": false,
+"name": &"heavy",
+"speed": 9.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("18_guard")
+}],
+"loop": true,
+"name": &"guard",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("19_hurt1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_hurt2")
+}],
+"loop": false,
+"name": &"hurt",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("21_fall1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_fall2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_fall3")
+}],
+"loop": false,
+"name": &"fall",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("24_getup1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_getup2")
+}],
+"loop": false,
+"name": &"getup",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("26_death")
+}],
+"loop": false,
+"name": &"death",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("27_jump1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_jump2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29_jump3")
+}],
+"loop": false,
+"name": &"jump",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("30_jumpatk1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_jumpatk2")
+}],
+"loop": false,
+"name": &"jump_atk",
 "speed": 10.0
 }]
 
