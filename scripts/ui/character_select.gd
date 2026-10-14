@@ -1,33 +1,43 @@
 class_name CharacterSelectMenu
 extends Control
 
-## Tela de Seleção de Personagens com estética Cyberpunk Neon.
-## Permite selecionar Guilherme e exibe os outros 5 personagens bloqueados.
+## Tela de Seleção de Personagem com arte de fundo selecao_personagem.jpg.
+## Apresenta Guilherme desbloqueado com atributos (Força 3, Velocidade 2, Técnica 3),
+## e os demais heróis bloqueados. Ao confirmar, inicia a Fase 1.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
-const SKIN_SELECT_SCENE: String = "res://scenes/ui/skin_select.tscn"
+const FIRST_LEVEL_SCENE: String = "res://scenes/levels/test_street.tscn"
 
-@onready var grid_container: GridContainer = %GridCharacters
+@onready var background_slot: TextureRect = %BackgroundSlot
+@onready var grid_container: Control = %GridCharacters
 @onready var btn_confirm: Button = %BtnConfirm
 @onready var btn_back: Button = %BtnBack
 @onready var status_label: Label = %StatusNoticeLabel
-@onready var selected_info_label: Label = %SelectedInfoLabel
+@onready var stat_forca_label: Label = %StatForcaLabel
+@onready var stat_vel_label: Label = %StatVelLabel
+@onready var stat_tec_label: Label = %StatTecLabel
 
 var current_hover_id: String = "guilherme"
 var card_nodes: Dictionary = {}
 
 
 func _ready() -> void:
+	if background_slot != null and background_slot.texture == null:
+		var bg_tex = load("res://assets/backgrounds/selecao_personagem.jpg")
+		if bg_tex != null:
+			background_slot.texture = bg_tex
+		background_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	if btn_confirm != null:
-		NeonThemeBuilder.style_neon_button(btn_confirm, NeonThemeBuilder.COLOR_CYAN)
+		NeonThemeBuilder.style_neon_button(btn_confirm, Color(0.9, 0.1, 0.25, 1.0))
 		btn_confirm.pressed.connect(_on_confirm_pressed)
 
 	if btn_back != null:
-		NeonThemeBuilder.style_neon_button(btn_back, NeonThemeBuilder.COLOR_MAGENTA)
+		NeonThemeBuilder.style_neon_button(btn_back, Color(0.2, 0.3, 0.45, 1.0))
 		btn_back.pressed.connect(_on_back_pressed)
 
 	_setup_character_cards()
-	_update_selection_visuals("guilherme")
+	_update_stats_display("guilherme")
 
 
 func _setup_character_cards() -> void:
@@ -42,34 +52,11 @@ func _setup_character_cards() -> void:
 			card_btn.pressed.connect(func(): _on_card_clicked(char_id))
 			card_btn.focus_entered.connect(func(): _on_card_focused(char_id))
 
-	# Foca no primeiro cartão (Guilherme)
 	if card_nodes.has("guilherme"):
 		card_nodes["guilherme"].grab_focus()
 
 
 func _on_card_clicked(char_id: String) -> void:
-	var game_session = get_node_or_null("/root/GameSession")
-	var is_unlocked: bool = false
-	if game_session != null:
-		is_unlocked = game_session.is_character_unlocked(char_id)
-	else:
-		is_unlocked = (char_id == "guilherme")
-
-	if is_unlocked:
-		current_hover_id = char_id
-		_update_selection_visuals(char_id)
-		if status_label != null:
-			status_label.text = "Personagem selecionado: " + char_id.capitalize()
-			status_label.modulate = NeonThemeBuilder.COLOR_CYAN
-	else:
-		# Não permite confirmar nem selecionar personagem bloqueado
-		_update_selection_visuals(current_hover_id)
-		if status_label != null:
-			status_label.text = "⚠️ " + char_id.capitalize() + " está BLOQUEADO. Selecione um guerreiro disponível."
-			status_label.modulate = NeonThemeBuilder.COLOR_MAGENTA
-
-
-func _on_card_focused(char_id: String) -> void:
 	var game_session = get_node_or_null("/root/GameSession")
 	var is_unlocked: bool = (char_id == "guilherme")
 	if game_session != null:
@@ -77,64 +64,68 @@ func _on_card_focused(char_id: String) -> void:
 
 	if is_unlocked:
 		current_hover_id = char_id
-		_update_selection_visuals(char_id)
+		_update_stats_display(char_id)
+		if status_label != null:
+			status_label.text = "Guerreiro Selecionado: Guilherme (Disponível)"
+			status_label.modulate = Color(1.0, 0.84, 0.0, 1.0)
+	else:
+		if status_label != null:
+			status_label.text = "⚠️ %s está BLOQUEADO no momento. Apenas Guilherme está disponível." % char_id.capitalize()
+			status_label.modulate = Color(0.9, 0.2, 0.3, 1.0)
 
 
-func _update_selection_visuals(active_id: String) -> void:
+func _on_card_focused(char_id: String) -> void:
+	_on_card_clicked(char_id)
+
+
+func _update_stats_display(char_id: String) -> void:
 	var game_session = get_node_or_null("/root/GameSession")
-	var characters_dict: Dictionary = GameSessionClass.CHARACTERS if game_session == null else game_session.CHARACTERS
+	var stats: Dictionary = {"strength": 3, "speed": 2, "technique": 3}
+	if game_session != null and game_session.has_method("get_character_stats"):
+		stats = game_session.get_character_stats(char_id)
 
-	for char_id in card_nodes.keys():
-		var btn: Button = card_nodes[char_id]
-		var is_selected: bool = (char_id == active_id)
-		var is_unlocked: bool = characters_dict[char_id].get("unlocked", false)
+	var forca: int = int(stats.get("strength", 3))
+	var vel: int = int(stats.get("speed", 2))
+	var tec: int = int(stats.get("technique", 3))
 
-		var style := NeonThemeBuilder.create_card_style(is_selected, not is_unlocked, NeonThemeBuilder.COLOR_CYAN)
-		btn.add_theme_stylebox_override("normal", style)
-		btn.add_theme_stylebox_override("hover", style)
-		btn.add_theme_stylebox_override("pressed", style)
-		btn.add_theme_stylebox_override("focus", style)
+	if stat_forca_label != null:
+		stat_forca_label.text = "FORÇA:      " + _generate_bar_string(forca)
+	if stat_vel_label != null:
+		stat_vel_label.text = "VELOCIDADE: " + _generate_bar_string(vel)
+	if stat_tec_label != null:
+		stat_tec_label.text = "TÉCNICA:    " + _generate_bar_string(tec)
 
-		# Atualiza rótulo de seleção dentro do cartão
-		var sel_tag: Label = btn.get_node_or_null("%SelectTag_" + char_id) as Label
-		if sel_tag != null:
-			sel_tag.visible = is_selected
-
-	# Atualiza informações do painel inferior
-	if selected_info_label != null and characters_dict.has(active_id):
-		var char_data: Dictionary = characters_dict[active_id]
-		selected_info_label.text = "HERÓI: %s // STATUS: %s" % [
-			char_data.get("name", active_id),
-			"DESBLOQUEADO (PRONTO PARA BATALHA)" if char_data.get("unlocked", false) else "BLOQUEADO"
-		]
-
-	# Habilita o botão de confirmação apenas se o personagem estiver desbloqueado
 	if btn_confirm != null:
-		btn_confirm.disabled = (active_id != "guilherme")
+		btn_confirm.disabled = (char_id != "guilherme")
+		btn_confirm.text = "⚡ ESCOLHER GUILHERME — INICIAR FASE 1" if char_id == "guilherme" else "BLOQUEADO"
+
+
+func _generate_bar_string(val: int) -> String:
+	var result: String = ""
+	for i in range(5):
+		if i < val:
+			result += "■ "
+		else:
+			result += "□ "
+	return result.strip_edges()
 
 
 func _on_confirm_pressed() -> void:
-	var game_session = get_node_or_null("/root/GameSession")
-	var success: bool = false
-	if game_session != null:
-		success = game_session.select_character(current_hover_id)
-	else:
-		success = (current_hover_id == "guilherme")
+	if current_hover_id != "guilherme":
+		return
 
-	if success:
-		var err := get_tree().change_scene_to_file(SKIN_SELECT_SCENE)
-		if err != OK:
-			printerr("Erro ao carregar tela de skins: ", err)
-	else:
-		if status_label != null:
-			status_label.text = "Não é possível confirmar um personagem bloqueado!"
-			status_label.modulate = NeonThemeBuilder.COLOR_MAGENTA
+	var game_session = get_node_or_null("/root/GameSession")
+	if game_session != null:
+		game_session.select_character("guilherme")
+
+	# Direciona imediatamente para a primeira fase
+	var err := get_tree().change_scene_to_file(FIRST_LEVEL_SCENE)
+	if err != OK:
+		printerr("Erro ao carregar a Fase 1: ", err)
 
 
 func _on_back_pressed() -> void:
-	var err := get_tree().change_scene_to_file(MAIN_MENU_SCENE)
-	if err != OK:
-		printerr("Erro ao retornar ao menu: ", err)
+	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
 func _unhandled_input(event: InputEvent) -> void:

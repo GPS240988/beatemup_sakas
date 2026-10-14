@@ -1,0 +1,73 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/title_screen.gd" id="1_title_script"]
+[ext_resource type="VideoStream" path="res://assets/backgrounds/maingif.ogv" id="2_main_ogv"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maingif_frame0.png" id="3_fallback_tex"]
+
+[node name="TitleScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_title_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.01, 0.02, 1)
+
+[node name="AspectWrapper" type="AspectRatioContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+ratio = 1.347826
+stretch_mode = 2
+
+[node name="BackgroundFallback" type="TextureRect" parent="AspectWrapper"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("3_fallback_tex")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VideoPlayer" type="VideoStreamPlayer" parent="AspectWrapper"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+stream = ExtResource("2_main_ogv")
+autoplay = true
+expand = true
+loop = true
+
+[node name="TouchButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+flat = true
+
+[node name="FlashRect" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)

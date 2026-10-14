@@ -23,37 +23,55 @@ const CHARACTERS: Dictionary = {
 		"name": "Guilherme",
 		"title": "O Guerreiro de Sakas",
 		"unlocked": true,
-		"preview_path": "res://assets/sprites/characters/guilherme/idle.png"
-	},
-	"alessandro": {
-		"name": "Alessandro",
-		"title": "Cibernético",
-		"unlocked": false,
-		"preview_path": ""
-	},
-	"andre": {
-		"name": "André",
-		"title": "Especialista em Chutes",
-		"unlocked": false,
-		"preview_path": ""
-	},
-	"fernando": {
-		"name": "Fernando",
-		"title": "Lutador Brutal",
-		"unlocked": false,
-		"preview_path": ""
+		"preview_path": "res://assets/sprites/characters/guilherme/idle.png",
+		"strength": 3,
+		"speed": 2,
+		"technique": 3
 	},
 	"gabriel": {
 		"name": "Gabriel",
 		"title": "Lâmina Veloz",
 		"unlocked": false,
-		"preview_path": ""
+		"preview_path": "",
+		"strength": 2,
+		"speed": 4,
+		"technique": 4
+	},
+	"andre": {
+		"name": "André",
+		"title": "Especialista em Chutes",
+		"unlocked": false,
+		"preview_path": "",
+		"strength": 4,
+		"speed": 2,
+		"technique": 3
 	},
 	"juliana": {
 		"name": "Juliana",
 		"title": "Mestre da Fúria",
 		"unlocked": false,
-		"preview_path": ""
+		"preview_path": "",
+		"strength": 3,
+		"speed": 3,
+		"technique": 5
+	},
+	"alessandro": {
+		"name": "Alessandro",
+		"title": "Cibernético",
+		"unlocked": false,
+		"preview_path": "",
+		"strength": 3,
+		"speed": 3,
+		"technique": 3
+	},
+	"fernando": {
+		"name": "Fernando",
+		"title": "Lutador Brutal",
+		"unlocked": false,
+		"preview_path": "",
+		"strength": 5,
+		"speed": 1,
+		"technique": 2
 	}
 }
 
@@ -148,3 +166,36 @@ func select_difficulty_and_start(diff_id: String) -> bool:
 	# Troca de cena para a Fase 1 existente
 	var err := get_tree().change_scene_to_file(FIRST_LEVEL_PATH)
 	return err == OK
+
+
+## Retorna o dicionário de atributos do personagem
+func get_character_stats(char_id: String) -> Dictionary:
+	if CHARACTERS.has(char_id):
+		var char_data: Dictionary = CHARACTERS[char_id]
+		return {
+			"strength": int(char_data.get("strength", 3)),
+			"speed": int(char_data.get("speed", 2)),
+			"technique": int(char_data.get("technique", 3))
+		}
+	return {"strength": 3, "speed": 2, "technique": 3}
+
+
+## Multiplicador de dano derivado de Força (Base 3 = 1.0)
+func get_strength_multiplier(char_id: String) -> float:
+	var stats: Dictionary = get_character_stats(char_id)
+	var str_val: float = float(stats.get("strength", 3))
+	return 0.70 + (str_val * 0.10)
+
+
+## Multiplicador de velocidade derivado de Velocidade (Base 2 = 1.0)
+func get_speed_multiplier(char_id: String) -> float:
+	var stats: Dictionary = get_character_stats(char_id)
+	var spd_val: float = float(stats.get("speed", 2))
+	return 0.70 + (spd_val * 0.15)
+
+
+## Multiplicador técnico (alcance de combo e janela de acerto, Base 3 = 1.0)
+func get_technique_multiplier(char_id: String) -> float:
+	var stats: Dictionary = get_character_stats(char_id)
+	var tec_val: float = float(stats.get("technique", 3))
+	return 0.70 + (tec_val * 0.10)

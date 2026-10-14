@@ -62,6 +62,36 @@ func _ready() -> void:
 	if anim_sprite != null:
 		anim_sprite.play("idle")
 
+	_apply_character_stat_modifiers()
+
+
+## Aplica os modificadores de Força, Velocidade e Técnica da sessão
+func _apply_character_stat_modifiers() -> void:
+	var session = get_node_or_null("/root/GameSession")
+	var char_id: String = "guilherme"
+	if session != null and "selected_character_id" in session:
+		char_id = session.selected_character_id
+
+	var str_mult: float = 1.0
+	var spd_mult: float = 1.0
+	var tec_mult: float = 1.0
+
+	if session != null and session.has_method("get_strength_multiplier"):
+		str_mult = session.get_strength_multiplier(char_id)
+		spd_mult = session.get_speed_multiplier(char_id)
+		tec_mult = session.get_technique_multiplier(char_id)
+
+	# Aplica modificadores de velocidade de locomoção
+	speed_x *= spd_mult
+	speed_y *= spd_mult
+
+	# Aplica modificadores de combate
+	if melee_attack != null:
+		melee_attack.damage *= str_mult
+		melee_attack.depth_tolerance *= tec_mult
+		if tec_mult > 0.0:
+			melee_attack.attack_cooldown /= tec_mult
+
 
 func _physics_process(delta: float) -> void:
 	if _hurt_timer > 0.0:

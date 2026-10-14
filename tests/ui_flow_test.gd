@@ -27,6 +27,7 @@ func _run_all_tests() -> void:
 	print("==================================================")
 
 	test_game_session_state_and_rules()
+	test_title_screen_scene()
 	test_main_menu_scene()
 	test_credits_scene()
 	test_character_select_scene()
@@ -86,6 +87,25 @@ func test_game_session_state_and_rules() -> void:
 	session.free()
 
 
+func test_title_screen_scene() -> void:
+	print("\n--- Testando Cena de Título Animada (title_screen.tscn) ---")
+	var scene: PackedScene = load("res://scenes/ui/title_screen.tscn")
+	assert_test(scene != null, "Cena title_screen.tscn carregada com sucesso")
+
+	var instance: Node = scene.instantiate()
+	assert_test(instance is Control, "TitleScreen é um nó Control")
+
+	var video: VideoStreamPlayer = instance.get_node_or_null("%VideoPlayer") as VideoStreamPlayer
+	assert_test(video != null, "VideoPlayer existe na cena de título animada")
+	if video != null:
+		assert_test(video.stream != null, "VideoPlayer possui stream animado oficial (maingif.ogv)")
+
+	var touch_btn: Button = instance.get_node_or_null("%TouchButton") as Button
+	assert_test(touch_btn != null, "Botão de toque mobile/desktop existe")
+
+	instance.free()
+
+
 func test_main_menu_scene() -> void:
 	print("\n--- Testando Cena do Menu Principal (main_menu.tscn) ---")
 	var scene: PackedScene = load("res://scenes/ui/main_menu.tscn")
@@ -98,7 +118,7 @@ func test_main_menu_scene() -> void:
 	var bg_slot: TextureRect = instance.get_node_or_null("%BackgroundSlot") as TextureRect
 	assert_test(bg_slot != null, "BackgroundSlot existe na cena")
 	if bg_slot != null:
-		assert_test(bg_slot.texture == null, "BackgroundSlot possui textura VAZIA (nenhuma imagem artificial atribuída)")
+		assert_test(bg_slot.texture != null, "BackgroundSlot possui textura oficial (menu.jpg)")
 		assert_test(bg_slot.mouse_filter == Control.MOUSE_FILTER_IGNORE, "BackgroundSlot não intercepta eventos do mouse")
 
 	# Botões
@@ -108,8 +128,8 @@ func test_main_menu_scene() -> void:
 	var btn_cont: Button = instance.get_node_or_null("%BtnContinue") as Button
 	assert_test(btn_cont != null and btn_cont.disabled, "Botão Continuar existe e está DESABILITADO")
 
-	var btn_cred: Button = instance.get_node_or_null("%BtnCredits") as Button
-	assert_test(btn_cred != null and not btn_cred.disabled, "Botão Créditos existe e está HABILITADO")
+	var btn_char: Button = instance.get_node_or_null("%BtnCharSelect") as Button
+	assert_test(btn_char != null and not btn_char.disabled, "Botão Seleção de Personagens existe e está HABILITADO")
 
 	instance.free()
 
