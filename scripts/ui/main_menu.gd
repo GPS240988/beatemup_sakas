@@ -9,12 +9,12 @@ const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const CREDITS_SCENE: String = "res://scenes/ui/credits.tscn"
 
 const STATE_TEXTURES: Array[String] = [
-	"res://assets/backgrounds/menu_states/menu_state_0.png", # 0: Novo Jogo
-	"res://assets/backgrounds/menu_states/menu_state_1.png", # 1: Continuar
-	"res://assets/backgrounds/menu_states/menu_state_2.png", # 2: Seleção de Personagens
-	"res://assets/backgrounds/menu_states/menu_state_3.png", # 3: Mapa
-	"res://assets/backgrounds/menu_states/menu_state_4.png", # 4: Configurações
-	"res://assets/backgrounds/menu_states/menu_state_5.png"  # 5: Sair
+	"res://assets/backgrounds/menu_states/menu_state_0.webp", # 0: Novo Jogo
+	"res://assets/backgrounds/menu_states/menu_state_1.webp", # 1: Continuar
+	"res://assets/backgrounds/menu_states/menu_state_2.webp", # 2: Seleção de Personagens
+	"res://assets/backgrounds/menu_states/menu_state_3.webp", # 3: Mapa
+	"res://assets/backgrounds/menu_states/menu_state_4.webp", # 4: Configurações
+	"res://assets/backgrounds/menu_states/menu_state_5.webp"  # 5: Sair
 ]
 
 @onready var background_slot: TextureRect = %BackgroundSlot
@@ -49,6 +49,12 @@ func _load_state_textures() -> void:
 	_textures.clear()
 	for path in STATE_TEXTURES:
 		var tex = load(path) as Texture2D
+		if tex == null:
+			var global_p = ProjectSettings.globalize_path(path)
+			if FileAccess.file_exists(global_p):
+				var img = Image.load_from_file(global_p)
+				if img != null:
+					tex = ImageTexture.create_from_image(img)
 		if tex != null:
 			_textures.append(tex)
 		else:
@@ -80,16 +86,21 @@ func _setup_hitboxes() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_S or event.keycode == KEY_DOWN)):
 		_move_selection(1)
-		get_viewport().set_input_as_handled()
+		_safe_handle_input()
 	elif event.is_action_pressed("ui_up") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_W or event.keycode == KEY_UP)):
 		_move_selection(-1)
-		get_viewport().set_input_as_handled()
+		_safe_handle_input()
 	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)):
+		_safe_handle_input()
 		_activate_option(_current_index)
-		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
+		_safe_handle_input()
 		_play_sound(_sfx_denied)
 		get_tree().change_scene_to_file(TITLE_SCREEN_SCENE)
+
+
+func _safe_handle_input() -> void:
+	if get_viewport() != null:
 		get_viewport().set_input_as_handled()
 
 
@@ -109,10 +120,10 @@ func _on_button_clicked(index: int) -> void:
 	_activate_option(index)
 
 
-func _set_selected_index(new_idx: int, _play_sfx: bool = false) -> void:
-	_current_index = new_idx
-	if background_slot != null and new_idx < _textures.size() and _textures[new_idx] != null:
-		background_slot.texture = _textures[new_idx]
+func _set_selected_index(new_idx: int, _animate: bool = false) -> void:
+	_current_index = clampi(new_idx, 0, 5)
+	if background_slot != null and _current_index < _textures.size() and _textures[_current_index] != null:
+		background_slot.texture = _textures[_current_index]
 
 
 func _activate_option(index: int) -> void:

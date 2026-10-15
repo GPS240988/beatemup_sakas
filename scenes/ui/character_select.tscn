@@ -1,48 +1,57 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/character_select.gd" id="1_char_select_script"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/selecao_personagem.jpg" id="2_select_bg"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="3_guilherme_idle"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/background_16_9.png" id="2_select_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/title_banner.png" id="3_title_banner"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/card_guilherme.png" id="4_card_guilherme"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/card_gabriel.png" id="5_card_gabriel"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/card_andre.png" id="6_card_andre"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/card_juliana.png" id="7_card_juliana"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/selection_frame.png" id="8_selection_frame"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/stats_guilherme.webp" id="9_stats_gui"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="10_guilherme_idle"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_active_card"]
-bg_color = Color(0.1, 0.02, 0.04, 0.45)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.15, 0.25, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-shadow_color = Color(1, 0.15, 0.25, 0.5)
-shadow_size = 12
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_card"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_locked_card"]
-bg_color = Color(0.04, 0.04, 0.07, 0.6)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.3, 0.35, 0.45, 0.5)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stats_box"]
-bg_color = Color(0.03, 0.03, 0.06, 0.85)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_confirm"]
+bg_color = Color(0.85, 0.12, 0.22, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.9, 0.2, 0.3, 0.7)
+border_color = Color(1, 0.4, 0.45, 1)
 corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
-shadow_color = Color(0.9, 0.2, 0.3, 0.25)
-shadow_size = 10
+shadow_color = Color(0.9, 0.1, 0.25, 0.5)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_back"]
+bg_color = Color(0.1, 0.12, 0.18, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.42, 0.55, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.4)
+shadow_size = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lock_badge"]
+bg_color = Color(0.04, 0.04, 0.08, 0.75)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6, 0.2, 0.25, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="CharacterSelect" type="Control"]
 layout_mode = 3
@@ -60,7 +69,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.02, 0.04, 1)
+color = Color(0.015, 0.015, 0.03, 1)
 
 [node name="BackgroundSlot" type="TextureRect" parent="."]
 unique_name_in_owner = true
@@ -75,265 +84,328 @@ texture = ExtResource("2_select_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="AspectWrapper" type="AspectRatioContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 25
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 20
+ratio = 1.777778
+stretch_mode = 2
 
-[node name="VBoxMain" type="VBoxContainer" parent="MarginContainer"]
+[node name="LayoutRoot" type="Control" parent="AspectWrapper"]
 layout_mode = 2
-theme_override_constants/separation = 12
 
-[node name="HeaderContainer" type="VBoxContainer" parent="MarginContainer/VBoxMain"]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.95, 1)
-theme_override_colors/font_shadow_color = Color(0.9, 0.1, 0.25, 0.8)
-theme_override_constants/shadow_offset_x = 0
-theme_override_constants/shadow_offset_y = 0
-theme_override_constants/shadow_outline_size = 10
-theme_override_font_sizes/font_size = 32
-text = "SELEÇÃO DE PERSONAGEM"
-horizontal_alignment = 1
-
-[node name="StatusNoticeLabel" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.84, 0, 1)
-theme_override_font_sizes/font_size = 14
-text = "Guerreiro Selecionado: Guilherme (Disponível)"
-horizontal_alignment = 1
-
-[node name="GridCharacters" type="GridContainer" parent="MarginContainer/VBoxMain"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/h_separation = 14
-theme_override_constants/v_separation = 10
-columns = 6
-
-[node name="Card_guilherme" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_active_card")
-theme_override_styles/hover = SubResource("StyleBoxFlat_active_card")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_active_card")
-theme_override_styles/focus = SubResource("StyleBoxFlat_active_card")
-
-[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme"]
+[node name="TopBannerBox" type="CenterContainer" parent="AspectWrapper/LayoutRoot"]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
+offset_top = 15.0
+offset_bottom = 105.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 8
 
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox"]
+[node name="TitleBanner" type="TextureRect" parent="AspectWrapper/LayoutRoot/TopBannerBox"]
+custom_minimum_size = Vector2(560, 90)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
-theme_override_font_sizes/font_size = 16
-text = "GUILHERME"
-horizontal_alignment = 1
-
-[node name="PreviewContainer" type="Control" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="PreviewImg" type="TextureRect" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox/PreviewContainer"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("3_guilherme_idle")
+mouse_filter = 2
+texture = ExtResource("3_title_banner")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TagLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_guilherme/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
-theme_override_font_sizes/font_size = 12
-text = "DISPONÍVEL"
-horizontal_alignment = 1
+[node name="CenterCardsBox" type="CenterContainer" parent="AspectWrapper/LayoutRoot"]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -245.0
+offset_bottom = 145.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Card_gabriel" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+[node name="GridCharacters" type="GridContainer" parent="AspectWrapper/LayoutRoot/CenterCardsBox"]
+unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_locked_card")
+theme_override_constants/h_separation = 22
+columns = 4
 
-[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel"]
+[node name="Card_guilherme" type="Button" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters"]
+custom_minimum_size = Vector2(165, 380)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_card")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_card")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_card")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_card")
+
+[node name="Art" type="TextureRect" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_guilherme"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
+mouse_filter = 2
+texture = ExtResource("4_card_guilherme")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
-theme_override_font_sizes/font_size = 15
-text = "GABRIEL"
-horizontal_alignment = 1
-
-[node name="LockLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_gabriel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.25, 0.25, 1)
-theme_override_font_sizes/font_size = 12
-text = "BLOQUEADO"
-horizontal_alignment = 1
-
-[node name="Card_andre" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_locked_card")
-
-[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre"]
+[node name="VBox" type="VBoxContainer" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_guilherme"]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
 
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox"]
+[node name="PreviewContainer" type="Control" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_guilherme/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
-theme_override_font_sizes/font_size = 15
-text = "ANDRÉ"
-horizontal_alignment = 1
 
-[node name="LockLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_andre/VBox"]
+[node name="PreviewImg" type="TextureRect" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_guilherme/VBox/PreviewContainer"]
+layout_mode = 0
+texture = ExtResource("10_guilherme_idle")
+
+[node name="Card_gabriel" type="Button" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters"]
+custom_minimum_size = Vector2(165, 380)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.25, 0.25, 1)
-theme_override_font_sizes/font_size = 12
-text = "BLOQUEADO"
-horizontal_alignment = 1
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_card")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_card")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_card")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_card")
 
-[node name="Card_juliana" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/normal = SubResource("StyleBoxFlat_locked_card")
-
-[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana"]
+[node name="Art" type="TextureRect" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_gabriel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
+mouse_filter = 2
+texture = ExtResource("5_card_gabriel")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox"]
+[node name="LockBadge" type="PanelContainer" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_gabriel"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -55.0
+offset_top = -34.0
+offset_right = 55.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lock_badge")
+
+[node name="LockText" type="Label" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_gabriel/LockBadge"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
-theme_override_font_sizes/font_size = 15
-text = "JULIANA"
+theme_override_colors/font_color = Color(0.9, 0.35, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "🔒 BLOQUEADO"
 horizontal_alignment = 1
 
-[node name="LockLabel" type="Label" parent="MarginContainer/VBoxMain/GridCharacters/Card_juliana/VBox"]
+[node name="Card_andre" type="Button" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters"]
+custom_minimum_size = Vector2(165, 380)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.25, 0.25, 1)
-theme_override_font_sizes/font_size = 12
-text = "BLOQUEADA"
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_card")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_card")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_card")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_card")
+
+[node name="Art" type="TextureRect" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_andre"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_card_andre")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LockBadge" type="PanelContainer" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_andre"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -55.0
+offset_top = -34.0
+offset_right = 55.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lock_badge")
+
+[node name="LockText" type="Label" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_andre/LockBadge"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.35, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "🔒 BLOQUEADO"
 horizontal_alignment = 1
 
-[node name="Card_alessandro" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+[node name="Card_juliana" type="Button" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters"]
+custom_minimum_size = Vector2(165, 380)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_card")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_card")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_card")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_card")
+
+[node name="Art" type="TextureRect" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_juliana"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("7_card_juliana")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LockBadge" type="PanelContainer" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_juliana"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -55.0
+offset_top = -34.0
+offset_right = 55.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lock_badge")
+
+[node name="LockText" type="Label" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters/Card_juliana/LockBadge"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.35, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "🔒 BLOQUEADA"
+horizontal_alignment = 1
+
+[node name="Card_alessandro" type="Button" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters"]
 visible = false
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
 
-[node name="Card_fernando" type="Button" parent="MarginContainer/VBoxMain/GridCharacters"]
+[node name="Card_fernando" type="Button" parent="AspectWrapper/LayoutRoot/CenterCardsBox/GridCharacters"]
 visible = false
 layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
 
-[node name="StatsAndActions" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
-layout_mode = 2
-theme_override_constants/separation = 25
-
-[node name="StatsPanel" type="PanelContainer" parent="MarginContainer/VBoxMain/StatsAndActions"]
-custom_minimum_size = Vector2(380, 0)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_stats_box")
-
-[node name="MarginStats" type="MarginContainer" parent="MarginContainer/VBoxMain/StatsAndActions/StatsPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 12
-
-[node name="VBoxStats" type="VBoxContainer" parent="MarginContainer/VBoxMain/StatsAndActions/StatsPanel/MarginStats"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HeaderStats" type="Label" parent="MarginContainer/VBoxMain/StatsAndActions/StatsPanel/MarginStats/VBoxStats"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 14
-text = "📊 ATRIBUTOS DE COMBATE"
-
-[node name="StatForcaLabel" type="Label" parent="MarginContainer/VBoxMain/StatsAndActions/StatsPanel/MarginStats/VBoxStats"]
+[node name="SelectionFrame" type="TextureRect" parent="AspectWrapper/LayoutRoot"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.2, 0.3, 1)
-theme_override_font_sizes/font_size = 15
-text = "FORÇA:      ■ ■ ■ □ □"
+layout_mode = 0
+offset_right = 197.0
+offset_bottom = 412.0
+mouse_filter = 2
+texture = ExtResource("8_selection_frame")
+expand_mode = 1
 
-[node name="StatVelLabel" type="Label" parent="MarginContainer/VBoxMain/StatsAndActions/StatsPanel/MarginStats/VBoxStats"]
+[node name="BottomArea" type="MarginContainer" parent="AspectWrapper/LayoutRoot"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -175.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/margin_left = 60
+theme_override_constants/margin_right = 60
+
+[node name="HBoxBottom" type="HBoxContainer" parent="AspectWrapper/LayoutRoot/BottomArea"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="StatsTextureRect" type="TextureRect" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 145)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.3, 0.4, 1)
-theme_override_font_sizes/font_size = 15
-text = "VELOCIDADE: ■ ■ □ □ □"
+mouse_filter = 2
+texture = ExtResource("9_stats_gui")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="StatTecLabel" type="Label" parent="MarginContainer/VBoxMain/StatsAndActions/StatsPanel/MarginStats/VBoxStats"]
+[node name="StatLabelsCompatibility" type="Control" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/StatsTextureRect"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="StatForcaLabel" type="Label" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/StatsTextureRect/StatLabelsCompatibility"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.2, 0.3, 1)
-theme_override_font_sizes/font_size = 15
-text = "TÉCNICA:    ■ ■ ■ □ □"
+layout_mode = 0
 
-[node name="ButtonsVBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/StatsAndActions"]
+[node name="StatVelLabel" type="Label" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/StatsTextureRect/StatLabelsCompatibility"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="StatTecLabel" type="Label" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/StatsTextureRect/StatLabelsCompatibility"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="VBoxActions" type="VBoxContainer" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="BtnConfirm" type="Button" parent="MarginContainer/VBoxMain/StatsAndActions/ButtonsVBox"]
+[node name="StatusNoticeLabel" type="Label" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/VBoxActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(1, 0.85, 0.15, 1)
+theme_override_font_sizes/font_size = 18
+text = "HERÓI SELECIONADO: GUILHERME (DISPONÍVEL)"
+
+[node name="CharDescLabel" type="Label" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/VBoxActions"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
+theme_override_font_sizes/font_size = 14
+text = "O Guerreiro de Sakas — Equilibrado e pronto para o combate nas ruas da Vila Prudente."
+
+[node name="HBoxButtons" type="HBoxContainer" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/VBoxActions"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BtnConfirm" type="Button" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/VBoxActions/HBoxButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(380, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_confirm")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_confirm")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_confirm")
 text = "⚡ ESCOLHER GUILHERME — INICIAR FASE 1"
 
-[node name="BtnBack" type="Button" parent="MarginContainer/VBoxMain/StatsAndActions/ButtonsVBox"]
+[node name="BtnBack" type="Button" parent="AspectWrapper/LayoutRoot/BottomArea/HBoxBottom/VBoxActions/HBoxButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(180, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_back")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_back")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_back")
 text = "VOLTAR AO MENU"
+
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true

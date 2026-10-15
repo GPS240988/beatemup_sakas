@@ -1,0 +1,142 @@
+class_name BaseLevel
+extends Node2D
+
+## Gerenciador e Controlador de Nível Base para Beat 'em Up 2.5D.
+## Coordena o Combate via CombatDirector, o indicador "SIGA →",
+## os limites da câmera e a progressão segura entre mapas.
+
+const SigaIndicatorClass = preload("res://scripts/ui/siga_indicator.gd")
+const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
+
+@export_group("Configuração do Mapa")
+@export var map_name: String = "Fase 1 - Seção 1"
+@export var map_index: int = 1
+@export var next_map_scene_path: String = ""
+@export var is_final_map: bool = false
+@export var victory_scene_path: String = "res://scenes/ui/credits.tscn"
+
+@export_group("Câmera e Limites")
+@export var camera_min_x: float = 640.0
+@export var camera_max_x: float = 1343.0
+@export var camera_fixed_y: float = 360.0
+@export var camera_follow_speed: float = 12.0
+
+## Referências aos nós da cena
+@onready var camera: Camera2D = $Camera2D
+@onready var combat_director: CombatDirector = $CombatDirector
+@onready var exit_area: Area2D = $ExitArea
+@onready var siga_indicator: SigaIndicator = $SigaIndicator
+@onready var hud: PrototypeHud = $PrototypeHud
+@onready var player: PlayerController = $World/Entities/Player
+
+var _transitioning: bool = false
+
+
+func _ready() -> void:
+	# Inicializa câmera
+	if camera != null:
+		camera.position = Vector2(camera_min_x, camera_fixed_y)
+
+	# A saída inicia estritamente desabilitada até a derrota de todos os inimigos
+	if exit_area != null:
+		exit_area.monitoring = false
+		if not exit_area.body_entered.is_connected(_on_exit_body_entered):
+			exit_area.body_entered.connect(_on_exit_body_entered)
+
+	# O indicador SIGA → inicia oculto e inativo
+	if siga_indicator != null:
+		siga_indicator.deactivate()
+
+	# Configura conexões do Diretor de Combate
+	if combat_director != null:
+		if not combat_director.encounter_cleared.is_connected(_on_encounter_cleared):
+			combat_director.encounter_cleared.connect(_on_encounter_cleared)
+
+	# Conecta HUD com Jogador
+	if player != null and hud != null:
+		player.player_moved.connect(hud.on_player_moved)
+		player.state_changed.connect(hud.update_player_state)
+		if player.health_component != null:
+			player.health_component.health_changed.connect(hud.update_player_health)
+			player.health_component.died.connect(hud.show_game_over)
+			hud.update_player_health(player.health_component.current_health, player.health_component.max_health)
+		hud.on_player_moved(player.global_position, Vector2.ZERO)
+
+	if hud != null and hud.label_level_name != null:
+		hud.label_level_name.text = "%s (Mapa %d/4)" % [map_name, map_index]
+
+
+func _physics_process(delta: float) -> void:
+	_update_camera(delta)
+
+
+func _update_camera(delta: float) -> void:
+	if camera == null or player == null or not is_instance_valid(player):
+		return
+
+	var target_x: float = clampf(player.global_position.x, camera_min_x, camera_max_x)
+	camera.global_position.x = move_toward(camera.global_position.x, target_x, camera_follow_speed * 100.0 * delta)
+	camera.global_position.y = camera_fixed_y
+
+
+## Disparado pelo CombatDirector quando todos os inimigos forem derrotados
+func _on_encounter_cleared() -> void:
+	# 1. Habilita a detecção na área de saída
+	if exit_area != null:
+		exit_area.monitoring = true
+
+	# 2. Ativa o indicador visual piscante SIGA →
+	if siga_indicator != null:
+		siga_indicator.activate()
+
+	# 3. Notifica a HUD
+	if hud != null and hud.banner_panel != null and hud.banner_label != null:
+		hud.banner_panel.visible = true
+		hud.banner_label.text = "⚔️ ÁREA LIMPA!\nSIGA → PARA A PRÓXIMA SEÇÃO"
+		hud.banner_label.modulate = Color(0.3, 1.0, 0.4)
+
+
+## Disparado quando um corpo físico entra na área de saída
+func _on_exit_body_entered(body: Node2D) -> void:
+	if _transitioning:
+		return
+
+	if body != null and body.is_in_group("player"):
+		_transitioning = true
+		_advance_to_next_map()
+
+
+## Executa a transição segura para o próximo mapa ou encerramento da fase
+func _advance_to_next_map() -> void:
+	if siga_indicator != null:
+		siga_indicator.deactivate()
+
+	if is_final_map or next_map_scene_path.is_empty():
+		# Fim do Mapa 4 (Clímax da Fase 1) -> Vitória!
+		if hud != null and hud.banner_panel != null and hud.banner_label != null:
+			hud.banner_panel.visible = true
+			hud.banner_label.text = "🏆 FASE 1 CONCLUÍDA!\nVITÓRIA EM SAKAS: ÚLTIMA FICHA!"
+			hud.banner_label.modulate = Color(1.0, 0.85, 0.2)
+
+		await get_tree().create_timer(2.0).timeout
+		_safe_change_scene(victory_scene_path)
+	else:
+		# Transição para o próximo mapa da sequência
+		_safe_change_scene(next_map_scene_path)
+
+
+func _safe_change_scene(scene_path: String) -> void:
+	if scene_path.is_empty():
+		return
+
+	if get_viewport() != null:
+		get_viewport().set_input_as_handled()
+
+	var err: Error = get_tree().change_scene_to_file(scene_path)
+	if err != OK:
+		printerr("Erro ao transicionar para o mapa '%s': %d" % [scene_path, err])
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("restart"):
+		get_tree().reload_current_scene()

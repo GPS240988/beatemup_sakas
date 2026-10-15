@@ -33,14 +33,14 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_atk_02.png" id="31_jumpatk2"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
-radius = 8.0
-height = 42.0
+radius = 12.0
+height = 60.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hitbox"]
-size = Vector2(56, 50)
+size = Vector2(80, 70)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hurtbox"]
-size = Vector2(36, 120)
+size = Vector2(52, 185)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_guilherme"]
 animations = [{
@@ -197,7 +197,7 @@ motion_mode = 1
 script = ExtResource("1_player_script")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -6)
+position = Vector2(0, -9)
 rotation = 1.5707963
 shape = SubResource("CapsuleShape2D_feet")
 
@@ -208,14 +208,14 @@ max_health = 100.0
 [node name="MeleeAttack" type="Node2D" parent="."]
 script = ExtResource("3_melee_script")
 damage = 25.0
-horizontal_range = 80.0
-depth_tolerance = 28.0
+horizontal_range = 100.0
+depth_tolerance = 32.0
 active_duration = 0.15
 attack_cooldown = 0.38
 target_group = "enemies"
 
 [node name="HitboxArea" type="Area2D" parent="MeleeAttack"]
-position = Vector2(40, -65)
+position = Vector2(58, -100)
 collision_layer = 8
 collision_mask = 4
 monitoring = false
@@ -225,7 +225,7 @@ monitorable = false
 shape = SubResource("RectangleShape2D_hitbox")
 
 [node name="Hurtbox" type="Area2D" parent="."]
-position = Vector2(0, -68)
+position = Vector2(0, -102)
 collision_layer = 1
 collision_mask = 0
 
@@ -236,18 +236,19 @@ shape = SubResource("RectangleShape2D_hurtbox")
 
 [node name="Shadow" type="Polygon2D" parent="Visual"]
 color = Color(0.08, 0.08, 0.12, 0.5)
-polygon = PackedVector2Array(-28, 0, -20, -7, 0, -9, 20, -7, 28, 0, 20, 7, 0, 9, -20, 7)
+polygon = PackedVector2Array(-42, 0, -30, -10, 0, -14, 30, -10, 42, 0, 30, 10, 0, 14, -30, 10)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual"]
-position = Vector2(0, -73)
-scale = Vector2(0.52, 0.52)
+position = Vector2(0, -118)
+scale = Vector2(0.8, 0.8)
 sprite_frames = SubResource("SpriteFrames_guilherme")
 animation = &"idle"
 autoplay = "idle"
 
 [node name="PunchVisual" type="Node2D" parent="Visual"]
 visible = false
-position = Vector2(25, -70)
+position = Vector2(38, -108)
+scale = Vector2(1.4, 1.4)
 
 [node name="PunchFlash" type="Polygon2D" parent="Visual/PunchVisual"]
 color = Color(1, 0.9, 0.3, 0.8)

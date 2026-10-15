@@ -14,8 +14,8 @@ var selected_character_id: String = "guilherme"
 var selected_skin_id: String = "palmeirense"
 var difficulty_id: String = ""
 
-## Caminho da Fase 1 existente
-const FIRST_LEVEL_PATH: String = "res://scenes/levels/test_street.tscn"
+## Caminho oficial da Fase 1 (Mapa 1: A Locadora)
+const FIRST_LEVEL_PATH: String = "res://scenes/levels/map_1.tscn"
 
 ## Metadados e regras de desbloqueio de Personagens
 const CHARACTERS: Dictionary = {
@@ -33,9 +33,9 @@ const CHARACTERS: Dictionary = {
 		"title": "Lâmina Veloz",
 		"unlocked": false,
 		"preview_path": "",
-		"strength": 2,
+		"strength": 1,
 		"speed": 4,
-		"technique": 4
+		"technique": 3
 	},
 	"andre": {
 		"name": "André",
@@ -44,16 +44,16 @@ const CHARACTERS: Dictionary = {
 		"preview_path": "",
 		"strength": 4,
 		"speed": 2,
-		"technique": 3
+		"technique": 2
 	},
 	"juliana": {
 		"name": "Juliana",
 		"title": "Mestre da Fúria",
 		"unlocked": false,
 		"preview_path": "",
-		"strength": 3,
+		"strength": 1,
 		"speed": 3,
-		"technique": 5
+		"technique": 4
 	},
 	"alessandro": {
 		"name": "Alessandro",

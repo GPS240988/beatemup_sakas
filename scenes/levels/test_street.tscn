@@ -1,10 +1,12 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/test_street.gd" id="1_street_script"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="2_player_scene"]
 [ext_resource type="PackedScene" path="res://scenes/actors/props/sorting_dummy.tscn" id="3_dummy_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="4_hud_scene"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="5_enemy_scene"]
+[ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="6_director_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="7_siga_scene"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
 size = Vector2(1400, 40)
@@ -134,5 +136,23 @@ position = Vector2(260, 520)
 
 [node name="BasicEnemy" parent="World/Entities" instance=ExtResource("5_enemy_scene")]
 position = Vector2(760, 520)
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("6_director_script")
+
+[node name="ExitArea" type="Area2D" parent="."]
+position = Vector2(1230, 525)
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea"]
+shape = SubResource("RectangleShape2D_vert_boundary")
+
+[node name="SigaIndicator" parent="." instance=ExtResource("7_siga_scene")]
+offset_left = 1080.0
+offset_top = 490.0
+offset_right = 1240.0
+offset_bottom = 544.0
 
 [node name="PrototypeHud" parent="." instance=ExtResource("4_hud_scene")]

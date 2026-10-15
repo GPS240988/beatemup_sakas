@@ -1,0 +1,202 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/loading_screen.gd" id="1_loading_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bottom_bar"]
+bg_color = Color(0.06, 0.07, 0.12, 0.92)
+border_width_top = 2
+border_color = Color(0.85, 0.65, 0.15, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+shadow_color = Color(0, 0, 0, 0.7)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_key_cap"]
+bg_color = Color(0.12, 0.14, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 3
+border_color = Color(0.7, 0.75, 0.9, 0.85)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 3
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_continue"]
+bg_color = Color(0.8, 0.15, 0.25, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.75, 0.2, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.9, 0.2, 0.25, 0.5)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_back"]
+bg_color = Color(0.12, 0.14, 0.2, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.45, 0.6, 0.8)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hero_badge"]
+bg_color = Color(0.04, 0.05, 0.09, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.5, 0.85, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="LoadingScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_loading_script")
+
+[node name="BackgroundTexture" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TopVignette" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 60.0
+grow_horizontal = 2
+color = Color(0, 0, 0, 0.45)
+
+[node name="HeroBadgeContainer" type="PanelContainer" parent="TopVignette"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 24.0
+offset_top = -18.0
+offset_right = 520.0
+offset_bottom = 18.0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hero_badge")
+
+[node name="HeroBadgeLabel" type="Label" parent="TopVignette/HeroBadgeContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.25, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 14
+text = "★ JOGADOR: GUILHERME PRONTO PARA COMBATE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BottomBar" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -88.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_bottom_bar")
+
+[node name="Margin" type="MarginContainer" parent="BottomBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 12
+
+[node name="PromptContainer" type="HBoxContainer" parent="BottomBar/Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="BackGroup" type="HBoxContainer" parent="BottomBar/Margin/PromptContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="KeyEscIcon" type="PanelContainer" parent="BottomBar/Margin/PromptContainer/BackGroup"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(54, 42)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_cap")
+
+[node name="EscLabel" type="Label" parent="BottomBar/Margin/PromptContainer/BackGroup/KeyEscIcon"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "ESC"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnBack" type="Button" parent="BottomBar/Margin/PromptContainer/BackGroup"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.95, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_back")
+text = "⬅ VOLTAR"
+
+[node name="Spacer" type="Control" parent="BottomBar/Margin/PromptContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ContinueGroup" type="HBoxContainer" parent="BottomBar/Margin/PromptContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="KeySpaceIcon" type="PanelContainer" parent="BottomBar/Margin/PromptContainer/ContinueGroup"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 42)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_key_cap")
+
+[node name="SpaceLabel" type="Label" parent="BottomBar/Margin/PromptContainer/ContinueGroup/KeySpaceIcon"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_font_sizes/font_size = 15
+text = "␣ ESPAÇO"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnContinue" type="Button" parent="BottomBar/Margin/PromptContainer/ContinueGroup"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_continue")
+text = "⚡ INICIAR FASE 1"
+
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true

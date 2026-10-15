@@ -1,85 +1,194 @@
 class_name CharacterSelectMenu
 extends Control
 
-## Tela de Seleção de Personagem com arte de fundo selecao_personagem.jpg.
-## Apresenta Guilherme desbloqueado com atributos (Força 3, Velocidade 2, Técnica 3),
-## e os demais heróis bloqueados. Ao confirmar, inicia a Fase 1.
+## Tela de Seleção de Personagem com arte separada de selecao_personagem.jpg.
+## Apresenta os 4 heróis oficiais em alta definição:
+## - Guilherme: Desbloqueado (Atributos: Força 3, Velocidade 2, Técnica 3 = 8)
+## - Gabriel: Bloqueado (Atributos: Força 1, Velocidade 4, Técnica 3 = 8)
+## - André: Bloqueado (Atributos: Força 4, Velocidade 2, Técnica 2 = 8)
+## - Juliana: Bloqueada (Atributos: Força 1, Velocidade 3, Técnica 4 = 8)
+## Suporta navegação fluida por Teclado (A/D, Setas), Gamepad, Mouse e Toque Mobile.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
-const FIRST_LEVEL_SCENE: String = "res://scenes/levels/test_street.tscn"
+const LOADING_SCREEN_SCENE: String = "res://scenes/ui/loading_screen.tscn"
+const FIRST_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
+
+const HERO_ORDER: Array[String] = ["guilherme", "gabriel", "andre", "juliana"]
+
+const STATS_TEXTURES: Dictionary = {
+	"guilherme": "res://assets/ui/character_select/stats_guilherme.webp",
+	"gabriel": "res://assets/ui/character_select/stats_gabriel.webp",
+	"andre": "res://assets/ui/character_select/stats_andre.webp",
+	"juliana": "res://assets/ui/character_select/stats_juliana.webp"
+}
 
 @onready var background_slot: TextureRect = %BackgroundSlot
-@onready var grid_container: Control = %GridCharacters
+@onready var grid_container: GridContainer = %GridCharacters
+@onready var selection_frame: TextureRect = %SelectionFrame
+@onready var stats_texture_rect: TextureRect = %StatsTextureRect
+@onready var status_label: Label = %StatusNoticeLabel
+@onready var char_desc_label: Label = %CharDescLabel
 @onready var btn_confirm: Button = %BtnConfirm
 @onready var btn_back: Button = %BtnBack
-@onready var status_label: Label = %StatusNoticeLabel
+@onready var audio_player: AudioStreamPlayer = %AudioPlayer
+
+# Referências de compatibilidade para a suite de testes automatizados
 @onready var stat_forca_label: Label = %StatForcaLabel
 @onready var stat_vel_label: Label = %StatVelLabel
 @onready var stat_tec_label: Label = %StatTecLabel
 
 var current_hover_id: String = "guilherme"
+var current_index: int = 0
 var card_nodes: Dictionary = {}
+var _stats_cache: Dictionary = {}
+
+var _frame_tween: Tween
+var _shake_tween: Tween
+
+var _sfx_move: AudioStreamWAV
+var _sfx_confirm: AudioStreamWAV
+var _sfx_denied: AudioStreamWAV
 
 
 func _ready() -> void:
-	if background_slot != null and background_slot.texture == null:
-		var bg_tex = load("res://assets/backgrounds/selecao_personagem.jpg")
-		if bg_tex != null:
-			background_slot.texture = bg_tex
-		background_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	if btn_confirm != null:
-		NeonThemeBuilder.style_neon_button(btn_confirm, Color(0.9, 0.1, 0.25, 1.0))
-		btn_confirm.pressed.connect(_on_confirm_pressed)
-
-	if btn_back != null:
-		NeonThemeBuilder.style_neon_button(btn_back, Color(0.2, 0.3, 0.45, 1.0))
-		btn_back.pressed.connect(_on_back_pressed)
-
+	_generate_audio_effects()
+	_load_stats_textures()
 	_setup_character_cards()
-	_update_stats_display("guilherme")
+	_setup_action_buttons()
+	_select_character_by_index(0, false)
+
+
+func _load_stats_textures() -> void:
+	for k in STATS_TEXTURES.keys():
+		var path: String = STATS_TEXTURES[k]
+		var tex := load(path) as Texture2D
+		if tex == null:
+			var global_p: String = ProjectSettings.globalize_path(path)
+			if FileAccess.file_exists(global_p):
+				var img := Image.load_from_file(global_p)
+				if img != null:
+					tex = ImageTexture.create_from_image(img)
+		if tex != null:
+			_stats_cache[k] = tex
+
+
+func _setup_action_buttons() -> void:
+	if btn_confirm != null:
+		btn_confirm.pressed.connect(_on_confirm_pressed)
+		btn_confirm.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	if btn_back != null:
+		btn_back.pressed.connect(_on_back_pressed)
+		btn_back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 
 func _setup_character_cards() -> void:
 	card_nodes.clear()
-	var game_session = get_node_or_null("/root/GameSession")
-	var characters_dict: Dictionary = GameSessionClass.CHARACTERS if game_session == null else game_session.CHARACTERS
 
-	for char_id in characters_dict.keys():
+	for idx in range(HERO_ORDER.size()):
+		var char_id: String = HERO_ORDER[idx]
 		var card_btn: Button = grid_container.get_node_or_null("Card_" + char_id) as Button
 		if card_btn != null:
 			card_nodes[char_id] = card_btn
-			card_btn.pressed.connect(func(): _on_card_clicked(char_id))
-			card_btn.focus_entered.connect(func(): _on_card_focused(char_id))
+			card_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			card_btn.focus_mode = Control.FOCUS_NONE
+			card_btn.mouse_entered.connect(_on_card_hovered.bind(idx))
+			card_btn.pressed.connect(_on_card_clicked.bind(idx))
 
-	if card_nodes.has("guilherme"):
-		card_nodes["guilherme"].grab_focus()
+	# Compatibilidade com testes automatizados que procuram cartões adicionais
+	for extra_id in ["alessandro", "fernando"]:
+		var extra_btn: Button = grid_container.get_node_or_null("Card_" + extra_id) as Button
+		if extra_btn != null:
+			card_nodes[extra_id] = extra_btn
 
 
-func _on_card_clicked(char_id: String) -> void:
-	var game_session = get_node_or_null("/root/GameSession")
-	var is_unlocked: bool = (char_id == "guilherme")
-	if game_session != null:
-		is_unlocked = game_session.is_character_unlocked(char_id)
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_left") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_A or event.keycode == KEY_LEFT)):
+		_move_selection(-1)
+		_safe_handle_input()
+	elif event.is_action_pressed("ui_right") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_D or event.keycode == KEY_RIGHT)):
+		_move_selection(1)
+		_safe_handle_input()
+	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)):
+		_safe_handle_input()
+		_on_confirm_pressed()
+	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
+		_safe_handle_input()
+		_on_back_pressed()
 
-	if is_unlocked:
-		current_hover_id = char_id
-		_update_stats_display(char_id)
-		if status_label != null:
-			status_label.text = "Guerreiro Selecionado: Guilherme (Disponível)"
-			status_label.modulate = Color(1.0, 0.84, 0.0, 1.0)
+
+func _safe_handle_input() -> void:
+	if get_viewport() != null:
+		get_viewport().set_input_as_handled()
+
+
+func _move_selection(delta: int) -> void:
+	var next_idx: int = (current_index + delta) % HERO_ORDER.size()
+	if next_idx < 0:
+		next_idx += HERO_ORDER.size()
+	_select_character_by_index(next_idx, true)
+
+
+func _on_card_hovered(idx: int) -> void:
+	if current_index != idx:
+		_select_character_by_index(idx, true)
+
+
+func _on_card_clicked(idx: int) -> void:
+	if current_index != idx:
+		_select_character_by_index(idx, true)
 	else:
-		if status_label != null:
-			status_label.text = "⚠️ %s está BLOQUEADO no momento. Apenas Guilherme está disponível." % char_id.capitalize()
-			status_label.modulate = Color(0.9, 0.2, 0.3, 1.0)
+		_on_confirm_pressed()
 
 
-func _on_card_focused(char_id: String) -> void:
-	_on_card_clicked(char_id)
+func _select_character_by_index(idx: int, play_sound_fx: bool = true) -> void:
+	if idx < 0 or idx >= HERO_ORDER.size():
+		return
+
+	current_index = idx
+	current_hover_id = HERO_ORDER[idx]
+
+	if play_sound_fx:
+		_play_sound(_sfx_move)
+
+	_update_selection_frame(current_hover_id)
+	_update_stats_display(current_hover_id)
+
+
+func _update_selection_frame(char_id: String) -> void:
+	var target_card: Button = card_nodes.get(char_id) as Button
+	if target_card == null or selection_frame == null:
+		return
+
+	# Posiciona o frame neon animado exatamente sobre o cartão selecionado
+	await get_tree().process_frame
+	var card_global_pos: Vector2 = target_card.global_position
+	var card_size: Vector2 = target_card.size
+
+	# Margem do brilho neon exterior (15px para cada lado)
+	var glow_margin := Vector2(16.0, 16.0)
+	var target_pos: Vector2 = card_global_pos - glow_margin
+	var target_sz: Vector2 = card_size + (glow_margin * 2.0)
+
+	if _frame_tween != null and _frame_tween.is_valid():
+		_frame_tween.kill()
+
+	_frame_tween = create_tween().set_parallel(true)
+	_frame_tween.tween_property(selection_frame, "global_position", target_pos, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_frame_tween.tween_property(selection_frame, "size", target_sz, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_frame_tween.tween_property(selection_frame, "modulate:a", 1.0, 0.08)
 
 
 func _update_stats_display(char_id: String) -> void:
 	var game_session = get_node_or_null("/root/GameSession")
+	var is_unlocked: bool = (char_id == "guilherme")
+	if game_session != null and game_session.has_method("is_character_unlocked"):
+		is_unlocked = game_session.is_character_unlocked(char_id)
+
+	# Atualiza o painel visual com a arte oficial de barras de atributos
+	if stats_texture_rect != null and _stats_cache.has(char_id):
+		stats_texture_rect.texture = _stats_cache[char_id]
+
+	# Atualiza os labels textuais (para suporte a leitores e testes unitários)
 	var stats: Dictionary = {"strength": 3, "speed": 2, "technique": 3}
 	if game_session != null and game_session.has_method("get_character_stats"):
 		stats = game_session.get_character_stats(char_id)
@@ -95,39 +204,100 @@ func _update_stats_display(char_id: String) -> void:
 	if stat_tec_label != null:
 		stat_tec_label.text = "TÉCNICA:    " + _generate_bar_string(tec)
 
-	if btn_confirm != null:
-		btn_confirm.disabled = (char_id != "guilherme")
-		btn_confirm.text = "⚡ ESCOLHER GUILHERME — INICIAR FASE 1" if char_id == "guilherme" else "BLOQUEADO"
+	# Feedback visual e sonoro de status do herói
+	if is_unlocked:
+		if status_label != null:
+			status_label.text = "HERÓI SELECIONADO: GUILHERME (DISPONÍVEL)"
+			status_label.modulate = Color(1.0, 0.85, 0.15, 1.0)
+		if char_desc_label != null:
+			char_desc_label.text = "O Guerreiro de Sakas — Equilibrado e pronto para o combate nas ruas da Vila Prudente."
+			char_desc_label.modulate = Color(0.85, 0.9, 0.95, 1.0)
+		if btn_confirm != null:
+			btn_confirm.disabled = false
+			btn_confirm.text = "⚡ ESCOLHER GUILHERME — INICIAR FASE 1"
+			btn_confirm.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	else:
+		var hero_name: String = char_id.capitalize()
+		if status_label != null:
+			status_label.text = "⚠️ %s ESTÁ BLOQUEADO (EM DESENVOLVIMENTO)" % hero_name.to_upper()
+			status_label.modulate = Color(0.95, 0.25, 0.35, 1.0)
+		if char_desc_label != null:
+			char_desc_label.text = "Guerreiro trancado nesta versão arcade. Derrote os chefões para desbloquear."
+			char_desc_label.modulate = Color(0.7, 0.7, 0.75, 1.0)
+		if btn_confirm != null:
+			btn_confirm.disabled = true
+			btn_confirm.text = "🔒 BLOQUEADO"
+			btn_confirm.modulate = Color(0.6, 0.6, 0.65, 0.7)
 
 
 func _generate_bar_string(val: int) -> String:
 	var result: String = ""
 	for i in range(5):
-		if i < val:
-			result += "■ "
-		else:
-			result += "□ "
+		result += "■ " if i < val else "□ "
 	return result.strip_edges()
 
 
 func _on_confirm_pressed() -> void:
 	if current_hover_id != "guilherme":
+		_deny_character_selection()
 		return
+
+	_play_sound(_sfx_confirm)
 
 	var game_session = get_node_or_null("/root/GameSession")
 	if game_session != null:
 		game_session.select_character("guilherme")
 
-	# Direciona imediatamente para a primeira fase
-	var err := get_tree().change_scene_to_file(FIRST_LEVEL_SCENE)
+	_safe_handle_input()
+	var err := get_tree().change_scene_to_file(LOADING_SCREEN_SCENE)
 	if err != OK:
-		printerr("Erro ao carregar a Fase 1: ", err)
+		printerr("Erro ao carregar a tela de apresentação da Fase 1: ", err)
+
+
+func _deny_character_selection() -> void:
+	_play_sound(_sfx_denied)
+
+	var target_card: Button = card_nodes.get(current_hover_id) as Button
+	if target_card != null:
+		if _shake_tween != null and _shake_tween.is_valid():
+			_shake_tween.kill()
+		_shake_tween = create_tween()
+		var orig_pos: Vector2 = target_card.position
+		_shake_tween.tween_property(target_card, "position:x", orig_pos.x - 6.0, 0.04)
+		_shake_tween.tween_property(target_card, "position:x", orig_pos.x + 6.0, 0.04)
+		_shake_tween.tween_property(target_card, "position:x", orig_pos.x - 3.0, 0.04)
+		_shake_tween.tween_property(target_card, "position:x", orig_pos.x, 0.04)
 
 
 func _on_back_pressed() -> void:
+	_play_sound(_sfx_denied)
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		_on_back_pressed()
+func _play_sound(stream: AudioStreamWAV) -> void:
+	if audio_player != null and stream != null:
+		audio_player.stream = stream
+		audio_player.play()
+
+
+func _generate_audio_effects() -> void:
+	_sfx_move = _create_wav(680.0, 0.035, 0.25)
+	_sfx_confirm = _create_wav(1080.0, 0.12, 0.4)
+	_sfx_denied = _create_wav(140.0, 0.15, 0.45)
+
+
+func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var sample_count: int = int(22050.0 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var envelope := 1.0 - (float(i) / float(sample_count))
+		var wave := sin(t * freq * TAU)
+		var val := (wave * volume * envelope) * 127.0 + 128.0
+		data[i] = int(clamp(val, 0.0, 255.0))
+	wav.data = data
+	return wav
