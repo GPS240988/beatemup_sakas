@@ -10,7 +10,7 @@ const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const TARGET_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
 
 const LOADING_IMAGE_PATH: String = "res://assets/backgrounds/maps/carregar/carregando_fase1.webp"
-const FALLBACK_IMAGE_PATH: String = "res://assets/backgrounds/maps/carregar/carregando_fase 1.webp"
+const FALLBACK_IMAGE_PATH: String = "res://assets/backgrounds/maps/carregar/carregando_fase1.webp"
 
 @onready var background_texture: TextureRect = %BackgroundTexture
 @onready var prompt_container: HBoxContainer = %PromptContainer
