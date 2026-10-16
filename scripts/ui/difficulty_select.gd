@@ -96,7 +96,7 @@ func _on_start_pressed() -> void:
 			printerr("Erro ao iniciar a Fase 1 pelo GameSession")
 	else:
 		# Fallback direto caso o Autoload não esteja presente
-		var err := get_tree().change_scene_to_file("res://scenes/levels/test_street.tscn")
+		var err := get_tree().change_scene_to_file("res://scenes/levels/map_1.tscn")
 		if err != OK:
 			printerr("Erro ao carregar a Fase 1 existente: ", err)
 
