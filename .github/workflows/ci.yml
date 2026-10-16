@@ -45,20 +45,25 @@ jobs:
       - name: Setup Godot
         uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2 # v2
         with:
-          version: "4.3.0"
+          version: "4.7.0"
           use-dotnet: false
+
+      - name: Import project resources
+        shell: bash
+        run: godot --headless --path . --import > /dev/null 2>&1 || true
 
       - name: Run Beat 'Em Up automated test suites
         shell: bash
         run: |
-          godot --headless -s tests/combat_smoke_test.gd
-          godot --headless -s tests/combat_director_test.gd
-          godot --headless -s tests/loading_screen_test.gd
-          godot --headless -s tests/map_progression_test.gd
-          godot --headless -s tests/ui_flow_test.gd
+          godot --headless --path . -s tests/combat_smoke_test.gd
+          godot --headless --path . -s tests/combat_director_test.gd
+          godot --headless --path . -s tests/loading_screen_test.gd
+          godot --headless --path . -s tests/map_progression_test.gd
+          godot --headless --path . -s tests/ui_flow_test.gd
 
   python-tests:
     name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    if: github.repository == 'hi-godot/godot-ai'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -157,6 +162,7 @@ jobs:
 
   build-distributions:
     name: Build distributions
+    if: github.repository == 'hi-godot/godot-ai'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -183,6 +189,7 @@ jobs:
 
   release-smoke:
     name: Release smoke / ${{ matrix.os }}
+    if: github.repository == 'hi-godot/godot-ai'
     needs: build-distributions
     runs-on: ${{ matrix.os }}
     strategy:
@@ -243,6 +250,7 @@ jobs:
 
   godot-tests:
     name: Godot tests / ${{ matrix.label }}
+    if: github.repository == 'hi-godot/godot-ai'
     runs-on: ${{ matrix.os }}
     env:
       GODOT_AI_MODE: dev
@@ -396,6 +404,7 @@ jobs:
 
   unsupported-godot-floor:
     name: Unsupported Godot refusal / ${{ matrix.godot-version }}
+    if: github.repository == 'hi-godot/godot-ai'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -422,6 +431,7 @@ jobs:
   # only a later explicit Dock recovery intent may authorize kill/restart.
   server-ownership-smoke:
     name: Server ownership smoke / ${{ matrix.label }}
+    if: github.repository == 'hi-godot/godot-ai'
     runs-on: ${{ matrix.os }}
     env:
       GODOT_AI_MODE: dev
@@ -500,6 +510,7 @@ jobs:
   # trips real game pixels — see closes #72.
   game-capture-smoke:
     name: Game capture smoke / ${{ matrix.label }}
+    if: github.repository == 'hi-godot/godot-ai'
     runs-on: ${{ matrix.os }}
     env:
       GODOT_AI_MODE: dev
