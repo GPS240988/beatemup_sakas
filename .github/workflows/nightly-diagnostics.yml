@@ -22,6 +22,7 @@ env:
 jobs:
   updater-scenarios:
     name: Real-editor updater scenarios / ${{ matrix.label }} / Godot 4.7.2
+    if: github.repository == 'hi-godot/godot-ai'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:

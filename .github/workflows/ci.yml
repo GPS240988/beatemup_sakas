@@ -34,6 +34,29 @@ permissions:
   contents: read
 
 jobs:
+  game-tests:
+    name: Beat 'Em Up Game Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@c233594225991af5aec714e52457cc76d6df8fa2 # v2
+        with:
+          version: "4.3.0"
+          use-dotnet: false
+
+      - name: Run Beat 'Em Up automated test suites
+        shell: bash
+        run: |
+          godot --headless -s tests/combat_smoke_test.gd
+          godot --headless -s tests/combat_director_test.gd
+          godot --headless -s tests/loading_screen_test.gd
+          godot --headless -s tests/map_progression_test.gd
+          godot --headless -s tests/ui_flow_test.gd
+
   python-tests:
     name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -74,6 +97,11 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
+      - name: Add Git tools to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "C:/Program Files/Git/usr/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
@@ -105,6 +133,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        continue-on-error: true
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: ./coverage.xml
@@ -295,7 +324,7 @@ jobs:
         # per-OS Godot and smoke jobs already prove the plugin and server start
         # on every OS. The local-files delivery duplicate runs nightly;
         # ordinary CI exercises private HTTPS. See docs/self-update.md.
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && github.repository == 'hi-godot/godot-ai'
         shell: bash
         timeout-minutes: 12
         run: |
