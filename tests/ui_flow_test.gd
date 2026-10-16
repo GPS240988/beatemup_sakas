@@ -95,10 +95,10 @@ func test_title_screen_scene() -> void:
 	var instance: Node = scene.instantiate()
 	assert_test(instance is Control, "TitleScreen é um nó Control")
 
-	var video: VideoStreamPlayer = instance.get_node_or_null("%VideoPlayer") as VideoStreamPlayer
-	assert_test(video != null, "VideoPlayer existe na cena de título animada")
-	if video != null:
-		assert_test(video.stream != null, "VideoPlayer possui stream animado oficial (maingif.ogv)")
+	var bg_img: TextureRect = instance.get_node_or_null("%BackgroundImage") as TextureRect
+	assert_test(bg_img != null, "BackgroundImage (TextureRect) existe na tela de título")
+	if bg_img != null:
+		assert_test(bg_img.texture != null, "BackgroundImage possui textura oficial (main.webp)")
 
 	var touch_btn: Button = instance.get_node_or_null("%TouchButton") as Button
 	assert_test(touch_btn != null, "Botão de toque mobile/desktop existe")

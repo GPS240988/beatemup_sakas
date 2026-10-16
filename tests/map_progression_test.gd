@@ -156,4 +156,15 @@ func test_all_map_scenes_instantiation() -> void:
 		assert_test(inst.get_node_or_null("CombatDirector") != null, "Mapa %d possui CombatDirector" % (i + 1))
 		assert_test(inst.get_node_or_null("ExitArea") != null, "Mapa %d possui ExitArea" % (i + 1))
 		assert_test(inst.get_node_or_null("SigaIndicator") != null, "Mapa %d possui SigaIndicator" % (i + 1))
+		
+		# Verificações de Navegação e Arquitetura 2.5D (GAME_RULES.md Seção 3.6 e 3.8)
+		var nav_region = inst.get_node_or_null("NavigationRegion2D") as NavigationRegion2D
+		assert_test(nav_region != null, "Mapa %d possui NavigationRegion2D" % (i + 1))
+		assert_test(nav_region != null and nav_region.navigation_polygon != null, "Mapa %d possui NavigationPolygon configurado" % (i + 1))
+		assert_test(nav_region != null and nav_region.navigation_polygon != null and nav_region.navigation_polygon.get_polygon_count() > 0, "Mapa %d possui polígonos de navegação válidos (> 0)" % (i + 1))
+		
+		var world_boundaries = inst.get_node_or_null("WorldBoundaries") as StaticBody2D
+		assert_test(world_boundaries != null, "Mapa %d possui WorldBoundaries" % (i + 1))
+		assert_test(world_boundaries != null and world_boundaries.collision_layer == 2, "Mapa %d possui WorldBoundaries na Layer 2" % (i + 1))
 		inst.free()
+

@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/base_level.gd" id="1_base_level"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase1/Fase1_4.webp" id="2_bg_texture"]
@@ -7,15 +7,19 @@
 [ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
+[ext_resource type="NavigationPolygon" path="res://scenes/levels/map_4_navpoly.tres" id="8_navpoly"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_top_wall"]
 size = Vector2(2200, 40)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom_wall"]
+size = Vector2(2200, 30)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_boundary"]
-size = Vector2(40, 500)
+size = Vector2(40, 220)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
-size = Vector2(80, 320)
+size = Vector2(60, 80)
 
 [node name="Map4" type="Node2D"]
 script = ExtResource("1_base_level")
@@ -35,24 +39,27 @@ z_index = -10
 texture = ExtResource("2_bg_texture")
 centered = false
 
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = ExtResource("8_navpoly")
+
 [node name="WorldBoundaries" type="StaticBody2D" parent="."]
 collision_layer = 2
 collision_mask = 1
 
 [node name="TopWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(991, 460)
-shape = SubResource("RectangleShape2D_horiz_boundary")
+position = Vector2(991, 525)
+shape = SubResource("RectangleShape2D_top_wall")
 
 [node name="BottomWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(991, 740)
-shape = SubResource("RectangleShape2D_horiz_boundary")
+position = Vector2(991, 750)
+shape = SubResource("RectangleShape2D_bottom_wall")
 
 [node name="LeftWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(40, 600)
+position = Vector2(30, 640)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
 [node name="RightWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(1960, 600)
+position = Vector2(1960, 640)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
 [node name="World" type="Node2D" parent="."]
@@ -62,25 +69,25 @@ y_sort_enabled = true
 y_sort_enabled = true
 
 [node name="Player" parent="World/Entities" instance=ExtResource("3_player_scene")]
-position = Vector2(220, 580)
+position = Vector2(220, 640)
 
 [node name="BasicEnemy1" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
-position = Vector2(600, 540)
+position = Vector2(600, 620)
 
 [node name="BasicEnemy2" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
-position = Vector2(850, 630)
+position = Vector2(950, 680)
 
 [node name="BasicEnemy3" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
-position = Vector2(1150, 550)
+position = Vector2(1250, 600)
 
 [node name="BasicEnemy4" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
-position = Vector2(1450, 610)
+position = Vector2(1500, 660)
 
 [node name="CombatDirector" type="Node" parent="."]
 script = ExtResource("5_director_script")
 
 [node name="ExitArea" type="Area2D" parent="."]
-position = Vector2(1920, 600)
+position = Vector2(1920, 650)
 collision_layer = 0
 collision_mask = 1
 monitoring = false
@@ -90,8 +97,8 @@ shape = SubResource("RectangleShape2D_exit_shape")
 
 [node name="SigaIndicator" parent="." instance=ExtResource("6_siga_scene")]
 offset_left = 1760.0
-offset_top = 560.0
+offset_top = 615.0
 offset_right = 1920.0
-offset_bottom = 614.0
+offset_bottom = 669.0
 
 [node name="PrototypeHud" parent="." instance=ExtResource("7_hud_scene")]

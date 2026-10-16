@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/base_level.gd" id="1_base_level"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase1/Fase1_3.webp" id="2_bg_texture"]
@@ -7,15 +7,19 @@
 [ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
+[ext_resource type="NavigationPolygon" path="res://scenes/levels/map_3_navpoly.tres" id="8_navpoly"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
-size = Vector2(1900, 40)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_top_wall"]
+size = Vector2(1800, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom_wall"]
+size = Vector2(1800, 30)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_boundary"]
-size = Vector2(40, 500)
+size = Vector2(40, 150)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
-size = Vector2(80, 320)
+size = Vector2(60, 80)
 
 [node name="Map3" type="Node2D"]
 script = ExtResource("1_base_level")
@@ -23,34 +27,38 @@ map_name = "Fase 1 - Seção 3: Travessa da Locadora"
 map_index = 3
 next_map_scene_path = "res://scenes/levels/map_4.tscn"
 camera_min_x = 640.0
-camera_max_x = 1032.0
+camera_max_x = 1030.0
+camera_fixed_y = 380.0
 
 [node name="Camera2D" type="Camera2D" parent="."]
-position = Vector2(640, 360)
+position = Vector2(640, 380)
 
 [node name="Background" type="Sprite2D" parent="."]
 z_index = -10
 texture = ExtResource("2_bg_texture")
 centered = false
 
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = ExtResource("8_navpoly")
+
 [node name="WorldBoundaries" type="StaticBody2D" parent="."]
 collision_layer = 2
 collision_mask = 1
 
 [node name="TopWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(836, 460)
-shape = SubResource("RectangleShape2D_horiz_boundary")
+position = Vector2(835, 630)
+shape = SubResource("RectangleShape2D_top_wall")
 
 [node name="BottomWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(836, 740)
-shape = SubResource("RectangleShape2D_horiz_boundary")
+position = Vector2(835, 755)
+shape = SubResource("RectangleShape2D_bottom_wall")
 
 [node name="LeftWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(40, 600)
+position = Vector2(30, 695)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
 [node name="RightWall" type="CollisionShape2D" parent="WorldBoundaries"]
-position = Vector2(1640, 600)
+position = Vector2(1650, 695)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
 [node name="World" type="Node2D" parent="."]
@@ -60,22 +68,22 @@ y_sort_enabled = true
 y_sort_enabled = true
 
 [node name="Player" parent="World/Entities" instance=ExtResource("3_player_scene")]
-position = Vector2(200, 580)
+position = Vector2(200, 695)
 
 [node name="BasicEnemy1" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
-position = Vector2(650, 550)
+position = Vector2(600, 695)
 
 [node name="BasicEnemy2" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
-position = Vector2(950, 620)
+position = Vector2(950, 685)
 
 [node name="BasicEnemy3" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
-position = Vector2(1250, 560)
+position = Vector2(1300, 700)
 
 [node name="CombatDirector" type="Node" parent="."]
 script = ExtResource("5_director_script")
 
 [node name="ExitArea" type="Area2D" parent="."]
-position = Vector2(1600, 600)
+position = Vector2(1610, 695)
 collision_layer = 0
 collision_mask = 1
 monitoring = false
@@ -84,9 +92,9 @@ monitoring = false
 shape = SubResource("RectangleShape2D_exit_shape")
 
 [node name="SigaIndicator" parent="." instance=ExtResource("6_siga_scene")]
-offset_left = 1440.0
-offset_top = 560.0
-offset_right = 1600.0
-offset_bottom = 614.0
+offset_left = 1450.0
+offset_top = 660.0
+offset_right = 1610.0
+offset_bottom = 714.0
 
 [node name="PrototypeHud" parent="." instance=ExtResource("7_hud_scene")]

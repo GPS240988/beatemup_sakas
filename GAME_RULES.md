@@ -43,7 +43,7 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
 3. **Cenários e Profundidade 2.5D**:
    * Clara distinção visual entre planos de fundo, área caminhável (rua/chão) e elementos de primeiro plano.
    * Elementos interativos e decorativos devem ter pontos de âncora claros para ordenação por profundidade.
-   * **Escala Padrão dos Atores (0.80)**: O sprite base do herói (300px nativos) utiliza escala `scale = Vector2(0.80, 0.80)` para atingir ~240px de altura final, garantindo proporção anatômica fidedigna com balcões, estantes e pé-direito dos cenários sem necessidade de novos sprites.
+   * **Resolução Nativa dos Sprites e Escala Padrão dos Atores (0.80)**: Todos os sprites de personagens jogáveis e inimigos possuem resolução nativa de **220×300px**. No Godot, o `AnimatedSprite2D` utiliza escala `scale = Vector2(0.80, 0.80)` para atingir ~240px de altura final, garantindo proporção anatômica fidedigna com balcões, estantes e pé-direito dos cenários sem necessidade de novos sprites. Esta escala se aplica igualmente a heróis e inimigos que utilizem sprites de 220×300px.
    * **Colisores de Mobília e Corredores de Navegação**: Móveis e estantes no solo possuem colisores em `WorldBoundaries` (`collision_layer = 2`), impedindo que atores pisem sobre mesas ou prateleiras e forçando a movimentação através dos corredores reais do cenário.
 
 ---
@@ -70,14 +70,74 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
      * Estágio 1: Alinhamento de profundidade Y (tolerância padrão de 15 px).
      * Estágio 2: Aproximação frontal horizontal X (alcance padrão de 70 px).
    * **Inimigos sem Token (Flanqueamento)**: Devem manter distância de espera (120 a 180 px) e ocupar pistas de profundidade Y alternadas, sem aglomeração (dogpiling) na mesma coordenada.
-   * **Ciclo do Golpe**: Telegraph visual (~0.25s sem dano) -> Janela de Impacto Ativa -> Recuo de Recuperação (recoil 40-60 px).
+   * **Ciclo do Golpe**: Telegraph visual (~0.25s com brilho/flash amarelado e sem causar dano) -> Janela de Impacto Ativa (`attack_started` / hitbox ativa) -> Recuo de Recuperação (recoil 40-60 px, duração de 0.4s).
+   * **Sinais do Diretor**: `encounter_started`, `encounter_cleared`, `token_granted`, `token_released`, `active_attack_authorized`.
 
-6. **Progressão Sequencial dos Quatro Mapas da Fase 1**:
-   * A primeira fase possui exatamente quatro mapas: `Mapa 1 -> Mapa 2 -> Mapa 3 -> Mapa 4 -> Fim da Fase 1`.
-   * **Saída Trancada**: A área de saída inicia desabilitada (`monitoring = false`) durante o combate ativo.
-   * **Indicador SIGA →**: A indicação visual piscante "SIGA →" aparece junto à saída SOMENTE após a confirmação da derrota de todos os inimigos (`encounter_cleared`).
-   * **Avanço Manual**: O avanço ocorre estritamente quando o jogador alcança a área de saída liberada, nunca automaticamente ao matar o último inimigo.
-   * **Mapa 4**: É o clímax da Fase 1 e encaminha diretamente para o encerramento/créditos, sendo proibida a criação de um "Mapa 5" fictício.
+6. **Arquitetura de Navegação 2.5D (NavigationRegion2D & IA Híbrida de Inimigos)**:
+   * **Malha de Navegação Obrigatória por Nível**: Todo mapa de combate DEVE possuir um nó `NavigationRegion2D` contendo um `NavigationPolygon` (`.tres`) desenhado especificamente para o chão caminhável daquele cenário, contornando todas as mobílias e obstáculos estáticos.
+   * **Geometria de Navmesh Convexa**: O recurso `NavigationPolygon` deve ser construído através de partições de polígonos convexos adjacentes compartilhando vértices limítrofes, evitando o método depreciado `make_polygons_from_outlines()`.
+   * **Nó NavigationAgent2D em Todo Inimigo**:
+     * Ancorado estritamente na base dos pés `(0, 0)`.
+     * `navigation_layers = 1`.
+     * `avoidance_enabled = true` com raio proporcional aos pés (`radius = 12.0`, `neighbor_distance = 150.0`).
+     * Conectado ao callback `velocity_computed` aplicando `safe_velocity` em `move_and_slide()` para evitar congestionamento em corredores estreitos.
+   * **Navegação Híbrida 2.5D (Arcade Direto vs. Pathfinding)**:
+     * Antes de avançar em linha reta nos estados `ALIGNING_DEPTH` e `APPROACHING`, o inimigo realiza um _raycast_ no espaço 2D (`PhysicsRayQueryParameters2D.create(start, end, 2, [get_rid()])`) contra a camada de mobílias (Layer 2).
+     * **Caminho Desimpedido**: Move-se diretamente no eixo Y ou X, mantendo a resposta clássica, ágil e imediata de beat 'em up arcade.
+     * **Caminho Obstruído (Estantes, Gôndolas, Balcões)**: Atribui a coordenada do alvo ao `agent.target_position` e navega contornando os móveis via `_follow_agent_path()`.
+
+7. **Convenção de Camadas Físicas de Colisão (Collision Layers & Masks)**:
+   * **Layer 1 (Atores)**: Player e Inimigos (`CharacterBody2D`). Pés colidem entre si e com os limites do mundo.
+   * **Layer 2 (Mundo & Mobílias)**: Paredes perimetrais (`WorldBoundaries`) e móveis sólidos do piso (estantes, gôndolas, balcões, caixas). Bloqueia o movimento dos atores e a visão de raycast.
+   * **Layer 3 (Hitboxes de Ataque)**: Áreas ofensivas (`MeleeAttack` / socos / chutes) que detectam hurtboxes.
+   * **Layer 4 (Hurtboxes de Dano)**: Áreas receptoras de impacto que transmitem dano ao `HealthComponent`.
+   * **Layer 5 (Gatilhos de Fase & Saídas)**: Zonas de transição (`ExitArea`) e gatilhos de eventos.
+
+8. **Estrutura Padrão de Nós de Cena de Nível (MapX.tscn)**:
+   * Toda cena de fase deve respeitar rigorosamente a seguinte árvore hierárquica:
+     ```
+     MapX (Node2D, script: base_level.gd)
+     ├── Camera2D (com limites camera_min_x e camera_max_x configurados)
+     ├── Background (Sprite2D, z_index = -10, centered = false)
+     ├── NavigationRegion2D (com recurso map_X_navpoly.tres)
+     ├── WorldBoundaries (StaticBody2D, collision_layer = 2, collision_mask = 1)
+     │   ├── TopWall, BottomWall, LeftWall, RightWall (limites da tela)
+     │   └── [Colisores de Mobílias e Obstáculos com CollisionShape2D]
+     ├── World (Node2D, y_sort_enabled = true)
+     │   └── Entities (Node2D, y_sort_enabled = true)
+     │       ├── Player (instância de player.tscn, posicionado no ponto inicial)
+     │       └── Inimigos (instâncias de basic_enemy.tscn e suas variantes)
+     ├── CombatDirector (Node, script: combat_director.gd, no grupo "combat_director")
+     ├── ExitArea (Area2D, collision_layer = 0, collision_mask = 1, monitoring = false)
+     │   └── CollisionShape2D (na extremidade direita ou porta de saída)
+     ├── SigaIndicator (instância de siga_indicator.tscn, posicionado na saída)
+     └── PrototypeHud (instância de prototype_hud.tscn)
+     ```
+
+9. **Estrutura Padrão de Nós de Inimigos**:
+   * Todo ator inimigo deve conter os seguintes componentes desacoplados:
+     ```
+     Enemy (CharacterBody2D, y_sort_enabled = true, grupo "enemies")
+     ├── CollisionShape2D (CapsuleShape2D na base dos pés, layer 1, mask 2)
+     ├── NavigationAgent2D (posicionado em (0, 0), avoidance habilitado)
+     ├── Visual (Node2D, Y < 0, contém AnimatedSprite2D e efeitos)
+     ├── MeleeAttack (Area2D ofensiva, collision_layer = 4, collision_mask = 0)
+     ├── Hurtbox (Area2D receptora, collision_layer = 0, collision_mask = 4)
+     ├── HealthComponent (Node de gerenciamento de pontos de vida e morte)
+     └── FloatingHealthBar (ProgressBar flutuante sobre a cabeça)
+     ```
+
+10. **Progressão Sequencial dos Quatro Mapas da Fase 1**:
+    * A primeira fase possui exatamente quatro mapas (`1983×793px` em Pixel Art HD):
+      * **Mapa 1**: `scenes/levels/map_1.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_1.webp`, Navmesh: `map_1_navpoly.tres`) -> Entrada/Interior da Locadora.
+      * **Mapa 2**: `scenes/levels/map_2.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_2.webp`, Navmesh: `map_2_navpoly.tres`) -> Comércio e Bares.
+      * **Mapa 3**: `scenes/levels/map_3.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_3.webp`, Navmesh: `map_3_navpoly.tres`) -> Travessa da Locadora.
+      * **Mapa 4**: `scenes/levels/map_4.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_4.webp`, Navmesh: `map_4_navpoly.tres`) -> O Beco Final (Clímax da Fase 1).
+    * **Saída Trancada**: A área de saída inicia desabilitada (`monitoring = false`) durante o combate ativo.
+    * **Indicador SIGA →**: A indicação visual piscante "SIGA →" aparece junto à saída SOMENTE após a confirmação da derrota de todos os inimigos (`encounter_cleared`).
+    * **Avanço Manual**: O avanço ocorre estritamente quando o jogador alcança a área de saída liberada, nunca automaticamente ao matar o último inimigo.
+    * **Mapa 4**: É o clímax da Fase 1 e encaminha diretamente para o encerramento/créditos, sendo proibida a criação de um "Mapa 5" fictício.
+
 
 ---
 
@@ -102,21 +162,20 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
 * ❌ **Avanço prematuro de mapa**: Proibido liberar a saída ou exibir "SIGA →" enquanto houver inimigos vivos ou ondas pendentes.
 * ❌ **Dependências externas pesadas**: Não introduzir bibliotecas ou plugins externos que compliquem o build sem autorização explícita.
 * ❌ **Quebrar o Y-Sort**: Jamais alterar a convenção de âncora nos pés sem refatorar toda a estrutura geométrica.
-* ❌ **Alterar codec de vídeo da tela inicial sem parâmetros intra-frame**: Proibido gerar `maingif.ogv` sem `-pix_fmt yuv420p -g 1`, o que reintroduziria chuvisco e macroblocos no decodificador libtheora da Godot 4.
+* ❌ **Usar vídeo OGV/GIF na tela de abertura**: A tela de abertura utiliza exclusivamente a imagem estática `main.webp` via `TextureRect`. Proibido reintroduzir `VideoStreamPlayer`, `.ogv` ou `.gif` como abertura, pois a resolução e a decodificação Theora da Godot 4 degradam a qualidade do Pixel Art HD.
 * ❌ **Chamadas de Viewport desprotegidas em troca de cena**: Jamais chamar `get_viewport().set_input_as_handled()` após `change_scene_to_file()` sem validar se o viewport ainda existe (`if get_viewport() != null:`).
+* ❌ **Inimigos sem NavigationAgent2D ou sem Avoidance RVO**: Proibido criar ou instanciar inimigos sem o nó `NavigationAgent2D` com `avoidance_enabled = true`, sob pena de congelamento contra mobílias ou travamento mútuo em corredores estreitos.
+* ❌ **Cenas de fase sem NavigationRegion2D**: Proibido estruturar novas fases sem `NavigationRegion2D` mapeando o piso caminhável e sem colisores de mobília em `WorldBoundaries` na camada 2.
+* ❌ **Violação das Camadas Físicas de Colisão (Layers 1 a 5)**: Proibido misturar camadas de física ou colocar hitboxes/hurtboxes nas mesmas camadas dos limites do cenário ou dos corpos físicos dos atores.
 
 ---
 
 ## 📦 6. REGRAS DE OTIMIZAÇÃO DE ASSETS, ESCALABILIDADE E PADRÕES VISUAIS OFICIAIS
 
-1. **Vídeo de Abertura (Codec Theora / OGV Sem Chuvisco)**:
-   * O motor da Godot Engine 4 utiliza um decodificador embutido da biblioteca `libtheora` que aceita exclusivamente o formato `yuv420p`.
-   * Quando o codec utiliza estimativa de movimento padrão sobre pixel art com dithering e 256 cores, ocorrem erros de bitstream (`unpack_block_qpis`), preenchendo a tela com blocos de ruído/chuvisco.
-   * **Comando Obrigatório e Padrão**:
-     ```bash
-     ffmpeg -y -i assets/backgrounds/maingif.gif -c:v libtheora -q:v 6 -pix_fmt yuv420p -g 1 assets/backgrounds/maingif.ogv
-     ```
-   * O parâmetro `-g 1` força quadros intra (keyframes) contínuos em `yuv420p`, eliminando 100% dos erros de decodificação e mantendo fidelidade de cores Pixel Art HD com tamanho reduzido.
+1. **Tela de Abertura (Imagem Estática main.webp)**:
+   * A tela de abertura (`title_screen.tscn`) utiliza exclusivamente a imagem estática `res://assets/backgrounds/main.webp` exibida em um `TextureRect` dentro de um `AspectRatioContainer`.
+   * Formato WebP garante resolução nativa da arte Pixel Art HD sem degradação de codec de vídeo, com peso reduzido (~559 KB) e carregamento instantâneo.
+   * **Proibido usar VideoStreamPlayer, `.ogv` ou `.gif`**: O decodificador `libtheora` da Godot Engine 4 introduz artefatos de compressão (macroblocos, chuvisco) em pixel art com dithering e paletas reduzidas, tornando o vídeo inferior à imagem estática em qualidade visual.
 
 2. **Menu Principal (Estados Oficiais em WebP Transparente menu_state_0 a 5)**:
    * O menu principal utiliza a transição entre os estados de imagem oficiais `menu_state_0.webp` até `menu_state_5.webp` localizados em `res://assets/backgrounds/menu_states/`.

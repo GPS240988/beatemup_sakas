@@ -1,14 +1,13 @@
 class_name TitleScreen
 extends Control
 
-## Tela de Abertura / Splash Screen animada (maingif.ogv).
-## Exibe a animação dos 4 guerreiros com o banner arcade 'PRESSIONE QUALQUER TECLA' integrado na arte.
+## Tela de Abertura / Splash Screen com a arte estática main.webp.
+## Exibe a ilustração dos 4 guerreiros com o banner arcade 'PRESSIONE QUALQUER TECLA'.
 ## Suporta entrada de teclado, gamepad, clique de mouse e toque mobile.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
 
-@onready var video_player: VideoStreamPlayer = %VideoPlayer
-@onready var fallback_bg: TextureRect = %BackgroundFallback
+@onready var background_image: TextureRect = %BackgroundImage
 @onready var flash_rect: ColorRect = %FlashRect
 @onready var touch_button: Button = %TouchButton
 
@@ -20,9 +19,6 @@ func _ready() -> void:
 		flash_rect.visible = true
 		flash_rect.modulate.a = 0.0
 		flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	if video_player != null:
-		video_player.play()
 
 	if touch_button != null:
 		touch_button.pressed.connect(_on_touch_activated)
