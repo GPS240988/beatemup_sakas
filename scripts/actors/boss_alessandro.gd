@@ -61,8 +61,12 @@ func _update_boss_visuals() -> void:
 			if anim_sprite.animation != &"idle":
 				anim_sprite.play("idle")
 		State.FLANKING, State.ALIGNING_DEPTH, State.APPROACHING:
-			if anim_sprite.animation != &"walk":
-				anim_sprite.play("walk")
+			if velocity.length_squared() > 25.0:
+				if anim_sprite.animation != &"walk":
+					anim_sprite.play("walk")
+			else:
+				if anim_sprite.animation != &"idle":
+					anim_sprite.play("idle")
 		State.TELEGRAPH:
 			if anim_sprite.animation != &"idle" and anim_sprite.animation != &"guard":
 				anim_sprite.play("idle")
