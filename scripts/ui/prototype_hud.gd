@@ -23,7 +23,7 @@ func _ready() -> void:
 	if label_level_name != null:
 		label_level_name.text = "FASE: TEST STREET (Beat 'em Up 2.5D)"
 	if label_controls != null:
-		label_controls.text = "PC: [W/A/S/D] Mover | [J / Espaço] Atacar | [R] Reiniciar"
+		label_controls.text = "PC: [WASD] Mover | [J] Soco | [K] Chute | [L] Especial | [U] Aéreo | [Espaço] Bloqueio | [R] Reiniciar"
 
 	if banner_panel != null:
 		banner_panel.visible = false

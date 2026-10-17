@@ -43,6 +43,11 @@ var _jump_v_velocity: float = 0.0
 # Controle de guarda
 var _is_guarding: bool = false
 
+# Modificadores de atributos
+var _str_mult: float = 1.0
+var _spd_mult: float = 1.0
+var _tec_mult: float = 1.0
+
 
 func _ready() -> void:
 	add_to_group("player")
@@ -72,25 +77,25 @@ func _apply_character_stat_modifiers() -> void:
 	if session != null and "selected_character_id" in session:
 		char_id = session.selected_character_id
 
-	var str_mult: float = 1.0
-	var spd_mult: float = 1.0
-	var tec_mult: float = 1.0
+	_str_mult = 1.0
+	_spd_mult = 1.0
+	_tec_mult = 1.0
 
 	if session != null and session.has_method("get_strength_multiplier"):
-		str_mult = session.get_strength_multiplier(char_id)
-		spd_mult = session.get_speed_multiplier(char_id)
-		tec_mult = session.get_technique_multiplier(char_id)
+		_str_mult = session.get_strength_multiplier(char_id)
+		_spd_mult = session.get_speed_multiplier(char_id)
+		_tec_mult = session.get_technique_multiplier(char_id)
 
 	# Aplica modificadores de velocidade de locomoção
-	speed_x *= spd_mult
-	speed_y *= spd_mult
+	speed_x *= _spd_mult
+	speed_y *= _spd_mult
 
 	# Aplica modificadores de combate
 	if melee_attack != null:
-		melee_attack.damage *= str_mult
-		melee_attack.depth_tolerance *= tec_mult
-		if tec_mult > 0.0:
-			melee_attack.attack_cooldown /= tec_mult
+		melee_attack.damage *= _str_mult
+		melee_attack.depth_tolerance *= _tec_mult
+		if _tec_mult > 0.0:
+			melee_attack.attack_cooldown /= _tec_mult
 
 
 func _physics_process(delta: float) -> void:
@@ -124,7 +129,7 @@ func _physics_process(delta: float) -> void:
 				if melee_attack != null and not melee_attack.is_attacking:
 					_update_animation("idle")
 
-	# Leitura de comando de Guarda (apenas no chão e fora de ataque)
+	# Leitura de comando de Guarda (fora de ataque e fora de salto aéreo)
 	if not _is_jumping and (melee_attack == null or not melee_attack.is_attacking):
 		if Input.is_action_pressed("guard"):
 			_is_guarding = true
@@ -138,15 +143,18 @@ func _physics_process(delta: float) -> void:
 		else:
 			_is_guarding = false
 
-	# Leitura de comando de Salto
-	if Input.is_action_just_pressed("jump") and not _is_jumping and (melee_attack == null or not melee_attack.is_attacking):
-		_start_jump()
+	# Comandos de ataques dedicados (Soco, Chute, Golpe Especial e Ataque Aéreo)
+	if (melee_attack == null or not melee_attack.is_attacking) and not _is_guarding and not _is_jumping:
+		if Input.is_action_just_pressed("attack_punch") or Input.is_action_just_pressed("attack"):
+			_try_punch()
+		elif Input.is_action_just_pressed("attack_kick"):
+			_try_kick()
+		elif Input.is_action_just_pressed("attack_special"):
+			_try_special()
+		elif Input.is_action_just_pressed("attack_aerial"):
+			_try_aerial_attack()
 
-	# Comando de ataque (ataque aéreo ou combo no solo)
-	if Input.is_action_just_pressed("attack"):
-		_try_attack()
-
-	# Se estiver executando o ataque no solo, mantém os pés firmes no solo e não sobrescreve a animação
+	# Se estiver executando ataque no solo, mantém os pés firmes no solo e não sobrescreve a animação
 	if melee_attack != null and melee_attack.is_attacking and not _is_jumping:
 		velocity = Vector2.ZERO
 		move_and_slide()
@@ -177,44 +185,66 @@ func _physics_process(delta: float) -> void:
 	player_moved.emit(global_position, velocity)
 
 
-## Inicia o salto 2.5D
-func _start_jump() -> void:
-	_is_jumping = true
-	_jump_v_velocity = -jump_force
-	_update_animation("jump")
-	state_changed.emit("Pulando")
-
-
-## Tenta desferir um golpe na direção atual (suporta combo no solo e voadora aérea)
-func _try_attack() -> void:
+## Desfere o golpe rápido de Soco
+func _try_punch() -> void:
 	if melee_attack == null:
 		return
+	_current_attack_anim = &"punch"
+	melee_attack.damage = 20.0 * _str_mult
+	melee_attack.horizontal_range = 85.0
+	melee_attack.active_duration = 0.12
+	melee_attack.attack_cooldown = 0.28 / maxf(0.1, _tec_mult)
+	if melee_attack.execute_attack(facing_direction):
+		state_changed.emit("Soco")
 
-	if _is_jumping:
-		# Ataque aéreo (voadora / jump kick)
-		var aerial_started: bool = melee_attack.execute_attack(facing_direction)
-		if aerial_started:
-			_current_attack_anim = &"jump_atk"
-			if anim_sprite != null:
-				anim_sprite.play("jump_atk")
-			state_changed.emit("Ataque Aéreo")
+
+## Desfere o golpe de Chute (maior alcance e dano intermediário)
+func _try_kick() -> void:
+	if melee_attack == null:
 		return
+	_current_attack_anim = &"kick"
+	melee_attack.damage = 28.0 * _str_mult
+	melee_attack.horizontal_range = 105.0
+	melee_attack.active_duration = 0.15
+	melee_attack.attack_cooldown = 0.38 / maxf(0.1, _tec_mult)
+	if melee_attack.execute_attack(facing_direction):
+		state_changed.emit("Chute")
 
-	# Ataque no solo: combo encadeado de 3 fases (Soco -> Chute -> Ataque Pesado)
-	var chosen_anim: StringName = &"punch"
-	if _combo_step == 0:
-		chosen_anim = &"punch"
-	elif _combo_step == 1:
-		chosen_anim = &"kick"
-	else:
-		chosen_anim = &"heavy"
 
-	_current_attack_anim = chosen_anim
-	var started: bool = melee_attack.execute_attack(facing_direction)
-	if started:
-		state_changed.emit("Atacando (%s)" % chosen_anim)
-		_combo_step = (_combo_step + 1) % 3
-		_combo_window_timer = 0.55
+## Desfere o Golpe Especial / Pesado (alto impacto e knockback)
+func _try_special() -> void:
+	if melee_attack == null:
+		return
+	_current_attack_anim = &"heavy"
+	melee_attack.damage = 45.0 * _str_mult
+	melee_attack.horizontal_range = 115.0
+	melee_attack.active_duration = 0.20
+	melee_attack.attack_cooldown = 0.55 / maxf(0.1, _tec_mult)
+	if melee_attack.execute_attack(facing_direction):
+		state_changed.emit("Golpe Especial")
+
+
+## Executa o Ataque Aéreo (voadora em salto frontal sem necessidade de tecla de pulo)
+func _try_aerial_attack() -> void:
+	if melee_attack == null:
+		return
+	_is_jumping = true
+	_jump_v_velocity = -340.0
+	_current_attack_anim = &"jump_atk"
+	melee_attack.damage = 35.0 * _str_mult
+	melee_attack.horizontal_range = 110.0
+	melee_attack.active_duration = 0.22
+	melee_attack.attack_cooldown = 0.45 / maxf(0.1, _tec_mult)
+	velocity.x = facing_direction * 240.0
+	if melee_attack.execute_attack(facing_direction):
+		if anim_sprite != null:
+			anim_sprite.play("jump_atk")
+		state_changed.emit("Ataque Aéreo")
+
+
+## Fallback para compatibilidade com o botão genérico de ataque
+func _try_attack() -> void:
+	_try_punch()
 
 
 ## Lê e normaliza o vetor de entrada analógico ou digital dos eixos X e Y
@@ -314,9 +344,12 @@ func _ensure_fallback_inputs() -> void:
 	_register_key_if_missing("move_right", KEY_D, KEY_RIGHT)
 	_register_key_if_missing("move_up", KEY_W, KEY_UP)
 	_register_key_if_missing("move_down", KEY_S, KEY_DOWN)
+	_register_key_if_missing("attack_punch", KEY_J, KEY_NONE)
+	_register_key_if_missing("attack_kick", KEY_K, KEY_NONE)
+	_register_key_if_missing("attack_special", KEY_L, KEY_NONE)
+	_register_key_if_missing("attack_aerial", KEY_U, KEY_NONE)
+	_register_key_if_missing("guard", KEY_SPACE, KEY_H)
 	_register_key_if_missing("attack", KEY_J, KEY_Z)
-	_register_key_if_missing("jump", KEY_K, KEY_SPACE)
-	_register_key_if_missing("guard", KEY_L, KEY_SHIFT)
 	_register_key_if_missing("restart", KEY_R, KEY_NONE)
 
 

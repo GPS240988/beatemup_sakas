@@ -21,6 +21,11 @@ const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
 @export var camera_fixed_y: float = 360.0
 @export var camera_follow_speed: float = 12.0
 
+@export_group("Chefe da Seção")
+@export var boss_scene: PackedScene = null
+@export var boss_spawn_position: Vector2 = Vector2(1700, 640)
+@export var boss_announcement_text: String = "⚠️ ATENÇÃO: CHEFÃO ALESSANDRO APARECEU!\nDERROTE-O PARA AVANÇAR!"
+
 ## Referências aos nós da cena
 @onready var camera: Camera2D = $Camera2D
 @onready var combat_director: CombatDirector = $CombatDirector
@@ -51,6 +56,8 @@ func _ready() -> void:
 	if combat_director != null:
 		if not combat_director.encounter_cleared.is_connected(_on_encounter_cleared):
 			combat_director.encounter_cleared.connect(_on_encounter_cleared)
+		if not combat_director.enemy_defeated.is_connected(_on_enemy_defeated):
+			combat_director.enemy_defeated.connect(_on_enemy_defeated)
 
 	# Conecta HUD com Jogador
 	if player != null and hud != null:
@@ -79,6 +86,13 @@ func _update_camera(delta: float) -> void:
 	camera.global_position.y = camera_fixed_y
 
 
+## Disparado quando um inimigo é derrotado
+func _on_enemy_defeated(_enemy: CharacterBody2D) -> void:
+	if boss_scene != null and not _boss_spawned:
+		if combat_director != null and combat_director.alive_enemies.is_empty():
+			_spawn_boss()
+
+
 ## Disparado pelo CombatDirector quando todos os inimigos forem derrotados
 func _on_encounter_cleared() -> void:
 	# 1. Habilita a detecção na área de saída
@@ -92,8 +106,45 @@ func _on_encounter_cleared() -> void:
 	# 3. Notifica a HUD
 	if hud != null and hud.banner_panel != null and hud.banner_label != null:
 		hud.banner_panel.visible = true
-		hud.banner_label.text = "⚔️ ÁREA LIMPA!\nSIGA → PARA A PRÓXIMA SEÇÃO"
+		if _boss_spawned:
+			hud.banner_label.text = "⚔️ ÁREA LIMPA! CHEFÃO DERROTADO!\nSIGA → PARA A PRÓXIMA SEÇÃO"
+		else:
+			hud.banner_label.text = "⚔️ ÁREA LIMPA!\nSIGA → PARA A PRÓXIMA SEÇÃO"
 		hud.banner_label.modulate = Color(0.3, 1.0, 0.4)
+
+
+## Invoca o Chefe no mapa com aviso na HUD e registro no CombatDirector
+func _spawn_boss() -> void:
+	_boss_spawned = true
+	var entities_node: Node2D = get_node_or_null("World/Entities")
+	if entities_node == null:
+		entities_node = self
+
+	var boss = boss_scene.instantiate() as CharacterBody2D
+	if boss != null:
+		_boss_instance = boss
+		boss.global_position = boss_spawn_position
+		entities_node.add_child(boss)
+
+		if combat_director != null:
+			combat_director.is_cleared = false
+			combat_director.encounter_state = "COMBAT"
+			combat_director.register_enemy(boss)
+
+	# Notificação de Boss na HUD
+	if hud != null and hud.banner_panel != null and hud.banner_label != null:
+		hud.banner_panel.visible = true
+		hud.banner_label.text = boss_announcement_text
+		hud.banner_label.modulate = Color(1.0, 0.25, 0.2)
+
+		var t = create_tween()
+		t.tween_interval(3.0)
+		t.tween_property(hud.banner_panel, "modulate:a", 0.0, 0.5)
+		t.tween_callback(func():
+			if hud != null and hud.banner_panel != null:
+				hud.banner_panel.visible = false
+				hud.banner_panel.modulate.a = 1.0
+		)
 
 
 ## Disparado quando um corpo físico entra na área de saída

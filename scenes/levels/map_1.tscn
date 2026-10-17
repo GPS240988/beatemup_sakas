@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/base_level.gd" id="1_base_level"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase1/Fase1_1.webp" id="2_bg_texture"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_1_navpoly.tres" id="8_navpoly"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/boss_alessandro.tscn" id="9_boss_alessandro"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
 size = Vector2(2200, 30)
@@ -40,6 +41,8 @@ map_index = 1
 next_map_scene_path = "res://scenes/levels/map_2.tscn"
 camera_min_x = 640.0
 camera_max_x = 1343.0
+boss_scene = ExtResource("9_boss_alessandro")
+boss_spawn_position = Vector2(1700, 640)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(640, 360)
