@@ -22,7 +22,7 @@ func _run_tests() -> void:
 
 	test_boss_alessandro_scene_and_properties()
 	test_player_new_attack_controls()
-	test_map1_boss_spawn_and_encounter_clearing()
+	test_map1_no_boss_and_map4_boss_spawn()
 
 	print("==================================================")
 	print("RESULTADO DOS TESTES: %d/%d PASSARAM (Falhas: %d)" % [passed_tests, total_tests, failed_tests])
@@ -108,28 +108,44 @@ func test_player_new_attack_controls() -> void:
 	player.free()
 
 
-func test_map1_boss_spawn_and_encounter_clearing() -> void:
-	print("\n--- Testando Spawn do Chefe no Mapa 1 ---")
-	var map_scene: PackedScene = load("res://scenes/levels/map_1.tscn")
-	var map = map_scene.instantiate() as BaseLevel
-	root.add_child(map)
+func test_map1_no_boss_and_map4_boss_spawn() -> void:
+	print("\n--- Testando Ausência de Chefe no Mapa 1 e Presença no Mapa 4 ---")
+	# 1. Verifica Mapa 1 (não deve ter chefe)
+	var map1_scene: PackedScene = load("res://scenes/levels/map_1.tscn")
+	var map1 = map1_scene.instantiate() as BaseLevel
+	root.add_child(map1)
 
-	assert_test(map.boss_scene != null, "boss_scene está configurada no Mapa 1")
-	assert_test(not map._boss_spawned, "Chefe não está spawnado inicialmente")
-	assert_test(not map.exit_area.monitoring, "Saída bloqueada no início")
+	assert_test(map1.boss_scene == null, "boss_scene é null no Mapa 1 (sem chefe na Seção 1)")
+	map1.free()
 
-	# Simula derrota dos inimigos iniciais
+	# 2. Verifica Mapa 4 (O Beco Final - Clímax com Chefe Alessandro)
+	var map4_scene: PackedScene = load("res://scenes/levels/map_4.tscn")
+	var map4 = map4_scene.instantiate() as BaseLevel
+	root.add_child(map4)
+
+	assert_test(map4.boss_scene != null, "boss_scene está configurada no Mapa 4 (O Beco Final)")
+	assert_test(not map4._boss_spawned, "Chefe não está spawnado inicialmente no Mapa 4")
+	assert_test(not map4.exit_area.monitoring, "Saída bloqueada no início do combate no Mapa 4")
+
+	# Simula derrota de inimigos para invocar o Chefe no Mapa 4
 	var dummy_enemy = CharacterBody2D.new()
-	map._on_enemy_defeated(dummy_enemy)
+	map4._on_enemy_defeated(dummy_enemy)
 
-	assert_test(map._boss_spawned, "Chefe Alessandro é invocado após derrota dos capangas")
-	assert_test(map._boss_instance != null, "Instância do Chefe criada no mundo")
-	assert_test(not map.exit_area.monitoring, "Saída permanece bloqueada enquanto o Chefe estiver vivo")
+	assert_test(map4._boss_spawned, "Chefe Alessandro é invocado no Mapa 4 após derrota dos capangas")
+	assert_test(map4._boss_instance != null, "Instância de Alessandro criada no mundo do Mapa 4")
+	assert_test(not map4.exit_area.monitoring, "Saída do Mapa 4 permanece bloqueada durante luta contra o Chefe")
 
-	# Derrota o chefe
-	map._on_encounter_cleared()
-	assert_test(map.exit_area.monitoring, "Saída finalmente liberada após vitória total")
-	assert_test(map.siga_indicator.visible, "Indicador SIGA → ativado após vitória sobre o Chefe")
+	# Testa acompanhamento da câmera até a área do boss
+	var player = map4.player
+	if player != null:
+		player.global_position.x = 1600.0 # Jogador caminha até o Boss
+		map4._update_camera(1.0)
+		assert_test(map4.camera.global_position.x >= 1340.0, "Câmera acompanha o jogador até o limite máximo do mapa próximo ao Chefe")
+
+	# Derrota o chefe e limpa o encontro
+	map4._on_encounter_cleared()
+	assert_test(map4.exit_area.monitoring, "Saída liberada após derrota do Chefe no Mapa 4")
+	assert_test(map4.siga_indicator.visible, "Indicador SIGA → ativado no Mapa 4 após vitória sobre Alessandro")
 
 	dummy_enemy.free()
-	map.free()
+	map4.free()

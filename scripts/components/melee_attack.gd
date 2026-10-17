@@ -157,7 +157,7 @@ func _poll_overlapping_targets() -> void:
 	if not is_active_window:
 		return
 
-	if hitbox_area != null and is_instance_valid(hitbox_area) and is_inside_tree():
+	if hitbox_area != null and is_instance_valid(hitbox_area) and is_inside_tree() and hitbox_area.monitoring:
 		for body in hitbox_area.get_overlapping_bodies():
 			_try_hit_target(body)
 		for area in hitbox_area.get_overlapping_areas():

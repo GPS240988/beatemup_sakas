@@ -35,12 +35,20 @@ const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
 @onready var player: PlayerController = $World/Entities/Player
 
 var _transitioning: bool = false
+var _boss_spawned: bool = false
+var _boss_instance: CharacterBody2D = null
 
 
 func _ready() -> void:
 	# Inicializa câmera
 	if camera != null:
-		camera.position = Vector2(camera_min_x, camera_fixed_y)
+		camera.enabled = true
+		camera.make_current()
+		var init_x: float = camera_min_x
+		if player != null and is_instance_valid(player):
+			init_x = clampf(player.global_position.x, camera_min_x, camera_max_x)
+		camera.position = Vector2(init_x, camera_fixed_y)
+		camera.global_position = Vector2(init_x, camera_fixed_y)
 
 	# A saída inicia estritamente desabilitada até a derrota de todos os inimigos
 	if exit_area != null:
@@ -78,8 +86,15 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_camera(delta: float) -> void:
-	if camera == null or player == null or not is_instance_valid(player):
+	if camera == null:
 		return
+
+	if player == null or not is_instance_valid(player):
+		var found_player = get_tree().get_first_node_in_group("player")
+		if found_player is PlayerController:
+			player = found_player as PlayerController
+		else:
+			return
 
 	var target_x: float = clampf(player.global_position.x, camera_min_x, camera_max_x)
 	camera.global_position.x = move_toward(camera.global_position.x, target_x, camera_follow_speed * 100.0 * delta)
