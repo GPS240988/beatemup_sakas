@@ -43,7 +43,9 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
 3. **Cenários e Profundidade 2.5D**:
    * Clara distinção visual entre planos de fundo, área caminhável (rua/chão) e elementos de primeiro plano.
    * Elementos interativos e decorativos devem ter pontos de âncora claros para ordenação por profundidade.
-   * **Resolução Nativa dos Sprites e Escala Padrão dos Atores (0.80)**: Todos os sprites de personagens jogáveis e inimigos possuem resolução nativa de **220×300px**. No Godot, o `AnimatedSprite2D` utiliza escala `scale = Vector2(0.80, 0.80)` para atingir ~240px de altura final, garantindo proporção anatômica fidedigna com balcões, estantes e pé-direito dos cenários sem necessidade de novos sprites. Esta escala se aplica igualmente a heróis e inimigos que utilizem sprites de 220×300px.
+   * **Resolução Nativa dos Sprites e Escala Padrão dos Atores**:
+     * **Heróis Jogáveis e Inimigos Comuns (Capangas)**: Possuem resolução nativa rigorosamente de **220×300px**. No Godot, o `AnimatedSprite2D` utiliza escala `scale = Vector2(0.80, 0.80)` para atingir ~240px de altura final, garantindo proporção anatômica fidedigna com balcões, estantes e pé-direito dos cenários sem distorção.
+     * **Chefes de Fase (Bosses)**: **SOMENTE os chefes terão por padrão a resolução ampliada de 250×330px** (maior que o personagem comum de 220×300px), conferindo imponência hierárquica e destaque visual nos encontros de clímax (como o Chefe Alessandro na Fase 1 - Seção 4). Devem manter a ancoragem espacial estrita na base dos pés em `(0, 0)` e eixo do torso perfeitamente centralizado em `X = 125px` no canvas para garantir fluidez na movimentação e evitar desvios laterais ou marcha manco.
    * **Colisores de Mobília e Corredores de Navegação**: Móveis e estantes no solo possuem colisores em `WorldBoundaries` (`collision_layer = 2`), impedindo que atores pisem sobre mesas ou prateleiras e forçando a movimentação através dos corredores reais do cenário.
 
 ---
