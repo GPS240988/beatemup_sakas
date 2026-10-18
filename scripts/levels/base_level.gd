@@ -62,6 +62,8 @@ func _ready() -> void:
 
 	# Configura conexões do Diretor de Combate
 	if combat_director != null:
+		if boss_scene != null and not _boss_spawned:
+			combat_director.add_pending_spawns(1)
 		if not combat_director.encounter_cleared.is_connected(_on_encounter_cleared):
 			combat_director.encounter_cleared.connect(_on_encounter_cleared)
 		if not combat_director.enemy_defeated.is_connected(_on_enemy_defeated):
@@ -110,6 +112,14 @@ func _on_enemy_defeated(_enemy: CharacterBody2D) -> void:
 
 ## Disparado pelo CombatDirector quando todos os inimigos forem derrotados
 func _on_encounter_cleared() -> void:
+	# Blindagem absoluta: jamais abre saída se houver chefe configurado que ainda não deu spawn
+	if boss_scene != null and not _boss_spawned:
+		return
+
+	# Blindagem: jamais abre saída se houver reforços pendentes registrados no diretor
+	if combat_director != null and combat_director.pending_spawns_count > 0:
+		return
+
 	# 1. Habilita a detecção na área de saída
 	if exit_area != null:
 		exit_area.monitoring = true
@@ -144,7 +154,7 @@ func _spawn_boss() -> void:
 		if combat_director != null:
 			combat_director.is_cleared = false
 			combat_director.encounter_state = "COMBAT"
-			combat_director.register_enemy(boss)
+			combat_director.notify_spawn_completed(boss)
 
 	# Notificação de Boss na HUD
 	if hud != null and hud.banner_panel != null and hud.banner_label != null:

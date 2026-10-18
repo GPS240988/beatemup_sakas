@@ -23,6 +23,9 @@ signal active_attack_authorized(enemy: CharacterBody2D)
 ## Tempo limite de retenção de token antes de revogação por inatividade (segundos)
 @export var token_timeout_seconds: float = 4.0
 
+## Quantidade de inimigos ou reforços pendentes aguardando spawn
+@export var pending_spawns_count: int = 0
+
 ## Distância horizontal de espera para inimigos sem token (pixels)
 @export var wait_distance_x_min: float = 120.0
 @export var wait_distance_x_max: float = 180.0
@@ -114,6 +117,18 @@ func register_enemy(enemy: CharacterBody2D) -> void:
 		enemy.tree_exiting.connect(_on_enemy_tree_exiting.bind(enemy))
 
 	enemy_registered.emit(enemy)
+
+
+## Incrementa a contagem de reforços ou inimigos de ondas pendentes
+func add_pending_spawns(count: int = 1) -> void:
+	pending_spawns_count += count
+
+
+## Notifica a conclusão da instanciação de um inimigo pendente no mundo
+func notify_spawn_completed(enemy: CharacterBody2D = null) -> void:
+	pending_spawns_count = maxi(0, pending_spawns_count - 1)
+	if enemy != null:
+		register_enemy(enemy)
 
 
 ## Remove um inimigo do encontro (despawn ou exclusão de cena)
@@ -264,7 +279,8 @@ func _check_victory_condition() -> void:
 
 	_cleanup_invalid_instances()
 
-	if registered_enemies.size() > 0 and alive_enemies.is_empty():
+	# O encontro só é concluído se todos os inimigos foram derrotados E não houver reforços pendentes
+	if registered_enemies.size() > 0 and alive_enemies.is_empty() and pending_spawns_count == 0:
 		is_cleared = true
 		encounter_state = "COMPLETED"
 		encounter_cleared.emit()

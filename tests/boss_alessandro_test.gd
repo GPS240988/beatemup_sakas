@@ -145,6 +145,12 @@ func test_map1_no_boss_and_map4_boss_spawn() -> void:
 	assert_test(map4.boss_scene != null, "boss_scene está configurada no Mapa 4 (O Beco Final)")
 	assert_test(not map4._boss_spawned, "Chefe não está spawnado inicialmente no Mapa 4")
 	assert_test(not map4.exit_area.monitoring, "Saída bloqueada no início do combate no Mapa 4")
+	assert_test(map4.combat_director != null and map4.combat_director.pending_spawns_count == 1, "Mapa 4 registra Chefe como spawn pendente (pending_spawns_count == 1)")
+
+	# Tentativa espúria de limpar encontro antes do chefe ser invocado deve ser rejeitada
+	map4._on_encounter_cleared()
+	assert_test(not map4.exit_area.monitoring, "Saída permanece estritamente bloqueada se encontro for sinalizado sem o Chefe")
+	assert_test(not map4.siga_indicator.visible, "Indicador SIGA permanece oculto antes do surgimento do Chefe")
 
 	# Simula derrota de inimigos para invocar o Chefe no Mapa 4
 	var dummy_enemy = CharacterBody2D.new()
@@ -152,6 +158,7 @@ func test_map1_no_boss_and_map4_boss_spawn() -> void:
 
 	assert_test(map4._boss_spawned, "Chefe Alessandro é invocado no Mapa 4 após derrota dos capangas")
 	assert_test(map4._boss_instance != null, "Instância de Alessandro criada no mundo do Mapa 4")
+	assert_test(map4.combat_director.pending_spawns_count == 0, "Spawns pendentes do Mapa 4 zerados após invocação do Chefe")
 	assert_test(not map4.exit_area.monitoring, "Saída do Mapa 4 permanece bloqueada durante luta contra o Chefe")
 
 	# Testa acompanhamento da câmera até a área do boss

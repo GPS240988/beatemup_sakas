@@ -28,6 +28,7 @@ func _run_tests() -> void:
 	test_defeated_enemy_accounting_and_victory()
 	test_telegraph_does_not_damage_prematurely()
 	test_token_timeout_and_revocation()
+	test_pending_spawns_and_reinforcements_guard()
 
 	print("==================================================")
 	print("RESULTADO DOS TESTES DO DIRETOR: %d/%d PASSARAM (Falhas: %d)" % [passed_tests, total_tests, failed_tests])
@@ -306,5 +307,43 @@ func test_token_timeout_and_revocation() -> void:
 
 	# Agora Inimigo 2 consegue obter o token liberado
 	assert_test(director.request_attack_token(e2), "Inimigo 2 obtém token após revogação do token ocioso")
+
+	root_node.free()
+
+
+func test_pending_spawns_and_reinforcements_guard() -> void:
+	print("\n--- Testando Blindagem de Reforços e Spawns Pendentes ---")
+	var root_node := Node2D.new()
+	root.add_child(root_node)
+
+	var director := CombatDirectorClass.new()
+	root_node.add_child(director)
+
+	var e1 := _create_dummy_actor("enemies", Vector2(400, 500))
+	root_node.add_child(e1)
+	director.register_enemy(e1)
+
+	# Simula que há uma segunda onda ou chefe pendente
+	director.add_pending_spawns(1)
+	assert_test(director.pending_spawns_count == 1, "Diretor possui exatamente 1 spawn pendente")
+
+	# Derrota o único inimigo da onda 1
+	director.notify_enemy_defeated(e1)
+	assert_test(director.alive_enemies.is_empty(), "Inimigos da onda atual foram todos derrotados")
+	assert_test(not director.is_encounter_cleared(), "Encontro NÃO é finalizado enquanto houver spawns pendentes")
+	assert_test(director.encounter_state != "COMPLETED", "Estado do encontro permanece ativo/combate")
+
+	# Instancia e registra o reforço pendente
+	var e2 := _create_dummy_actor("enemies", Vector2(600, 500))
+	root_node.add_child(e2)
+	director.notify_spawn_completed(e2)
+
+	assert_test(director.pending_spawns_count == 0, "Spawns pendentes zerados após notificação de conclusão")
+	assert_test(director.alive_enemies.size() == 1, "Novo inimigo ativo registrado no diretor")
+	assert_test(not director.is_encounter_cleared(), "Encontro continua em combate com reforço vivo")
+
+	# Derrota o reforço
+	director.notify_enemy_defeated(e2)
+	assert_test(director.is_encounter_cleared(), "Encontro finalmente concluído com vitória após derrota total de reforços")
 
 	root_node.free()
