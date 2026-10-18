@@ -50,8 +50,8 @@ target_group = "player"
 
 [node name="HitboxArea" type="Area2D" parent="MeleeAttack"]
 position = Vector2(45, -60)
-collision_layer = 16
-collision_mask = 1
+collision_layer = 8
+collision_mask = 4
 monitoring = false
 monitorable = false
 
@@ -62,6 +62,7 @@ shape = SubResource("RectangleShape2D_hitbox")
 position = Vector2(0, -60)
 collision_layer = 4
 collision_mask = 0
+monitoring = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
 shape = SubResource("RectangleShape2D_hurtbox")

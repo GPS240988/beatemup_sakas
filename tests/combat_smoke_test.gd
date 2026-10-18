@@ -355,6 +355,19 @@ func test_player_scene_integration() -> void:
 
 		assert_test(anim_sprite.sprite_frames.has_animation(&"jump_atk"), "Player possui animacao 'jump_atk' no SpriteFrames")
 		assert_test(anim_sprite.sprite_frames.get_frame_count(&"jump_atk") == 2, "Animacao 'jump_atk' possui 2 frames")
+
+	var player_body := player_instance as CharacterBody2D
+	assert_test(player_body.collision_layer == 1, "Player corpo físico na Layer 1 (bitmask 1)")
+	assert_test(player_body.collision_mask == 2, "Player colide apenas com o mundo físico na Layer 2 (bitmask 2)")
+
+	var player_hurtbox: Area2D = player_instance.get_node_or_null("Hurtbox") as Area2D
+	assert_test(player_hurtbox != null and player_hurtbox.collision_layer == 4, "Player Hurtbox na Layer 3 (bitmask 4)")
+	assert_test(player_hurtbox != null and player_hurtbox.collision_mask == 0, "Player Hurtbox não monitora máscaras ativas (mask 0)")
+
+	var player_hitbox: Area2D = player_instance.get_node_or_null("MeleeAttack/HitboxArea") as Area2D
+	assert_test(player_hitbox != null and player_hitbox.collision_layer == 8, "Player HitboxArea na Layer 4 (bitmask 8)")
+	assert_test(player_hitbox != null and player_hitbox.collision_mask == 4, "Player HitboxArea monitora Hurtboxes na Layer 3 (bitmask 4)")
+
 	player_instance.free()
 
 
@@ -368,4 +381,26 @@ func test_enemy_scene_integration() -> void:
 	assert_test(enemy_instance.get_node_or_null("HealthComponent") != null, "BasicEnemy possui HealthComponent")
 	assert_test(enemy_instance.get_node_or_null("MeleeAttack") != null, "BasicEnemy possui MeleeAttack")
 	assert_test(enemy_instance.get_node_or_null("FloatingHealthBar") != null, "BasicEnemy possui barra de vida flutuante")
+
+	var enemy_body := enemy_instance as CharacterBody2D
+	assert_test(enemy_body.collision_layer == 1, "BasicEnemy corpo físico na Layer 1 (bitmask 1)")
+	assert_test(enemy_body.collision_mask == 2, "BasicEnemy colide apenas com o mundo físico na Layer 2 (bitmask 2)")
+
+	var enemy_hurtbox: Area2D = enemy_instance.get_node_or_null("Hurtbox") as Area2D
+	assert_test(enemy_hurtbox != null and enemy_hurtbox.collision_layer == 4, "BasicEnemy Hurtbox na Layer 3 (bitmask 4)")
+	assert_test(enemy_hurtbox != null and enemy_hurtbox.collision_mask == 0, "BasicEnemy Hurtbox não monitora máscaras ativas (mask 0)")
+
+	var enemy_hitbox: Area2D = enemy_instance.get_node_or_null("MeleeAttack/HitboxArea") as Area2D
+	assert_test(enemy_hitbox != null and enemy_hitbox.collision_layer == 8, "BasicEnemy HitboxArea na Layer 4 (bitmask 8)")
+	assert_test(enemy_hitbox != null and enemy_hitbox.collision_mask == 4, "BasicEnemy HitboxArea monitora Hurtboxes na Layer 3 (bitmask 4)")
+
 	enemy_instance.free()
+
+	# Testa padrões programáticos de MeleeAttack
+	var dynamic_attack = MeleeAttackClass.new()
+	var dummy_root := Node2D.new()
+	dummy_root.add_child(dynamic_attack)
+	dynamic_attack._ready()
+	assert_test(dynamic_attack.hitbox_area != null and dynamic_attack.hitbox_area.collision_layer == 8, "MeleeAttack programático cria HitboxArea com collision_layer = 8")
+	assert_test(dynamic_attack.hitbox_area != null and dynamic_attack.hitbox_area.collision_mask == 4, "MeleeAttack programático cria HitboxArea com collision_mask = 4")
+	dummy_root.free()

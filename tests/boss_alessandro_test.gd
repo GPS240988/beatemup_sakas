@@ -70,6 +70,17 @@ func test_boss_alessandro_scene_and_properties() -> void:
 	assert_test(frames.has_animation("getup"), "Animação 'getup' (2 frames) presente")
 	assert_test(frames.has_animation("death"), "Animação 'death' (1 frame) presente")
 
+	assert_test(boss.collision_layer == 1, "BossAlessandro corpo físico na Layer 1 (bitmask 1)")
+	assert_test(boss.collision_mask == 2, "BossAlessandro colide apenas com o mundo físico na Layer 2 (bitmask 2)")
+
+	var boss_hurtbox: Area2D = boss.get_node_or_null("Hurtbox") as Area2D
+	assert_test(boss_hurtbox != null and boss_hurtbox.collision_layer == 4, "BossAlessandro Hurtbox na Layer 3 (bitmask 4)")
+	assert_test(boss_hurtbox != null and boss_hurtbox.collision_mask == 0, "BossAlessandro Hurtbox não monitora máscaras ativas (mask 0)")
+
+	var boss_hitbox: Area2D = boss.get_node_or_null("MeleeAttack/HitboxArea") as Area2D
+	assert_test(boss_hitbox != null and boss_hitbox.collision_layer == 8, "BossAlessandro HitboxArea na Layer 4 (bitmask 8)")
+	assert_test(boss_hitbox != null and boss_hitbox.collision_mask == 4, "BossAlessandro HitboxArea monitora Hurtboxes na Layer 3 (bitmask 4)")
+
 	boss.free()
 
 

@@ -132,8 +132,8 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
      ├── CollisionShape2D (CapsuleShape2D na base dos pés, layer 1, mask 2)
      ├── NavigationAgent2D (posicionado em (0, 0), avoidance habilitado)
      ├── Visual (Node2D, Y < 0, contém AnimatedSprite2D e efeitos)
-     ├── MeleeAttack (Area2D ofensiva, collision_layer = 4, collision_mask = 0)
-     ├── Hurtbox (Area2D receptora, collision_layer = 0, collision_mask = 4)
+     ├── MeleeAttack (Node2D com HitboxArea Area2D: collision_layer = 8, collision_mask = 4)
+     ├── Hurtbox (Area2D receptora de dano: collision_layer = 4, collision_mask = 0, monitoring = false)
      ├── HealthComponent (Node de gerenciamento de pontos de vida e morte)
      └── FloatingHealthBar (ProgressBar flutuante sobre a cabeça)
      ```

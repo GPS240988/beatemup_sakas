@@ -115,6 +115,10 @@ func _ensure_hitbox_nodes() -> void:
 	if hitbox_area == null:
 		hitbox_area = Area2D.new()
 		hitbox_area.name = "HitboxArea"
+		hitbox_area.collision_layer = 8
+		hitbox_area.collision_mask = 4
+		hitbox_area.monitoring = false
+		hitbox_area.monitorable = false
 		add_child(hitbox_area)
 
 	if hitbox_shape == null:
@@ -144,7 +148,7 @@ func _set_hitbox_active(active: bool) -> void:
 	is_active_window = active
 	if hitbox_area != null and is_instance_valid(hitbox_area):
 		hitbox_area.set_deferred("monitoring", active)
-		hitbox_area.set_deferred("monitorable", active)
+		hitbox_area.set_deferred("monitorable", false)
 	if hitbox_shape != null and is_instance_valid(hitbox_shape):
 		hitbox_shape.set_deferred("disabled", not active)
 
