@@ -19,6 +19,7 @@ func _run_tests() -> void:
 
 	test_health_component_rules()
 	test_2d_depth_and_range_attack_rules()
+	await test_obstacle_blocks_melee_attack()
 	test_single_damage_per_attack_execution()
 	test_defeated_target_cannot_take_further_damage()
 	test_defeated_actor_cannot_attack()
@@ -131,6 +132,76 @@ func test_2d_depth_and_range_attack_rules() -> void:
 	attack.execute_attack(1.0)
 	assert_test(target_health.current_health == 100.0, "Cenário 4: Ataque não acerta alvo nas costas")
 
+	root_node.free()
+
+
+func test_obstacle_blocks_melee_attack() -> void:
+	print("\n--- Testando Linha de Visão e Bloqueio por Obstáculos (Layer 2) ---")
+	var root_node := Node2D.new()
+	root.add_child(root_node)
+
+	var attacker := CharacterBody2D.new()
+	attacker.add_to_group("player")
+	attacker.global_position = Vector2(200, 500)
+	root_node.add_child(attacker)
+
+	var atk_health = HealthComponentClass.new()
+	attacker.add_child(atk_health)
+	atk_health._ready()
+
+	var attack = MeleeAttackClass.new()
+	attack.damage = 25.0
+	attack.horizontal_range = 70.0
+	attack.depth_tolerance = 25.0
+	attack.target_group = "enemies"
+	attack.check_obstacles = true
+	attack.obstacle_collision_mask = 2
+	attacker.add_child(attack)
+	attack._ready()
+
+	var target := CharacterBody2D.new()
+	target.add_to_group("enemies")
+	target.global_position = Vector2(240, 500)
+	root_node.add_child(target)
+
+	var target_health = HealthComponentClass.new()
+	target.add_child(target_health)
+	target_health._ready()
+
+	# Cria obstáculo sólido (Layer 2) entre o atacante e o alvo (em X = 220)
+	var wall := StaticBody2D.new()
+	wall.collision_layer = 2
+	wall.collision_mask = 0
+	wall.global_position = Vector2(220, 500)
+	var wall_shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(20, 80)
+	wall_shape.shape = rect
+	wall.add_child(wall_shape)
+	root_node.add_child(wall)
+
+	# Aguarda sincronização do PhysicsServer2D
+	await physics_frame
+	await physics_frame
+
+	# Cenário A: Com obstáculo entre os dois atores, golpe DEVE SER BLOQUEADO
+	attack.execute_attack(1.0)
+	assert_test(target_health.current_health == 100.0, "Cenário 4B: Ataque é bloqueado por obstáculo sólido na Layer 2")
+
+	# Remove o obstáculo
+	wall.free()
+	target_health.reset()
+	attack.cancel_attack()
+
+	# Aguarda liberação da física
+	await physics_frame
+	await physics_frame
+
+	# Cenário B: Sem obstáculo, golpe DEVE ACERTAR
+	attack.execute_attack(1.0)
+	assert_test(target_health.current_health == 75.0, "Cenário 4C: Ataque atinge o alvo com sucesso quando caminho está desobstruído")
+
+	attack.cancel_attack()
 	root_node.free()
 
 

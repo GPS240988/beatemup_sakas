@@ -28,6 +28,10 @@ signal target_hit(target: Node, damage: float)
 ## Grupo de alvos válidos ("enemies" ou "player")
 @export var target_group: String = "enemies"
 
+## Validação de linha de visão física (impede golpes através de paredes e balcões na Layer 2)
+@export var check_obstacles: bool = true
+@export var obstacle_collision_mask: int = 2
+
 var hitbox_area: Area2D
 var hitbox_shape: CollisionShape2D
 
@@ -216,6 +220,10 @@ func _try_hit_target(node: Node) -> void:
 	if depth_diff > depth_tolerance:
 		return
 
+	# Regra 5: Linha de visão física desobstruída (impede golpes através de paredes e balcões na Layer 2)
+	if _has_obstacle_between(attacker_pos, target_pos, target_actor):
+		return
+
 	# Registra que o alvo foi atingido neste golpe (impede dano múltiplo)
 	hit_targets.append(target_actor)
 
@@ -223,6 +231,37 @@ func _try_hit_target(node: Node) -> void:
 	var applied: bool = target_health.take_damage(damage)
 	if applied:
 		target_hit.emit(target_actor, damage)
+
+
+## Verifica se há um obstáculo sólido (parede/mobília) entre o atacante e o alvo na camada de mundo (Layer 2)
+func _has_obstacle_between(start_pos: Vector2, end_pos: Vector2, target_actor: Node) -> bool:
+	if not check_obstacles or not is_inside_tree():
+		return false
+
+	var world_2d := get_world_2d()
+	if world_2d == null:
+		return false
+
+	var space := world_2d.direct_space_state
+	if space == null:
+		return false
+
+	var exclude_rids: Array[RID] = []
+	if _owner_actor != null:
+		exclude_rids.append(_owner_actor.get_rid())
+	if target_actor is CollisionObject2D:
+		exclude_rids.append((target_actor as CollisionObject2D).get_rid())
+
+	# Testa a linha de visão um pouco acima da linha do chão (Y - 15px)
+	var ray_start := start_pos + Vector2(0.0, -15.0)
+	var ray_end := end_pos + Vector2(0.0, -15.0)
+
+	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end, obstacle_collision_mask, exclude_rids)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+
+	var hit := space.intersect_ray(query)
+	return not hit.is_empty()
 
 
 ## Localiza o HealthComponent em um nó mesmo se renomeado

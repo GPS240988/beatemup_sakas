@@ -74,6 +74,7 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
    * **Inimigos sem Token (Flanqueamento)**: Devem manter distância de espera (120 a 180 px) e ocupar pistas de profundidade Y alternadas, sem aglomeração (dogpiling) na mesma coordenada.
    * **Ciclo do Golpe**: Telegraph visual (~0.25s com brilho/flash amarelado e sem causar dano) -> Janela de Impacto Ativa (`attack_started` / hitbox ativa) -> Recuo de Recuperação (recoil 40-60 px, duração de 0.4s).
    * **Sinais do Diretor**: `encounter_started`, `encounter_cleared`, `token_granted`, `token_released`, `active_attack_authorized`.
+   * **Ondas e Conclusão de Encontro**: O encontro só é considerado concluído (`encounter_cleared`) quando a contagem de inimigos vivos for zero **E** não houver nenhuma onda ou spawn de reforço pendente. Jamais abrir `ExitArea` nem acionar o indicador `SIGA →` com reforços em trânsito.
 
 6. **Arquitetura de Navegação 2.5D (NavigationRegion2D & IA Híbrida de Inimigos)**:
    * **Malha de Navegação Obrigatória por Nível**: Todo mapa de combate DEVE possuir um nó `NavigationRegion2D` contendo um `NavigationPolygon` (`.tres`) desenhado especificamente para o chão caminhável daquele cenário, contornando todas as mobílias e obstáculos estáticos.
@@ -88,12 +89,20 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
      * **Caminho Desimpedido**: Move-se diretamente no eixo Y ou X, mantendo a resposta clássica, ágil e imediata de beat 'em up arcade.
      * **Caminho Obstruído (Estantes, Gôndolas, Balcões)**: Atribui a coordenada do alvo ao `agent.target_position` e navega contornando os móveis via `_follow_agent_path()`.
 
-7. **Convenção de Camadas Físicas de Colisão (Collision Layers & Masks)**:
-   * **Layer 1 (Atores)**: Player e Inimigos (`CharacterBody2D`). Pés colidem entre si e com os limites do mundo.
-   * **Layer 2 (Mundo & Mobílias)**: Paredes perimetrais (`WorldBoundaries`) e móveis sólidos do piso (estantes, gôndolas, balcões, caixas). Bloqueia o movimento dos atores e a visão de raycast.
-   * **Layer 3 (Hitboxes de Ataque)**: Áreas ofensivas (`MeleeAttack` / socos / chutes) que detectam hurtboxes.
-   * **Layer 4 (Hurtboxes de Dano)**: Áreas receptoras de impacto que transmitem dano ao `HealthComponent`.
-   * **Layer 5 (Gatilhos de Fase & Saídas)**: Zonas de transição (`ExitArea`) e gatilhos de eventos.
+7. **Convenção de Camadas Físicas de Colisão (Collision Layers & Masks Sem Ambiguidade)**:
+   * Em Godot, `collision_layer` e `collision_mask` são inteiros atuando como **bitmasks**. A numeração nominal de camada corresponde ao bit de deslocamento (`bit = camada - 1`).
+   * **Tabela de Mapeamento Alvo**:
+     | Camada Lógica | Uso de Jogo | Valor Típico do Bitmask |
+     |:---:|---|:---:|
+     | **1** | Corpos físicos de atores (`CharacterBody2D`) | `1` (`1 << 0`) |
+     | **2** | Mundo sólido / mobílias / limites perimetrais | `2` (`1 << 1`) |
+     | **3** | Hurtboxes receptoras de dano | `4` (`1 << 2`) |
+     | **4** | Hitboxes ofensivas de ataque | `8` (`1 << 3`) |
+     | **5** | Gatilhos de fase e zonas de saída (`ExitArea`) | `16` (`1 << 4`) |
+   * **Fonte de Verdade do Hit Registration e Teste de Obstrução**:
+     * Cada execução de ataque pode atingir cada alvo elegível no máximo uma vez por golpe (`hit_targets`).
+     * O componente `MeleeAttack` valida: alvo vivo, equipe/grupo oposto, atacante diferente do alvo, direção para a frente, alcance horizontal X e tolerância de profundidade Y.
+     * **Validação de Linha de Visão (Sem Ataque Através de Paredes/Móveis)**: Golpes físicos NÃO podem atravessar paredes ou mobílias sólidas. Antes de causar dano, o ataque executa um raycast no espaço 2D contra a Layer 2 (Mundo/Mobília); caso haja obstáculo sólido entre o atacante e o alvo, o golpe é bloqueado.
 
 8. **Estrutura Padrão de Nós de Cena de Nível (MapX.tscn)**:
    * Toda cena de fase deve respeitar rigorosamente a seguinte árvore hierárquica:
