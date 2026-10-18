@@ -27,6 +27,7 @@ func _run_tests() -> void:
 	test_flanking_space_distribution()
 	test_defeated_enemy_accounting_and_victory()
 	test_telegraph_does_not_damage_prematurely()
+	test_token_timeout_and_revocation()
 
 	print("==================================================")
 	print("RESULTADO DOS TESTES DO DIRETOR: %d/%d PASSARAM (Falhas: %d)" % [passed_tests, total_tests, failed_tests])
@@ -269,5 +270,41 @@ func test_telegraph_does_not_damage_prematurely() -> void:
 	# Durante o telegraph, a hitbox da MeleeAttack deve permanecer inativa
 	assert_test(not enemy_ai.melee_attack.is_attacking, "Hitbox de ataque NÃO está ativa durante o telegraph")
 	assert_test(p_health.current_health == 100.0, "Jogador não sofreu dano durante a fase de preparação visual")
+
+	root_node.free()
+
+
+func test_token_timeout_and_revocation() -> void:
+	print("\n--- Testando Timeout de Token e Revogação por Inatividade ---")
+	var root_node := Node2D.new()
+	root.add_child(root_node)
+
+	var director := CombatDirectorClass.new()
+	director.max_attack_tokens = 1
+	director.token_timeout_seconds = 2.0
+	root_node.add_child(director)
+
+	var e1 := _create_dummy_actor("enemies", Vector2(400, 500))
+	var e2 := _create_dummy_actor("enemies", Vector2(500, 500))
+	root_node.add_child(e1)
+	root_node.add_child(e2)
+
+	director.register_enemy(e1)
+	director.register_enemy(e2)
+
+	# Inimigo 1 ganha o único token
+	assert_test(director.request_attack_token(e1), "Inimigo 1 obtém token")
+	assert_test(not director.request_attack_token(e2), "Inimigo 2 bloqueado por falta de token")
+
+	# Simula passagem de tempo de 1.0s (abaixo do timeout de 2.0s)
+	director._update_token_timeouts(1.0)
+	assert_test(director.token_holders.has(e1), "Token permanece com Inimigo 1 antes do tempo limite")
+
+	# Simula passagem de mais 1.5s (total 2.5s > 2.0s)
+	director._update_token_timeouts(1.5)
+	assert_test(not director.token_holders.has(e1), "Token do Inimigo 1 é revogado automaticamente por inatividade")
+
+	# Agora Inimigo 2 consegue obter o token liberado
+	assert_test(director.request_attack_token(e2), "Inimigo 2 obtém token após revogação do token ocioso")
 
 	root_node.free()

@@ -20,6 +20,9 @@ signal active_attack_authorized(enemy: CharacterBody2D)
 ## Limite de ataques inimigos ativos com janela de dano simultânea (escalonamento justo)
 @export var max_simultaneous_active_enemy_attacks: int = 1
 
+## Tempo limite de retenção de token antes de revogação por inatividade (segundos)
+@export var token_timeout_seconds: float = 4.0
+
 ## Distância horizontal de espera para inimigos sem token (pixels)
 @export var wait_distance_x_min: float = 120.0
 @export var wait_distance_x_max: float = 180.0
@@ -47,6 +50,9 @@ var defeated_enemies: Array[CharacterBody2D] = []
 ## Detentores de tokens de ataque
 var token_holders: Array[CharacterBody2D] = []
 
+## Mapeamento de contagem de tempo de token { enemy_id: float }
+var _token_timers: Dictionary = {}
+
 ## Inimigos executando ataque ativo com hitbox ligada
 var active_attackers: Array[CharacterBody2D] = []
 
@@ -69,10 +75,11 @@ func _setup_director() -> void:
 	encounter_started.emit()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_cleanup_invalid_instances()
 	if player_target == null or not is_instance_valid(player_target):
 		_find_player()
+	_update_token_timeouts(delta)
 
 
 ## Localiza o jogador na cena
@@ -139,6 +146,7 @@ func request_attack_token(enemy: CharacterBody2D) -> bool:
 	# Concede token apenas se houver vagas configuradas
 	if token_holders.size() < max_attack_tokens:
 		token_holders.append(enemy)
+		_token_timers[enemy.get_instance_id()] = 0.0
 		token_granted.emit(enemy)
 		return true
 
@@ -155,6 +163,7 @@ func release_attack_token(enemy: CharacterBody2D) -> void:
 
 	if token_holders.has(enemy):
 		token_holders.erase(enemy)
+		_token_timers.erase(enemy.get_instance_id())
 		token_released.emit(enemy)
 
 
@@ -269,6 +278,8 @@ func _cleanup_invalid_instances() -> void:
 			to_remove_tokens.append(e)
 	for e in to_remove_tokens:
 		token_holders.erase(e)
+		if e != null:
+			_token_timers.erase(e.get_instance_id())
 
 	var to_remove_attackers: Array[CharacterBody2D] = []
 	for e in active_attackers:
@@ -283,6 +294,33 @@ func _cleanup_invalid_instances() -> void:
 			to_remove_alive.append(e)
 	for e in to_remove_alive:
 		alive_enemies.erase(e)
+
+
+## Atualiza tempos de retenção de token e revoga tokens que excederam o tempo limite
+func _update_token_timeouts(delta: float) -> void:
+	if token_holders.is_empty():
+		return
+
+	var to_revoke: Array[CharacterBody2D] = []
+	for enemy in token_holders:
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		# Inimigo em janela ativa de dano tem ciclo próprio de encerramento
+		if active_attackers.has(enemy):
+			_token_timers[enemy.get_instance_id()] = 0.0
+			continue
+
+		var eid: int = enemy.get_instance_id()
+		var elapsed: float = _token_timers.get(eid, 0.0) + delta
+		_token_timers[eid] = elapsed
+
+		if elapsed >= token_timeout_seconds:
+			to_revoke.append(enemy)
+
+	for enemy in to_revoke:
+		release_attack_token(enemy)
+		if enemy.has_method("_on_token_revoked"):
+			enemy._on_token_revoked()
 
 
 func _on_enemy_tree_exiting(enemy: CharacterBody2D) -> void:

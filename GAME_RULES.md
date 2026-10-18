@@ -71,8 +71,10 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
    * **Movimentação 2.5D em Dois Estágios**:
      * Estágio 1: Alinhamento de profundidade Y (tolerância padrão de 15 px).
      * Estágio 2: Aproximação frontal horizontal X (alcance padrão de 70 px).
-   * **Inimigos sem Token (Flanqueamento)**: Devem manter distância de espera (120 a 180 px) e ocupar pistas de profundidade Y alternadas, sem aglomeração (dogpiling) na mesma coordenada.
-   * **Ciclo do Golpe**: Telegraph visual (~0.25s com brilho/flash amarelado e sem causar dano) -> Janela de Impacto Ativa (`attack_started` / hitbox ativa) -> Recuo de Recuperação (recoil 40-60 px, duração de 0.4s).
+   * **Ciclo do Golpe e Calibração de Timers da IA**:
+     * **Capangas Comuns**: Telegraph visual `0.25s` (flash amarelado sem causar dano) -> Janela de Impacto Ativa `0.16s` (`attack_started` / hitbox ativa) -> Recuo de Recuperação (`recoil_distance = 50px`, `recovery_duration = 0.40s`) -> Cooldown de re-ataque `attack_cooldown = 0.80s`. Ao sofrer dano: atordoamento `hurt_duration = 0.22s` seguido de `post_hurt_cooldown = 0.40s` impedindo contra-ataques instantâneos.
+     * **Chefes (Boss Alessandro)**: Telegraph ágil `0.20s` -> Janela de Impacto Ativa `0.18s` -> Recuo firme (`recoil_distance = 35px`, `recovery_duration = 0.35s`) -> Cooldown `attack_cooldown = 0.65s`. Ao sofrer dano: `hurt_duration = 0.18s` e `post_hurt_cooldown = 0.30s`.
+     * **Timeout de Retenção de Token e Perseguição (Prevenção de Starvation)**: `token_timeout_seconds = 4.0s` no `CombatDirector` revoga tokens retidos ociosamente sem ataque ativo. Inimigos possuem `chase_timeout_seconds = 3.5s` (Capangas) e `4.0s` (Chefe); ao expirar a perseguição sem alcançar o golpe, o inimigo libera o token voluntariamente e retorna ao flanqueamento, garantindo rotatividade da iniciativa ofensiva.
    * **Sinais do Diretor**: `encounter_started`, `encounter_cleared`, `token_granted`, `token_released`, `active_attack_authorized`.
    * **Ondas e Conclusão de Encontro**: O encontro só é considerado concluído (`encounter_cleared`) quando a contagem de inimigos vivos for zero **E** não houver nenhuma onda ou spawn de reforço pendente. Jamais abrir `ExitArea` nem acionar o indicador `SIGA →` com reforços em trânsito.
 

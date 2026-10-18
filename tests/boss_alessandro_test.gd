@@ -81,6 +81,14 @@ func test_boss_alessandro_scene_and_properties() -> void:
 	assert_test(boss_hitbox != null and boss_hitbox.collision_layer == 8, "BossAlessandro HitboxArea na Layer 4 (bitmask 8)")
 	assert_test(boss_hitbox != null and boss_hitbox.collision_mask == 4, "BossAlessandro HitboxArea monitora Hurtboxes na Layer 3 (bitmask 4)")
 
+	assert_test(boss.attack_windup_seconds == 0.20, "BossAlessandro possui telegraph calibrado em 0.20s")
+	assert_test(boss.attack_cooldown == 0.65, "BossAlessandro possui attack_cooldown calibrado em 0.65s")
+	assert_test(boss.recovery_duration == 0.35, "BossAlessandro possui recovery_duration calibrada em 0.35s")
+	assert_test(boss.recoil_distance == 35.0, "BossAlessandro possui recoil_distance de 35.0px")
+	assert_test(boss.hurt_duration == 0.18, "BossAlessandro possui hurt_duration calibrada em 0.18s")
+	assert_test(boss.post_hurt_cooldown == 0.30, "BossAlessandro possui post_hurt_cooldown de 0.30s")
+	assert_test(boss.chase_timeout_seconds == 4.0, "BossAlessandro possui chase_timeout_seconds de 4.0s")
+
 	boss.free()
 
 

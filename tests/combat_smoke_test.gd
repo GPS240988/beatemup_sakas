@@ -25,6 +25,7 @@ func _run_tests() -> void:
 	test_defeated_actor_cannot_attack()
 	test_player_scene_integration()
 	test_enemy_scene_integration()
+	test_enemy_ai_timers_and_hurt_recovery()
 
 	print("==================================================")
 	print("RESULTADO DOS TESTES: %d/%d PASSARAM (Falhas: %d)" % [passed_tests, total_tests, failed_tests])
@@ -404,3 +405,38 @@ func test_enemy_scene_integration() -> void:
 	assert_test(dynamic_attack.hitbox_area != null and dynamic_attack.hitbox_area.collision_layer == 8, "MeleeAttack programático cria HitboxArea com collision_layer = 8")
 	assert_test(dynamic_attack.hitbox_area != null and dynamic_attack.hitbox_area.collision_mask == 4, "MeleeAttack programático cria HitboxArea com collision_mask = 4")
 	dummy_root.free()
+
+
+func test_enemy_ai_timers_and_hurt_recovery() -> void:
+	print("\n--- Testando Calibração de Timers e Recuperação de Dano da IA ---")
+	var scene: PackedScene = load("res://scenes/actors/enemies/basic_enemy.tscn")
+	var enemy = scene.instantiate() as CharacterBody2D
+	root.add_child(enemy)
+
+	var enemy_ai = enemy as EnemyAI
+	assert_test(enemy_ai.attack_windup_seconds == 0.25, "BasicEnemy telegraph padrão é 0.25s")
+	assert_test(enemy_ai.attack_cooldown == 0.8, "BasicEnemy attack_cooldown é 0.8s")
+	assert_test(enemy_ai.recovery_duration == 0.4, "BasicEnemy recovery_duration é 0.4s")
+	assert_test(enemy_ai.recoil_distance == 50.0, "BasicEnemy recoil_distance é 50.0px")
+	assert_test(enemy_ai.hurt_duration == 0.22, "BasicEnemy hurt_duration é 0.22s")
+	assert_test(enemy_ai.post_hurt_cooldown == 0.40, "BasicEnemy post_hurt_cooldown é 0.40s")
+	assert_test(enemy_ai.chase_timeout_seconds == 3.5, "BasicEnemy chase_timeout_seconds é 3.5s")
+
+	# Simula que o inimigo tomou dano
+	enemy_ai._on_damaged(10.0)
+	assert_test(enemy_ai.current_state == EnemyAI.State.HURT, "Inimigo entra no estado HURT ao tomar dano")
+	assert_test(is_equal_approx(enemy_ai._state_timer, 0.22), "Duração do atordoamento é igual a hurt_duration")
+
+	# Simula fim do atordoamento
+	enemy_ai._process_hurt(0.30)
+	assert_test(enemy_ai.current_state == EnemyAI.State.FLANKING, "Inimigo retorna para FLANKING após atordoamento")
+	assert_test(enemy_ai._attack_timer >= 0.40, "Inimigo recebe cooldown de re-ataque mínimo pós-dano (>= 0.40s)")
+
+	# Simula perseguição prolongada excedendo chase_timeout_seconds
+	enemy_ai._has_token = true
+	enemy_ai.current_state = EnemyAI.State.APPROACHING
+	enemy_ai._process_approaching(3.6)
+	assert_test(enemy_ai.current_state == EnemyAI.State.FLANKING, "Inimigo desiste da perseguição e volta a flanquear após chase_timeout")
+	assert_test(not enemy_ai._has_token, "Inimigo libera o token após expiração do tempo de perseguição")
+
+	enemy.free()

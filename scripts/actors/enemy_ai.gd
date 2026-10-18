@@ -38,6 +38,15 @@ signal enemy_defeated()
 @export var recoil_distance: float = 50.0
 @export var recovery_duration: float = 0.4
 
+## Duração do atordoamento ao sofrer dano (hit stun)
+@export var hurt_duration: float = 0.22
+
+## Tempo limite perseguindo o jogador com token antes de liberar a iniciativa (segundos)
+@export var chase_timeout_seconds: float = 3.5
+
+## Cooldown mínimo para novo golpe após recuperação de dano (segundos)
+@export var post_hurt_cooldown: float = 0.40
+
 const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
 
 ## Referências internas
@@ -58,6 +67,7 @@ var facing_direction: float = -1.0 # Inicia virado para a esquerda por padrão
 
 var _state_timer: float = 0.0
 var _attack_timer: float = 0.0
+var _chase_timer: float = 0.0
 var _has_token: bool = false
 var _is_dead_recorded: bool = false
 
@@ -259,6 +269,14 @@ func _process_aligning_depth(delta: float) -> void:
 		current_state = State.FLANKING
 		return
 
+	_chase_timer += delta
+	if _chase_timer >= chase_timeout_seconds:
+		_chase_timer = 0.0
+		_release_combat_resources()
+		_attack_timer = 1.0
+		current_state = State.FLANKING
+		return
+
 	_update_facing(player_target.global_position.x)
 
 	var target_y: float = player_target.global_position.y
@@ -286,6 +304,14 @@ func _process_approaching(delta: float) -> void:
 		current_state = State.FLANKING
 		return
 
+	_chase_timer += delta
+	if _chase_timer >= chase_timeout_seconds:
+		_chase_timer = 0.0
+		_release_combat_resources()
+		_attack_timer = 1.0
+		current_state = State.FLANKING
+		return
+
 	_update_facing(player_target.global_position.x)
 
 	var diff_x: float = player_target.global_position.x - global_position.x
@@ -307,6 +333,7 @@ func _process_approaching(delta: float) -> void:
 
 		if can_attack:
 			# Inicia a fase de preparação (Telegraph)
+			_chase_timer = 0.0
 			current_state = State.TELEGRAPH
 			_state_timer = attack_windup_seconds
 			if visual_root != null:
@@ -369,6 +396,7 @@ func _process_hurt(delta: float) -> void:
 
 	if _state_timer <= 0.0:
 		_reset_visual_modulate()
+		_attack_timer = maxf(_attack_timer, post_hurt_cooldown)
 		current_state = State.FLANKING
 
 
@@ -417,7 +445,7 @@ func _on_damaged(_amount: float) -> void:
 		punch_visual.visible = false
 
 	current_state = State.HURT
-	_state_timer = 0.22
+	_state_timer = hurt_duration
 
 	# Flash visual vermelho e leve knockback
 	if visual_root != null:
@@ -491,6 +519,17 @@ func _release_combat_resources() -> void:
 		combat_director.release_attack_token(self)
 		combat_director.notify_attack_ended(self)
 	_has_token = false
+	_chase_timer = 0.0
+
+
+## Chamado quando o diretor revoga o token por tempo excedido
+func _on_token_revoked() -> void:
+	_has_token = false
+	_chase_timer = 0.0
+	_attack_timer = 1.0
+	if current_state in [State.ALIGNING_DEPTH, State.APPROACHING, State.TELEGRAPH]:
+		_reset_visual_modulate()
+		current_state = State.FLANKING
 
 
 func _reset_visual_modulate() -> void:

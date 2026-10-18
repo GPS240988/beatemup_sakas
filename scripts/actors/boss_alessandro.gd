@@ -18,9 +18,13 @@ func _ready() -> void:
 	speed_y = 110.0
 	attack_horizontal_distance = 85.0
 	attack_depth_tolerance = 22.0
+	attack_windup_seconds = 0.20
 	attack_cooldown = 0.65
 	recoil_distance = 35.0
 	recovery_duration = 0.35
+	hurt_duration = 0.18
+	chase_timeout_seconds = 4.0
+	post_hurt_cooldown = 0.30
 
 	super._ready()
 
