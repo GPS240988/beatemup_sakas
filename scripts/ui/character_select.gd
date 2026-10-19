@@ -232,12 +232,12 @@ func _select_character_by_index(idx: int, play_sound_fx: bool = true, explicit_d
 	_update_stats_display(current_hover_id)
 
 
-func _animate_character_slide(char_id: String, direction: int, animated: bool) -> void:
+func _animate_character_slide(char_id: String, _direction: int, animated: bool) -> void:
 	var next_texture: Texture2D = HERO_TEXTURES.get(char_id)
 	if next_texture == null or background_slot == null or incoming_slot == null:
 		return
 
-	if not animated or direction == 0:
+	if not animated:
 		if _slide_tween != null and _slide_tween.is_valid():
 			_slide_tween.kill()
 		background_slot.texture = next_texture
@@ -247,36 +247,27 @@ func _animate_character_slide(char_id: String, direction: int, animated: bool) -
 		incoming_slot.position = Vector2.ZERO
 		return
 
-	# Interrompe qualquer tween em andamento e atualiza o background para manter continuidade fluida
+	# Interrompe qualquer transição anterior com segurança e aplica o estado imediatamente
 	if _slide_tween != null and _slide_tween.is_valid():
 		_slide_tween.kill()
-		if incoming_slot.texture != null:
+		if incoming_slot.texture != null and incoming_slot.modulate.a > 0.0:
 			background_slot.texture = incoming_slot.texture
-		background_slot.position = Vector2.ZERO
-		background_slot.modulate = Color.WHITE
+		incoming_slot.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
-	var slide_distance: float = 160.0
-	var offset_x: float = float(direction) * slide_distance
+	# Fundo permanece 100% opaco e imóvel: elimina qualquer piscada escura ou vertigem
+	background_slot.position = Vector2.ZERO
+	background_slot.modulate = Color.WHITE
 
 	incoming_slot.texture = next_texture
-	incoming_slot.position = Vector2(offset_x, 0.0)
+	incoming_slot.position = Vector2.ZERO
 	incoming_slot.modulate = Color(1.0, 1.0, 1.0, 0.0)
 
-	_slide_tween = create_tween().set_parallel(true)
-	# Desliza a imagem de entrada para o centro
-	_slide_tween.tween_property(incoming_slot, "position:x", 0.0, 0.20).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_slide_tween.tween_property(incoming_slot, "modulate:a", 1.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-	# Efeito sutil de parallax na imagem anterior que está saindo
-	_slide_tween.tween_property(background_slot, "position:x", -offset_x * 0.3, 0.20).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_slide_tween.tween_property(background_slot, "modulate:a", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-	_slide_tween.chain().tween_callback(func():
+	# Dissolvência suave e estável (0.13s): apenas o realce do herói e os stats transicionam
+	_slide_tween = create_tween()
+	_slide_tween.tween_property(incoming_slot, "modulate:a", 1.0, 0.13).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_slide_tween.tween_callback(func():
 		background_slot.texture = next_texture
-		background_slot.position = Vector2.ZERO
-		background_slot.modulate = Color.WHITE
 		incoming_slot.modulate = Color(1.0, 1.0, 1.0, 0.0)
-		incoming_slot.position = Vector2.ZERO
 	)
 
 
@@ -368,20 +359,20 @@ func _on_confirm_pressed() -> void:
 	_is_transitioning_scene = true
 	_play_sound(_sfx_confirm)
 
-	# Efeito de flash e confirmação arcade
+	# Efeito sutil de confirmação arcade (sem flash ofuscante)
 	if flash_rect != null:
-		flash_rect.color = Color(1.0, 1.0, 1.0, 0.45)
+		flash_rect.color = Color(1.0, 0.95, 0.85, 0.18)
 		if _flash_tween != null and _flash_tween.is_valid():
 			_flash_tween.kill()
 		_flash_tween = create_tween()
-		_flash_tween.tween_property(flash_rect, "color:a", 0.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		_flash_tween.tween_property(flash_rect, "color:a", 0.0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 	var game_session = get_node_or_null("/root/GameSession")
 	if game_session != null:
 		game_session.select_character("guilherme")
 
 	_safe_handle_input()
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.20).timeout
 	var err := get_tree().change_scene_to_file(LOADING_SCREEN_SCENE)
 	if err != OK:
 		printerr("Erro ao carregar a tela de apresentação da Fase 1: ", err)
@@ -390,24 +381,24 @@ func _on_confirm_pressed() -> void:
 func _deny_character_selection() -> void:
 	_play_sound(_sfx_denied)
 
-	# Feedback de bloqueio: shake horizontal no DisplayLayer
+	# Micro-vibração suave e localizada (sem deslocamento brusco da tela)
 	if display_layer != null:
 		if _shake_tween != null and _shake_tween.is_valid():
 			_shake_tween.kill()
 		_shake_tween = create_tween()
-		_shake_tween.tween_property(display_layer, "position:x", -12.0, 0.04)
-		_shake_tween.tween_property(display_layer, "position:x", 12.0, 0.04)
-		_shake_tween.tween_property(display_layer, "position:x", -6.0, 0.04)
-		_shake_tween.tween_property(display_layer, "position:x", 6.0, 0.04)
-		_shake_tween.tween_property(display_layer, "position:x", 0.0, 0.04)
+		_shake_tween.tween_property(display_layer, "position:x", -3.0, 0.03)
+		_shake_tween.tween_property(display_layer, "position:x", 3.0, 0.03)
+		_shake_tween.tween_property(display_layer, "position:x", -1.5, 0.03)
+		_shake_tween.tween_property(display_layer, "position:x", 1.5, 0.03)
+		_shake_tween.tween_property(display_layer, "position:x", 0.0, 0.03)
 
-	# Flash avermelhado de acesso negado
+	# Pulso avermelhado muito suave de acesso bloqueado (sem piscar forte)
 	if flash_rect != null:
-		flash_rect.color = Color(0.95, 0.15, 0.25, 0.32)
+		flash_rect.color = Color(0.9, 0.15, 0.2, 0.14)
 		if _flash_tween != null and _flash_tween.is_valid():
 			_flash_tween.kill()
 		_flash_tween = create_tween()
-		_flash_tween.tween_property(flash_rect, "color:a", 0.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		_flash_tween.tween_property(flash_rect, "color:a", 0.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _on_back_pressed() -> void:
