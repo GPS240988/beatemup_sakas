@@ -228,4 +228,62 @@ Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente 
    * **Preservação de Herói e Dados da Sessão**: O personagem selecionado em `GameSession.selected_character_id` é o personagem carregado e instanciado na fase, com seus atributos de combate e velocidade aplicados pelo `PlayerController`.
    * **Destino Oficial da Fase 1**: O avanço a partir da tela de carregamento transiciona estritamente para `res://scenes/levels/map_1.tscn` (cujo fundo é `res://assets/backgrounds/maps/fase1/Fase1_1.webp`).
 
+---
+
+## 🖥️ 7. PADRÕES DE RESOLUÇÃO, DECOMPOSIÇÃO MODULAR DE ARTE E RESPONSIVIDADE UI
+
+> **Princípio**: Toda tela de UI DEVE ser decomposta em **3 camadas independentes**, permitindo reutilização de peças visuais, redução de peso total de assets e manutenção artística sem alterar código.
+
+1. **Viewport e Responsividade Base**:
+   * Viewport nativo: **1280 × 720 px** com `stretch/mode = "canvas_items"` e Aspect Ratio **16:9**.
+   * Filtro de textura padrão: `Nearest` (pixel-perfect para Pixel Art HD).
+   * Toda tela utiliza a hierarquia `DarkBase (ColorRect) → AspectRatioContainer → BackgroundSlot (TextureRect) → LayoutRoot (Control)`, onde o `DarkBase` preenche letterbox/pillarbox com cor escura e o `AspectRatioContainer` preserva a proporção da arte.
+
+2. **Decomposição Obrigatória em 3 Camadas**:
+   * **Camada 1 — Fundo Ilustrado Limpo**: Cenário e decoração **sem** textos de menu, botões, molduras selecionáveis ou indicação de item ativo. Formato WebP Q90 RGB (sem alfa).
+   * **Camada 2 — Peças Visuais WebP Reutilizáveis**: Pinceladas vermelhas/pretas, molduras de cartões, bordas gastas, logos, ícones, texturas e pares de botões (normal/selecionado). Formato WebP Lossless RGBA (pixel art) ou WebP Q95 RGBA (arte detalhada).
+   * **Camada 3 — Elementos Dinâmicos da Interface**: Texto acessível, opção ativa, estatísticas e valores gerados pela aplicação via `Label`, `Button`, `ProgressBar` e controles Godot.
+
+3. **Resoluções Nativas de Exportação WebP — Tabela Alvo**:
+   | Tipo de Arte | Resolução Alvo | Proporção | Formato |
+   |:---|:---:|:---:|:---|
+   | Telas UI completas (landscape) | **1920 × 1080** | 16:9 | WebP Q90 RGB |
+   | Telas UI completas (portrait) | **1080 × 1620** | 2:3 | WebP Q90 RGB |
+   | Mapas de jogo (scrolling) | **1983 × 793** | ~2.5:1 | WebP Q85 RGB |
+   | Peças/overlays pequenos | Tamanho real × 2 | Variável | WebP Lossless RGBA |
+   | Painéis de stats | **535 × 235** | ~2.3:1 | WebP Lossless RGBA |
+   | Cards de personagem | **249 × 573** | ~1:2.3 | WebP Lossless RGBA |
+
+4. **Resoluções por Tela**:
+   | Tela | Orientação | Aspect Ratio | Resolução Alvo WebP |
+   |:---|:---:|:---:|:---:|
+   | Title Screen | Landscape | 1.33:1 | 1446 × 1087 (manter original) |
+   | Main Menu | Portrait | 2:3 | 1080 × 1620 |
+   | Character Select | Landscape | 16:9 | 1920 × 1080 |
+   | Loading Screen | Landscape | 16:9 | 1920 × 1080 |
+   | Difficulty Select | Landscape | 16:9 | 1920 × 1080 |
+   | Skin Select | Landscape | 16:9 | 1920 × 1080 |
+   | Credits | Landscape | 16:9 | 1920 × 1080 |
+   | Settings (futura) | Landscape | 16:9 | 1920 × 1080 |
+   | In-Game HUD | Overlay | 16:9 | Escala com viewport |
+   | Mapas de Jogo | Scroll horiz. | 2.5:1 | 1983 × 793 (manter) |
+
+5. **Peso Máximo por Tela**:
+   * Fundo HD landscape (1920×1080): **≤ 600 KB**.
+   * Fundo HD portrait (1080×1620): **≤ 600 KB**.
+   * Conjunto de peças overlay (Camada 2): **≤ 300 KB**.
+   * **Total por tela completa: < 1 MB**.
+
+6. **Responsividade Mobile e Safe Area Touch**:
+   * Desktop HD (1920×1080, 16:9): Referência — escala 1:1 da arte.
+   * Mobile Landscape (2400×1080, 20:9): Pillarbox lateral preenchido por `DarkBase`.
+   * Tablet Landscape (2048×1536, 4:3): Pillarbox lateral sutil.
+   * **Safe Area**: Todos os botões interativos DEVEM estar dentro dos **90% centrais** da tela (margem de 5% em cada borda) para evitar conflito com notch, home bar e gestos de borda do sistema operacional.
+   * Hitbox mínima de botões: **48 × 48 dp** para acessibilidade touch.
+
+7. **Nomeação e Estrutura de Diretórios de Arte UI**:
+   * Fundos: `assets/backgrounds/<tela>_bg.webp` ou pasta específica existente.
+   * Peças reutilizáveis compartilhadas: `assets/ui/shared/` (botões arcade, molduras, texturas, ícones).
+   * Peças específicas por tela: `assets/ui/<nome_tela>/` (ex: `assets/ui/character_select/`).
+   * Proibido misturar peças de Camada 2 com fundos de Camada 1 no mesmo arquivo de imagem.
 

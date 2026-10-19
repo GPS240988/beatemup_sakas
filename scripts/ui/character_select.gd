@@ -1,19 +1,29 @@
 class_name CharacterSelectMenu
 extends Control
 
-## Tela de Seleção de Personagem com arte separada de selecao_personagem.jpg.
-## Apresenta os 4 heróis oficiais em alta definição:
-## - Guilherme: Desbloqueado (Atributos: Força 3, Velocidade 2, Técnica 3 = 8)
-## - Gabriel: Bloqueado (Atributos: Força 1, Velocidade 4, Técnica 3 = 8)
-## - André: Bloqueado (Atributos: Força 4, Velocidade 2, Técnica 2 = 8)
-## - Juliana: Bloqueada (Atributos: Força 1, Velocidade 3, Técnica 4 = 8)
-## Suporta navegação fluida por Teclado (A/D, Setas), Gamepad, Mouse e Toque Mobile.
+## Tela de Seleção de Personagem — Projeto Sakas
+## Apresenta as 4 artes cinematográficas 16:9 oficiais em alta definição:
+## - selecao_personagem_guilherme.webp (Desbloqueado / Único habilitado nesta versão)
+## - selecao_personagem_gabriel.webp (Bloqueado)
+## - selecao_personagem_andre.webp (Bloqueado)
+## - selecao_personagem_juliana.webp (Bloqueada)
+##
+## Transição fluida (slide horizontal + crossfade cúbico) ao alternar personagens.
+## Nada além da arte cinematográfica limpa é exibido durante a navegação.
+## Suporta Teclado (A/D, Setas, Enter, Esc), Gamepad, Mouse e Toque nos 4 heróis.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
 const LOADING_SCREEN_SCENE: String = "res://scenes/ui/loading_screen.tscn"
 const FIRST_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
 
 const HERO_ORDER: Array[String] = ["guilherme", "gabriel", "andre", "juliana"]
+
+const HERO_TEXTURES: Dictionary = {
+	"guilherme": preload("res://assets/ui/character_select/selecao_personagem_guilherme.webp"),
+	"gabriel": preload("res://assets/ui/character_select/selecao_personagem_gabriel.webp"),
+	"andre": preload("res://assets/ui/character_select/selecao_personagem_andre.webp"),
+	"juliana": preload("res://assets/ui/character_select/selecao_personagem_juliana.webp")
+}
 
 const STATS_TEXTURES: Dictionary = {
 	"guilherme": "res://assets/ui/character_select/stats_guilherme.webp",
@@ -22,7 +32,20 @@ const STATS_TEXTURES: Dictionary = {
 	"juliana": "res://assets/ui/character_select/stats_juliana.webp"
 }
 
+@onready var aspect_wrapper: AspectRatioContainer = %AspectWrapper
+@onready var display_layer: Control = %DisplayLayer
 @onready var background_slot: TextureRect = %BackgroundSlot
+@onready var incoming_slot: TextureRect = %IncomingSlot
+@onready var flash_rect: ColorRect = %FlashRect
+@onready var audio_player: AudioStreamPlayer = %AudioPlayer
+
+# Hitboxes transparentes sobre as 4 colunas de heróis
+@onready var btn_touch_guilherme: Button = %BtnTouchGuilherme
+@onready var btn_touch_gabriel: Button = %BtnTouchGabriel
+@onready var btn_touch_andre: Button = %BtnTouchAndre
+@onready var btn_touch_juliana: Button = %BtnTouchJuliana
+
+# Referências de nós no LayoutRoot (compatibilidade total com a suíte de testes unitários)
 @onready var grid_container: GridContainer = %GridCharacters
 @onready var selection_frame: TextureRect = %SelectionFrame
 @onready var stats_texture_rect: TextureRect = %StatsTextureRect
@@ -30,9 +53,6 @@ const STATS_TEXTURES: Dictionary = {
 @onready var char_desc_label: Label = %CharDescLabel
 @onready var btn_confirm: Button = %BtnConfirm
 @onready var btn_back: Button = %BtnBack
-@onready var audio_player: AudioStreamPlayer = %AudioPlayer
-
-# Referências de compatibilidade para a suite de testes automatizados
 @onready var stat_forca_label: Label = %StatForcaLabel
 @onready var stat_vel_label: Label = %StatVelLabel
 @onready var stat_tec_label: Label = %StatTecLabel
@@ -42,8 +62,11 @@ var current_index: int = 0
 var card_nodes: Dictionary = {}
 var _stats_cache: Dictionary = {}
 
-var _frame_tween: Tween
+var _slide_tween: Tween
 var _shake_tween: Tween
+var _flash_tween: Tween
+var _frame_tween: Tween
+var _is_transitioning_scene: bool = false
 
 var _sfx_move: AudioStreamWAV
 var _sfx_confirm: AudioStreamWAV
@@ -55,7 +78,50 @@ func _ready() -> void:
 	_load_stats_textures()
 	_setup_character_cards()
 	_setup_action_buttons()
-	_select_character_by_index(0, false)
+	_setup_touch_hitboxes()
+
+	# Configura o estado inicial da cena no primeiro herói (Guilherme)
+	current_index = 0
+	current_hover_id = HERO_ORDER[0]
+	if background_slot != null and HERO_TEXTURES.has("guilherme"):
+		background_slot.texture = HERO_TEXTURES["guilherme"]
+		background_slot.modulate = Color.WHITE
+		background_slot.position = Vector2.ZERO
+	if incoming_slot != null:
+		incoming_slot.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		incoming_slot.position = Vector2.ZERO
+
+	_select_character_by_index(0, false, 0)
+
+
+func _setup_touch_hitboxes() -> void:
+	var hitboxes: Array[Button] = [
+		btn_touch_guilherme,
+		btn_touch_gabriel,
+		btn_touch_andre,
+		btn_touch_juliana
+	]
+
+	for idx in range(hitboxes.size()):
+		var btn: Button = hitboxes[idx]
+		if btn != null:
+			btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			btn.mouse_entered.connect(_on_touch_hover.bind(idx))
+			btn.pressed.connect(_on_touch_clicked.bind(idx))
+
+
+func _on_touch_hover(idx: int) -> void:
+	if current_index != idx:
+		var delta: int = idx - current_index
+		_select_character_by_index(idx, true, 1 if delta > 0 else -1)
+
+
+func _on_touch_clicked(idx: int) -> void:
+	if current_index != idx:
+		var delta: int = idx - current_index
+		_select_character_by_index(idx, true, 1 if delta > 0 else -1)
+	else:
+		_on_confirm_pressed()
 
 
 func _load_stats_textures() -> void:
@@ -83,6 +149,8 @@ func _setup_action_buttons() -> void:
 
 func _setup_character_cards() -> void:
 	card_nodes.clear()
+	if grid_container == null:
+		return
 
 	for idx in range(HERO_ORDER.size()):
 		var char_id: String = HERO_ORDER[idx]
@@ -94,7 +162,6 @@ func _setup_character_cards() -> void:
 			card_btn.mouse_entered.connect(_on_card_hovered.bind(idx))
 			card_btn.pressed.connect(_on_card_clicked.bind(idx))
 
-	# Compatibilidade com testes automatizados que procuram cartões adicionais
 	for extra_id in ["alessandro", "fernando"]:
 		var extra_btn: Button = grid_container.get_node_or_null("Card_" + extra_id) as Button
 		if extra_btn != null:
@@ -102,6 +169,9 @@ func _setup_character_cards() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _is_transitioning_scene:
+		return
+
 	if event.is_action_pressed("ui_left") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_A or event.keycode == KEY_LEFT)):
 		_move_selection(-1)
 		_safe_handle_input()
@@ -125,33 +195,89 @@ func _move_selection(delta: int) -> void:
 	var next_idx: int = (current_index + delta) % HERO_ORDER.size()
 	if next_idx < 0:
 		next_idx += HERO_ORDER.size()
-	_select_character_by_index(next_idx, true)
+	_select_character_by_index(next_idx, true, delta)
 
 
 func _on_card_hovered(idx: int) -> void:
 	if current_index != idx:
-		_select_character_by_index(idx, true)
+		var delta: int = idx - current_index
+		_select_character_by_index(idx, true, 1 if delta > 0 else -1)
 
 
 func _on_card_clicked(idx: int) -> void:
 	if current_index != idx:
-		_select_character_by_index(idx, true)
+		var delta: int = idx - current_index
+		_select_character_by_index(idx, true, 1 if delta > 0 else -1)
 	else:
 		_on_confirm_pressed()
 
 
-func _select_character_by_index(idx: int, play_sound_fx: bool = true) -> void:
+func _select_character_by_index(idx: int, play_sound_fx: bool = true, explicit_direction: int = 0) -> void:
 	if idx < 0 or idx >= HERO_ORDER.size():
 		return
 
+	var prev_idx: int = current_index
 	current_index = idx
 	current_hover_id = HERO_ORDER[idx]
 
 	if play_sound_fx:
 		_play_sound(_sfx_move)
 
+	var dir: int = explicit_direction
+	if dir == 0:
+		dir = 1 if current_index > prev_idx else (-1 if current_index < prev_idx else 0)
+
+	_animate_character_slide(current_hover_id, dir, play_sound_fx)
 	_update_selection_frame(current_hover_id)
 	_update_stats_display(current_hover_id)
+
+
+func _animate_character_slide(char_id: String, direction: int, animated: bool) -> void:
+	var next_texture: Texture2D = HERO_TEXTURES.get(char_id)
+	if next_texture == null or background_slot == null or incoming_slot == null:
+		return
+
+	if not animated or direction == 0:
+		if _slide_tween != null and _slide_tween.is_valid():
+			_slide_tween.kill()
+		background_slot.texture = next_texture
+		background_slot.position = Vector2.ZERO
+		background_slot.modulate = Color.WHITE
+		incoming_slot.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		incoming_slot.position = Vector2.ZERO
+		return
+
+	# Interrompe qualquer tween em andamento e atualiza o background para manter continuidade fluida
+	if _slide_tween != null and _slide_tween.is_valid():
+		_slide_tween.kill()
+		if incoming_slot.texture != null:
+			background_slot.texture = incoming_slot.texture
+		background_slot.position = Vector2.ZERO
+		background_slot.modulate = Color.WHITE
+
+	var slide_distance: float = 160.0
+	var offset_x: float = float(direction) * slide_distance
+
+	incoming_slot.texture = next_texture
+	incoming_slot.position = Vector2(offset_x, 0.0)
+	incoming_slot.modulate = Color(1.0, 1.0, 1.0, 0.0)
+
+	_slide_tween = create_tween().set_parallel(true)
+	# Desliza a imagem de entrada para o centro
+	_slide_tween.tween_property(incoming_slot, "position:x", 0.0, 0.20).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_slide_tween.tween_property(incoming_slot, "modulate:a", 1.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	# Efeito sutil de parallax na imagem anterior que está saindo
+	_slide_tween.tween_property(background_slot, "position:x", -offset_x * 0.3, 0.20).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_slide_tween.tween_property(background_slot, "modulate:a", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	_slide_tween.chain().tween_callback(func():
+		background_slot.texture = next_texture
+		background_slot.position = Vector2.ZERO
+		background_slot.modulate = Color.WHITE
+		incoming_slot.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		incoming_slot.position = Vector2.ZERO
+	)
 
 
 func _update_selection_frame(char_id: String) -> void:
@@ -159,12 +285,8 @@ func _update_selection_frame(char_id: String) -> void:
 	if target_card == null or selection_frame == null:
 		return
 
-	# Posiciona o frame neon animado exatamente sobre o cartão selecionado
-	await get_tree().process_frame
 	var card_global_pos: Vector2 = target_card.global_position
 	var card_size: Vector2 = target_card.size
-
-	# Margem do brilho neon exterior (15px para cada lado)
 	var glow_margin := Vector2(16.0, 16.0)
 	var target_pos: Vector2 = card_global_pos - glow_margin
 	var target_sz: Vector2 = card_size + (glow_margin * 2.0)
@@ -184,11 +306,9 @@ func _update_stats_display(char_id: String) -> void:
 	if game_session != null and game_session.has_method("is_character_unlocked"):
 		is_unlocked = game_session.is_character_unlocked(char_id)
 
-	# Atualiza o painel visual com a arte oficial de barras de atributos
 	if stats_texture_rect != null and _stats_cache.has(char_id):
 		stats_texture_rect.texture = _stats_cache[char_id]
 
-	# Atualiza os labels textuais (para suporte a leitores e testes unitários)
 	var stats: Dictionary = {"strength": 3, "speed": 2, "technique": 3}
 	if game_session != null and game_session.has_method("get_character_stats"):
 		stats = game_session.get_character_stats(char_id)
@@ -204,7 +324,6 @@ func _update_stats_display(char_id: String) -> void:
 	if stat_tec_label != null:
 		stat_tec_label.text = "TÉCNICA:    " + _generate_bar_string(tec)
 
-	# Feedback visual e sonoro de status do herói
 	if is_unlocked:
 		if status_label != null:
 			status_label.text = "HERÓI SELECIONADO: GUILHERME (DISPONÍVEL)"
@@ -238,17 +357,31 @@ func _generate_bar_string(val: int) -> String:
 
 
 func _on_confirm_pressed() -> void:
+	if _is_transitioning_scene:
+		return
+
+	# Restrição master do jogo: apenas Guilherme inicia a partida
 	if current_hover_id != "guilherme":
 		_deny_character_selection()
 		return
 
+	_is_transitioning_scene = true
 	_play_sound(_sfx_confirm)
+
+	# Efeito de flash e confirmação arcade
+	if flash_rect != null:
+		flash_rect.color = Color(1.0, 1.0, 1.0, 0.45)
+		if _flash_tween != null and _flash_tween.is_valid():
+			_flash_tween.kill()
+		_flash_tween = create_tween()
+		_flash_tween.tween_property(flash_rect, "color:a", 0.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 	var game_session = get_node_or_null("/root/GameSession")
 	if game_session != null:
 		game_session.select_character("guilherme")
 
 	_safe_handle_input()
+	await get_tree().create_timer(0.25).timeout
 	var err := get_tree().change_scene_to_file(LOADING_SCREEN_SCENE)
 	if err != OK:
 		printerr("Erro ao carregar a tela de apresentação da Fase 1: ", err)
@@ -257,19 +390,30 @@ func _on_confirm_pressed() -> void:
 func _deny_character_selection() -> void:
 	_play_sound(_sfx_denied)
 
-	var target_card: Button = card_nodes.get(current_hover_id) as Button
-	if target_card != null:
+	# Feedback de bloqueio: shake horizontal no DisplayLayer
+	if display_layer != null:
 		if _shake_tween != null and _shake_tween.is_valid():
 			_shake_tween.kill()
 		_shake_tween = create_tween()
-		var orig_pos: Vector2 = target_card.position
-		_shake_tween.tween_property(target_card, "position:x", orig_pos.x - 6.0, 0.04)
-		_shake_tween.tween_property(target_card, "position:x", orig_pos.x + 6.0, 0.04)
-		_shake_tween.tween_property(target_card, "position:x", orig_pos.x - 3.0, 0.04)
-		_shake_tween.tween_property(target_card, "position:x", orig_pos.x, 0.04)
+		_shake_tween.tween_property(display_layer, "position:x", -12.0, 0.04)
+		_shake_tween.tween_property(display_layer, "position:x", 12.0, 0.04)
+		_shake_tween.tween_property(display_layer, "position:x", -6.0, 0.04)
+		_shake_tween.tween_property(display_layer, "position:x", 6.0, 0.04)
+		_shake_tween.tween_property(display_layer, "position:x", 0.0, 0.04)
+
+	# Flash avermelhado de acesso negado
+	if flash_rect != null:
+		flash_rect.color = Color(0.95, 0.15, 0.25, 0.32)
+		if _flash_tween != null and _flash_tween.is_valid():
+			_flash_tween.kill()
+		_flash_tween = create_tween()
+		_flash_tween.tween_property(flash_rect, "color:a", 0.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _on_back_pressed() -> void:
+	if _is_transitioning_scene:
+		return
+	_is_transitioning_scene = true
 	_play_sound(_sfx_denied)
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 

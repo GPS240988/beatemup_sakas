@@ -1,9 +1,9 @@
 class_name TitleScreen
 extends Control
 
-## Tela de Abertura / Splash Screen com a arte estática main.webp.
-## Exibe a ilustração dos 4 guerreiros com o banner arcade 'PRESSIONE QUALQUER TECLA'.
-## Suporta entrada de teclado, gamepad, clique de mouse e toque mobile.
+## Tela de Abertura / Splash Screen com a nova arte estática main.webp (1920x1080).
+## Efeito progressivo cinematográfico de carregamento / fade-in ao inicializar.
+## Pressione qualquer tecla ou toque para prosseguir ao Menu Principal.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
 
@@ -12,6 +12,8 @@ const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
 @onready var touch_button: Button = %TouchButton
 
 var _is_transitioning: bool = false
+var _is_loaded: bool = false
+var _fade_tween: Tween
 
 
 func _ready() -> void:
@@ -23,24 +25,54 @@ func _ready() -> void:
 	if touch_button != null:
 		touch_button.pressed.connect(_on_touch_activated)
 
+	_start_cinematic_fadein()
+
+
+func _start_cinematic_fadein() -> void:
+	if background_image == null:
+		_is_loaded = true
+		return
+
+	# Inicia escura e vai sendo revelada suavemente como se estivesse carregando
+	background_image.modulate.a = 0.0
+
+	_fade_tween = create_tween()
+	_fade_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_fade_tween.tween_property(background_image, "modulate:a", 1.0, 2.2)
+	_fade_tween.tween_callback(func():
+		_is_loaded = true
+	)
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_transitioning:
 		return
 
 	if event is InputEventKey and event.pressed and not event.is_echo():
-		_start_game()
+		_handle_activation()
 	elif event is InputEventMouseButton and event.pressed:
-		_start_game()
+		_handle_activation()
 	elif event is InputEventJoypadButton and event.pressed:
-		_start_game()
+		_handle_activation()
 	elif event is InputEventScreenTouch and event.pressed:
-		_start_game()
+		_handle_activation()
 
 
 func _on_touch_activated() -> void:
 	if not _is_transitioning:
-		_start_game()
+		_handle_activation()
+
+
+func _handle_activation() -> void:
+	# Se pressionar durante o carregamento/fade-in, completa imediatamente
+	if not _is_loaded and _fade_tween != null and _fade_tween.is_valid():
+		_fade_tween.kill()
+		if background_image != null:
+			background_image.modulate.a = 1.0
+		_is_loaded = true
+		return
+
+	_start_game()
 
 
 func _start_game() -> void:

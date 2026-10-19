@@ -121,6 +121,22 @@ func test_main_menu_scene() -> void:
 		assert_test(bg_slot.texture != null, "BackgroundSlot possui textura oficial (menu.jpg)")
 		assert_test(bg_slot.mouse_filter == Control.MOUSE_FILTER_IGNORE, "BackgroundSlot não intercepta eventos do mouse")
 
+	# AspectWrapper 16:9 Responsivo
+	var aspect_wrap: AspectRatioContainer = instance.get_node_or_null("%AspectWrapper") as AspectRatioContainer
+	assert_test(aspect_wrap != null, "AspectWrapper existe na cena do menu")
+	if aspect_wrap != null:
+		assert_test(is_equal_approx(aspect_wrap.ratio, 1.777778), "AspectWrapper utiliza proporção widescreen 16:9 (1.777778)")
+
+	# Seletor Dinâmico Overlay (Camada 2 / 3)
+	var overlay: Control = instance.get_node_or_null("%SelectorOverlay") as Control
+	assert_test(overlay != null, "SelectorOverlay existe na cena")
+	var l_chev: TextureRect = instance.get_node_or_null("%LeftChevron") as TextureRect
+	assert_test(l_chev != null and l_chev.texture != null, "LeftChevron existe com textura atribuída")
+	var r_chev: TextureRect = instance.get_node_or_null("%RightChevron") as TextureRect
+	assert_test(r_chev != null and r_chev.texture != null, "RightChevron existe com textura atribuída")
+	var brush_hl: TextureRect = instance.get_node_or_null("%BrushHighlight") as TextureRect
+	assert_test(brush_hl != null and brush_hl.texture != null, "BrushHighlight existe com textura atribuída")
+
 	# Botões
 	var btn_new: Button = instance.get_node_or_null("%BtnNewGame") as Button
 	assert_test(btn_new != null and not btn_new.disabled, "Botão Novo Jogo existe e está HABILITADO")

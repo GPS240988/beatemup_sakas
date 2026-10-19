@@ -1,7 +1,7 @@
 [gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/character_select.gd" id="1_char_select_script"]
-[ext_resource type="Texture2D" path="res://assets/ui/character_select/background_16_9.png" id="2_select_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/character_select/selecao_personagem_guilherme.webp" id="2_select_guilherme"]
 [ext_resource type="Texture2D" path="res://assets/ui/character_select/title_banner.png" id="3_title_banner"]
 [ext_resource type="Texture2D" path="res://assets/ui/character_select/card_guilherme.png" id="4_card_guilherme"]
 [ext_resource type="Texture2D" path="res://assets/ui/character_select/card_gabriel.png" id="5_card_gabriel"]
@@ -71,20 +71,8 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.015, 0.015, 0.03, 1)
 
-[node name="BackgroundSlot" type="TextureRect" parent="."]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("2_select_bg")
-expand_mode = 1
-stretch_mode = 6
-
 [node name="AspectWrapper" type="AspectRatioContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -94,7 +82,107 @@ grow_vertical = 2
 ratio = 1.777778
 stretch_mode = 2
 
+[node name="DisplayLayer" type="Control" parent="AspectWrapper"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BackgroundSlot" type="TextureRect" parent="AspectWrapper/DisplayLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_select_guilherme")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="IncomingSlot" type="TextureRect" parent="AspectWrapper/DisplayLayer"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CardHitboxes" type="Control" parent="AspectWrapper/DisplayLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BtnTouchGuilherme" type="Button" parent="AspectWrapper/DisplayLayer/CardHitboxes"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.135
+anchor_top = 0.296
+anchor_right = 0.312
+anchor_bottom = 0.694
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="BtnTouchGabriel" type="Button" parent="AspectWrapper/DisplayLayer/CardHitboxes"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.312
+anchor_top = 0.296
+anchor_right = 0.490
+anchor_bottom = 0.694
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="BtnTouchAndre" type="Button" parent="AspectWrapper/DisplayLayer/CardHitboxes"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.490
+anchor_top = 0.296
+anchor_right = 0.667
+anchor_bottom = 0.694
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="BtnTouchJuliana" type="Button" parent="AspectWrapper/DisplayLayer/CardHitboxes"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.667
+anchor_top = 0.296
+anchor_right = 0.844
+anchor_bottom = 0.694
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="FlashRect" type="ColorRect" parent="AspectWrapper/DisplayLayer"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
 [node name="LayoutRoot" type="Control" parent="AspectWrapper"]
+visible = false
 layout_mode = 2
 
 [node name="TopBannerBox" type="CenterContainer" parent="AspectWrapper/LayoutRoot"]

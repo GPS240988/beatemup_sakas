@@ -1,7 +1,13 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu_script"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/menu.jpg" id="2_menu_bg"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/menu_states/menu_state_vf.webp" id="2_menu_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/shared/menu_brush_highlight.webp" id="3_brush_highlight"]
+[ext_resource type="Texture2D" path="res://assets/ui/shared/menu_chevron_left.webp" id="4_chev_left"]
+[ext_resource type="Texture2D" path="res://assets/ui/shared/menu_chevron_right.webp" id="5_chev_right"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
+blend_mode = 1
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -29,7 +35,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-ratio = 0.666667
+ratio = 1.777778
 stretch_mode = 2
 
 [node name="BackgroundSlot" type="TextureRect" parent="AspectWrapper"]
@@ -40,6 +46,45 @@ texture = ExtResource("2_menu_bg")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="SelectorOverlay" type="Control" parent="AspectWrapper"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BrushHighlight" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
+unique_name_in_owner = true
+material = SubResource("CanvasItemMaterial_add")
+layout_mode = 0
+offset_left = 690.0
+offset_top = 503.0
+offset_right = 1090.0
+offset_bottom = 578.0
+mouse_filter = 2
+texture = ExtResource("3_brush_highlight")
+expand_mode = 1
+
+[node name="LeftChevron" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 715.0
+offset_top = 508.0
+offset_right = 805.0
+offset_bottom = 573.0
+mouse_filter = 2
+texture = ExtResource("4_chev_left")
+expand_mode = 1
+
+[node name="RightChevron" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1015.0
+offset_top = 508.0
+offset_right = 1105.0
+offset_bottom = 573.0
+mouse_filter = 2
+texture = ExtResource("5_chev_right")
+expand_mode = 1
+
 [node name="MenuHitboxes" type="Control" parent="AspectWrapper"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -48,20 +93,20 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.36
-anchor_top = 0.285
-anchor_right = 0.98
-anchor_bottom = 0.355
+anchor_left = 0.364
+anchor_top = 0.460
+anchor_right = 0.636
+anchor_bottom = 0.535
 flat = true
 
 [node name="BtnContinue" type="Button" parent="AspectWrapper/MenuHitboxes"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.36
-anchor_top = 0.35
-anchor_right = 0.98
-anchor_bottom = 0.418
+anchor_left = 0.364
+anchor_top = 0.535
+anchor_right = 0.636
+anchor_bottom = 0.605
 disabled = true
 flat = true
 
@@ -69,20 +114,20 @@ flat = true
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.36
-anchor_top = 0.412
-anchor_right = 0.98
-anchor_bottom = 0.48
+anchor_left = 0.364
+anchor_top = 0.605
+anchor_right = 0.636
+anchor_bottom = 0.675
 flat = true
 
 [node name="BtnMap" type="Button" parent="AspectWrapper/MenuHitboxes"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.36
-anchor_top = 0.474
-anchor_right = 0.98
-anchor_bottom = 0.542
+anchor_left = 0.364
+anchor_top = 0.675
+anchor_right = 0.636
+anchor_bottom = 0.740
 disabled = true
 flat = true
 
@@ -90,10 +135,10 @@ flat = true
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.36
-anchor_top = 0.536
-anchor_right = 0.98
-anchor_bottom = 0.604
+anchor_left = 0.364
+anchor_top = 0.740
+anchor_right = 0.636
+anchor_bottom = 0.810
 disabled = true
 flat = true
 
@@ -101,10 +146,10 @@ flat = true
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.36
-anchor_top = 0.598
-anchor_right = 0.98
-anchor_bottom = 0.666
+anchor_left = 0.364
+anchor_top = 0.810
+anchor_right = 0.636
+anchor_bottom = 0.880
 flat = true
 
 [node name="BtnCredits" type="Button" parent="AspectWrapper/MenuHitboxes"]
