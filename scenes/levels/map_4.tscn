@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_4_navpoly.tres" id="8_navpoly"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/boss_alessandro.tscn" id="9_boss_alessandro"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_point.gd" id="10_spawn_point"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_director.gd" id="11_spawn_director"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top_wall"]
 size = Vector2(2200, 40)
@@ -37,54 +39,112 @@ boss_spawn_position = Vector2(1650, 640)
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(640, 360)
 
-[node name="Background" type="Sprite2D" parent="."]
+[node name="Background" type="Node2D" parent="."]
 z_index = -10
+
+[node name="Far" type="Sprite2D" parent="Background"]
 texture = ExtResource("2_bg_texture")
 centered = false
+
+[node name="Mid" type="Node2D" parent="Background"]
+
+[node name="BackProps" type="Node2D" parent="Background"]
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = ExtResource("8_navpoly")
 
-[node name="WorldBoundaries" type="StaticBody2D" parent="."]
+[node name="StaticWorld" type="Node2D" parent="."]
+
+[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
 collision_layer = 2
 collision_mask = 1
 
-[node name="TopWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(991, 525)
 shape = SubResource("RectangleShape2D_top_wall")
 
-[node name="BottomWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(991, 750)
 shape = SubResource("RectangleShape2D_bottom_wall")
 
-[node name="LeftWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(30, 640)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
-[node name="RightWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(1960, 640)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
 [node name="World" type="Node2D" parent="."]
 y_sort_enabled = true
 
-[node name="Entities" type="Node2D" parent="World"]
+[node name="Props" type="Node2D" parent="World"]
 y_sort_enabled = true
 
-[node name="Player" parent="World/Entities" instance=ExtResource("3_player_scene")]
+[node name="StaticProps" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Destructibles" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Actors" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Player" parent="World/Actors" instance=ExtResource("3_player_scene")]
 position = Vector2(220, 640)
 
-[node name="BasicEnemy1" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
+[node name="Enemies" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="BasicEnemy1" parent="World/Actors/Enemies" instance=ExtResource("4_enemy_scene")]
 position = Vector2(600, 620)
 
-[node name="BasicEnemy2" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
+[node name="BasicEnemy2" parent="World/Actors/Enemies" instance=ExtResource("4_enemy_scene")]
 position = Vector2(950, 680)
 
-[node name="BasicEnemy3" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
+[node name="BasicEnemy3" parent="World/Actors/Enemies" instance=ExtResource("4_enemy_scene")]
 position = Vector2(1250, 600)
 
-[node name="BasicEnemy4" parent="World/Entities" instance=ExtResource("4_enemy_scene")]
+[node name="BasicEnemy4" parent="World/Actors/Enemies" instance=ExtResource("4_enemy_scene")]
 position = Vector2(1500, 660)
+
+[node name="NPCs" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(100, 560)
+script = ExtResource("10_spawn_point")
+point_id = "spawn_left"
+
+[node name="SpawnPoint_Mid" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(950, 600)
+script = ExtResource("10_spawn_point")
+point_id = "spawn_mid"
+
+[node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1750, 560)
+script = ExtResource("10_spawn_point")
+point_id = "spawn_right"
+
+[node name="SpawnPoint_Reinforce" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1820, 620)
+script = ExtResource("10_spawn_point")
+point_id = "spawn_reinforce"
+spawn_type = 2
+
+[node name="SpawnPoint_Boss" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1700, 640)
+script = ExtResource("10_spawn_point")
+point_id = "spawn_boss"
+spawn_type = 4
+
+[node name="SpawnDirector" type="Node" parent="."]
+script = ExtResource("11_spawn_director")
 
 [node name="CombatDirector" type="Node" parent="."]
 script = ExtResource("5_director_script")

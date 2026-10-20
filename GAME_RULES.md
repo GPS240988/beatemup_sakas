@@ -1,289 +1,496 @@
 # 📜 GAME_RULES.md — DIRETRIZES MESTRAS DO PROJETO SAKAS (BEAT 'EM UP 2.5D)
 
-> **DIRETIVA SUPREMA**: Este documento define as regras obrigatórias e os padrões invioláveis para qualquer modificação, criação ou refatoração no projeto **Beat 'em Up - Sakas**. Todo assistente de IA e desenvolvedor DEVE ler, respeitar e aplicar estas regras antes de cada tarefa.
+> **DIRETIVA SUPREMA**: Este documento é a fonte oficial, soberana e canônica da arquitetura, convenções, contratos e regras invioláveis do projeto **Beat 'em Up - Sakas** (Godot Engine 4.x). Todo assistente de IA, desenvolvedor e pipeline de CI/CD DEVE validar qualquer alteração contra este documento.
+>
+> **REGRA DE REGISTRO**: Nenhuma funcionalidade pode ser documentada como existente sem implementação e validação real por testes. Toda seção deve declarar explicitamente:
+> - `STATUS: IMPLEMENTED`
+> - `STATUS: IMPLEMENTED WITH LIMITATION`
+> - `STATUS: PLANNED`
 
 ---
 
-## 🎯 1. PERSONA E PAPEL DO AGENTE (OBRIGATÓRIO EM TODA ALTERAÇÃO)
+## 1. ARCHITECTURE OVERVIEW
+`STATUS: IMPLEMENTED`
 
-Em **toda e qualquer alteração no projeto**, o agente DEVE atuar estritamente sob as seguintes personas integradas:
+### 1.1. Propósito e Gênero
+Beat 'em up 2.5D arcade clássico inspirado nos títulos dos anos 90, com ambientação urbana em Vila Prudente, São Paulo (ruas, locadoras de videogame, bares e becos), estética Pixel Art HD, profundidade no eixo Y e física determinística em Godot Engine 4.x (`4.7.2.stable`).
 
+### 1.2. Personas Integradas de Desenvolvimento
 1. **Direção de Arte e Design de Personagens**:
-   > *"Act as a senior video game art director, professional character designer, and expert pixel artist specializing in high-quality 2D and 2.5D beat 'em up games."*
-   * Responsável por zelar pela identidade visual impecável, anatomia, silhuetas expressivas, fluidez de quadros de animação, paletas de cores refinadas e estética nostálgica de alta qualidade (Pixel Art HD).
+   - Preservar rigorosamente a identidade visual retro urbana, paletas ricas, dithering controlado, iluminação de neon pontual e silhuetas expressivas.
+   - Sprites nativos de heróis e capangas em **220×300px** (`scale = Vector2(0.80, 0.80)` atingindo ~240px de altura final); chefes em **250×330px** com pés estritamente em `(0, 0)`.
+2. **Engenharia de Software e DevOps Sênior**:
+   - GDScript fortemente tipado, desacoplamento por composição e componentes modulares.
+   - Garantia de 60 FPS contínuos em Desktop e Mobile, ausência de vazamento de memória e suíte automatizada de testes headless (`godot_console.exe --headless -s tests/...`).
 
-2. **Engenharia de Software, Backend e DevOps Sênior**:
-   > *"Atue como engenheiro sênior especialista em DevOps, sênior Backend, sênior FrontEnd e arquitetura de motores de jogos (Godot Engine 4.x)."*
-   * Responsável por estabilidade, pipelines de automação, testes automatizados headless, integridade de código GDScript fortemente tipado, segurança física/matemática nas colisões 2.5D, performance a 60 FPS e suporte multiplataforma contínuo (PC e Mobile).
-
----
-
-## 🎨 2. IDENTIDADE VISUAL E ARTE (DARK PREMIUM MEDIEVAL & PIXEL ART HD)
-
-1. **Estilo Visual**:
-
-   Pixel Art HD 2.5D inspirada nos jogos arcade beat ’em up da década de 1990, preservando a nostalgia visual dos clássicos, com acabamento moderno e riqueza de detalhes.
-
-   Identidade visual retrô urbana, inspirada nos fliperamas e jogos de luta de rua dos anos 90, com cenários ambientados em Vila Prudente, São Paulo, incluindo ruas, comércios, locadoras de videogame e elementos da cultura urbana brasileira da época.
-
-   Perspectiva 2.5D clássica: personagens e cenários construídos em Pixel Art 2D, com profundidade de movimentação no eixo Y, planos de fundo em múltiplas camadas, perspectiva lateral e sensação de volume tridimensional simulada por sprites.
-
-   Paleta de cores característica dos anos 90, com cores vibrantes e contrastantes, sombras pixeladas bem definidas, tons urbanos, iluminação de néon, letreiros de fliperama e efeitos luminosos pontuais, sem exagerar nos filtros modernos.
-
-   Iluminação e sombreamento em Pixel Art, com dithering controlado, contornos consistentes, reflexos estilizados e sombras coerentes com a direção da luz, preservando a leitura visual dos personagens durante o combate.
-
-   Direção de arte consistente entre personagens, cenários e interface, inspirada na linguagem visual dos arcades clássicos, com sprites expressivos, silhuetas facilmente reconhecíveis, animações fluidas e cenários ricos em detalhes.
-
-   Acabamento HD Pixel Art: pixels intencionais e bem definidos, agrupamentos de pixels organizados, texturas estilizadas e detalhes cuidadosamente trabalhados, evitando aparência borrada, vetorial, fotorrealista ou de pintura digital convencional.
-
-   Referência estética: beat ’em ups arcade dos anos 90, combinando a composição lateral clássica, a profundidade de movimentação 2.5D e a atmosfera urbana nostálgica com a resolução, a legibilidade e o nível de acabamento de um jogo moderno.
-
-   Regra de consistência: todas as artes devem parecer pertencer ao mesmo jogo, mantendo proporções de personagens, escala dos cenários, perspectiva, iluminação, densidade de pixels e paleta cromática compatíveis com a identidade visual de SAKAS: ÚLTIMA FICHA.
-
-3. **Cenários e Profundidade 2.5D**:
-   * Clara distinção visual entre planos de fundo, área caminhável (rua/chão) e elementos de primeiro plano.
-   * Elementos interativos e decorativos devem ter pontos de âncora claros para ordenação por profundidade.
-   * **Resolução Nativa dos Sprites e Escala Padrão dos Atores**:
-     * **Heróis Jogáveis e Inimigos Comuns (Capangas)**: Possuem resolução nativa rigorosamente de **220×300px**. No Godot, o `AnimatedSprite2D` utiliza escala `scale = Vector2(0.80, 0.80)` para atingir ~240px de altura final, garantindo proporção anatômica fidedigna com balcões, estantes e pé-direito dos cenários sem distorção.
-     * **Chefes de Fase (Bosses)**: **SOMENTE os chefes terão por padrão a resolução ampliada de 250×330px** (maior que o personagem comum de 220×300px), conferindo imponência hierárquica e destaque visual nos encontros de clímax (como o Chefe Alessandro na Fase 1 - Seção 4). Devem manter a ancoragem espacial estrita na base dos pés em `(0, 0)` e eixo do torso perfeitamente centralizado em `X = 125px` no canvas para garantir fluidez na movimentação e evitar desvios laterais ou marcha manco.
-   * **Colisores de Mobília e Corredores de Navegação**: Móveis e estantes no solo possuem colisores em `WorldBoundaries` (`collision_layer = 2`), impedindo que atores pisem sobre mesas ou prateleiras e forçando a movimentação através dos corredores reais do cenário.
+### 1.3. Pipeline Arquitetural do Mundo
+```text
+MAPA
+ ↓
+STATIC WORLD (Limites Perimetrais e Geometria Permanente)
+ ↓
+DYNAMIC PROPS (Mobílias Sólidas e Objetos Destrutíveis)
+ ↓
+ACTORS (Player, Enemies e NPCs Móveis)
+ ↓
+COMBAT / NPC / EVENTS (CombatDirector, DialogueDirector, LevelEventDirector)
+ ↓
+PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
+```
 
 ---
 
-## ⚙️ 3. ARQUITETURA TÉCNICA E BACKEND DO JOGO
+## 2. LEVEL SCENE CONTRACT
+`STATUS: IMPLEMENTED`
 
-1. **Convenção Espacial Fundamental (Pés em `0, 0`)**:
-   * A origem local `(0, 0)` de todo ator e objeto representa **estritamente o ponto de contato dos pés com o solo**.
-   * A representação visual (`Visual`) projeta-se para cima (`Y < 0`).
-   * Colisões físicas abrangem apenas a base dos pés no chão.
-2. **Ordenação por Profundidade (Y-Sort)**:
-   * Todos os atores compartilham nós com `y_sort_enabled = true`.
-   * Proibido usar `z_index` estático que quebre a ordenação dinâmica entre personagens.
-3. **Composição sobre Herança**:
-   * Utilizar componentes modulares e desacoplados (`HealthComponent`, `MeleeAttack`).
-   * Comunicação limpa através de sinais GDScript.
-4. **GDScript Tipado**:
-   * Tipagem estática em variáveis, parâmetros e retornos (`: Vector2`, `: float`, `-> void`).
+Toda cena de nível (mapa jogável) deve estender `BaseLevel` (`scripts/levels/base_level.gd`) e seguir rigorosamente a hierarquia física e semântica de nós:
 
-5. **Arquitetura de Combate Arcade (CombatDirector & Tokens 2.5D)**:
-   * O combate entre múltiplos inimigos DEVE ser orquestrado centralizadamente via `CombatDirector`.
-   * **Tokens Ofensivos**: `max_attack_tokens = 2` e `max_simultaneous_active_enemy_attacks = 1` por encontro, impedindo que múltiplos inimigos atinjam o jogador no mesmo frame.
-   * **Movimentação 2.5D em Dois Estágios**:
-     * Estágio 1: Alinhamento de profundidade Y (tolerância padrão de 15 px).
-     * Estágio 2: Aproximação frontal horizontal X (alcance padrão de 70 px).
-   * **Ciclo do Golpe e Calibração de Timers da IA**:
-     * **Capangas Comuns**: Telegraph visual `0.25s` (flash amarelado sem causar dano) -> Janela de Impacto Ativa `0.16s` (`attack_started` / hitbox ativa) -> Recuo de Recuperação (`recoil_distance = 50px`, `recovery_duration = 0.40s`) -> Cooldown de re-ataque `attack_cooldown = 0.80s`. Ao sofrer dano: atordoamento `hurt_duration = 0.22s` seguido de `post_hurt_cooldown = 0.40s` impedindo contra-ataques instantâneos.
-     * **Chefes (Boss Alessandro)**: Telegraph ágil `0.20s` -> Janela de Impacto Ativa `0.18s` -> Recuo firme (`recoil_distance = 35px`, `recovery_duration = 0.35s`) -> Cooldown `attack_cooldown = 0.65s`. Ao sofrer dano: `hurt_duration = 0.18s` e `post_hurt_cooldown = 0.30s`.
-     * **Timeout de Retenção de Token e Perseguição (Prevenção de Starvation)**: `token_timeout_seconds = 4.0s` no `CombatDirector` revoga tokens retidos ociosamente sem ataque ativo. Inimigos possuem `chase_timeout_seconds = 3.5s` (Capangas) e `4.0s` (Chefe); ao expirar a perseguição sem alcançar o golpe, o inimigo libera o token voluntariamente e retorna ao flanqueamento, garantindo rotatividade da iniciativa ofensiva.
-   * **Sinais do Diretor**: `encounter_started`, `encounter_cleared`, `token_granted`, `token_released`, `active_attack_authorized`.
-   * **Ondas e Conclusão de Encontro**: O encontro só é considerado concluído (`encounter_cleared`) quando a contagem de inimigos vivos for zero **E** não houver nenhuma onda ou spawn de reforço pendente. Jamais abrir `ExitArea` nem acionar o indicador `SIGA →` com reforços em trânsito.
+```text
+MapX (Node2D, script: base_level.gd)
+├── Camera2D (limites camera_min_x e camera_max_x, Y fixo em 360px, amortecimento suave)
+├── Background (Node2D, z_index = -10)
+│   ├── Far (Sprite2D / ColorRect — arte distante de horizonte)
+│   ├── Mid (Node2D — camadas intermediárias de cenário)
+│   └── BackProps (Node2D — detalhes estáticos do fundo)
+├── NavigationRegion2D (contendo recurso map_X_navpoly.tres com malha convexa)
+├── StaticWorld (Node2D)
+│   └── WorldBoundaries (StaticBody2D, layer 2, mask 1)
+│       ├── TopWall (CollisionShape2D — limite superior do chão caminhável)
+│       ├── BottomWall (CollisionShape2D — limite inferior do chão caminhável)
+│       ├── LeftWall (CollisionShape2D — limite perimetral esquerdo)
+│       └── RightWall (CollisionShape2D — limite perimetral direito)
+├── World (Node2D, y_sort_enabled = true)
+│   ├── Props (Node2D, y_sort_enabled = true)
+│   │   ├── StaticProps (Node2D, y_sort_enabled = true — estantes, balcões fixos)
+│   │   └── Destructibles (Node2D, y_sort_enabled = true — caixas, barris, barricadas)
+│   └── Actors (Node2D, y_sort_enabled = true)
+│       ├── Player (instância de player.tscn, em World/Actors/Player)
+│       ├── Enemies (Node2D, y_sort_enabled = true — capangas e chefes)
+│       └── NPCs (Node2D, y_sort_enabled = true — civis e transeuntes)
+├── Foreground (Node2D, z_index = 10 — elementos visuais de primeiro plano que cobrem atores)
+├── SpawnPoints (Node2D — marcadores Marker2D gerenciados pelo SpawnDirector)
+├── CombatDirector (Node, script: combat_director.gd, no grupo "combat_director")
+├── ExitArea (Area2D, collision_layer = 0, collision_mask = 1, monitoring = false)
+│   └── CollisionShape2D (gatilho de transição no final do mapa)
+├── SigaIndicator (instância de siga_indicator.tscn, ativado ao vencer o encontro)
+└── PrototypeHud (instância de prototype_hud.tscn, CanvasLayer layer = 1)
+```
 
-6. **Arquitetura de Navegação 2.5D (NavigationRegion2D & IA Híbrida de Inimigos)**:
-   * **Malha de Navegação Obrigatória por Nível**: Todo mapa de combate DEVE possuir um nó `NavigationRegion2D` contendo um `NavigationPolygon` (`.tres`) desenhado especificamente para o chão caminhável daquele cenário, contornando todas as mobílias e obstáculos estáticos.
-   * **Geometria de Navmesh Convexa**: O recurso `NavigationPolygon` deve ser construído através de partições de polígonos convexos adjacentes compartilhando vértices limítrofes, evitando o método depreciado `make_polygons_from_outlines()`.
-   * **Nó NavigationAgent2D em Todo Inimigo**:
-     * Ancorado estritamente na base dos pés `(0, 0)`.
-     * `navigation_layers = 1`.
-     * `avoidance_enabled = true` com raio proporcional aos pés (`radius = 12.0`, `neighbor_distance = 150.0`).
-     * Conectado ao callback `velocity_computed` aplicando `safe_velocity` em `move_and_slide()` para evitar congestionamento em corredores estreitos.
-   * **Navegação Híbrida 2.5D (Arcade Direto vs. Pathfinding)**:
-     * Antes de avançar em linha reta nos estados `ALIGNING_DEPTH` e `APPROACHING`, o inimigo realiza um _raycast_ no espaço 2D (`PhysicsRayQueryParameters2D.create(start, end, 2, [get_rid()])`) contra a camada de mobílias (Layer 2).
-     * **Caminho Desimpedido**: Move-se diretamente no eixo Y ou X, mantendo a resposta clássica, ágil e imediata de beat 'em up arcade.
-     * **Caminho Obstruído (Estantes, Gôndolas, Balcões)**: Atribui a coordenada do alvo ao `agent.target_position` e navega contornando os móveis via `_follow_agent_path()`.
-
-7. **Convenção de Camadas Físicas de Colisão (Collision Layers & Masks Sem Ambiguidade)**:
-   * Em Godot, `collision_layer` e `collision_mask` são inteiros atuando como **bitmasks**. A numeração nominal de camada corresponde ao bit de deslocamento (`bit = camada - 1`).
-   * **Tabela de Mapeamento Alvo**:
-     | Camada Lógica | Uso de Jogo | Valor Típico do Bitmask |
-     |:---:|---|:---:|
-     | **1** | Corpos físicos de atores (`CharacterBody2D`) | `1` (`1 << 0`) |
-     | **2** | Mundo sólido / mobílias / limites perimetrais | `2` (`1 << 1`) |
-     | **3** | Hurtboxes receptoras de dano | `4` (`1 << 2`) |
-     | **4** | Hitboxes ofensivas de ataque | `8` (`1 << 3`) |
-     | **5** | Gatilhos de fase e zonas de saída (`ExitArea`) | `16` (`1 << 4`) |
-   * **Fonte de Verdade do Hit Registration e Teste de Obstrução**:
-     * Cada execução de ataque pode atingir cada alvo elegível no máximo uma vez por golpe (`hit_targets`).
-     * O componente `MeleeAttack` valida: alvo vivo, equipe/grupo oposto, atacante diferente do alvo, direção para a frente, alcance horizontal X e tolerância de profundidade Y.
-     * **Validação de Linha de Visão (Sem Ataque Através de Paredes/Móveis)**: Golpes físicos NÃO podem atravessar paredes ou mobílias sólidas. Antes de causar dano, o ataque executa um raycast no espaço 2D contra a Layer 2 (Mundo/Mobília); caso haja obstáculo sólido entre o atacante e o alvo, o golpe é bloqueado.
-
-8. **Estrutura Padrão de Nós de Cena de Nível (MapX.tscn)**:
-   * Toda cena de fase deve respeitar rigorosamente a seguinte árvore hierárquica:
-     ```
-     MapX (Node2D, script: base_level.gd)
-     ├── Camera2D (com limites camera_min_x e camera_max_x configurados)
-     ├── Background (Sprite2D, z_index = -10, centered = false)
-     ├── NavigationRegion2D (com recurso map_X_navpoly.tres)
-     ├── WorldBoundaries (StaticBody2D, collision_layer = 2, collision_mask = 1)
-     │   ├── TopWall, BottomWall, LeftWall, RightWall (limites da tela)
-     │   └── [Colisores de Mobílias e Obstáculos com CollisionShape2D]
-     ├── World (Node2D, y_sort_enabled = true)
-     │   └── Entities (Node2D, y_sort_enabled = true)
-     │       ├── Player (instância de player.tscn, posicionado no ponto inicial)
-     │       └── Inimigos (instâncias de basic_enemy.tscn e suas variantes)
-     ├── CombatDirector (Node, script: combat_director.gd, no grupo "combat_director")
-     ├── ExitArea (Area2D, collision_layer = 0, collision_mask = 1, monitoring = false)
-     │   └── CollisionShape2D (na extremidade direita ou porta de saída)
-     ├── SigaIndicator (instância de siga_indicator.tscn, posicionado na saída)
-     └── PrototypeHud (instância de prototype_hud.tscn)
-     ```
-
-9. **Estrutura Padrão de Nós de Inimigos**:
-   * Todo ator inimigo deve conter os seguintes componentes desacoplados:
-     ```
-     Enemy (CharacterBody2D, y_sort_enabled = true, grupo "enemies")
-     ├── CollisionShape2D (CapsuleShape2D na base dos pés, layer 1, mask 2)
-     ├── NavigationAgent2D (posicionado em (0, 0), avoidance habilitado)
-     ├── Visual (Node2D, Y < 0, contém AnimatedSprite2D e efeitos)
-     ├── MeleeAttack (Node2D com HitboxArea Area2D: collision_layer = 8, collision_mask = 4)
-     ├── Hurtbox (Area2D receptora de dano: collision_layer = 4, collision_mask = 0, monitoring = false)
-     ├── HealthComponent (Node de gerenciamento de pontos de vida e morte)
-     └── FloatingHealthBar (ProgressBar flutuante sobre a cabeça)
-     ```
-
-10. **Progressão Sequencial dos Quatro Mapas da Fase 1**:
-    * A primeira fase possui exatamente quatro mapas (`1983×793px` em Pixel Art HD):
-      * **Mapa 1**: `scenes/levels/map_1.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_1.webp`, Navmesh: `map_1_navpoly.tres`) -> Entrada/Interior da Locadora.
-      * **Mapa 2**: `scenes/levels/map_2.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_2.webp`, Navmesh: `map_2_navpoly.tres`) -> Comércio e Bares.
-      * **Mapa 3**: `scenes/levels/map_3.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_3.webp`, Navmesh: `map_3_navpoly.tres`) -> Travessa da Locadora.
-      * **Mapa 4**: `scenes/levels/map_4.tscn` (Fundo: `assets/backgrounds/maps/fase1/Fase1_4.webp`, Navmesh: `map_4_navpoly.tres`) -> O Beco Final (Clímax da Fase 1).
-    * **Saída Trancada**: A área de saída inicia desabilitada (`monitoring = false`) durante o combate ativo.
-    * **Indicador SIGA →**: A indicação visual piscante "SIGA →" aparece junto à saída SOMENTE após a confirmação da derrota de todos os inimigos (`encounter_cleared`).
-    * **Avanço Manual**: O avanço ocorre estritamente quando o jogador alcança a área de saída liberada, nunca automaticamente ao matar o último inimigo.
-    * **Mapa 4**: É o clímax da Fase 1 e encaminha diretamente para o encerramento/créditos, sendo proibida a criação de um "Mapa 5" fictício.
-
+**Resolução Desacoplada no BaseLevel**:
+- É terminantemente proibido o uso de caminhos rígidos como `$World/Entities/Player`.
+- `BaseLevel` resolve referências dinamicamente através de grupos (`get_tree().get_first_node_in_group("player")`) e métodos utilitários (`get_player()`, `get_actors_container()`, `get_props_container()`).
 
 ---
 
-## 🚀 4. PADRÕES DE DEVOPS, QUALIDADE E TESTES
+## 3. SCENE NAMING CONVENTION
+`STATUS: IMPLEMENTED`
 
-1. **Testes Automatizados Obrigatórios**:
-   * Toda nova mecânica de backend/física deve ser acompanhada ou validada por testes headless (`godot_console.exe --headless -s tests/...`).
-   * Não declarar que um teste passou sem executá-lo de fato no motor.
-2. **Preservação de Funcionalidades**:
-   * Antes de alterar qualquer arquivo, verificar o que já funciona e garantir que testes anteriores permaneçam verdes (ex: suites `combat_smoke_test.gd`, `combat_director_test.gd`, `map_progression_test.gd` e `ui_flow_test.gd`).
-3. **Multiplataforma Contínua**:
-   * O jogo deve compilar e rodar perfeitamente para **PC** (tela limpa por padrão) e **Mobile** (com suporte a controles virtuais sob demanda).
-
----
-
-## 🚫 5. PADRÕES PROIBIDOS (FORBIDDEN PATTERNS)
-
-* ❌ **Singletons / Autoloads Globais desnecessários**: Não adicionar managers globais sem real necessidade arquitetural.
-* ❌ **Arte genérica ou descuidada**: Proibido utilizar cores primárias puras ou formas desproporcionais que quebrem a direção de arte sênior. Jamais substituir a arte grunge/street original de `selecao_personagem.jpg` por designs planos, vetoriais ou neon genéricos.
-* ❌ **Aglomeração de Inimigos (Dogpiling)**: Proibido fazer todos os inimigos correrem para o mesmo ponto físico simultaneamente. Devem sempre usar o `CombatDirector` para flanqueamento e alternância de pistas Y.
-* ❌ **Dano contínuo / Múltiplo dano por frame**: Golpes devem registrar alvos e causar dano exatamente uma vez por execução válida. Proibido ataques simultâneos que violem `max_simultaneous_active_enemy_attacks`.
-* ❌ **Avanço prematuro de mapa**: Proibido liberar a saída ou exibir "SIGA →" enquanto houver inimigos vivos ou ondas pendentes.
-* ❌ **Dependências externas pesadas**: Não introduzir bibliotecas ou plugins externos que compliquem o build sem autorização explícita.
-* ❌ **Quebrar o Y-Sort**: Jamais alterar a convenção de âncora nos pés sem refatorar toda a estrutura geométrica.
-* ❌ **Usar vídeo OGV/GIF na tela de abertura**: A tela de abertura utiliza exclusivamente a imagem estática `main.webp` via `TextureRect`. Proibido reintroduzir `VideoStreamPlayer`, `.ogv` ou `.gif` como abertura, pois a resolução e a decodificação Theora da Godot 4 degradam a qualidade do Pixel Art HD.
-* ❌ **Chamadas de Viewport desprotegidas em troca de cena**: Jamais chamar `get_viewport().set_input_as_handled()` após `change_scene_to_file()` sem validar se o viewport ainda existe (`if get_viewport() != null:`).
-* ❌ **Inimigos sem NavigationAgent2D ou sem Avoidance RVO**: Proibido criar ou instanciar inimigos sem o nó `NavigationAgent2D` com `avoidance_enabled = true`, sob pena de congelamento contra mobílias ou travamento mútuo em corredores estreitos.
-* ❌ **Cenas de fase sem NavigationRegion2D**: Proibido estruturar novas fases sem `NavigationRegion2D` mapeando o piso caminhável e sem colisores de mobília em `WorldBoundaries` na camada 2.
-* ❌ **Violação das Camadas Físicas de Colisão (Layers 1 a 5)**: Proibido misturar camadas de física ou colocar hitboxes/hurtboxes nas mesmas camadas dos limites do cenário ou dos corpos físicos dos atores.
+- **Diretórios e Arquivos**: Nomes estritamente em `snake_case` minúsculo.
+  - Cenas de fases: `scenes/levels/map_1.tscn`, `map_2.tscn`, `map_3.tscn`, `map_4.tscn`.
+  - Cenas de atores: `scenes/actors/player/player.tscn`, `scenes/actors/enemies/basic_enemy.tscn`, `scenes/actors/enemies/boss_alessandro.tscn`, `scenes/actors/npc.tscn`.
+  - Cenas de props: `scenes/props/destructible_prop.tscn`.
+  - Cenas de UI: `scenes/ui/title_screen.tscn`, `main_menu.tscn`, `character_select.tscn`, `loading_screen.tscn`, `prototype_hud.tscn`.
+  - Recursos de navegação: `scenes/levels/map_1_navpoly.tres` a `map_4_navpoly.tres`.
+  - Scripts: `scripts/<dominio>/<nome_componente>.gd`.
+- **Classes GDScript**: Declaração explícita de `class_name` apenas para tipos centrais ou tipagem estática (ex: `class_name DamageInfo`, `class_name BaseLevel`, `class_name BaseNPC`).
 
 ---
 
-## 📦 6. REGRAS DE OTIMIZAÇÃO DE ASSETS, ESCALABILIDADE E PADRÕES VISUAIS OFICIAIS
+## 4. STATIC WORLD CONTRACT
+`STATUS: IMPLEMENTED`
 
-1. **Tela de Abertura (Imagem Estática main.webp)**:
-   * A tela de abertura (`title_screen.tscn`) utiliza exclusivamente a imagem estática `res://assets/backgrounds/main.webp` exibida em um `TextureRect` dentro de um `AspectRatioContainer`.
-   * Formato WebP garante resolução nativa da arte Pixel Art HD sem degradação de codec de vídeo, com peso reduzido (~559 KB) e carregamento instantâneo.
-   * **Proibido usar VideoStreamPlayer, `.ogv` ou `.gif`**: O decodificador `libtheora` da Godot Engine 4 introduz artefatos de compressão (macroblocos, chuvisco) em pixel art com dithering e paletas reduzidas, tornando o vídeo inferior à imagem estática em qualidade visual.
-
-2. **Menu Principal (Estados Oficiais em WebP Transparente menu_state_0 a 5)**:
-   * O menu principal utiliza a transição entre os estados de imagem oficiais `menu_state_0.webp` até `menu_state_5.webp` localizados em `res://assets/backgrounds/menu_states/`.
-   * Preserva a arte oficial com a pincelada vermelha para cada item selecionado (0: Novo Jogo, 1: Continuar, 2: Seleção de Personagens, 3: Mapa, 4: Configurações, 5: Sair).
-   * O formato **WebP (RGBA)** é obrigatório para reduzir o peso de ~17 MB (PNGs brutos) para menos de 3.5 MB totais sem perda de qualidade visual.
-
-3. **Tela de Seleção de Personagens (Padrão Oficial selecao_personagem.jpg em WebP)**:
-   * **Banner de Título**: Exibe a faixa inclinada oficial com o texto completo "SELEÇÃO DE PERSONAGEM" (`res://assets/ui/character_select/title_banner.png`), preservando a palavra "SELEÇÃO" integralmente sem cortes.
-   * **Quadro de Status Oficial**: O painel de atributos (`StatsPanel`) DEVE seguir rigorosamente a estética de `selecao_personagem.jpg` (base `stats_panel_raw.webp`), com fundo urbano desgastado, títulos "FORÇA", "VELOCIDADE", "TÉCNICA" e blocos paralelogramos inclinados: vermelhos vibrantes para atributos ativos e azul-acinzentados para atributos inativos.
-   * **Imagens em WebP (RGBA Transparente)**: Os arquivos oficiais são `stats_guilherme.webp`, `stats_gabriel.webp`, `stats_andre.webp` e `stats_juliana.webp` em `res://assets/ui/character_select/`, pesando apenas ~39 KB cada (em vez de PNGs de alta carga).
-   * **Distribuição Equilibrada de Status (Exatamente 8 Pontos Totais)**:
-     * **Guilherme**: Força 3, Velocidade 2, Técnica 3 (Total = 8)
-     * **Gabriel**: Força 1, Velocidade 4, Técnica 3 (Total = 8)
-     * **André**: Força 4, Velocidade 2, Técnica 2 (Total = 8)
-     * **Juliana**: Força 1, Velocidade 3, Técnica 4 (Total = 8)
-
-4. **Formatos Oficiais de Imagem e Compressão (Padrão WebP Transparente)**:
-   * **Padrão Obrigatório de UI**: Imagens de interface, painéis de status e estados de tela devem ser exportadas prioritariamente em **WebP (RGBA com suporte a canal alfa)**, garantindo transparência nativa e corte drástico no consumo de memória RAM/VRAM e largura de banda web.
-   * **Fundos, Iluminações e Telas de Abertura**: Devem ser salvos prioritariamente em **WebP** (qualidade 85% a 92%) mantendo arquivos leves sem perda perceptível de nitidez.
-   * **Pixel Art HD, Spritesheets e UI de Alta Definição**: Devem utilizar **WebP Lossless** ou WebP Q95 RGBA, preservando integridade pixel-perfect de contornos e transparências.
-   * **Proibido**: Deixar imagens estáticas pesadas em PNG (1 MB+) para elementos de UI quando o formato WebP atinge fidelidade idêntica com menos de 10% do tamanho.
-
-5. **Segurança de Input e Navegação de Cenas**:
-   * Sempre consumir eventos de entrada (`_safe_handle_input()` ou `accept_event()`) **antes** de invocar `get_tree().change_scene_to_file()`.
-   * Verificar condicionalmente `if get_viewport() != null:` para prevenir erros de ponteiro nulo (`Cannot call method 'set_input_as_handled' on a null value`).
-
-6. **Performance de Distribuição Web (Vercel / HTML5)**:
-   * Manter `vercel.json` configurado com `Cross-Origin-Opener-Policy: same-origin` e `Cross-Origin-Embedder-Policy: require-corp` para permitir aceleração WebAssembly e threads seguras.
-   * Configurar cache HTTP imutável/persistente (`stale-while-revalidate`) para os binários estáticos (`.wasm`, `.pck`, imagens) para eliminar tempos de carregamento repetidos para o jogador no navegador e mobile.
-
-7. **Tela de Apresentação e Carregamento da Fase 1 (LoadingScreen)**:
-   * Após a confirmação da seleção de personagem, o jogo DEVE transicionar para a tela de apresentação (`res://scenes/ui/loading_screen.tscn`).
-   * **Arte Oficial**: Utiliza a imagem oficial `res://assets/backgrounds/maps/carregar/carregando_fase1.webp` ("FASE 1 /// A LOCADORA: ONDE TUDO COMEÇOU").
-   * **Comandos Arcade Visuais**: Exibe os ícones de comando estilizados:
-     * `[ ␣ ESPAÇO ]`: Continuar / Iniciar Fase 1 (atalho `KEY_SPACE`, `KEY_ENTER`, `ui_accept` ou botão `BtnContinue`).
-     * `[ ESC ]`: Voltar para a Seleção de Personagens (`res://scenes/ui/character_select.tscn`).
-   * **Preservação de Herói e Dados da Sessão**: O personagem selecionado em `GameSession.selected_character_id` é o personagem carregado e instanciado na fase, com seus atributos de combate e velocidade aplicados pelo `PlayerController`.
-   * **Destino Oficial da Fase 1**: O avanço a partir da tela de carregamento transiciona estritamente para `res://scenes/levels/map_1.tscn` (cujo fundo é `res://assets/backgrounds/maps/fase1/Fase1_1.webp`).
+- **Definição**: Geometria física permanente e imutável que delimita o espaço caminhável do mapa (paredes perimetrais e limites do nível).
+- **Localização Canônica**: Estritamente em `StaticWorld/WorldBoundaries` como corpos `StaticBody2D`.
+- **Camadas Físicas**: `collision_layer = 2` (Mundo Sólido), `collision_mask = 1` (Atores).
+- **Regras de Não-Interferência**:
+  - `StaticWorld` é semanticamente e fisicamente separado de `Props` e de `Actors`.
+  - Paredes e limites perimetrais NUNCA devem pertencer aos grupos `"props"` ou `"destructibles"`.
+  - As mobílias internas e balcões são instanciados sob `World/Props/StaticProps`, nunca sob `StaticWorld/WorldBoundaries`.
 
 ---
 
-## 🖥️ 7. PADRÕES DE RESOLUÇÃO, DECOMPOSIÇÃO MODULAR DE ARTE E RESPONSIVIDADE UI
+## 5. DYNAMIC PROPS CONTRACT
+`STATUS: IMPLEMENTED`
 
-> **Princípio**: Toda tela de UI DEVE ser decomposta em **3 camadas independentes**, permitindo reutilização de peças visuais, redução de peso total de assets e manutenção artística sem alterar código.
+- **Definição**: Elementos de cenário que possuem presença física no mundo, podem receber dano, sofrer transições de estado, soltar itens ou quebrar (caixas, barris, lixeiras, barricadas, portas, máquinas de arcade).
+- **Regra de Modelagem**: Qualquer elemento que mude de estado ou receba impacto NÃO pode ser modelado apenas como um colisor solto. Deve ser uma cena modular herdando de `DestructibleProp` (`scripts/props/destructible_prop.gd`).
+- **Hierarquia Canônica de Nós**:
+  ```text
+  DestructibleProp (StaticBody2D, Layer 2, Mask 1, y_sort_enabled = true, grupos: "props", "destructibles", "destructible_props", "damageable")
+  ├── Visual (Node2D, Y < 0 — suporta nós Intact e Broken)
+  ├── CollisionShape2D (Base de colisão sólida no solo, Layer 2)
+  ├── Hurtbox (Area2D receptora de dano: Layer 3 [bitmask 4], Mask 0, monitorable = true)
+  ├── HealthComponent (Node desacoplado para HP e sinais de dano)
+  ├── Effects (Node2D contendo nós CPUParticles2D e AudioStreamPlayer2D)
+  └── NavigationIntegration (NavigationObstacle2D para desvio dinâmico sem rebake)
+  ```
+- **Isolamento de Entidades**: Atores (`Player`, `Enemies`, `NPCs`) NUNCA podem ser instanciados dentro de contêineres de `Props`.
 
-1. **Viewport e Responsividade Base**:
-   * Viewport nativo: **1280 × 720 px** com `stretch/mode = "canvas_items"` e Aspect Ratio **16:9**.
-   * Filtro de textura padrão: `Nearest` (pixel-perfect para Pixel Art HD).
-   * Toda tela utiliza a hierarquia `DarkBase (ColorRect) → AspectRatioContainer → BackgroundSlot (TextureRect) → LayoutRoot (Control)`, onde o `DarkBase` preenche letterbox/pillarbox com cor escura e o `AspectRatioContainer` preserva a proporção da arte.
+---
 
-2. **Decomposição Obrigatória em 3 Camadas**:
-   * **Camada 1 — Fundo Ilustrado Limpo**: Cenário e decoração **sem** textos de menu, botões, molduras selecionáveis ou indicação de item ativo. Formato WebP Q90 RGB (sem alfa).
-   * **Camada 2 — Peças Visuais WebP Reutilizáveis**: Pinceladas vermelhas/pretas, molduras de cartões, bordas gastas, logos, ícones, texturas e pares de botões (normal/selecionado). Formato WebP Lossless RGBA (pixel art) ou WebP Q95 RGBA (arte detalhada).
-   * **Camada 3 — Elementos Dinâmicos da Interface**: Texto acessível, opção ativa, estatísticas e valores gerados pela aplicação via `Label`, `Button`, `ProgressBar` e controles Godot.
+## 6. ACTOR CONTRACT
+`STATUS: IMPLEMENTED`
 
-3. **Resoluções Nativas de Exportação WebP — Tabela Alvo**:
-   | Tipo de Arte | Resolução Alvo | Proporção | Formato |
-   |:---|:---:|:---:|:---|
-   | Telas UI completas (landscape) | **1920 × 1080** | 16:9 | WebP Q90 RGB |
-   | Telas UI completas (portrait) | **1080 × 1620** | 2:3 | WebP Q90 RGB |
-   | Mapas de jogo (scrolling) | **1983 × 793** | ~2.5:1 | WebP Q85 RGB |
-   | Peças/overlays pequenos | Tamanho real × 2 | Variável | WebP Lossless RGBA |
-   | Painéis de stats | **535 × 235** | ~2.3:1 | WebP Lossless RGBA |
-   | Cards de personagem | **249 × 573** | ~1:2.3 | WebP Lossless RGBA |
+- **Definição**: Toda entidade viva, móvel e animada que habita o mundo do jogo.
+- **Estrutura Base**: Herdam de `CharacterBody2D`, com `y_sort_enabled = true`.
+- **Ancoragem Espacial Obrigatória (Pés em `0, 0`)**:
+  - A origem local `(0, 0)` representa o ponto exato de contato dos pés com o chão.
+  - A representação gráfica (`Visual`) projeta-se estritamente para cima (`Y < 0`).
+  - O colisor físico de pés (`CollisionShape2D`) abrange apenas a base de contato no solo.
+- **Camadas Físicas**: `collision_layer = 1` (Atores) e `collision_mask = 2` (Mundo Sólido e Mobílias). Atores não colidem fisicamente entre si para evitar travamento mútuo em corredores estreitos.
+- **Localização Canônica**: Devem residir obrigatoriamente dentro de `World/Actors/` (`Player`, `Enemies` ou `NPCs`).
 
-4. **Resoluções por Tela**:
-   | Tela | Orientação | Aspect Ratio | Resolução Alvo WebP |
-   |:---|:---:|:---:|:---:|
-   | Title Screen | Landscape | 1.33:1 | 1446 × 1087 (manter original) |
-   | Main Menu | Portrait | 2:3 | 1080 × 1620 |
-   | Character Select | Landscape | 16:9 | 1920 × 1080 |
-   | Loading Screen | Landscape | 16:9 | 1920 × 1080 |
-   | Difficulty Select | Landscape | 16:9 | 1920 × 1080 |
-   | Skin Select | Landscape | 16:9 | 1920 × 1080 |
-   | Credits | Landscape | 16:9 | 1920 × 1080 |
-   | Settings (futura) | Landscape | 16:9 | 1920 × 1080 |
-   | In-Game HUD | Overlay | 16:9 | Escala com viewport |
-   | Mapas de Jogo | Scroll horiz. | 2.5:1 | 1983 × 793 (manter) |
+---
 
-5. **Peso Máximo por Tela**:
-   * Fundo HD landscape (1920×1080): **≤ 600 KB**.
-   * Fundo HD portrait (1080×1620): **≤ 600 KB**.
-   * Conjunto de peças overlay (Camada 2): **≤ 300 KB**.
-   * **Total por tela completa: < 1 MB**.
+## 7. PLAYER CONTRACT
+`STATUS: IMPLEMENTED`
 
-6. **Responsividade Mobile e Safe Area Touch**:
-   * Desktop HD (1920×1080, 16:9): Referência — escala 1:1 da arte.
-   * Mobile Landscape (2400×1080, 20:9): Pillarbox lateral preenchido por `DarkBase`.
-   * Tablet Landscape (2048×1536, 4:3): Pillarbox lateral sutil.
-   * **Safe Area**: Todos os botões interativos DEVEM estar dentro dos **90% centrais** da tela (margem de 5% em cada borda) para evitar conflito com notch, home bar e gestos de borda do sistema operacional.
-   * Hitbox mínima de botões: **48 × 48 dp** para acessibilidade touch.
+- **Identidade e Cena**: `scenes/actors/player/player.tscn` (script: `scripts/actors/player_controller.gd`).
+- **Grupos Canônicos**: Pertence estritamente aos grupos `"player"`, `"actors"` e `"damageable"`. Jamais pertence ao grupo `"enemies"`.
+- **Atributos de Heróis (Distribuição Oficial = 8 Pontos)**:
+  - **Guilherme**: Força 3, Velocidade 2, Técnica 3 (Equilibrado).
+  - **Gabriel**: Força 1, Velocidade 4, Técnica 3 (Ágil e veloz).
+  - **André**: Força 4, Velocidade 2, Técnica 2 (Tanque de alto impacto).
+  - **Juliana**: Força 1, Velocidade 3, Técnica 4 (Especialista técnica e combos).
+- **Controles de Combate Arcade**:
+  - Soco (`attack_punch` / `ui_accept`): golpe rápido de abertura.
+  - Chute (`attack_kick`): golpe de alcance frontal ampliado.
+  - Golpe Especial (`attack_special`): golpe de alto impacto e dano pesado.
+  - Ataque Aéreo (`attack_aerial`): salto com golpe descendente.
+  - Guarda (`guard`): reduz dano recebido e anula knockback.
+- **Física de Salto 2.5D**: O salto translada exclusivamente o nó `Visual` no eixo Y (`Y < 0`), enquanto a raiz `CharacterBody2D` mantém a sombra e os pés na pista física do solo.
 
-7. **Nomeação e Estrutura de Diretórios de Arte UI**:
-   * Fundos: `assets/backgrounds/<tela>_bg.webp` ou pasta específica existente.
-   * Peças reutilizáveis compartilhadas: `assets/ui/shared/` (botões arcade, molduras, texturas, ícones).
-   * Peças específicas por tela: `assets/ui/<nome_tela>/` (ex: `assets/ui/character_select/`).
-   * Proibido misturar peças de Camada 2 com fundos de Camada 1 no mesmo arquivo de imagem.
+---
 
+## 8. ENEMY CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Identidade e Cenas**: `basic_enemy.tscn` (Capangas comuns) e `boss_alessandro.tscn` (Chefe de Fase).
+- **Grupos Canônicos**: Pertencem estritamente aos grupos `"enemies"`, `"actors"` e `"damageable"`.
+- **Máquina de Estados de IA (`EnemyAI`)**:
+  - `IDLE` / `WAITING`: Aguarda oportunidade tática observando o jogador.
+  - `FLANKING`: Move-se para o slot lateral atribuído pelo `CombatDirector`.
+  - `ALIGNING_DEPTH`: Estágio 1 do combate 2.5D — alinha a profundidade Y com tolerância de 15 px.
+  - `APPROACHING`: Estágio 2 do combate 2.5D — avança horizontalmente no eixo X até 70 px.
+  - `TELEGRAPH`: Preparação visual do golpe (flash amarelado) com duração de 0.25s (0.20s no Chefe).
+  - `ATTACKING`: Janela ativa de dano com hitbox monitorando a hurtbox do jogador.
+  - `RECOVERY`: Recuo pós-golpe (50 px em 0.40s nos capangas; 35 px em 0.35s no chefe).
+  - `HURT`: Atordoamento ao receber dano (0.22s nos capangas; 0.18s no chefe) seguido de cooldown protetivo (`post_hurt_cooldown = 0.40s`).
+  - `DEAD`: Derrota com desligamento de colisores e aviso ao `CombatDirector`.
+- **Prevenção de Starvation e Retenção**: `chase_timeout_seconds` (3.5s em capangas; 4.0s no chefe) força o inimigo a liberar o token caso não consiga desferir o golpe a tempo.
+
+---
+
+## 9. NPC CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Identidade e Cena**: `scenes/actors/npc.tscn` (script: `scripts/actors/npc.gd`).
+- **Grupos Canônicos**: Pertence a `"actors"`, `"npcs"` e `"damageable"`. Jamais pertence a `"enemies"`.
+- **Isolamento Absoluto de Combate**:
+  - O `CombatDirector` REJEITA categoricamente qualquer registro de nós no grupo `"npcs"`.
+  - A presença ou sobrevivência de civis na cena não interfere na contabilidade de vitória de encontros.
+  - Não possuem `MeleeAttack` ativo nem executam ataques contra o jogador ou inimigos.
+- **Máquina de Estados de NPCs (`NPCState`)**:
+  - `IDLE`: Parado observando o ambiente.
+  - `WANDER`: Perambulação suave ao redor do ponto de origem.
+  - `MOVE_TO`: Deslocamento até coordenada específica via `move_to(target_pos)`.
+  - `WAIT`: Pausa temporizada via `wait(duration)`.
+  - `FLEE`: Fuga em alta velocidade para longe de ameaças (`flee_from(threat_pos)`).
+  - `EVENT`: Comportamento delegado a scripts narrativos externos.
+  - `DISABLED`: Física e processamento desativados sem remover o nó da árvore.
+- **Throttling de Pathfinding**: Navegação via `NavigationAgent2D` com intervalo mínimo obrigatório de `PATHFIND_MIN_INTERVAL = 0.25s`, prevenindo sobrecarga de CPU por spam de rotas.
+
+---
+
+## 10. COMBAT CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Orquestrador Central**: `CombatDirector` (`scripts/combat/combat_director.gd`), nó único no grupo `"combat_director"`.
+- **Regulamento de Tokens Ofensivos 2.5D**:
+  - `max_attack_tokens = 2`: No máximo 2 inimigos podem perseguir o jogador simultaneamente com intenção ofensiva.
+  - `max_simultaneous_active_enemy_attacks = 1`: No máximo 1 janela ativa de impacto pode atingir o jogador no mesmo instante, eliminando dano sobreposto injusto.
+  - `token_timeout_seconds = 4.0s`: Revoga tokens detidos ociosamente sem ataque desferido.
+- **Distribuição de Pistas de Flanqueamento**:
+  - Inimigos sem token recebem alvos de espera em lados opostos (esquerda/direita) e pistas Y alternadas.
+- **Vitória do Encontro (`encounter_cleared`)**:
+  - Ocorre estritamente quando `alive_enemies.is_empty()` **E** `pending_spawns_count == 0` **E** não houver chefe configurado pendente de spawn.
+
+---
+
+## 11. DAMAGE CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Fluxo Universal de Dano**:
+  ```text
+  Atacante (Player, Inimigo, Perigo Ambiental)
+          ↓
+     DamageInfo (amount, attacker, direction, damage_type, knockback_force, hitstun, can_destroy_props)
+          ↓
+     Damageable (Grupo "damageable")
+          ↓
+     Receptor (HealthComponent / Actor / DestructibleProp)
+  ```
+- **Divisão de Responsabilidade**:
+  - **Atacante**: Constrói e emite o payload imutável `DamageInfo`. Desconhece a classe concreta do alvo.
+  - **Receptor**: Autoridade soberana. Decide se aceita o dano, se aplica guarda/mitigação, se consome vida via `HealthComponent`, se toca animação de ferimento, se quebra ou se ignora.
+- **Contrato de Interface**: Toda entidade receptora deve implementar:
+  ```gdscript
+  func take_damage(damage_input: Variant) -> bool
+  ```
+  aceitando tanto `float` numérico quanto objeto estruturado `DamageInfo`.
+
+---
+
+## 12. DESTRUCTIBLE CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Ciclo de Vida Tipado (`PropState`)**:
+  | Estado | Colisor Físico | Hurtbox | Avoidance | Visual | Comportamento de Dano |
+  |---|---|---|---|---|---|
+  | `ACTIVE` | Ativo (Layer 2) | Monitorable | Ativo | Íntegro | Aceita dano normalmente |
+  | `DAMAGED` | Ativo (Layer 2) | Monitorable | Ativo | Avaria / Flash | Aceita novos danos |
+  | `DESTROYING` | Transição | Transição | Desativado | Inicia quebra / som | Recusa novos danos |
+  | `DESTROYED` | Disabled (`deferred`) | `monitorable = false` | Inativo | Quebrado / Oculto | Recusa qualquer dano (`take_damage` retorna false) |
+- **Performance de Navegação (Sem Rebuild Global)**:
+  - É expressamente proibido chamar `NavigationRegion2D.bake_navigation_polygon()` ao destruir props.
+  - A liberação de passagem é instantânea via `nav_obstacle.avoidance_enabled = false` e `collision_shape.set_deferred("disabled", true)`.
+- **Idempotência**: Chamadas repetidas a `destroy_prop()` são seguras e não duplicam drops nem emitem sinais espúrios.
+
+---
+
+## 13. NAVIGATION CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Malha Canônica Convexa**: Cada mapa possui um recurso `map_X_navpoly.tres` associado a um nó `NavigationRegion2D`, contornado pelas mobílias estáticas.
+- **Navegação Híbrida 2.5D**:
+  - Antes de acionar pathfinding, os atores verificam linha de visada direta via raycast contra a Layer 2 (`_has_obstacle_between()`).
+  - **Sem Obstrução**: Movimentação direta vetorial (resposta ágil de fliperama).
+  - **Com Obstrução**: Rota calculada via `NavigationAgent2D.get_next_path_position()`.
+- **Avoidance RVO Local**: `avoidance_enabled = true` em todos os agentes, com processamento via `velocity_computed` para evitar congestionamentos.
+
+---
+
+## 14. SPAWN CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Separação Semântica**: Distinção clara entre entidades pré-posicionadas e entidades instanciadas dinamicamente durante a partida.
+- **Componentes**:
+  - `SpawnPoint` (`Marker2D`, script: `spawn_point.gd`, grupo `"spawn_points"`): Define coordenadas físicas válidas no chão, ID único e enum `SpawnType` (`ENEMY`, `NPC`, `REINFORCEMENT`, `EVENT`, `BOSS`).
+  - `SpawnDirector` (`Node`, script: `spawn_director.gd`, grupo `"spawn_director"`): Gerencia pontos e instancia entidades em runtime.
+- **Integração com CombatDirector**:
+  - Tipos `ENEMY`, `REINFORCEMENT` e `BOSS` registram-se automaticamente no `CombatDirector` e atualizam `pending_spawns_count`.
+  - Tipos `NPC` são direcionados para o contêiner `World/Actors/NPCs` com isolamento total de combate.
+
+---
+
+## 15. EVENT CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Foreground Isolado**: Camada `Foreground` (`z_index = 10`) sobrepõe visualmente atores e cenário sem interferir em colisões ou navegação.
+- **Triggers Desacoplados (`LevelEventTrigger`)**:
+  - Monitora entrada de corpos (`body_entered` na Layer 1), acionamentos manuais ou sinais de objetos (ex: destruição de prop via `bind_to_destructible()`).
+- **Orquestrador de Sequências (`LevelEventDirector`)**:
+  - Encadeia eventos complexos (ex: entrada de NPC, tranca de portas, spawn de ondas) sem poluir `BaseLevel.gd`.
+
+---
+
+## 16. DIALOGUE/TEXT CONTRACT
+`STATUS: IMPLEMENTED`
+
+- **Diretor de Diálogos (`DialogueDirector`)**:
+  - Gerencia filas de mensagens assíncronas com sinais `message_started(speaker, text)` e `message_completed()`.
+  - Suporta avanço automático por timer ou avanço manual pelo jogador (`advance_message()`).
+  - Totalmente desacoplado do combate: anúncios, falas de chefes ou avisos narrativos não interrompem o loop de física do jogo.
+
+---
+
+## 17. COLLISION LAYERS AND MASKS
+`STATUS: IMPLEMENTED`
+
+| Camada Lógica | Nome do Uso | Bitmask Int | Finalidade Física |
+|:---:|---|:---:|---|
+| **1** | Atores | `1` (`1 << 0`) | Corpos físicos de `Player`, `Enemies`, `NPCs`. Não colidem entre si. |
+| **2** | Mundo / Mobílias | `2` (`1 << 1`) | Limites perimetrais, paredes, estantes e caixas destrutíveis. |
+| **3** | Hurtboxes | `4` (`1 << 2`) | Áreas receptoras de dano de atores e props. `monitoring = false`, `monitorable = true`. |
+| **4** | Hitboxes | `8` (`1 << 3`) | Áreas ofensivas de ataque (`MeleeAttack`). `monitoring = true`, monitora Layer 3. |
+| **5** | Gatilhos / Saída | `16` (`1 << 4`) | Zonas de transição (`ExitArea`) e gatilhos narrativos (`LevelEventTrigger`). |
+
+---
+
+## 18. GROUPS
+`STATUS: IMPLEMENTED`
+
+| Grupo | Finalidade Canônica | Membros Autorizados |
+|---|---|---|
+| `actors` | Toda entidade animada viva | `Player`, `BasicEnemy`, `BossAlessandro`, `BaseNPC` |
+| `player` | Herói jogável | Exclusivamente instâncias de `player.tscn` |
+| `enemies` | Inimigos combatentes | `BasicEnemy`, `BossAlessandro` |
+| `npcs` | Não-combatentes e civis | Instâncias de `BaseNPC` / `npc.tscn` |
+| `damageable` | Qualquer entidade que recebe dano | `Player`, `Enemies`, `NPCs`, `DestructibleProp` |
+| `destructibles` | Objetos de cenário quebráveis | Instâncias de `DestructibleProp` |
+| `props` | Elementos de cenário interativos | Props destrutíveis e estáticos |
+| `spawn_points` | Pontos de surgimento de runtime | Instâncias de `SpawnPoint` (`Marker2D`) |
+| `spawn_director` | Gerenciador de spawning | Instância única de `SpawnDirector` |
+| `combat_director` | Orquestrador de combate 2.5D | Instância única de `CombatDirector` |
+
+---
+
+## 19. Y-SORT RULES
+`STATUS: IMPLEMENTED`
+
+1. **Âncora Rigorosa nos Pés**: A origem local `(0, 0)` de todo ator e prop deve coincidir estritamente com a base de contato dos pés ou base do objeto no chão.
+2. **Ativação Obrigatória de Y-Sort**: Todos os contêineres ancestrais do mundo (`World`, `Props`, `StaticProps`, `Destructibles`, `Actors`, `Enemies`, `NPCs`) devem possuir `y_sort_enabled = true`.
+3. **Proibição de Deslocamento Z Arbitrário**: Jamais aplicar `z_index` customizado em atores que quebre a ordenação por profundidade Y.
+
+---
+
+## 20. Z-INDEX RULES
+`STATUS: IMPLEMENTED`
+
+| Camada Estrutural | Nó da Cena | Valor de `z_index` | Comportamento |
+|---|---|:---:|---|
+| Planos Distantes | `Background` | `-10` | Renderizado atrás de todo o mundo de jogo. |
+| Mundo Caminhável | `World` (Props e Atores) | `0` | Ordenado dinamicamente pelo Y-Sort dos pés. |
+| Primeiro Plano | `Foreground` | `10` | Cobre atores e elementos caminháveis (postes, marquises, fiação). |
+| Interface de Usuário | `CanvasLayer` (HUD / Telas) | `Layer 1` | Renderizado na tela do usuário, independente da câmera. |
+
+---
+
+## 21. PERFORMANCE RULES (PERFORMANCE CONTRACT — 60 FPS)
+`STATUS: IMPLEMENTED`
+
+1. **Sem Varreduras Contínuas de Grupo por Frame**:
+   - É proibido chamar `get_nodes_in_group()` repetitivamente dentro de `_process()` ou `_physics_process()`.
+   - `MeleeAttack`: Varre grupos de alvos apenas no disparo inicial do golpe (`execute_attack`). Nos frames subsequentes da janela ativa, delega a detecção aos métodos espaciais de baixo custo `get_overlapping_areas()` e `get_overlapping_bodies()` do servidor de física, eliminando alocações contínuas de arrays a 60 FPS.
+2. **Prevenção de Rebuild Global de Navegação**:
+   - Destruição ou alteração de props destrutíveis NUNCA dispara `bake_navigation_polygon()`. O desvio dinâmico é atualizado instantaneamente via `NavigationObstacle2D` avoidance no servidor.
+3. **Throttling de Pathfinding em Atores**:
+   - `NavigationAgent2D` em NPCs e inimigos obedece a um intervalo mínimo de atualização (`PATHFIND_MIN_INTERVAL >= 0.20s`), evitando requisições redundantes de rotas a cada frame.
+4. **Partículas Amigáveis a Mobile (CPUParticles2D)**:
+   - Efeitos de impacto, poeira e quebra utilizam exclusivamente `CPUParticles2D`. O uso de `GPUParticles2D` é proibido para evitar travamentos por compilação assíncrona de shaders em dispositivos mobile de entrada.
+5. **Limpeza Segura de Ciclo de Vida**:
+   - Todos os nós que saem da árvore (`tree_exiting`) desconectam seus sinais e são desregistrados do `CombatDirector` e `SpawnDirector`, prevenindo vazamento de referências e checagens sobre nós órfãos.
+
+---
+
+## 22. GDSCRIPT TYPING RULES
+`STATUS: IMPLEMENTED`
+
+1. **Tipagem Estática Obrigatória**: Toda variável, parâmetro e retorno de função deve conter anotação de tipo explícita (`var speed: float = 120.0`, `func move_to(pos: Vector2) -> void:`).
+2. **Proibição de Variáveis Dinâmicas Implícitas**: Evitar o uso de `var` sem tipo quando o tipo for inferível ou determinável.
+3. **Casting Seguro**: Utilizar a sintaxe `as Tipo` acompanhada de validação de nulidade (`var actor := node as CharacterBody2D; if actor != null:`).
+4. **Resolução de Tipos em Modo Headless**: Não referenciar nomes de classes customizadas que não pertençam ao cache global em assinaturas de sinais exportados; utilizar referências pré-carregadas (`const`) ou tipos base do motor (`RefCounted`, `Node`).
+
+---
+
+## 23. TESTING RULES
+`STATUS: IMPLEMENTED`
+
+1. **Obrigatoriedade de Testes**: Toda funcionalidade nova ou refatoração estrutural deve ser acompanhada de uma suíte automatizada de testes headless.
+2. **Proibição de Declaração sem Execução**: Nenhum teste pode ser considerado válido sem a execução efetiva do comando no motor e validação do código de saída (`exit code 0`).
+3. **Sem Retornos Silenciosos**: Testes não podem conter cláusulas `return` prematuras que encerrem a rotina sem contabilizar asserções (`assert_test()`).
+
+---
+
+## 24. HEADLESS TEST RULES
+`STATUS: IMPLEMENTED`
+
+1. **Execução Headless Oficial**: Os testes são executados através do binário de console do Godot Engine:
+   ```powershell
+   godot_console.exe --headless -s tests/<nome_do_teste>.gd
+   ```
+2. **Isolamento de Janela e Árvore**: Os scripts de teste herdam de `SceneTree` e limpam todos os nós instanciados no encerramento (`queue_free()`), saindo com `quit(0)` em caso de sucesso ou `quit(1)` em falhas.
+
+---
+
+## 25. CI/CD RULES
+`STATUS: IMPLEMENTED`
+
+1. **Bateria Completa de Testes**: A saúde do projeto é auditada pelo runner automatizado `tests/run_all_tests.ps1`, abrangendo atualmente **17 suítes completas**:
+   - `tests/map_structure_test.gd`
+   - `tests/prop_contracts_test.gd`
+   - `tests/actor_contracts_test.gd`
+   - `tests/actor_contract_test.gd`
+   - `tests/spawn_points_test.gd`
+   - `tests/destructible_prop_test.gd`
+   - `tests/combat_director_test.gd`
+   - `tests/combat_smoke_test.gd`
+   - `tests/boss_alessandro_test.gd`
+   - `tests/map_progression_test.gd`
+   - `tests/loading_screen_test.gd`
+   - `tests/ui_flow_test.gd`
+   - `tests/combat_integration_test.gd`
+   - `tests/npc_test.gd`
+   - `tests/level_events_test.gd`
+   - `tests/navigation_integrity_test.gd`
+   - `tests/performance_audit_test.gd`
+2. **Critério de Bloqueio**: O pipeline de CI e qualquer gate de entrega exige **100% de aprovação (0 falhas)** nas 17 suítes.
+3. **Política de Git**: Commits atômicos e padronizados por categoria (`arch:`, `test:`, `perf:`, `docs:`).
+
+---
+
+## 26. MOBILE CONSTRAINTS
+`STATUS: IMPLEMENTED`
+
+1. **Suporte Touch Nativo Sob Demanda**:
+   - A HUD (`prototype_hud.tscn`) suporta alternância para controles virtuais na tela (`TouchControls`).
+   - Botões interativos possuem tamanho mínimo de toque de **48 × 48 dp**.
+2. **Safe Area Touch**:
+   - Elementos essenciais de controle e interface devem residir dentro dos 90% centrais da tela (5% de margem em cada borda), evitando interferência com notch, cantos arredondados ou barras de navegação do sistema operacional.
+3. **Orçamento e Otimização de Assets**:
+   - Viewport nativo 1280×720 (16:9 widescreen) com preenchimento letterbox/pillarbox via `DarkBase`.
+   - Assets exportados em formato **WebP** transparente ou Q90 RGB, limitando o peso por tela a **< 1 MB**.
+
+---
+
+## 27. FORBIDDEN ARCHITECTURAL PATTERNS
+`STATUS: IMPLEMENTED`
+
+- ❌ **Singletons Globais Desnecessários**: Proibido criar autoloads globais sem estrita necessidade arquitetural.
+- ❌ **Caminhos de Nós Hardcoded**: Proibido utilizar referências rígidas de caminho de árvore (ex: `$World/Entities/Player`).
+- ❌ **Aglomeração de Inimigos (Dogpiling)**: Proibido fazer inimigos perseguirem o jogador sem respeitar os tokens e pistas de flanqueamento do `CombatDirector`.
+- ❌ **Múltiplo Dano por Frame**: Proibido causar dano contínuo sem registro individual de acertos (`hit_targets`).
+- ❌ **Avanço Prematuro de Fase**: Proibido ativar a saída ou acionar "SIGA →" com inimigos vivos ou reforços em trânsito.
+- ❌ **Rebuild Global de Navegação**: Proibido executar `bake_navigation_polygon()` em runtime.
+- ❌ **Vídeo na Tela de Abertura**: A tela de abertura utiliza exclusivamente imagem estática `main.webp` via `TextureRect`. Proibido o uso de `VideoStreamPlayer` ou formatos `.ogv`/`.gif`.
+- ❌ **Chamada Desprotegida de Viewport**: Proibido invocar `set_input_as_handled()` após mudança de cena sem verificar `if get_viewport() != null:`.
+- ❌ **Inimigos sem NavigationAgent2D**: Proibido instanciar inimigos sem navegação com RVO avoidance.
+
+---
+
+## 28. EXTENSION GUIDELINES
+`STATUS: IMPLEMENTED`
+
+### Como Criar Novos Elementos sem Modificar a Arquitetura Central:
+1. **Novo Inimigo (`Enemy.tscn`)**:
+   - Herdar de `CharacterBody2D`, ancorar pés em `(0, 0)`, adicionar aos grupos `"actors"`, `"enemies"`, `"damageable"`.
+   - Incluir nós: `CollisionShape2D` (Layer 1, Mask 2), `NavigationAgent2D`, `Visual`, `MeleeAttack` (Layer 8, Mask 4), `Hurtbox` (Layer 4, Mask 0), `HealthComponent`.
+2. **Novo Chefe (`Boss.tscn`)**:
+   - Estender `EnemyAI` (ou herdar de `boss_alessandro.gd`), resolução visual em 250×330px, calibrar timers de telegraph e recuo.
+3. **Novo NPC (`NPC.tscn`)**:
+   - Herdar de `BaseNPC`, adicionar aos grupos `"actors"`, `"npcs"`, `"damageable"`. Não incluir no grupo `"enemies"`.
+4. **Novo Prop Destrutível (`Barrel.tscn`, `Crate.tscn`)**:
+   - Instanciar a cena base `destructible_prop.tscn`, configurar `max_health`, sprites em `Visual` e cena de drop opcional.
+5. **Novo Gatilho de Nível (`Trigger.tscn`)**:
+   - Instanciar `LevelEventTrigger`, configurar `event_id`, máscara Layer 1 e conectar sinal `triggered`.
+
+---
+
+## 29. DEFINITION OF DONE (DOD)
+`STATUS: IMPLEMENTED`
+
+Uma funcionalidade, refatoração ou evolução arquitetural só pode ser considerada **CONCLUÍDA** quando todos os itens abaixo forem rigorosamente satisfeitos:
+
+```text
+[x] Código implementado e modular (composição sobre herança)
+[x] GDScript fortemente tipado (variáveis, parâmetros e retornos)
+[x] Cenas válidas e livres de erros de parsing
+[x] Referências de nós dinâmicas e desacopladas (sem caminhos rígidos)
+[x] Camadas e máscaras de colisão verificadas (Layers 1 a 5)
+[x] Malha e agentes de navegação verificados (sem rebuild global em runtime)
+[x] Testes headless executados com 100% de sucesso
+[x] Bateria de regressão completa (17 suítes) executada sem falhas
+[x] Auditoria de performance a 60 FPS aprovada (desktop e mobile)
+[x] Nenhuma regressão conhecida em combate, IA, mapas ou UI
+[x] GAME_RULES.md atualizado refletindo estritamente a realidade do código
+```

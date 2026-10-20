@@ -7,6 +7,8 @@ extends Node2D
 
 const SigaIndicatorClass = preload("res://scripts/ui/siga_indicator.gd")
 const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
+const SpawnDirectorClass = preload("res://scripts/spawning/spawn_director.gd")
+const SpawnPointClass = preload("res://scripts/spawning/spawn_point.gd")
 
 @export_group("Configuração do Mapa")
 @export var map_name: String = "Fase 1 - Seção 1"
@@ -27,19 +29,50 @@ const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
 @export var boss_announcement_text: String = "⚠️ ATENÇÃO: CHEFÃO ALESSANDRO APARECEU!\nDERROTE-O PARA AVANÇAR!"
 
 ## Referências aos nós da cena
-@onready var camera: Camera2D = $Camera2D
-@onready var combat_director: CombatDirector = $CombatDirector
-@onready var exit_area: Area2D = $ExitArea
-@onready var siga_indicator: SigaIndicator = $SigaIndicator
-@onready var hud: PrototypeHud = $PrototypeHud
-@onready var player: PlayerController = $World/Entities/Player
+@onready var camera: Camera2D = get_node_or_null("Camera2D") as Camera2D
+@onready var combat_director: CombatDirector = get_node_or_null("CombatDirector") as CombatDirector
+@onready var exit_area: Area2D = get_node_or_null("ExitArea") as Area2D
+@onready var siga_indicator: SigaIndicator = get_node_or_null("SigaIndicator") as SigaIndicator
+@onready var hud: PrototypeHud = get_node_or_null("PrototypeHud") as PrototypeHud
+@onready var spawn_director: Node = get_node_or_null("SpawnDirector")
+
+var player: PlayerController = null
 
 var _transitioning: bool = false
 var _boss_spawned: bool = false
 var _boss_instance: CharacterBody2D = null
 
 
+func get_player() -> PlayerController:
+	if player != null and is_instance_valid(player):
+		return player
+	# 1. Procura na nova arquitetura padrão
+	player = get_node_or_null("World/Actors/Player") as PlayerController
+	# 2. Fallback de compatibilidade para arquitetura legada
+	if player == null:
+		player = get_node_or_null("World/Entities/Player") as PlayerController
+	# 3. Fallback de resiliência pelo grupo global
+	if player == null and get_tree() != null:
+		var found = get_tree().get_first_node_in_group("player")
+		if found is PlayerController:
+			player = found as PlayerController
+	return player
+
+
+func get_actors_container() -> Node2D:
+	var container: Node2D = get_node_or_null("World/Actors/Enemies") as Node2D
+	if container == null:
+		container = get_node_or_null("World/Actors") as Node2D
+	if container == null:
+		container = get_node_or_null("World/Entities") as Node2D
+	if container == null:
+		container = self
+	return container
+
+
 func _ready() -> void:
+	player = get_player()
+
 	# Inicializa câmera
 	if camera != null:
 		camera.enabled = true
@@ -92,10 +125,8 @@ func _update_camera(delta: float) -> void:
 		return
 
 	if player == null or not is_instance_valid(player):
-		var found_player = get_tree().get_first_node_in_group("player")
-		if found_player is PlayerController:
-			player = found_player as PlayerController
-		else:
+		player = get_player()
+		if player == null:
 			return
 
 	var target_x: float = clampf(player.global_position.x, camera_min_x, camera_max_x)
@@ -141,16 +172,19 @@ func _on_encounter_cleared() -> void:
 ## Invoca o Chefe no mapa com aviso na HUD e registro no CombatDirector
 func _spawn_boss() -> void:
 	_boss_spawned = true
-	var entities_node: Node2D = get_node_or_null("World/Entities")
-	if entities_node == null:
-		entities_node = self
+	var actors_container: Node2D = get_actors_container()
 
-	var boss = boss_scene.instantiate() as CharacterBody2D
+	var boss: CharacterBody2D = null
+	if spawn_director != null and spawn_director.get_spawn_point("spawn_boss") != null:
+		boss = spawn_director.spawn_at_point("spawn_boss", boss_scene, actors_container) as CharacterBody2D
+	elif boss_scene != null:
+		boss = boss_scene.instantiate() as CharacterBody2D
+		if boss != null:
+			boss.global_position = boss_spawn_position
+			actors_container.add_child(boss)
+
 	if boss != null:
 		_boss_instance = boss
-		boss.global_position = boss_spawn_position
-		entities_node.add_child(boss)
-
 		if combat_director != null:
 			combat_director.is_cleared = false
 			combat_director.encounter_state = "COMBAT"

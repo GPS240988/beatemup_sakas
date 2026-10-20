@@ -14,7 +14,7 @@ size = Vector2(70, 60)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hurtbox"]
 size = Vector2(44, 110)
 
-[node name="BasicEnemy" type="CharacterBody2D"]
+[node name="BasicEnemy" type="CharacterBody2D" groups=["actors", "damageable", "enemies"]]
 y_sort_enabled = true
 collision_layer = 1
 collision_mask = 2

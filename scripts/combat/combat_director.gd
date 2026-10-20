@@ -96,13 +96,17 @@ func _find_player() -> void:
 func _register_existing_enemies() -> void:
 	var nodes: Array[Node] = get_tree().get_nodes_in_group(enemy_group)
 	for n in nodes:
-		if n is CharacterBody2D and not registered_enemies.has(n):
+		if n is CharacterBody2D and not n.is_in_group("npcs") and not n.is_in_group("player") and not registered_enemies.has(n):
 			register_enemy(n as CharacterBody2D)
 
 
 ## Registra um novo inimigo no encontro
 func register_enemy(enemy: CharacterBody2D) -> void:
 	if enemy == null or registered_enemies.has(enemy):
+		return
+
+	# Garantia FASE 3: Apenas entidades do grupo 'enemies' (e nunca 'npcs', 'player' ou 'props') participam do combate
+	if not enemy.is_in_group(enemy_group) or enemy.is_in_group("npcs") or enemy.is_in_group("player") or enemy.is_in_group("props"):
 		return
 
 	registered_enemies.append(enemy)

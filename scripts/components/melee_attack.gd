@@ -25,8 +25,13 @@ signal target_hit(target: Node, damage: float)
 ## Intervalo mínimo total entre ataques (cooldown)
 @export var attack_cooldown: float = 0.40
 
+const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
+
 ## Grupo de alvos válidos ("enemies" ou "player")
 @export var target_group: String = "enemies"
+
+## Habilita atingir objetos destrutíveis em paralelo ao grupo alvo
+@export var can_hit_props: bool = true
 
 ## Validação de linha de visão física (impede golpes através de paredes e balcões na Layer 2)
 @export var check_obstacles: bool = true
@@ -65,7 +70,7 @@ func _physics_process(delta: float) -> void:
 		if _active_timer <= 0.0:
 			_set_hitbox_active(false)
 		else:
-			_poll_overlapping_targets()
+			_poll_overlapping_targets(false)
 
 
 ## Executa a tentativa de ataque na direção informada (1.0 ou -1.0)
@@ -94,7 +99,7 @@ func execute_attack(direction: float) -> bool:
 	attack_started.emit()
 
 	# Varredura de alvos na abertura da janela ativa
-	_poll_overlapping_targets()
+	_poll_overlapping_targets(true)
 	return true
 
 
@@ -160,23 +165,45 @@ func _on_hitbox_detect(collider: Node) -> void:
 	_try_hit_target(collider)
 
 
-## Varre os alvos potenciais (via Area2D overlapping e verificação direta do grupo)
-func _poll_overlapping_targets() -> void:
+## Varre os alvos potenciais (via Area2D overlapping e verificação direta do grupo apenas quando necessário)
+func _poll_overlapping_targets(force_group_scan: bool = false) -> void:
 	if not is_active_window:
 		return
 
-	if hitbox_area != null and is_instance_valid(hitbox_area) and is_inside_tree() and hitbox_area.monitoring:
+	var has_monitoring_hitbox: bool = (hitbox_area != null and is_instance_valid(hitbox_area) and is_inside_tree() and hitbox_area.monitoring)
+
+	if has_monitoring_hitbox:
 		for body in hitbox_area.get_overlapping_bodies():
 			_try_hit_target(body)
 		for area in hitbox_area.get_overlapping_areas():
 			_try_hit_target(area)
 
-	# Varredura direta dos atores do grupo no SceneTree com validação das regras 2.5D
-	if is_inside_tree():
+	# Varredura direta dos atores do grupo no SceneTree: executada apenas no frame inicial (force_group_scan)
+	# ou como fallback resiliente caso hitbox_area não esteja em monitoramento ativo (ex: testes headless/física pausada).
+	# Isso elimina alocações contínuas de arrays por frame a 60 FPS durante o combate.
+	if (force_group_scan or not has_monitoring_hitbox) and is_inside_tree():
 		var tree: SceneTree = get_tree()
 		if tree != null:
 			for candidate in tree.get_nodes_in_group(target_group):
 				_try_hit_target(candidate)
+			if can_hit_props:
+				for prop_candidate in tree.get_nodes_in_group("destructibles"):
+					_try_hit_target(prop_candidate)
+
+
+## Verifica se o nó ou entidade corresponde ao grupo alvo
+func _is_target_group_match(candidate: Node) -> bool:
+	if candidate == null:
+		return false
+	if candidate.is_in_group(target_group):
+		return true
+	# Alvos destrutíveis podem ser atingidos se can_hit_props estiver ativo
+	if can_hit_props and (candidate.is_in_group("destructibles") or candidate.is_in_group("destructible_props")):
+		return true
+	# Se configurado para alvos danificáveis gerais
+	if target_group == "damageable" and candidate.is_in_group("damageable"):
+		return true
+	return false
 
 
 ## Valida as 6 regras de acerto 2.5D antes de aplicar dano
@@ -186,9 +213,9 @@ func _try_hit_target(node: Node) -> void:
 
 	# Obtém a entidade principal caso o colisor seja um Hurtbox/Area filha
 	var target_actor: Node = node
-	if not target_actor.is_in_group(target_group):
+	if not _is_target_group_match(target_actor):
 		var parent: Node = node.get_parent()
-		if parent != null and parent.is_in_group(target_group):
+		if parent != null and _is_target_group_match(parent):
 			target_actor = parent
 		else:
 			return
@@ -201,9 +228,15 @@ func _try_hit_target(node: Node) -> void:
 	if target_actor in hit_targets:
 		return
 
-	# Regra 1: Alvo deve possuir HealthComponent e estar vivo
+	# Regra 1: Alvo deve possuir HealthComponent ou método take_damage(), e estar vivo
 	var target_health := _find_health_component(target_actor)
-	if target_health == null or target_health.is_dead:
+	if target_health != null:
+		if target_health.is_dead:
+			return
+	elif target_actor.has_method("take_damage"):
+		if target_actor.get("is_broken") == true:
+			return
+	else:
 		return
 
 	# Validação geométrica 2.5D baseada na posição dos pés no chão (global_position)
@@ -231,10 +264,28 @@ func _try_hit_target(node: Node) -> void:
 	# Registra que o alvo foi atingido neste golpe (impede dano múltiplo)
 	hit_targets.append(target_actor)
 
-	# Aplica o dano
-	var applied: bool = target_health.take_damage(damage)
+	# Criação desacoplada de DamageInfo (FASE 6)
+	var damage_info := DamageInfoClass.new(
+		damage,
+		_owner_actor,
+		attacker_pos,
+		Vector2(facing_direction, 0.0),
+		"melee",
+		50.0,
+		0.2,
+		can_hit_props
+	)
+
+	# Aplica o dano: O atacante entrega DamageInfo, o receptor decide como processar
+	var applied: bool = false
+	if target_actor.has_method("take_damage"):
+		applied = target_actor.take_damage(damage_info)
+	elif target_health != null:
+		applied = target_health.take_damage(damage_info)
+
 	if applied:
 		target_hit.emit(target_actor, damage)
+
 
 
 ## Verifica se há um obstáculo sólido (parede/mobília) entre o atacante e o alvo na camada de mundo (Layer 2)

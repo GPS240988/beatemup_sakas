@@ -5,7 +5,20 @@ extends BaseLevel
 ## Herda de BaseLevel, integrando CombatDirector, indicador "SIGA →",
 ## e transição sequencial para o Mapa 2.
 
-@onready var enemy: EnemyAI = get_node_or_null("World/Entities/BasicEnemy") as EnemyAI
+var enemy: EnemyAI = null
+
+
+func _get_first_enemy() -> EnemyAI:
+	var e = get_node_or_null("World/Actors/Enemies/BasicEnemy") as EnemyAI
+	if e == null:
+		e = get_node_or_null("World/Actors/BasicEnemy") as EnemyAI
+	if e == null:
+		e = get_node_or_null("World/Entities/BasicEnemy") as EnemyAI
+	if e == null and get_tree() != null:
+		var found = get_tree().get_first_node_in_group("enemies")
+		if found is EnemyAI:
+			e = found as EnemyAI
+	return e
 
 
 func _ready() -> void:
@@ -15,6 +28,8 @@ func _ready() -> void:
 	is_final_map = false
 
 	super._ready()
+
+	enemy = _get_first_enemy()
 
 	# Conecta barra de vida do primeiro inimigo na HUD se existir
 	if enemy != null and hud != null and enemy.health_component != null:

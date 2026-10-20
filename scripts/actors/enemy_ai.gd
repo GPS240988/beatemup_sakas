@@ -73,7 +73,9 @@ var _is_dead_recorded: bool = false
 
 
 func _ready() -> void:
+	add_to_group("actors")
 	add_to_group("enemies")
+	add_to_group("damageable")
 
 	if health_component != null:
 		health_component.damaged.connect(_on_damaged)
@@ -535,3 +537,11 @@ func _on_token_revoked() -> void:
 func _reset_visual_modulate() -> void:
 	if visual_root != null:
 		visual_root.modulate = Color.WHITE
+
+
+## Ponto de entrada canônico para recebimento de dano (Damage Contract)
+func take_damage(damage_input: Variant) -> bool:
+	if health_component != null:
+		return health_component.take_damage(damage_input)
+	return false
+

@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="5_enemy_scene"]
 [ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="6_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="7_siga_scene"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_point.gd" id="8_spawn_point"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_director.gd" id="9_spawn_director"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
 size = Vector2(1400, 40)
@@ -23,119 +25,171 @@ position = Vector2(640, 360)
 [node name="Background" type="Node2D" parent="."]
 z_index = -10
 
-[node name="Sky" type="ColorRect" parent="Background"]
+[node name="Far" type="Node2D" parent="Background"]
+
+[node name="Sky" type="ColorRect" parent="Background/Far"]
 offset_right = 1280.0
 offset_bottom = 260.0
 color = Color(0.12, 0.14, 0.22, 1)
 
-[node name="CitySilhouette" type="Polygon2D" parent="Background"]
+[node name="CitySilhouette" type="Polygon2D" parent="Background/Far"]
 color = Color(0.18, 0.2, 0.3, 1)
 polygon = PackedVector2Array(0, 260, 60, 260, 60, 160, 140, 160, 140, 130, 220, 130, 220, 260, 300, 260, 300, 100, 380, 100, 380, 260, 460, 260, 460, 170, 560, 170, 560, 260, 660, 260, 660, 120, 780, 120, 780, 260, 900, 260, 900, 150, 1020, 150, 1020, 260, 1140, 260, 1140, 110, 1280, 110, 1280, 260)
 
-[node name="BrickWall" type="ColorRect" parent="Background"]
+[node name="BrickWall" type="ColorRect" parent="Background/Far"]
 offset_top = 260.0
 offset_right = 1280.0
 offset_bottom = 370.0
 color = Color(0.38, 0.24, 0.2, 1)
 
-[node name="WallCap" type="ColorRect" parent="Background"]
+[node name="WallCap" type="ColorRect" parent="Background/Far"]
 offset_top = 252.0
 offset_right = 1280.0
 offset_bottom = 260.0
 color = Color(0.48, 0.32, 0.26, 1)
 
-[node name="WalkableAreaVisual" type="Node2D" parent="."]
-z_index = -5
+[node name="WalkableAreaVisual" type="Node2D" parent="Background/Far"]
+z_index = 5
 
-[node name="Sidewalk" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="Sidewalk" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_top = 370.0
 offset_right = 1280.0
 offset_bottom = 430.0
 color = Color(0.5, 0.52, 0.54, 1)
 
-[node name="CurbLine" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="CurbLine" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_top = 428.0
 offset_right = 1280.0
 offset_bottom = 434.0
 color = Color(0.72, 0.74, 0.76, 1)
 
-[node name="StreetAsphalt" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="StreetAsphalt" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_top = 434.0
 offset_right = 1280.0
 offset_bottom = 670.0
 color = Color(0.22, 0.23, 0.25, 1)
 
-[node name="StreetDivider1" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="StreetDivider1" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_left = 120.0
 offset_top = 546.0
 offset_right = 260.0
 offset_bottom = 554.0
 color = Color(0.9, 0.82, 0.3, 0.8)
 
-[node name="StreetDivider2" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="StreetDivider2" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_left = 400.0
 offset_top = 546.0
 offset_right = 540.0
 offset_bottom = 554.0
 color = Color(0.9, 0.82, 0.3, 0.8)
 
-[node name="StreetDivider3" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="StreetDivider3" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_left = 680.0
 offset_top = 546.0
 offset_right = 820.0
 offset_bottom = 554.0
 color = Color(0.9, 0.82, 0.3, 0.8)
 
-[node name="StreetDivider4" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="StreetDivider4" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_left = 960.0
 offset_top = 546.0
 offset_right = 1100.0
 offset_bottom = 554.0
 color = Color(0.9, 0.82, 0.3, 0.8)
 
-[node name="BottomSidewalk" type="ColorRect" parent="WalkableAreaVisual"]
+[node name="BottomSidewalk" type="ColorRect" parent="Background/Far/WalkableAreaVisual"]
 offset_top = 670.0
 offset_right = 1280.0
 offset_bottom = 720.0
 color = Color(0.42, 0.44, 0.46, 1)
 
-[node name="WorldBoundaries" type="StaticBody2D" parent="."]
+[node name="Mid" type="Node2D" parent="Background"]
+
+[node name="BackProps" type="Node2D" parent="Background"]
+
+[node name="StaticWorld" type="Node2D" parent="."]
+
+[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
 collision_layer = 2
 collision_mask = 1
 
-[node name="TopWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(640, 375)
 shape = SubResource("RectangleShape2D_horiz_boundary")
 
-[node name="BottomWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(640, 680)
 shape = SubResource("RectangleShape2D_horiz_boundary")
 
-[node name="LeftWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(60, 525)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
-[node name="RightWall" type="CollisionShape2D" parent="WorldBoundaries"]
+[node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(1220, 525)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
 [node name="World" type="Node2D" parent="."]
 y_sort_enabled = true
 
-[node name="Entities" type="Node2D" parent="World"]
+[node name="Props" type="Node2D" parent="World"]
 y_sort_enabled = true
 
-[node name="SortingDummy" parent="World/Entities" instance=ExtResource("3_dummy_scene")]
+[node name="StaticProps" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="SortingDummy" parent="World/Props/StaticProps" instance=ExtResource("3_dummy_scene")]
 position = Vector2(500, 520)
 
-[node name="SortingDummy2" parent="World/Entities" instance=ExtResource("3_dummy_scene")]
+[node name="SortingDummy2" parent="World/Props/StaticProps" instance=ExtResource("3_dummy_scene")]
 position = Vector2(1000, 460)
 
-[node name="Player" parent="World/Entities" instance=ExtResource("2_player_scene")]
+[node name="Destructibles" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Actors" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Player" parent="World/Actors" instance=ExtResource("2_player_scene")]
 position = Vector2(260, 520)
 
-[node name="BasicEnemy" parent="World/Entities" instance=ExtResource("5_enemy_scene")]
+[node name="Enemies" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="BasicEnemy" parent="World/Actors/Enemies" instance=ExtResource("5_enemy_scene")]
 position = Vector2(760, 520)
+
+[node name="NPCs" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(100, 500)
+script = ExtResource("8_spawn_point")
+point_id = "spawn_left"
+
+[node name="SpawnPoint_Mid" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(640, 520)
+script = ExtResource("8_spawn_point")
+point_id = "spawn_mid"
+
+[node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1150, 500)
+script = ExtResource("8_spawn_point")
+point_id = "spawn_right"
+
+[node name="SpawnPoint_Reinforce" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1200, 540)
+script = ExtResource("8_spawn_point")
+point_id = "spawn_reinforce"
+spawn_type = 2
+
+[node name="SpawnDirector" type="Node" parent="."]
+script = ExtResource("9_spawn_director")
 
 [node name="CombatDirector" type="Node" parent="."]
 script = ExtResource("6_director_script")

@@ -50,7 +50,9 @@ var _tec_mult: float = 1.0
 
 
 func _ready() -> void:
+	add_to_group("actors")
 	add_to_group("player")
+	add_to_group("damageable")
 	_ensure_fallback_inputs()
 
 	if health_component != null:
@@ -242,6 +244,23 @@ func _try_aerial_attack() -> void:
 		state_changed.emit("Ataque Aéreo")
 
 
+## Métodos públicos desacoplados para acionamento de ataques
+func execute_punch() -> void:
+	_try_punch()
+
+
+func execute_kick() -> void:
+	_try_kick()
+
+
+func execute_heavy() -> void:
+	_try_special()
+
+
+func execute_aerial() -> void:
+	_try_aerial_attack()
+
+
 ## Fallback para compatibilidade com o botão genérico de ataque
 func _try_attack() -> void:
 	_try_punch()
@@ -336,6 +355,13 @@ func _on_died() -> void:
 	if anim_sprite != null:
 		anim_sprite.play("death")
 	state_changed.emit("Derrotado")
+
+
+## Ponto de entrada canônico para recebimento de dano (Damage Contract)
+func take_damage(damage_input: Variant) -> bool:
+	if health_component != null:
+		return health_component.take_damage(damage_input)
+	return false
 
 
 ## Fallback defensivo para mapeamento de teclas
