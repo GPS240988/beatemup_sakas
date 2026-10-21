@@ -26,6 +26,14 @@ signal target_hit(target: Node, damage: float)
 @export var attack_cooldown: float = 0.40
 
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
+const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
+
+## Propriedades físicas e de impacto do golpe
+@export var knockback_force: float = 50.0
+@export var hitstun_duration: float = 0.22
+@export var can_knockdown: bool = false
+@export var hitstop_duration: float = 0.05
+@export var impact_profile: String = "punch"
 
 ## Grupo de alvos válidos ("enemies" ou "player")
 @export var target_group: String = "enemies"
@@ -43,6 +51,7 @@ var hitbox_shape: CollisionShape2D
 ## Estados internos
 var is_attacking: bool = false
 var is_active_window: bool = false
+
 var facing_direction: float = 1.0 # 1.0 = Direita, -1.0 = Esquerda
 var hit_targets: Array[Node] = []
 
@@ -264,16 +273,19 @@ func _try_hit_target(node: Node) -> void:
 	# Registra que o alvo foi atingido neste golpe (impede dano múltiplo)
 	hit_targets.append(target_actor)
 
-	# Criação desacoplada de DamageInfo (FASE 6)
+	# Criação desacoplada de DamageInfo (FASE 6 / COMBATE ARCADE)
 	var damage_info := DamageInfoClass.new(
 		damage,
 		_owner_actor,
 		attacker_pos,
 		Vector2(facing_direction, 0.0),
 		"melee",
-		50.0,
-		0.2,
-		can_hit_props
+		knockback_force,
+		hitstun_duration,
+		can_hit_props,
+		can_knockdown,
+		hitstop_duration,
+		impact_profile
 	)
 
 	# Aplica o dano: O atacante entrega DamageInfo, o receptor decide como processar
@@ -284,7 +296,31 @@ func _try_hit_target(node: Node) -> void:
 		applied = target_health.take_damage(damage_info)
 
 	if applied:
+		CombatFeedbackClass.apply_hitstop(_owner_actor, target_actor, hitstop_duration)
+		CombatFeedbackClass.spawn_hit_spark(self, target_pos + Vector2(0, -35), Vector2(facing_direction, 0), impact_profile)
+		if impact_profile in ["heavy", "finisher", "special"]:
+			CombatFeedbackClass.trigger_screen_shake(self, 6.0, 0.22)
 		target_hit.emit(target_actor, damage)
+
+
+## Aplica os parâmetros completos de um AttackData no componente de ataque
+func apply_attack_data(data: RefCounted) -> void:
+	if data == null:
+		return
+	damage = float(data.get("damage"))
+	horizontal_range = float(data.get("horizontal_range"))
+	depth_tolerance = float(data.get("depth_tolerance"))
+	active_duration = float(data.get("active"))
+	attack_cooldown = float(data.get("recovery"))
+	knockback_force = float(data.get("knockback"))
+	hitstun_duration = float(data.get("hitstun"))
+	can_knockdown = bool(data.get("can_knockdown"))
+	if data.has_method("get_hitstop_duration"):
+		hitstop_duration = data.get_hitstop_duration()
+	elif data.get("hitstop_frames") != null:
+		hitstop_duration = float(data.get("hitstop_frames")) / 60.0
+	impact_profile = str(data.get("impact_profile"))
+
 
 
 

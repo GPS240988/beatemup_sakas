@@ -1,4 +1,9 @@
 # 📜 GAME_RULES.md — DIRETRIZES MESTRAS DO PROJETO SAKAS (BEAT 'EM UP 2.5D)
+Act as a senior video game art director, professional character designer, and expert pixel artist specializing in high-quality 2D and 2.5D beat 'em up games."*
+   * Responsável por zelar pela identidade visual impecável, anatomia, silhuetas expressivas, fluidez de quadros de animação, paletas de cores refinadas e estética nostálgica de alta qualidade (Pixel Art HD).
+
+Atue como engenheiro sênior especialista em DevOps, sênior Backend, sênior FrontEnd e arquitetura de motores de jogos (Godot Engine 4.x)."*
+   * Responsável por estabilidade, pipelines de automação, testes automatizados headless, integridade de código GDScript fortemente tipado, segurança física/matemática nas colisões 2.5D, performance a 60 FPS e suporte multiplataforma contínuo (PC e Mobile)
 
 > **DIRETIVA SUPREMA**: Este documento é a fonte oficial, soberana e canônica da arquitetura, convenções, contratos e regras invioláveis do projeto **Beat 'em Up - Sakas** (Godot Engine 4.x). Todo assistente de IA, desenvolvedor e pipeline de CI/CD DEVE validar qualquer alteração contra este documento.
 >
@@ -149,16 +154,31 @@ MapX (Node2D, script: base_level.gd)
 - **Grupos Canônicos**: Pertence estritamente aos grupos `"player"`, `"actors"` e `"damageable"`. Jamais pertence ao grupo `"enemies"`.
 - **Atributos de Heróis (Distribuição Oficial = 8 Pontos)**:
   - **Guilherme**: Força 3, Velocidade 2, Técnica 3 (Equilibrado).
-  - **Gabriel**: Força 1, Velocidade 4, Técnica 3 (Ágil e veloz).
-  - **André**: Força 4, Velocidade 2, Técnica 2 (Tanque de alto impacto).
-  - **Juliana**: Força 1, Velocidade 3, Técnica 4 (Especialista técnica e combos).
-- **Controles de Combate Arcade**:
-  - Soco (`attack_punch` / `ui_accept`): golpe rápido de abertura.
-  - Chute (`attack_kick`): golpe de alcance frontal ampliado.
-  - Golpe Especial (`attack_special`): golpe de alto impacto e dano pesado.
-  - Ataque Aéreo (`attack_aerial`): salto com golpe descendente.
-  - Guarda (`guard`): reduz dano recebido e anula knockback.
-- **Física de Salto 2.5D**: O salto translada exclusivamente o nó `Visual` no eixo Y (`Y < 0`), enquanto a raiz `CharacterBody2D` mantém a sombra e os pés na pista física do solo.
+  - **Gabriel**: Força 1, Velocidade 4, Técnica 3 (Ágil e veloz, recuperação rápida).
+  - **André**: Força 4, Velocidade 2, Técnica 2 (Tanque de alto impacto e forte knockback).
+  - **Juliana**: Força 1, Velocidade 3, Técnica 4 (Especialista técnica, janela ampla de combos e cancelamentos).
+- **Controles de Combate Arcade com Botão Único Principal**:
+  - **Botão de Ataque Principal** (`attack` / `attack_punch` / `ui_accept`):
+    - Executa a sequência contextual de 4 golpes contínuos:
+      `Passo 1 (Jab / Punch 1)` → `Passo 2 (Cruzado / Punch 2)` → `Passo 3 (Chute no Tronco / Kick)` → `Passo 4 (Finisher / Heavy)`.
+    - O Finisher desfere impacto máximo e derruba o inimigo (`can_knockdown = true`).
+    - Possui janela real de encadeamento (`combo_window`) escalonada pelo atributo Técnica e buffer de entrada (`_input_buffered`) que permite encadear golpes durante o recovery.
+  - **Botão Exclusivo de Especial** (`attack_special` / `special`):
+    - Dispara evento global de combate consumindo 15% do HP máximo (sem matar o jogador se HP <= 15).
+    - Concede invulnerabilidade temporária durante a apresentação.
+    - Exibe apresentação visual cinematográfica rápida (0.35s - 0.50s) com frames existentes do herói e tema de cor próprio.
+    - Aplica dano global e queda obrigatória em todos os inimigos vivos do encontro, preservando NPCs civis.
+  - **Botão de Salto** (`jump`):
+    - Projeta o nó `Visual` no eixo Y (`Y < 0`). Ataque no ar dispara o golpe aéreo (`jump_atk`).
+  - **Botão de Guarda** (`guard`):
+    - Reduz 70% do dano recebido, anula knockback e cancela transições de queda.
+  - **Métodos Públicos Legados Preservados**: `execute_punch()`, `execute_kick()`, `execute_heavy()`, `execute_aerial()`.
+- **Reações Físicas do Jogador**:
+  - `HURT`: Stagger com recuo físico e animação `hurt` ao receber golpes comuns.
+  - `FALL`: Projeção ao solo e animação `fall` ao sofrer golpes pesados ou finalizadores.
+  - `DOWNED`: Imobilização breve no chão com imunidade momentânea.
+  - `GETUP`: Animação de levantamento `getup` e restauração de controle.
+  - `DEAD`: Animação `death` ao atingir 0 de vida.
 
 ---
 
@@ -167,6 +187,11 @@ MapX (Node2D, script: base_level.gd)
 
 - **Identidade e Cenas**: `basic_enemy.tscn` (Capangas comuns) e `boss_alessandro.tscn` (Chefe de Fase).
 - **Grupos Canônicos**: Pertencem estritamente aos grupos `"enemies"`, `"actors"` e `"damageable"`.
+- **Arquétipos Táticos de Inimigos (`Archetype`)**:
+  - `GRUNT`: Capanga comum, aproximação padrão e resistência equilibrada.
+  - `AGGRESSOR`: Avanço veloz (speed 175px/s), telegraph reduzido (0.18s) e alta pressão.
+  - `TANK`: HP elevado (140 HP), resistência a knockback comum e imunidade a quedas normais.
+  - `FLANKER`: Movimentação em raios abertos, ataques em pistas laterais e busca de brechas.
 - **Máquina de Estados de IA (`EnemyAI`)**:
   - `IDLE` / `WAITING`: Aguarda oportunidade tática observando o jogador.
   - `FLANKING`: Move-se para o slot lateral atribuído pelo `CombatDirector`.
@@ -176,7 +201,12 @@ MapX (Node2D, script: base_level.gd)
   - `ATTACKING`: Janela ativa de dano com hitbox monitorando a hurtbox do jogador.
   - `RECOVERY`: Recuo pós-golpe (50 px em 0.40s nos capangas; 35 px em 0.35s no chefe).
   - `HURT`: Atordoamento ao receber dano (0.22s nos capangas; 0.18s no chefe) seguido de cooldown protetivo (`post_hurt_cooldown = 0.40s`).
+  - `FALL`: Projeção ao solo impulsionada por knockback ao receber finalizadores ou golpes especiais.
+  - `DOWNED`: Caído no chão temporariamente imobilizado (0.35s).
+  - `GETUP`: Retorno gradual ao solo e levantamento (0.28s) antes de voltar para `FLANKING`.
   - `DEAD`: Derrota com desligamento de colisores e aviso ao `CombatDirector`.
+- **Resistência de Chefes**:
+  - `BossAlessandro` possui poise arcade: não sofre queda em golpes normais, apenas em Golpes Especiais globais.
 - **Prevenção de Starvation e Retenção**: `chase_timeout_seconds` (3.5s em capangas; 4.0s no chefe) força o inimigo a liberar o token caso não consiga desferir o golpe a tempo.
 
 ---
@@ -190,6 +220,7 @@ MapX (Node2D, script: base_level.gd)
   - O `CombatDirector` REJEITA categoricamente qualquer registro de nós no grupo `"npcs"`.
   - A presença ou sobrevivência de civis na cena não interfere na contabilidade de vitória de encontros.
   - Não possuem `MeleeAttack` ativo nem executam ataques contra o jogador ou inimigos.
+  - São imunes aos danos globais do Golpe Especial do jogador.
 - **Máquina de Estados de NPCs (`NPCState`)**:
   - `IDLE`: Parado observando o ambiente.
   - `WANDER`: Perambulação suave ao redor do ponto de origem.
@@ -210,8 +241,15 @@ MapX (Node2D, script: base_level.gd)
   - `max_attack_tokens = 2`: No máximo 2 inimigos podem perseguir o jogador simultaneamente com intenção ofensiva.
   - `max_simultaneous_active_enemy_attacks = 1`: No máximo 1 janela ativa de impacto pode atingir o jogador no mesmo instante, eliminando dano sobreposto injusto.
   - `token_timeout_seconds = 4.0s`: Revoga tokens detidos ociosamente sem ataque desferido.
-- **Distribuição de Pistas de Flanqueamento**:
-  - Inimigos sem token recebem alvos de espera em lados opostos (esquerda/direita) e pistas Y alternadas.
+- **Perfis de Dificuldade por Mapa (`EncounterDifficultyProfile`)**:
+  - **Mapa 1 (Ensino)**: 1 token ofensivo, ritmo compassado, telegraph integral, composição 100% Grunts.
+  - **Mapa 2 (Pressão)**: 2 tokens ofensivos, introdução de Flankers e pistas laterais Y.
+  - **Mapa 3 (Desafio)**: 2 tokens ofensivos, telegraph mais rápido, introdução de Aggressors e reforços dinâmicos.
+  - **Mapa 4 (Maestria)**: 2 tokens ofensivos, composição complexa (Tanks + Aggressors + Flankers) e clímax com o Chefe Alessandro.
+- **Sistema Reutilizável de Feedback Audiovisual (`CombatFeedback`)**:
+  - **Hitstop Local**: Pausa de física e visual local do atacante e vítima (3 a 6 frames) sem congelar a árvore nem travar HUD/Mobile.
+  - **Screen Shake**: Tremor suave e amortecido de câmera nos golpes pesados, finalizadores e especial.
+  - **Faíscas e Partículas (CPUParticles2D)**: Faíscas direcionais amigáveis a mobile respeitando a orientação do golpe.
 - **Vitória do Encontro (`encounter_cleared`)**:
   - Ocorre estritamente quando `alive_enemies.is_empty()` **E** `pending_spawns_count == 0` **E** não houver chefe configurado pendente de spawn.
 
@@ -224,7 +262,7 @@ MapX (Node2D, script: base_level.gd)
   ```text
   Atacante (Player, Inimigo, Perigo Ambiental)
           ↓
-     DamageInfo (amount, attacker, direction, damage_type, knockback_force, hitstun, can_destroy_props)
+     DamageInfo (amount, attacker, direction, damage_type, knockback_force, hitstun, can_destroy_props, can_knockdown, hitstop_duration, impact_profile)
           ↓
      Damageable (Grupo "damageable")
           ↓
@@ -232,12 +270,13 @@ MapX (Node2D, script: base_level.gd)
   ```
 - **Divisão de Responsabilidade**:
   - **Atacante**: Constrói e emite o payload imutável `DamageInfo`. Desconhece a classe concreta do alvo.
-  - **Receptor**: Autoridade soberana. Decide se aceita o dano, se aplica guarda/mitigação, se consome vida via `HealthComponent`, se toca animação de ferimento, se quebra ou se ignora.
+  - **Receptor**: Autoridade soberana. Decide se aceita o dano, se aplica guarda/mitigação, se consome vida via `HealthComponent`, se toca animação de ferimento, se cai ao solo (`can_knockdown`), se quebra ou se ignora.
 - **Contrato de Interface**: Toda entidade receptora deve implementar:
   ```gdscript
   func take_damage(damage_input: Variant) -> bool
   ```
   aceitando tanto `float` numérico quanto objeto estruturado `DamageInfo`.
+
 
 ---
 
@@ -406,7 +445,7 @@ MapX (Node2D, script: base_level.gd)
 ## 25. CI/CD RULES
 `STATUS: IMPLEMENTED`
 
-1. **Bateria Completa de Testes**: A saúde do projeto é auditada pelo runner automatizado `tests/run_all_tests.ps1`, abrangendo atualmente **17 suítes completas**:
+1. **Bateria Completa de Testes**: A saúde do projeto é auditada pelo runner automatizado `tests/run_all_tests.ps1`, abrangendo atualmente **18 suítes completas**:
    - `tests/map_structure_test.gd`
    - `tests/prop_contracts_test.gd`
    - `tests/actor_contracts_test.gd`
@@ -424,8 +463,10 @@ MapX (Node2D, script: base_level.gd)
    - `tests/level_events_test.gd`
    - `tests/navigation_integrity_test.gd`
    - `tests/performance_audit_test.gd`
-2. **Critério de Bloqueio**: O pipeline de CI e qualquer gate de entrega exige **100% de aprovação (0 falhas)** nas 17 suítes.
+   - `tests/arcade_combat_system_test.gd`
+2. **Critério de Bloqueio**: O pipeline de CI e qualquer gate de entrega exige **100% de aprovação (0 falhas)** nas 18 suítes.
 3. **Política de Git**: Commits atômicos e padronizados por categoria (`arch:`, `test:`, `perf:`, `docs:`).
+
 
 ---
 
@@ -489,8 +530,9 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 [x] Camadas e máscaras de colisão verificadas (Layers 1 a 5)
 [x] Malha e agentes de navegação verificados (sem rebuild global em runtime)
 [x] Testes headless executados com 100% de sucesso
-[x] Bateria de regressão completa (17 suítes) executada sem falhas
+[x] Bateria de regressão completa (18 suítes) executada sem falhas
 [x] Auditoria de performance a 60 FPS aprovada (desktop e mobile)
 [x] Nenhuma regressão conhecida em combate, IA, mapas ou UI
 [x] GAME_RULES.md atualizado refletindo estritamente a realidade do código
+
 ```

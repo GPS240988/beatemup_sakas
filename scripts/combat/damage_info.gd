@@ -13,6 +13,9 @@ var damage_type: String = "melee" # "melee", "projectile", "hazard", "special"
 var knockback_force: float = 0.0
 var hitstun_duration: float = 0.0
 var can_destroy_props: bool = true
+var can_knockdown: bool = false
+var hitstop_duration: float = 0.05
+var impact_profile: String = "punch"
 
 
 func _init(
@@ -23,7 +26,10 @@ func _init(
 	p_type: String = "melee",
 	p_knockback: float = 0.0,
 	p_hitstun: float = 0.0,
-	p_can_destroy_props: bool = true
+	p_can_destroy_props: bool = true,
+	p_can_knockdown: bool = false,
+	p_hitstop: float = 0.05,
+	p_impact_profile: String = "punch"
 ) -> void:
 	amount = p_amount
 	attacker = p_attacker
@@ -33,3 +39,7 @@ func _init(
 	knockback_force = p_knockback
 	hitstun_duration = p_hitstun
 	can_destroy_props = p_can_destroy_props
+	can_knockdown = p_can_knockdown
+	hitstop_duration = p_hitstop
+	impact_profile = p_impact_profile
+

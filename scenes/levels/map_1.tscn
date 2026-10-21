@@ -1,202 +1,200 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene format=3 uid="uid://kw85e8ojt1cj"]
 
-[ext_resource type="Script" path="res://scripts/levels/base_level.gd" id="1_base_level"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase1/Fase1_1.webp" id="2_bg_texture"]
-[ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
+[ext_resource type="Script" uid="uid://ge8vtyt1ugdm" path="res://scripts/levels/base_level.gd" id="1_base_level"]
+[ext_resource type="Texture2D" uid="uid://bqlem8n2bn13g" path="res://assets/backgrounds/maps/fase1/Fase1_1.webp" id="2_bg_texture"]
+[ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
-[ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
+[ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_1_navpoly.tres" id="8_navpoly"]
-[ext_resource type="Script" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
-[ext_resource type="Script" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
+[ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
+[ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
-size = Vector2(2200, 30)
+size = Vector2(2200, 68.125)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_boundary"]
-size = Vector2(40, 500)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
-size = Vector2(60, 80)
+size = Vector2(37, 500)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_tv_shelves"]
-size = Vector2(360, 80)
+size = Vector2(141, 150.375)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_front_boxes"]
 size = Vector2(360, 70)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gondola"]
-size = Vector2(245, 145)
+size = Vector2(245, 115)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gondola2"]
-size = Vector2(220, 145)
+size = Vector2(245, 89)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_glass_counter"]
-size = Vector2(465, 145)
+size = Vector2(465.5, 145)
 
-[node name="Map1" type="Node2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
+size = Vector2(60, 80)
+
+[node name="Map1" type="Node2D" unique_id=1806759155]
 script = ExtResource("1_base_level")
 map_name = "Fase 1 - Seção 1: Entrada da Rua"
-map_index = 1
 next_map_scene_path = "res://scenes/levels/map_2.tscn"
-camera_min_x = 640.0
-camera_max_x = 1343.0
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=510724758]
 position = Vector2(640, 360)
 
-[node name="Background" type="Node2D" parent="."]
+[node name="Background" type="Node2D" parent="." unique_id=1262442576]
 z_index = -10
 
-[node name="Far" type="Sprite2D" parent="Background"]
+[node name="Far" type="Sprite2D" parent="Background" unique_id=2044360544]
 texture = ExtResource("2_bg_texture")
 centered = false
 
-[node name="Mid" type="Node2D" parent="Background"]
+[node name="Mid" type="Node2D" parent="Background" unique_id=192325788]
 
-[node name="BackProps" type="Node2D" parent="Background"]
+[node name="BackProps" type="Node2D" parent="Background" unique_id=1523088291]
 
-[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="." unique_id=760448053]
 navigation_polygon = ExtResource("8_navpoly")
 
-[node name="StaticWorld" type="Node2D" parent="."]
+[node name="StaticWorld" type="Node2D" parent="." unique_id=1618905372]
 
-[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
+[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld" unique_id=1230861702]
 collision_layer = 2
-collision_mask = 1
 
-[node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
-position = Vector2(991, 520)
+[node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1985753099]
+position = Vector2(992, 509)
 shape = SubResource("RectangleShape2D_horiz_boundary")
 
-[node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
-position = Vector2(991, 715)
+[node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1139330163]
+position = Vector2(991, 755.0625)
 shape = SubResource("RectangleShape2D_horiz_boundary")
 
-[node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
-position = Vector2(30, 600)
+[node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1164956670]
+position = Vector2(28.5, 600)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
-[node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+[node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=186033079]
 position = Vector2(1965, 600)
 shape = SubResource("RectangleShape2D_vert_boundary")
 
-[node name="World" type="Node2D" parent="."]
+[node name="World" type="Node2D" parent="." unique_id=1541586779]
 y_sort_enabled = true
 
-[node name="Props" type="Node2D" parent="World"]
+[node name="Props" type="Node2D" parent="World" unique_id=678377275]
 y_sort_enabled = true
 
-[node name="StaticProps" type="Node2D" parent="World/Props"]
+[node name="StaticProps" type="Node2D" parent="World/Props" unique_id=1574275905]
 y_sort_enabled = true
 
-[node name="TvShelvesProp" type="StaticBody2D" parent="World/Props/StaticProps"]
+[node name="TvShelvesProp" type="StaticBody2D" parent="World/Props/StaticProps" unique_id=856047730]
 position = Vector2(180, 540)
 collision_layer = 2
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/TvShelvesProp"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/TvShelvesProp" unique_id=1580798597]
+position = Vector2(-109.5, 57.5)
 shape = SubResource("RectangleShape2D_tv_shelves")
 
-[node name="FrontBoxesProp" type="StaticBody2D" parent="World/Props/StaticProps"]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="World/Props/StaticProps/TvShelvesProp" unique_id=33811727]
+position = Vector2(1, -24)
+shape = SubResource("RectangleShape2D_tv_shelves")
+
+[node name="FrontBoxesProp" type="StaticBody2D" parent="World/Props/StaticProps" unique_id=1763788257]
 position = Vector2(180, 695)
 collision_layer = 2
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/FrontBoxesProp"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/FrontBoxesProp" unique_id=1140301063]
 shape = SubResource("RectangleShape2D_front_boxes")
 
-[node name="Gondola1Prop" type="StaticBody2D" parent="World/Props/StaticProps"]
+[node name="Gondola1Prop" type="StaticBody2D" parent="World/Props/StaticProps" unique_id=428452958]
 position = Vector2(857, 572)
 collision_layer = 2
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/Gondola1Prop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/Gondola1Prop" unique_id=1219123939]
+position = Vector2(1, -20.5)
 shape = SubResource("RectangleShape2D_gondola")
 
-[node name="Gondola2Prop" type="StaticBody2D" parent="World/Props/StaticProps"]
+[node name="Gondola2Prop" type="StaticBody2D" parent="World/Props/StaticProps" unique_id=1780079458]
 position = Vector2(1270, 572)
 collision_layer = 2
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/Gondola2Prop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/Gondola2Prop" unique_id=973744791]
+position = Vector2(0, -5.5)
 shape = SubResource("RectangleShape2D_gondola2")
 
-[node name="GlassCounterProp" type="StaticBody2D" parent="World/Props/StaticProps"]
+[node name="GlassCounterProp" type="StaticBody2D" parent="World/Props/StaticProps" unique_id=1099212884]
 position = Vector2(1732, 572)
 collision_layer = 2
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/GlassCounterProp"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/GlassCounterProp" unique_id=303877964]
+position = Vector2(24.75, -38)
 shape = SubResource("RectangleShape2D_glass_counter")
 
-[node name="Destructibles" type="Node2D" parent="World/Props"]
+[node name="Destructibles" type="Node2D" parent="World/Props" unique_id=1962846628]
 y_sort_enabled = true
 
-[node name="Actors" type="Node2D" parent="World"]
+[node name="Actors" type="Node2D" parent="World" unique_id=1333470381]
 y_sort_enabled = true
 
-[node name="Player" parent="World/Actors" instance=ExtResource("3_player_scene")]
+[node name="Player" parent="World/Actors" unique_id=2041380119 instance=ExtResource("3_player_scene")]
 position = Vector2(450, 640)
 
-[node name="Enemies" type="Node2D" parent="World/Actors"]
+[node name="Enemies" type="Node2D" parent="World/Actors" unique_id=1667235296]
 y_sort_enabled = true
 
-[node name="BasicEnemy1" parent="World/Actors/Enemies" instance=ExtResource("4_enemy_scene")]
-position = Vector2(650, 640)
+[node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=443930519 instance=ExtResource("4_enemy_scene")]
+position = Vector2(1460, 694)
 
-[node name="BasicEnemy2" parent="World/Actors/Enemies" instance=ExtResource("4_enemy_scene")]
-position = Vector2(1070, 640)
+[node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=731056628 instance=ExtResource("4_enemy_scene")]
+position = Vector2(1074, 665)
 
-[node name="NPCs" type="Node2D" parent="World/Actors"]
+[node name="NPCs" type="Node2D" parent="World/Actors" unique_id=2102606010]
 y_sort_enabled = true
 
-[node name="Foreground" type="Node2D" parent="."]
+[node name="Foreground" type="Node2D" parent="." unique_id=339708996]
 z_index = 10
 
-[node name="SpawnPoints" type="Node2D" parent="."]
+[node name="SpawnPoints" type="Node2D" parent="." unique_id=1664799113]
 
-[node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+[node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" unique_id=1951499350 groups=["spawn_points"]]
 position = Vector2(100, 520)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_left"
 
-[node name="SpawnPoint_Mid" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+[node name="SpawnPoint_Mid" type="Marker2D" parent="SpawnPoints" unique_id=1040326923 groups=["spawn_points"]]
 position = Vector2(990, 540)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_mid"
 
-[node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+[node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" unique_id=2112291677 groups=["spawn_points"]]
 position = Vector2(1800, 520)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_right"
 
-[node name="SpawnPoint_Reinforce" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+[node name="SpawnPoint_Reinforce" type="Marker2D" parent="SpawnPoints" unique_id=1928129386 groups=["spawn_points"]]
 position = Vector2(1880, 580)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_reinforce"
 spawn_type = 2
 
-[node name="SpawnDirector" type="Node" parent="."]
+[node name="SpawnDirector" type="Node" parent="." unique_id=1622268482]
 script = ExtResource("10_spawn_director")
 
-[node name="CombatDirector" type="Node" parent="."]
+[node name="CombatDirector" type="Node" parent="." unique_id=1995808930]
 script = ExtResource("5_director_script")
 
-[node name="ExitArea" type="Area2D" parent="."]
+[node name="ExitArea" type="Area2D" parent="." unique_id=946001704]
 position = Vector2(1930, 670)
 collision_layer = 0
-collision_mask = 1
 monitoring = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea" unique_id=2028468926]
 shape = SubResource("RectangleShape2D_exit_shape")
 
-[node name="SigaIndicator" parent="." instance=ExtResource("6_siga_scene")]
+[node name="SigaIndicator" parent="." unique_id=933769206 instance=ExtResource("6_siga_scene")]
 offset_left = 1760.0
 offset_top = 635.0
 offset_right = 1920.0
 offset_bottom = 689.0
 
-[node name="PrototypeHud" parent="." instance=ExtResource("7_hud_scene")]
+[node name="PrototypeHud" parent="." unique_id=1805855363 instance=ExtResource("7_hud_scene")]

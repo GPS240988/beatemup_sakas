@@ -1,36 +1,36 @@
-[gd_scene load_steps=36 format=3]
+[gd_scene format=3 uid="uid://c8v1u0b7va5bu"]
 
-[ext_resource type="Script" path="res://scripts/actors/player_controller.gd" id="1_player_script"]
-[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health_script"]
-[ext_resource type="Script" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="4_idle"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/walk1.png" id="5_walk1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/walk2.png" id="6_walk2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/walk3.png" id="7_walk3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/walk4.png" id="8_walk4"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_01.png" id="9_punch1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_02.png" id="10_punch2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/punch_03.png" id="11_punch3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/kick_01.png" id="12_kick1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/kick_02.png" id="13_kick2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/kick_03.png" id="14_kick3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/heavy_01.png" id="15_heavy1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/heavy_02.png" id="16_heavy2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/heavy_03.png" id="17_heavy3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/guard.png" id="18_guard"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/hurt_01.png" id="19_hurt1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/hurt_02.png" id="20_hurt2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/fall_01.png" id="21_fall1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/fall_02.png" id="22_fall2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/fall_03.png" id="23_fall3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/getup_01.png" id="24_getup1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/getup_02.png" id="25_getup2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/death.png" id="26_death"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_01.png" id="27_jump1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_02.png" id="28_jump2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_03.png" id="29_jump3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_atk_01.png" id="30_jumpatk1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/jump_atk_02.png" id="31_jumpatk2"]
+[ext_resource type="Script" uid="uid://ddpvwavqv5tjn" path="res://scripts/actors/player_controller.gd" id="1_player_script"]
+[ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="2_health_script"]
+[ext_resource type="Script" uid="uid://dgggt62axoi4n" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
+[ext_resource type="Texture2D" uid="uid://dbyyxu35w6wmx" path="res://assets/sprites/characters/guilherme/idle.png" id="4_idle"]
+[ext_resource type="Texture2D" uid="uid://cojrn34fws0gj" path="res://assets/sprites/characters/guilherme/walk1.png" id="5_walk1"]
+[ext_resource type="Texture2D" uid="uid://bqyvfko7qcsxq" path="res://assets/sprites/characters/guilherme/walk2.png" id="6_walk2"]
+[ext_resource type="Texture2D" uid="uid://boty1vj0wq5e3" path="res://assets/sprites/characters/guilherme/walk3.png" id="7_walk3"]
+[ext_resource type="Texture2D" uid="uid://b1y04ow68qd4s" path="res://assets/sprites/characters/guilherme/walk4.png" id="8_walk4"]
+[ext_resource type="Texture2D" uid="uid://mpc5rlsx1c6l" path="res://assets/sprites/characters/guilherme/punch_01.png" id="9_punch1"]
+[ext_resource type="Texture2D" uid="uid://4ksl5uruc831" path="res://assets/sprites/characters/guilherme/punch_02.png" id="10_punch2"]
+[ext_resource type="Texture2D" uid="uid://drwsxd45uyesv" path="res://assets/sprites/characters/guilherme/punch_03.png" id="11_punch3"]
+[ext_resource type="Texture2D" uid="uid://b6e3pa2balhr0" path="res://assets/sprites/characters/guilherme/kick_01.png" id="12_kick1"]
+[ext_resource type="Texture2D" uid="uid://c0n4d7ww210d5" path="res://assets/sprites/characters/guilherme/kick_02.png" id="13_kick2"]
+[ext_resource type="Texture2D" uid="uid://bwey7c6b04qse" path="res://assets/sprites/characters/guilherme/kick_03.png" id="14_kick3"]
+[ext_resource type="Texture2D" uid="uid://dwyap0x8ohjdi" path="res://assets/sprites/characters/guilherme/heavy_01.png" id="15_heavy1"]
+[ext_resource type="Texture2D" uid="uid://g0umk2srgah4" path="res://assets/sprites/characters/guilherme/heavy_02.png" id="16_heavy2"]
+[ext_resource type="Texture2D" uid="uid://duxcfkvcusqbv" path="res://assets/sprites/characters/guilherme/heavy_03.png" id="17_heavy3"]
+[ext_resource type="Texture2D" uid="uid://bap6u7mild0to" path="res://assets/sprites/characters/guilherme/guard.png" id="18_guard"]
+[ext_resource type="Texture2D" uid="uid://cxwtvkqknomlg" path="res://assets/sprites/characters/guilherme/hurt_01.png" id="19_hurt1"]
+[ext_resource type="Texture2D" uid="uid://bpp0g4bd5vrbg" path="res://assets/sprites/characters/guilherme/hurt_02.png" id="20_hurt2"]
+[ext_resource type="Texture2D" uid="uid://bp68b7pd2dpyn" path="res://assets/sprites/characters/guilherme/fall_01.png" id="21_fall1"]
+[ext_resource type="Texture2D" uid="uid://cspcbn3i3e16q" path="res://assets/sprites/characters/guilherme/fall_02.png" id="22_fall2"]
+[ext_resource type="Texture2D" uid="uid://c4pe84k631wvn" path="res://assets/sprites/characters/guilherme/fall_03.png" id="23_fall3"]
+[ext_resource type="Texture2D" uid="uid://dwubaygmjogp3" path="res://assets/sprites/characters/guilherme/getup_01.png" id="24_getup1"]
+[ext_resource type="Texture2D" uid="uid://drpnn5upy0ugw" path="res://assets/sprites/characters/guilherme/getup_02.png" id="25_getup2"]
+[ext_resource type="Texture2D" uid="uid://n7jar5vcbm32" path="res://assets/sprites/characters/guilherme/death.png" id="26_death"]
+[ext_resource type="Texture2D" uid="uid://btotdufvw8v6y" path="res://assets/sprites/characters/guilherme/jump_01.png" id="27_jump1"]
+[ext_resource type="Texture2D" uid="uid://mhayg50qndmc" path="res://assets/sprites/characters/guilherme/jump_02.png" id="28_jump2"]
+[ext_resource type="Texture2D" uid="uid://b6x31s14wmp61" path="res://assets/sprites/characters/guilherme/jump_03.png" id="29_jump3"]
+[ext_resource type="Texture2D" uid="uid://c5h560qwmf2gn" path="res://assets/sprites/characters/guilherme/jump_atk_01.png" id="30_jumpatk1"]
+[ext_resource type="Texture2D" uid="uid://dh4glcyvbhaxa" path="res://assets/sprites/characters/guilherme/jump_atk_02.png" id="31_jumpatk2"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
 radius = 12.0
@@ -46,11 +46,130 @@ size = Vector2(52, 185)
 animations = [{
 "frames": [{
 "duration": 1.0,
+"texture": ExtResource("26_death")
+}],
+"loop": 0,
+"name": &"death",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("21_fall1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_fall2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_fall3")
+}],
+"loop": 0,
+"name": &"fall",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("24_getup1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_getup2")
+}],
+"loop": 0,
+"name": &"getup",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("18_guard")
+}],
+"loop": 1,
+"name": &"guard",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("15_heavy1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_heavy2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_heavy3")
+}],
+"loop": 0,
+"name": &"heavy",
+"speed": 9.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("19_hurt1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_hurt2")
+}],
+"loop": 0,
+"name": &"hurt",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": ExtResource("4_idle")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 5.0
+}, {
+"frames": [{
+"duration": 1.2,
+"texture": ExtResource("27_jump1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_jump2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29_jump3")
+}],
+"loop": 0,
+"name": &"jump",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.2,
+"texture": ExtResource("30_jumpatk1")
+}, {
+"duration": 1.2,
+"texture": ExtResource("31_jumpatk2")
+}],
+"loop": 0,
+"name": &"jump_atk",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("12_kick1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_kick2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_kick3")
+}],
+"loop": 0,
+"name": &"kick",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("9_punch1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_punch2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_punch3")
+}],
+"loop": 0,
+"name": &"punch",
+"speed": 10.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -65,192 +184,69 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("8_walk4")
 }],
-"loop": true,
+"loop": 1,
 "name": &"walk",
 "speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("9_punch1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("10_punch2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("11_punch3")
-}],
-"loop": false,
-"name": &"punch",
-"speed": 10.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("12_kick1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("13_kick2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("14_kick3")
-}],
-"loop": false,
-"name": &"kick",
-"speed": 10.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("15_heavy1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("16_heavy2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("17_heavy3")
-}],
-"loop": false,
-"name": &"heavy",
-"speed": 9.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("18_guard")
-}],
-"loop": true,
-"name": &"guard",
-"speed": 5.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("19_hurt1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("20_hurt2")
-}],
-"loop": false,
-"name": &"hurt",
-"speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("21_fall1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("22_fall2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("23_fall3")
-}],
-"loop": false,
-"name": &"fall",
-"speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("24_getup1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("25_getup2")
-}],
-"loop": false,
-"name": &"getup",
-"speed": 6.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("26_death")
-}],
-"loop": false,
-"name": &"death",
-"speed": 5.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("27_jump1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("28_jump2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("29_jump3")
-}],
-"loop": false,
-"name": &"jump",
-"speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("30_jumpatk1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("31_jumpatk2")
-}],
-"loop": false,
-"name": &"jump_atk",
-"speed": 10.0
 }]
 
-[node name="Player" type="CharacterBody2D" groups=["actors", "damageable", "player"]]
+[node name="Player" type="CharacterBody2D" unique_id=955176977 groups=["actors", "damageable", "player"]]
 y_sort_enabled = true
-collision_layer = 1
 collision_mask = 2
 motion_mode = 1
 script = ExtResource("1_player_script")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1970703634]
 position = Vector2(0, -9)
 rotation = 1.5707963
 shape = SubResource("CapsuleShape2D_feet")
 
-[node name="HealthComponent" type="Node" parent="."]
+[node name="HealthComponent" type="Node" parent="." unique_id=1477513305]
 script = ExtResource("2_health_script")
-max_health = 100.0
 
-[node name="MeleeAttack" type="Node2D" parent="."]
+[node name="MeleeAttack" type="Node2D" parent="." unique_id=1075835170]
 script = ExtResource("3_melee_script")
 damage = 25.0
 horizontal_range = 100.0
 depth_tolerance = 32.0
-active_duration = 0.15
 attack_cooldown = 0.38
-target_group = "enemies"
 
-[node name="HitboxArea" type="Area2D" parent="MeleeAttack"]
+[node name="HitboxArea" type="Area2D" parent="MeleeAttack" unique_id=1044221929]
 position = Vector2(58, -100)
 collision_layer = 8
 collision_mask = 4
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeAttack/HitboxArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeAttack/HitboxArea" unique_id=733364950]
 shape = SubResource("RectangleShape2D_hitbox")
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="Hurtbox" type="Area2D" parent="." unique_id=838119896]
 position = Vector2(0, -102)
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=2015219780]
 shape = SubResource("RectangleShape2D_hurtbox")
 
-[node name="Visual" type="Node2D" parent="."]
+[node name="Visual" type="Node2D" parent="." unique_id=2044739810]
 
-[node name="Shadow" type="Polygon2D" parent="Visual"]
+[node name="Shadow" type="Polygon2D" parent="Visual" unique_id=1893257365]
 color = Color(0.08, 0.08, 0.12, 0.5)
 polygon = PackedVector2Array(-42, 0, -30, -10, 0, -14, 30, -10, 42, 0, 30, 10, 0, 14, -30, 10)
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual"]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual" unique_id=202090358]
 position = Vector2(0, -118)
 scale = Vector2(0.8, 0.8)
 sprite_frames = SubResource("SpriteFrames_guilherme")
 animation = &"idle"
 autoplay = "idle"
 
-[node name="PunchVisual" type="Node2D" parent="Visual"]
+[node name="PunchVisual" type="Node2D" parent="Visual" unique_id=1760114533]
 visible = false
 position = Vector2(38, -108)
 scale = Vector2(1.4, 1.4)
 
-[node name="PunchFlash" type="Polygon2D" parent="Visual/PunchVisual"]
+[node name="PunchFlash" type="Polygon2D" parent="Visual/PunchVisual" unique_id=1047532406]
 color = Color(1, 0.9, 0.3, 0.8)
 polygon = PackedVector2Array(0, -14, 30, -8, 42, 0, 30, 8, 0, 14, 12, 0)

@@ -12,10 +12,24 @@ enum State {
 	ATTACKING,
 	RECOVERY,
 	HURT,
+	FALL,
+	DOWNED,
+	GETUP,
 	DEAD,
 	CHASE,  # Compatibilidade com referências legadas
 	ATTACK  # Compatibilidade com referências legadas
 }
+
+## Arquétipos de Comportamento Tático Arcade
+enum Archetype {
+	GRUNT,
+	AGGRESSOR,
+	TANK,
+	FLANKER
+}
+
+## Arquétipo tático deste inimigo
+@export var archetype: Archetype = Archetype.GRUNT
 
 ## Sinal emitido quando o inimigo é derrotado
 signal enemy_defeated()
@@ -23,6 +37,7 @@ signal enemy_defeated()
 ## Velocidades de movimentação
 @export var speed_x: float = 140.0
 @export var speed_y: float = 100.0
+
 
 ## Distância de ataque horizontal e tolerância de alinhamento em profundidade (eixo Y)
 @export var attack_horizontal_distance: float = 70.0
@@ -70,6 +85,12 @@ var _attack_timer: float = 0.0
 var _chase_timer: float = 0.0
 var _has_token: bool = false
 var _is_dead_recorded: bool = false
+var _hitstop_timer: float = 0.0
+
+
+## Aplica hitstop local controlado sem travar a interface nem timers globais
+func apply_hitstop(duration: float) -> void:
+	_hitstop_timer = maxf(_hitstop_timer, duration)
 
 
 func _ready() -> void:
@@ -77,10 +98,14 @@ func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("damageable")
 
+	_apply_archetype_configuration()
+
 	if health_component != null:
 		health_component.damaged.connect(_on_damaged)
+		health_component.damaged_info.connect(_on_damaged_info)
 		health_component.died.connect(_on_died)
 		health_component.health_changed.connect(_on_health_changed)
+
 		if health_bar != null:
 			health_bar.max_value = health_component.max_health
 			health_bar.value = health_component.current_health
@@ -117,6 +142,10 @@ func _find_player_target() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _hitstop_timer > 0.0:
+		_hitstop_timer -= delta
+		return
+
 	if current_state == State.DEAD:
 		velocity = Vector2.ZERO
 		move_and_slide()
@@ -163,8 +192,15 @@ func _physics_process(delta: float) -> void:
 			_process_recovery(delta)
 		State.HURT:
 			_process_hurt(delta)
+		State.FALL:
+			_process_fall(delta)
+		State.DOWNED:
+			_process_downed(delta)
+		State.GETUP:
+			_process_getup(delta)
 
 	move_and_slide()
+
 
 
 ## Atualiza a direção visual para encarar o alvo
@@ -402,6 +438,46 @@ func _process_hurt(delta: float) -> void:
 		current_state = State.FLANKING
 
 
+## Estado de queda e projeção no solo (Knockdown)
+func _process_fall(delta: float) -> void:
+	velocity = velocity.move_toward(Vector2.ZERO, 380.0 * delta)
+	_state_timer -= delta
+	if _state_timer <= 0.0:
+		current_state = State.DOWNED
+		_state_timer = 0.35
+		velocity = Vector2.ZERO
+		if visual_root != null:
+			visual_root.rotation_degrees = 90.0
+			visual_root.position.y = -10.0
+
+
+## Inimigo caído no chão
+func _process_downed(delta: float) -> void:
+	velocity = Vector2.ZERO
+	_state_timer -= delta
+	if _state_timer <= 0.0:
+		current_state = State.GETUP
+		_state_timer = 0.28
+
+
+## Inimigo se levantando do chão
+func _process_getup(delta: float) -> void:
+	velocity = Vector2.ZERO
+	_state_timer -= delta
+	if visual_root != null:
+		var progress: float = clampf(1.0 - (_state_timer / 0.28), 0.0, 1.0)
+		visual_root.rotation_degrees = lerpf(90.0, 0.0, progress)
+		visual_root.position.y = lerpf(-10.0, 0.0, progress)
+	if _state_timer <= 0.0:
+		if visual_root != null:
+			visual_root.rotation_degrees = 0.0
+			visual_root.position.y = 0.0
+		_reset_visual_modulate()
+		_attack_timer = maxf(_attack_timer, post_hurt_cooldown)
+		current_state = State.FLANKING
+
+
+
 func _trigger_attack() -> void:
 	if melee_attack == null:
 		return
@@ -457,6 +533,82 @@ func _on_damaged(_amount: float) -> void:
 	if player_target != null:
 		knockback_dir = signf(global_position.x - player_target.global_position.x)
 	velocity = Vector2(knockback_dir * 120.0, 0.0)
+
+
+## Tratamento de dano enriquecido via DamageInfo (FASE COMBATE ARCADE)
+func _on_damaged_info(info: RefCounted) -> void:
+	if current_state == State.DEAD:
+		return
+
+	var can_kd: bool = false
+	var knockback: float = 120.0
+	if info != null:
+		can_kd = bool(info.get("can_knockdown"))
+		knockback = float(info.get("knockback_force"))
+
+	# Se for o chefe, resiste à queda comum a menos que seja golpe especial
+	var is_boss: bool = (get("is_boss") == true or (get_script() != null and get_script().resource_path.ends_with("boss_alessandro.gd")))
+	if is_boss and not (info != null and str(info.get("damage_type")) == "special"):
+		can_kd = false
+
+	# Tanque resiste a knockback comum e não cai em golpes normais
+	if archetype == Archetype.TANK and not (info != null and str(info.get("damage_type")) == "special"):
+		knockback *= 0.5
+		can_kd = false
+
+	var knockback_dir: float = -facing_direction
+	if player_target != null:
+		knockback_dir = signf(global_position.x - player_target.global_position.x)
+		if knockback_dir == 0.0:
+			knockback_dir = -facing_direction
+
+	if can_kd:
+		_release_combat_resources()
+		if melee_attack != null:
+			melee_attack.cancel_attack()
+		if punch_visual != null:
+			punch_visual.visible = false
+
+		current_state = State.FALL
+		_state_timer = 0.32
+		velocity = Vector2(knockback_dir * maxf(180.0, knockback * 2.2), 0.0)
+		if visual_root != null:
+			visual_root.modulate = Color(2.5, 0.3, 0.3, 1.0)
+			visual_root.rotation_degrees = -30.0 * knockback_dir
+	else:
+		_on_damaged(float(info.get("amount")) if info != null else 10.0)
+		velocity = Vector2(knockback_dir * maxf(80.0, knockback), 0.0)
+
+
+## Aplica configurações de arquétipo tático sem alterar os valores padrão do GRUNT
+func _apply_archetype_configuration() -> void:
+	match archetype:
+		Archetype.AGGRESSOR:
+			speed_x = 175.0
+			speed_y = 120.0
+			attack_windup_seconds = 0.18
+			attack_cooldown = 0.60
+			chase_timeout_seconds = 2.8
+		Archetype.TANK:
+			if health_component != null:
+				health_component.max_health = 140.0
+				health_component.current_health = 140.0
+				if health_bar != null:
+					health_bar.max_value = 140.0
+					health_bar.value = 140.0
+			speed_x = 100.0
+			speed_y = 75.0
+			attack_windup_seconds = 0.35
+			recoil_distance = 25.0
+			if melee_attack != null:
+				melee_attack.damage = 22.0
+		Archetype.FLANKER:
+			speed_x = 155.0
+			speed_y = 110.0
+			attack_horizontal_distance = 80.0
+		Archetype.GRUNT:
+			pass
+
 
 
 func _on_health_changed(current: float, max_val: float) -> void:
@@ -544,4 +696,3 @@ func take_damage(damage_input: Variant) -> bool:
 	if health_component != null:
 		return health_component.take_damage(damage_input)
 	return false
-

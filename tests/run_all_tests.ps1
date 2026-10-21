@@ -22,8 +22,10 @@ $test_files = @(
     "tests/npc_test.gd",
     "tests/level_events_test.gd",
     "tests/navigation_integrity_test.gd",
-    "tests/performance_audit_test.gd"
+    "tests/performance_audit_test.gd",
+    "tests/arcade_combat_system_test.gd"
 )
+
 
 $failed_suites = @()
 $passed_suites = 0

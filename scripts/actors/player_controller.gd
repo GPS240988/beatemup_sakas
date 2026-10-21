@@ -1,11 +1,28 @@
 class_name PlayerController
 extends CharacterBody2D
 
+## Controlador Oficial do Jogador Arcade Beat 'em Up 2.5D (Projeto Sakas)
+## Gerencia locomoção 2.5D, sistema de combo com um único botão, buffer de entrada,
+## reações físicas de impacto (Hurt, Knockback, Fall, Downed, Getup), guarda e
+## Golpe Especial global cinematográfico.
+
 ## Sinal emitido quando a posição ou movimento do jogador é atualizado (útil para HUD/depuração)
 signal player_moved(current_position: Vector2, current_velocity: Vector2)
 
 ## Sinal emitido quando o estado visual/ação do jogador muda
 signal state_changed(new_state: String)
+
+## Estados de combate do herói
+enum CombatState {
+	NORMAL,
+	ATTACKING,
+	HURT,
+	FALL,
+	DOWNED,
+	GETUP,
+	SPECIAL,
+	DEAD
+}
 
 ## Velocidade base de deslocamento horizontal (pixels por segundo)
 @export var speed_x: float = 260.0
@@ -21,6 +38,11 @@ signal state_changed(new_state: String)
 @export var jump_force: float = 460.0
 @export var jump_gravity: float = 1350.0
 
+const AttackDataClass = preload("res://scripts/combat/attack_data.gd")
+const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
+const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
+const SpecialPresentationClass = preload("res://scripts/combat/special_presentation.gd")
+
 ## Referências internas
 @onready var visual_root: Node2D = $Visual
 @onready var anim_sprite: AnimatedSprite2D = $Visual/AnimatedSprite2D
@@ -29,12 +51,19 @@ signal state_changed(new_state: String)
 @onready var punch_visual: Node2D = $Visual/PunchVisual
 
 var facing_direction: float = 1.0
-var _hurt_timer: float = 0.0
+var combat_state: CombatState = CombatState.NORMAL
 
-# Controle do sistema de combos (punch -> kick -> heavy)
+var _hurt_timer: float = 0.0
+var _state_timer: float = 0.0
+var _hitstop_timer: float = 0.0
+var _is_invulnerable: bool = false
+var _input_buffered: bool = false
+
+# Controle do sistema de combos com botão único (Combo 1 -> Combo 2 -> Combo 3 -> Finisher)
 var _combo_step: int = 0
 var _combo_window_timer: float = 0.0
 var _current_attack_anim: StringName = &"punch"
+var _combo_attacks: Array[Resource] = []
 
 # Controle do salto vertical 2.5D (Visual se projeta para cima, mantendo os pés na colisão de solo)
 var _is_jumping: bool = false
@@ -70,6 +99,7 @@ func _ready() -> void:
 		anim_sprite.play("idle")
 
 	_apply_character_stat_modifiers()
+	_build_combo_chain()
 
 
 ## Aplica os modificadores de Força, Velocidade e Técnica da sessão
@@ -100,10 +130,101 @@ func _apply_character_stat_modifiers() -> void:
 			melee_attack.attack_cooldown /= _tec_mult
 
 
+## Monta a sequência contextual de 4 ataques do combo principal
+func _build_combo_chain() -> void:
+	_combo_attacks.clear()
+
+	# 1. Combo 1: Jab Rápido (Soco)
+	var atk1: Resource = AttackDataClass.new()
+	atk1.set("attack_id", "punch_1")
+	atk1.set("animation", &"punch")
+	atk1.set("startup", 0.04)
+	atk1.set("active", 0.12)
+	atk1.set("recovery", 0.22 / maxf(0.1, _tec_mult))
+	atk1.set("damage", 20.0 * _str_mult)
+	atk1.set("horizontal_range", 85.0)
+	atk1.set("depth_tolerance", 26.0 * _tec_mult)
+	atk1.set("hitstun", 0.22)
+	atk1.set("knockback", 40.0)
+	atk1.set("hitstop_frames", 3)
+	atk1.set("combo_index", 0)
+	atk1.set("combo_window", 0.42 * _tec_mult)
+	atk1.set("can_knockdown", false)
+	atk1.set("impact_profile", "punch")
+	_combo_attacks.append(atk1)
+
+	# 2. Combo 2: Cruzado / Segundo Soco (Punch 2)
+	var atk2: Resource = AttackDataClass.new()
+	atk2.set("attack_id", "punch_2")
+	atk2.set("animation", &"punch")
+	atk2.set("startup", 0.04)
+	atk2.set("active", 0.12)
+	atk2.set("recovery", 0.22 / maxf(0.1, _tec_mult))
+	atk2.set("damage", 25.0 * _str_mult)
+	atk2.set("horizontal_range", 90.0)
+	atk2.set("depth_tolerance", 26.0 * _tec_mult)
+	atk2.set("hitstun", 0.25)
+	atk2.set("knockback", 55.0)
+	atk2.set("hitstop_frames", 3)
+	atk2.set("combo_index", 1)
+	atk2.set("combo_window", 0.45 * _tec_mult)
+	atk2.set("can_knockdown", false)
+	atk2.set("impact_profile", "punch")
+	_combo_attacks.append(atk2)
+
+	# 3. Combo 3: Chute no Tronco (Kick)
+	var atk3: Resource = AttackDataClass.new()
+	atk3.set("attack_id", "kick_3")
+	atk3.set("animation", &"kick")
+	atk3.set("startup", 0.05)
+	atk3.set("active", 0.15)
+	atk3.set("recovery", 0.25 / maxf(0.1, _tec_mult))
+	atk3.set("damage", 32.0 * _str_mult)
+	atk3.set("horizontal_range", 105.0)
+	atk3.set("depth_tolerance", 28.0 * _tec_mult)
+	atk3.set("hitstun", 0.30)
+	atk3.set("knockback", 85.0)
+	atk3.set("hitstop_frames", 4)
+	atk3.set("combo_index", 2)
+	atk3.set("combo_window", 0.48 * _tec_mult)
+	atk3.set("can_knockdown", false)
+	atk3.set("impact_profile", "kick")
+	_combo_attacks.append(atk3)
+
+	# 4. Combo 4: Finisher / Gancho Pesado (Heavy - Causa Knockdown!)
+	var atk4: Resource = AttackDataClass.new()
+	atk4.set("attack_id", "finisher_4")
+	atk4.set("animation", &"heavy")
+	atk4.set("startup", 0.08)
+	atk4.set("active", 0.20)
+	atk4.set("recovery", 0.38 / maxf(0.1, _tec_mult))
+	atk4.set("damage", 48.0 * _str_mult)
+	atk4.set("horizontal_range", 115.0)
+	atk4.set("depth_tolerance", 30.0 * _tec_mult)
+	atk4.set("hitstun", 0.40)
+	atk4.set("knockback", 160.0)
+	atk4.set("hitstop_frames", 6)
+	atk4.set("combo_index", 3)
+	atk4.set("combo_window", 0.0)
+	atk4.set("can_knockdown", true)
+	atk4.set("impact_profile", "finisher")
+	_combo_attacks.append(atk4)
+
+
+## Aplica hitstop local controlado no herói
+func apply_hitstop(duration: float) -> void:
+	_hitstop_timer = maxf(_hitstop_timer, duration)
+
+
 func _physics_process(delta: float) -> void:
+	# Hitstop do herói: pausa temporária de física sem pausar a árvore
+	if _hitstop_timer > 0.0:
+		_hitstop_timer -= delta
+		return
+
 	if _hurt_timer > 0.0:
 		_hurt_timer -= delta
-		if _hurt_timer <= 0.0:
+		if _hurt_timer <= 0.0 and combat_state == CombatState.NORMAL:
 			_restore_visual_modulation()
 
 	# Se estiver derrotado, não processa comandos nem se move
@@ -118,6 +239,64 @@ func _physics_process(delta: float) -> void:
 		_combo_window_timer -= delta
 		if _combo_window_timer <= 0.0 and (melee_attack == null or not melee_attack.is_attacking):
 			_combo_step = 0
+
+	# Processa reações físicas de impacto no jogador
+	match combat_state:
+		CombatState.FALL:
+			velocity = velocity.move_toward(Vector2.ZERO, 380.0 * delta)
+			_state_timer -= delta
+			move_and_slide()
+			if _state_timer <= 0.0:
+				combat_state = CombatState.DOWNED
+				_state_timer = 0.32
+				velocity = Vector2.ZERO
+			player_moved.emit(global_position, velocity)
+			return
+
+		CombatState.DOWNED:
+			velocity = Vector2.ZERO
+			_state_timer -= delta
+			move_and_slide()
+			if _state_timer <= 0.0:
+				combat_state = CombatState.GETUP
+				_state_timer = 0.28
+				if anim_sprite != null and anim_sprite.sprite_frames.has_animation("getup"):
+					anim_sprite.play("getup")
+			player_moved.emit(global_position, velocity)
+			return
+
+		CombatState.GETUP:
+			velocity = Vector2.ZERO
+			_state_timer -= delta
+			move_and_slide()
+			if _state_timer <= 0.0:
+				combat_state = CombatState.NORMAL
+				_restore_visual_modulation()
+				if anim_sprite != null:
+					anim_sprite.play("idle")
+			player_moved.emit(global_position, velocity)
+			return
+
+		CombatState.HURT:
+			velocity = velocity.move_toward(Vector2.ZERO, 350.0 * delta)
+			_state_timer -= delta
+			move_and_slide()
+			if _state_timer <= 0.0:
+				combat_state = CombatState.NORMAL
+				_restore_visual_modulation()
+				if anim_sprite != null:
+					anim_sprite.play("idle")
+			player_moved.emit(global_position, velocity)
+			return
+
+		CombatState.SPECIAL:
+			velocity = Vector2.ZERO
+			move_and_slide()
+			player_moved.emit(global_position, velocity)
+			return
+
+		_:
+			pass
 
 	# Processa física de salto 2.5D no nó Visual
 	if _is_jumping:
@@ -145,18 +324,24 @@ func _physics_process(delta: float) -> void:
 		else:
 			_is_guarding = false
 
-	# Comandos de ataques dedicados (Soco, Chute, Golpe Especial e Ataque Aéreo)
-	if (melee_attack == null or not melee_attack.is_attacking) and not _is_guarding and not _is_jumping:
-		if Input.is_action_just_pressed("attack_punch") or Input.is_action_just_pressed("attack"):
-			_try_punch()
-		elif Input.is_action_just_pressed("attack_kick"):
-			_try_kick()
-		elif Input.is_action_just_pressed("attack_special"):
-			_try_special()
-		elif Input.is_action_just_pressed("attack_aerial"):
-			_try_aerial_attack()
+	# Leitura de comandos de ataque
+	if not _is_guarding:
+		# Botão Especial Exclusivo
+		if Input.is_action_just_pressed("attack_special") or Input.is_action_just_pressed("special"):
+			execute_special()
+			return
 
-	# Se estiver executando ataque no solo, mantém os pés firmes no solo e não sobrescreve a animação
+		# Botão Principal de Ataque (Combo Contextual / Encadeável)
+		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("attack_punch") or Input.is_action_just_pressed("ui_accept"):
+			_on_attack_button_pressed()
+		elif Input.is_action_just_pressed("attack_kick"):
+			execute_kick()
+		elif Input.is_action_just_pressed("attack_aerial"):
+			execute_aerial()
+		elif Input.is_action_just_pressed("jump"):
+			_try_jump()
+
+	# Se estiver executando ataque no solo, mantém os pés firmes no solo
 	if melee_attack != null and melee_attack.is_attacking and not _is_jumping:
 		velocity = Vector2.ZERO
 		move_and_slide()
@@ -167,7 +352,7 @@ func _physics_process(delta: float) -> void:
 
 	# Leitura do movimento dos eixos
 	var input_vector: Vector2 = _get_movement_input()
-	
+
 	if input_vector != Vector2.ZERO:
 		velocity.x = input_vector.x * speed_x
 		velocity.y = input_vector.y * speed_y
@@ -187,46 +372,174 @@ func _physics_process(delta: float) -> void:
 	player_moved.emit(global_position, velocity)
 
 
-## Desfere o golpe rápido de Soco
-func _try_punch() -> void:
-	if melee_attack == null:
+## Processa o pressionamento do botão principal de ataque com suporte a combo e buffer
+func _on_attack_button_pressed() -> void:
+	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
 		return
-	_current_attack_anim = &"punch"
-	melee_attack.damage = 20.0 * _str_mult
-	melee_attack.horizontal_range = 85.0
-	melee_attack.active_duration = 0.12
-	melee_attack.attack_cooldown = 0.28 / maxf(0.1, _tec_mult)
+
+	if melee_attack != null and melee_attack.is_attacking:
+		# Se a janela de acerto ativa ainda estiver em curso, armazena no buffer
+		if melee_attack.is_active_window:
+			_input_buffered = true
+			return
+		else:
+			# Na janela de recuperação: cancela e encadeia o próximo golpe imediatamente
+			melee_attack.cancel_attack()
+
+	# Avança no combo se estiver dentro da janela
+	if _combo_window_timer > 0.0 and _combo_attacks.size() > 0:
+		_combo_step = (_combo_step + 1) % _combo_attacks.size()
+	else:
+		_combo_step = 0
+
+	_execute_combo_attack(_combo_step)
+
+
+
+## Executa o ataque indexado do combo
+func _execute_combo_attack(step: int) -> bool:
+	if melee_attack == null or _combo_attacks.is_empty():
+		return false
+
+	if step < 0 or step >= _combo_attacks.size():
+		step = 0
+	_combo_step = step
+
+	var atk: Resource = _combo_attacks[_combo_step]
+	_current_attack_anim = atk.get("animation")
+	melee_attack.apply_attack_data(atk)
+
 	if melee_attack.execute_attack(facing_direction):
-		state_changed.emit("Soco")
+		combat_state = CombatState.ATTACKING
+		var titles: Array[String] = ["Soco", "Cruzado", "Chute", "Finisher"]
+		state_changed.emit(titles[_combo_step] if _combo_step < titles.size() else "Ataque")
+		return true
+	return false
 
 
-## Desfere o golpe de Chute (maior alcance e dano intermediário)
-func _try_kick() -> void:
-	if melee_attack == null:
+## Disparo do Golpe Especial de Área (Cinematográfico, Global, Consome HP sem matar)
+func execute_special() -> bool:
+	if health_component == null or health_component.is_dead:
+		return false
+	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
+		return false
+
+	# Custo de 15% do HP máximo
+	var cost: float = health_component.max_health * 0.15
+	if health_component.current_health <= cost:
+		health_component.current_health = 1.0 # Nunca mata o herói
+	else:
+		health_component.current_health -= cost
+	health_component.health_changed.emit(health_component.current_health, health_component.max_health)
+
+	combat_state = CombatState.SPECIAL
+	_is_invulnerable = true
+	velocity = Vector2.ZERO
+
+	if melee_attack != null:
+		melee_attack.cancel_attack()
+	_input_buffered = false
+
+	# Identificação do herói atual para apresentação
+	var session = get_node_or_null("/root/GameSession")
+	var char_id: String = "guilherme"
+	if session != null and "selected_character_id" in session:
+		char_id = str(session.selected_character_id).to_lower()
+
+	# Extrai textura existente do herói
+	var hero_tex: Texture2D = null
+	if anim_sprite != null and anim_sprite.sprite_frames != null:
+		if anim_sprite.sprite_frames.has_animation("heavy"):
+			hero_tex = anim_sprite.sprite_frames.get_frame_texture("heavy", 0)
+		elif anim_sprite.sprite_frames.has_animation("punch"):
+			hero_tex = anim_sprite.sprite_frames.get_frame_texture("punch", 0)
+
+	var presentation := SpecialPresentationClass.new(char_id, hero_tex)
+	var scene_root := get_tree().root
+	if scene_root != null:
+		scene_root.add_child(presentation)
+
+	presentation.impact_reached.connect(func():
+		_apply_global_special_impact()
+	)
+
+	presentation.finished.connect(func():
+		_is_invulnerable = false
+		if combat_state == CombatState.SPECIAL:
+			combat_state = CombatState.NORMAL
+		if anim_sprite != null and not health_component.is_dead:
+			anim_sprite.play("idle")
+		state_changed.emit("Normal")
+	)
+
+	state_changed.emit("Golpe Especial")
+	return true
+
+
+## Aplica o dano global e queda em todos os inimigos válidos do encontro
+func _apply_global_special_impact() -> void:
+	CombatFeedbackClass.trigger_screen_shake(self, 14.0, 0.4)
+
+	var tree := get_tree()
+	if tree == null:
 		return
-	_current_attack_anim = &"kick"
-	melee_attack.damage = 28.0 * _str_mult
-	melee_attack.horizontal_range = 105.0
-	melee_attack.active_duration = 0.15
-	melee_attack.attack_cooldown = 0.38 / maxf(0.1, _tec_mult)
-	if melee_attack.execute_attack(facing_direction):
-		state_changed.emit("Chute")
+
+	var all_enemies: Array[Node] = tree.get_nodes_in_group("enemies")
+	for enemy_node in all_enemies:
+		if enemy_node == null or not is_instance_valid(enemy_node):
+			continue
+		if enemy_node == self or enemy_node.is_in_group("npcs") or enemy_node.is_in_group("player"):
+			continue
+
+		var enemy_health := _find_health_component(enemy_node)
+		if enemy_health != null and enemy_health.is_dead:
+			continue
+
+		var enemy_node2d := enemy_node as Node2D
+		var enemy_pos := enemy_node2d.global_position if enemy_node2d != null else global_position
+		var hit_dir_x: float = signf(enemy_pos.x - global_position.x)
+		if hit_dir_x == 0.0:
+			hit_dir_x = facing_direction
+
+		var spec_info := DamageInfoClass.new(
+			60.0 * _str_mult,
+			self,
+			global_position,
+			Vector2(hit_dir_x, 0.0),
+			"special",
+			180.0,
+			0.50,
+			true,
+			true, # can_knockdown = true!
+			0.08,
+			"special"
+		)
+
+		if enemy_node.has_method("take_damage"):
+			enemy_node.take_damage(spec_info)
+		elif enemy_health != null:
+			enemy_health.take_damage(spec_info)
+
+		CombatFeedbackClass.spawn_hit_spark(self, enemy_pos + Vector2(0, -40), Vector2(hit_dir_x, 0), "special")
+
+	# Props destrutíveis no cenário também sofrem o impacto do Especial
+	var all_props: Array[Node] = tree.get_nodes_in_group("destructibles")
+	for prop in all_props:
+		if prop != null and is_instance_valid(prop) and prop.has_method("take_damage"):
+			var prop_info := DamageInfoClass.new(50.0 * _str_mult, self, global_position, Vector2(facing_direction, 0), "special", 50.0, 0.2, true)
+			prop.take_damage(prop_info)
 
 
-## Desfere o Golpe Especial / Pesado (alto impacto e knockback)
-func _try_special() -> void:
-	if melee_attack == null:
+## Executa o pulo padrão do herói
+func _try_jump() -> void:
+	if _is_jumping or (melee_attack != null and melee_attack.is_attacking):
 		return
-	_current_attack_anim = &"heavy"
-	melee_attack.damage = 45.0 * _str_mult
-	melee_attack.horizontal_range = 115.0
-	melee_attack.active_duration = 0.20
-	melee_attack.attack_cooldown = 0.55 / maxf(0.1, _tec_mult)
-	if melee_attack.execute_attack(facing_direction):
-		state_changed.emit("Golpe Especial")
+	_is_jumping = true
+	_jump_v_velocity = -jump_force
+	_update_animation("jump")
 
 
-## Executa o Ataque Aéreo (voadora em salto frontal sem necessidade de tecla de pulo)
+## Executa o Ataque Aéreo (voadora em salto frontal)
 func _try_aerial_attack() -> void:
 	if melee_attack == null:
 		return
@@ -242,6 +555,21 @@ func _try_aerial_attack() -> void:
 		if anim_sprite != null:
 			anim_sprite.play("jump_atk")
 		state_changed.emit("Ataque Aéreo")
+
+
+## Desfere o golpe rápido de Soco
+func _try_punch() -> void:
+	_execute_combo_attack(0)
+
+
+## Desfere o golpe de Chute
+func _try_kick() -> void:
+	_execute_combo_attack(2)
+
+
+## Desfere o Golpe Especial / Pesado
+func _try_special() -> void:
+	_execute_combo_attack(3)
 
 
 ## Métodos públicos desacoplados para acionamento de ataques
@@ -261,9 +589,8 @@ func execute_aerial() -> void:
 	_try_aerial_attack()
 
 
-## Fallback para compatibilidade com o botão genérico de ataque
 func _try_attack() -> void:
-	_try_punch()
+	_on_attack_button_pressed()
 
 
 ## Lê e normaliza o vetor de entrada analógico ou digital dos eixos X e Y
@@ -311,15 +638,39 @@ func _on_attack_started() -> void:
 		punch_visual.visible = false
 
 
-## Feedback visual quando o ataque termina
+## Feedback visual e encadeamento de buffer quando o ataque termina
 func _on_attack_ended() -> void:
 	if punch_visual != null:
 		punch_visual.visible = false
-	if health_component != null and not health_component.is_dead:
-		state_changed.emit("Normal")
-		if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
-			if not _is_jumping and not _is_guarding:
-				anim_sprite.play("idle")
+	if health_component != null and health_component.is_dead:
+		return
+
+	# Se houver input bufferizado na janela, encadeia o próximo golpe imediatamente
+	if _input_buffered:
+		_input_buffered = false
+		if _combo_attacks.size() > 0:
+			if melee_attack != null:
+				melee_attack.cancel_attack()
+			_combo_step = (_combo_step + 1) % _combo_attacks.size()
+			_execute_combo_attack(_combo_step)
+			return
+
+
+	if melee_attack != null:
+		melee_attack.is_attacking = false
+
+	combat_state = CombatState.NORMAL
+	state_changed.emit("Normal")
+
+
+	if _combo_step < _combo_attacks.size():
+		_combo_window_timer = float(_combo_attacks[_combo_step].get("combo_window"))
+	else:
+		_combo_window_timer = 0.0
+
+	if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
+		if not _is_jumping and not _is_guarding:
+			anim_sprite.play("idle")
 
 
 ## Feedback visual de dano sofrido
@@ -338,12 +689,13 @@ func _restore_visual_modulation() -> void:
 	if visual_root != null and (health_component == null or not health_component.is_dead):
 		visual_root.modulate = Color.WHITE
 		state_changed.emit("Normal")
-		if anim_sprite != null and anim_sprite.animation == &"hurt":
+		if anim_sprite != null and anim_sprite.animation in [&"hurt", &"fall", &"getup"]:
 			anim_sprite.play("idle")
 
 
 ## Reação ao estado de derrota
 func _on_died() -> void:
+	combat_state = CombatState.DEAD
 	if melee_attack != null:
 		melee_attack.cancel_attack()
 	if punch_visual != null:
@@ -359,9 +711,77 @@ func _on_died() -> void:
 
 ## Ponto de entrada canônico para recebimento de dano (Damage Contract)
 func take_damage(damage_input: Variant) -> bool:
-	if health_component != null:
-		return health_component.take_damage(damage_input)
-	return false
+	if health_component == null or health_component.is_dead:
+		return false
+	if _is_invulnerable or combat_state == CombatState.SPECIAL:
+		return false
+
+	var amount: float = 0.0
+	var can_kd: bool = false
+	var knockback: float = 80.0
+	var hit_dir: Vector2 = Vector2(-facing_direction, 0.0)
+
+	if damage_input is float or damage_input is int:
+		amount = float(damage_input)
+	elif damage_input != null:
+		amount = float(damage_input.get("amount"))
+		can_kd = bool(damage_input.get("can_knockdown"))
+		knockback = float(damage_input.get("knockback_force"))
+		if damage_input.get("direction") != null:
+			hit_dir = damage_input.get("direction")
+
+	# Se estiver em guarda, reduz 70% do dano e anula knockback
+	if _is_guarding:
+		amount *= 0.30
+		CombatFeedbackClass.spawn_hit_spark(self, global_position + Vector2(facing_direction * 20.0, -40.0), hit_dir, "light")
+		return health_component.take_damage(amount)
+
+	var applied: bool = health_component.take_damage(amount)
+	if not applied:
+		return false
+
+	if health_component.is_dead:
+		return true
+
+	# Cancela ataque ativo ao receber dano
+	if melee_attack != null:
+		melee_attack.cancel_attack()
+	_input_buffered = false
+
+	var knock_sign: float = hit_dir.x if hit_dir.x != 0.0 else -facing_direction
+
+	if can_kd:
+		combat_state = CombatState.FALL
+		_state_timer = 0.35
+		velocity = Vector2(knock_sign * maxf(180.0, knockback * 2.0), 0.0)
+		if anim_sprite != null and anim_sprite.sprite_frames.has_animation("fall"):
+			anim_sprite.play("fall")
+		if visual_root != null:
+			visual_root.modulate = Color(2.5, 0.4, 0.4, 1.0)
+	else:
+		combat_state = CombatState.HURT
+		_state_timer = 0.22
+		_hurt_timer = 0.22
+		velocity = Vector2(knock_sign * maxf(90.0, knockback), 0.0)
+		if anim_sprite != null and anim_sprite.sprite_frames.has_animation("hurt"):
+			anim_sprite.play("hurt")
+		if visual_root != null:
+			visual_root.modulate = Color(2.0, 0.4, 0.4, 1.0)
+
+	state_changed.emit("Sofreu Dano")
+	return true
+
+
+func _find_health_component(actor: Node) -> HealthComponent:
+	if actor == null:
+		return null
+	var comp: HealthComponent = actor.get_node_or_null("HealthComponent") as HealthComponent
+	if comp != null:
+		return comp
+	for child in actor.get_children():
+		if child is HealthComponent:
+			return child as HealthComponent
+	return null
 
 
 ## Fallback defensivo para mapeamento de teclas
@@ -373,8 +793,10 @@ func _ensure_fallback_inputs() -> void:
 	_register_key_if_missing("attack_punch", KEY_J, KEY_NONE)
 	_register_key_if_missing("attack_kick", KEY_K, KEY_NONE)
 	_register_key_if_missing("attack_special", KEY_L, KEY_NONE)
+	_register_key_if_missing("special", KEY_L, KEY_O)
 	_register_key_if_missing("attack_aerial", KEY_U, KEY_NONE)
-	_register_key_if_missing("guard", KEY_SPACE, KEY_H)
+	_register_key_if_missing("jump", KEY_SPACE, KEY_NONE)
+	_register_key_if_missing("guard", KEY_H, KEY_NONE)
 	_register_key_if_missing("attack", KEY_J, KEY_Z)
 	_register_key_if_missing("restart", KEY_R, KEY_NONE)
 

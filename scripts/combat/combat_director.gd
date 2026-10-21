@@ -14,6 +14,12 @@ signal token_granted(enemy: CharacterBody2D)
 signal token_released(enemy: CharacterBody2D)
 signal active_attack_authorized(enemy: CharacterBody2D)
 
+const EncounterDifficultyProfileClass = preload("res://scripts/combat/encounter_difficulty_profile.gd")
+
+## Perfil de Dificuldade do Encontro (FASE COMBATE ARCADE)
+@export var difficulty_profile: Resource = null
+
+
 ## Quantidade máxima de inimigos autorizados a disputar a iniciativa ofensiva (tokens)
 @export var max_attack_tokens: int = 2
 
@@ -25,6 +31,7 @@ signal active_attack_authorized(enemy: CharacterBody2D)
 
 ## Quantidade de inimigos ou reforços pendentes aguardando spawn
 @export var pending_spawns_count: int = 0
+
 
 ## Distância horizontal de espera para inimigos sem token (pixels)
 @export var wait_distance_x_min: float = 120.0
@@ -116,6 +123,9 @@ func register_enemy(enemy: CharacterBody2D) -> void:
 	# Atribui slot de flanqueamento com profundidade alternada
 	_assign_flank_slot(enemy)
 
+	if difficulty_profile != null:
+		_apply_profile_to_enemy(enemy)
+
 	# Conecta com a remoção de cena para evitar vazamento de referências
 	if not enemy.tree_exiting.is_connected(_on_enemy_tree_exiting.bind(enemy)):
 		enemy.tree_exiting.connect(_on_enemy_tree_exiting.bind(enemy))
@@ -123,9 +133,42 @@ func register_enemy(enemy: CharacterBody2D) -> void:
 	enemy_registered.emit(enemy)
 
 
+## Aplica um perfil de dificuldade dinâmico ao encontro (FASE COMBATE ARCADE)
+func apply_difficulty_profile(profile: Resource) -> void:
+	if profile == null:
+		return
+
+	difficulty_profile = profile
+	max_attack_tokens = profile.max_attack_tokens
+	max_simultaneous_active_enemy_attacks = profile.max_simultaneous_active_enemy_attacks
+	token_timeout_seconds = profile.token_timeout_seconds
+
+	for enemy in registered_enemies:
+		_apply_profile_to_enemy(enemy)
+
+
+func _apply_profile_to_enemy(enemy: CharacterBody2D) -> void:
+	if enemy == null or difficulty_profile == null:
+		return
+	if enemy.get("attack_windup_seconds") != null:
+		enemy.attack_windup_seconds *= difficulty_profile.telegraph_duration_multiplier
+	if enemy.get("attack_cooldown") != null:
+		enemy.attack_cooldown /= maxf(0.1, difficulty_profile.attack_frequency_multiplier)
+	if enemy.get("health_component") != null:
+		var hc: HealthComponent = enemy.health_component
+		if hc != null and hc.max_health > 0.0:
+			hc.max_health *= difficulty_profile.health_multiplier
+			hc.current_health = hc.max_health
+	if enemy.get("melee_attack") != null:
+		var ma: MeleeAttack = enemy.melee_attack
+		if ma != null:
+			ma.damage *= difficulty_profile.damage_multiplier
+
+
 ## Incrementa a contagem de reforços ou inimigos de ondas pendentes
 func add_pending_spawns(count: int = 1) -> void:
 	pending_spawns_count += count
+
 
 
 ## Notifica a conclusão da instanciação de um inimigo pendente no mundo

@@ -19,12 +19,20 @@ const BASE_HEIGHT: float = 1080.0
 ## bw: largura da pincelada de realce
 const OPTION_CONFIGS: Array[Dictionary] = [
 	{ "cy": 540.5, "lx": 715.0, "rx": 1015.0, "bx": 690.0, "bw": 400.0 }, # 0: NOVO JOGO
-	{ "cy": 615.0, "lx": 715.0, "rx": 985.0,  "bx": 690.0, "bw": 370.0 }, # 1: CONTINUAR
-	{ "cy": 690.0, "lx": 715.0, "rx": 1175.0, "bx": 690.0, "bw": 550.0 }, # 2: SELECIONAR PERSONAGENS
-	{ "cy": 762.5, "lx": 715.0, "rx": 880.0,  "bx": 690.0, "bw": 270.0 }, # 3: MAPA
-	{ "cy": 833.5, "lx": 715.0, "rx": 1055.0, "bx": 690.0, "bw": 440.0 }, # 4: CONFIGURAÇÕES
-	{ "cy": 908.5, "lx": 715.0, "rx": 870.0,  "bx": 690.0, "bw": 260.0 }  # 5: SAIR
+	{ "cy": 617.5, "lx": 715.0, "rx": 985.0,  "bx": 690.0, "bw": 370.0 }, # 1: CONTINUAR
+	{ "cy": 689.0, "lx": 715.0, "rx": 1175.0, "bx": 690.0, "bw": 550.0 }, # 2: SELECIONAR PERSONAGENS
+	{ "cy": 762.0, "lx": 715.0, "rx": 880.0,  "bx": 690.0, "bw": 270.0 }, # 3: MAPA
+	{ "cy": 832.5, "lx": 715.0, "rx": 1055.0, "bx": 690.0, "bw": 440.0 }, # 4: CONFIGURAÇÕES
+	{ "cy": 908.0, "lx": 715.0, "rx": 870.0,  "bx": 690.0, "bw": 260.0 }  # 5: SAIR
 ]
+
+## Offsets visuais individuais para cada chevron:
+## Na imagem 70px de altura:
+## - O bico do chevron esquerdo '<' está na linha Y=50.6 (15.6px abaixo do centro de 35px)
+## - O bico do chevron direito '>' está na linha Y=46.6 (11.6px abaixo do centro de 35px)
+## Compensamos individualmente puxando os chevrons para cima para o bico ficar exatamente no centro do texto.
+const CHEV_LEFT_OFFSET_Y: float = -15.5
+const CHEV_RIGHT_OFFSET_Y: float = -11.5
 
 @onready var background_slot: TextureRect = %BackgroundSlot
 @onready var aspect_wrapper: AspectRatioContainer = %AspectWrapper
@@ -155,13 +163,15 @@ func _update_selector_positions(animate: bool = false) -> void:
 	var target_bx: float = float(cfg["bx"]) * sx
 	var target_bw: float = float(cfg["bw"]) * sx
 
-	var chev_h: float = 65.0 * sy
+	var chev_h: float = 70.0 * sy
 	var chev_w: float = 90.0 * sx
 	var brush_h: float = 75.0 * sy
 
-	# Alinhamento vertical centralizado rigorosamente na linha do texto
-	var l_pos = Vector2(target_lx, target_cy - (chev_h * 0.5))
-	var r_pos = Vector2(target_rx, target_cy - (chev_h * 0.5))
+	# Alinhamento vertical: centraliza na linha do texto + compensação individual do bico da seta
+	var l_offset_y: float = CHEV_LEFT_OFFSET_Y * sy
+	var r_offset_y: float = CHEV_RIGHT_OFFSET_Y * sy
+	var l_pos = Vector2(target_lx, target_cy - (chev_h * 0.5) + l_offset_y)
+	var r_pos = Vector2(target_rx, target_cy - (chev_h * 0.5) + r_offset_y)
 	var b_pos = Vector2(target_bx, target_cy - (brush_h * 0.5))
 	var b_size = Vector2(target_bw, brush_h)
 
