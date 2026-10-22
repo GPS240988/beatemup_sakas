@@ -1,6 +1,10 @@
 class_name PrototypeHud
 extends CanvasLayer
 
+@onready var player_hud: PlayerHUD = %PlayerHUD
+@onready var game_hud: MarginContainer = %GameHUD
+@onready var debug_margin: MarginContainer = %MarginContainer
+
 @onready var label_level_name: Label = %LevelNameLabel
 @onready var label_controls: Label = %ControlsLabel
 @onready var label_debug_pos: Label = %DebugPosLabel
@@ -67,6 +71,49 @@ func update_player_health(current: float, max_val: float) -> void:
 		player_health_bar.value = current
 	if player_health_label != null:
 		player_health_label.text = "Jogador: %d / %d HP" % [int(current), int(max_val)]
+	if player_hud != null:
+		player_hud.set_hp(current, max_val)
+
+
+## Vincula o nó do Jogador diretamente à HUD
+func bind_player(player: Node) -> void:
+	if player_hud != null:
+		player_hud.bind_player(player)
+
+
+func set_player_name(value: String) -> void:
+	if player_hud != null:
+		player_hud.set_player_name(value)
+
+
+func set_portrait(texture: Texture2D) -> void:
+	if player_hud != null:
+		player_hud.set_portrait(texture)
+
+
+func set_level(value: int) -> void:
+	if player_hud != null:
+		player_hud.set_level(value)
+
+
+func set_continues(value: int) -> void:
+	if player_hud != null:
+		player_hud.set_continues(value)
+
+
+func set_combo_hits(hits: int) -> void:
+	if player_hud != null:
+		player_hud.set_combo_hits(hits)
+
+
+func set_special(current: float, max_val: float) -> void:
+	if player_hud != null:
+		player_hud.set_special(current, max_val)
+
+
+func toggle_debug_hud() -> void:
+	if debug_margin != null:
+		debug_margin.visible = not debug_margin.visible
 
 
 ## Atualiza a vida do inimigo na HUD

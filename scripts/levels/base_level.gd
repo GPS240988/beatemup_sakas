@@ -111,9 +111,16 @@ func _ready() -> void:
 			player.health_component.died.connect(hud.show_game_over)
 			hud.update_player_health(player.health_component.current_health, player.health_component.max_health)
 		hud.on_player_moved(player.global_position, Vector2.ZERO)
+		
+		# Vincula à PlayerHUD arcade oficial
+		if hud.has_method("bind_player"):
+			hud.bind_player(player)
 
-	if hud != null and hud.label_level_name != null:
-		hud.label_level_name.text = "%s (Mapa %d/4)" % [map_name, map_index]
+	if hud != null:
+		if hud.has_method("set_level"):
+			hud.set_level(map_index)
+		if hud.label_level_name != null:
+			hud.label_level_name.text = "%s (Mapa %d/4)" % [map_name, map_index]
 
 
 func _physics_process(delta: float) -> void:

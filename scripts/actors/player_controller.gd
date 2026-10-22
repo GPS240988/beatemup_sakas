@@ -12,6 +12,12 @@ signal player_moved(current_position: Vector2, current_velocity: Vector2)
 ## Sinal emitido quando o estado visual/ação do jogador muda
 signal state_changed(new_state: String)
 
+## Sinal emitido quando a contagem de acertos em combo é atualizada
+signal combo_changed(hits: int)
+
+## Sinal emitido quando a barra de golpe especial é atualizada
+signal special_changed(current: float, max_special: float)
+
 ## Estados de combate do herói
 enum CombatState {
 	NORMAL,
@@ -72,6 +78,16 @@ var _jump_v_velocity: float = 0.0
 # Controle de guarda
 var _is_guarding: bool = false
 
+# Configuração oficial do golpe especial e balanceamento arcade
+const SPECIAL_MAX_CHARGE: float = 100.0
+const SPECIAL_INITIAL_CHARGE: float = 0.0
+const SPECIAL_CHARGE_PER_HIT: float = 2.0
+
+# Sistema de combos e medidor de golpe especial da HUD
+var combo_hits: int = 0
+var current_special: float = SPECIAL_INITIAL_CHARGE
+var max_special: float = SPECIAL_MAX_CHARGE
+
 # Modificadores de atributos
 var _str_mult: float = 1.0
 var _spd_mult: float = 1.0
@@ -91,6 +107,8 @@ func _ready() -> void:
 	if melee_attack != null:
 		melee_attack.attack_started.connect(_on_attack_started)
 		melee_attack.attack_ended.connect(_on_attack_ended)
+		if not melee_attack.target_hit.is_connected(_on_melee_target_hit):
+			melee_attack.target_hit.connect(_on_melee_target_hit)
 
 	if punch_visual != null:
 		punch_visual.visible = false
@@ -239,6 +257,9 @@ func _physics_process(delta: float) -> void:
 		_combo_window_timer -= delta
 		if _combo_window_timer <= 0.0 and (melee_attack == null or not melee_attack.is_attacking):
 			_combo_step = 0
+			if combo_hits > 0:
+				combo_hits = 0
+				combo_changed.emit(0)
 
 	# Processa reações físicas de impacto no jogador
 	match combat_state:
@@ -417,20 +438,20 @@ func _execute_combo_attack(step: int) -> bool:
 	return false
 
 
-## Disparo do Golpe Especial de Área (Cinematográfico, Global, Consome HP sem matar)
+## Disparo do Golpe Especial de Área (Cinematográfico, Global, Consome 100% do medidor de Especial)
 func execute_special() -> bool:
 	if health_component == null or health_component.is_dead:
 		return false
 	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
 		return false
 
-	# Custo de 15% do HP máximo
-	var cost: float = health_component.max_health * 0.15
-	if health_component.current_health <= cost:
-		health_component.current_health = 1.0 # Nunca mata o herói
-	else:
-		health_component.current_health -= cost
-	health_component.health_changed.emit(health_component.current_health, health_component.max_health)
+	# Validação estrita: O jogador só pode executar o especial quando o medidor estiver 100% carregado
+	if current_special < max_special:
+		return false
+
+	# Consome a carga completa uma única vez (substitui o custo antigo de 15% de vida)
+	current_special = 0.0
+	special_changed.emit(current_special, max_special)
 
 	combat_state = CombatState.SPECIAL
 	_is_invulnerable = true
@@ -662,7 +683,6 @@ func _on_attack_ended() -> void:
 	combat_state = CombatState.NORMAL
 	state_changed.emit("Normal")
 
-
 	if _combo_step < _combo_attacks.size():
 		_combo_window_timer = float(_combo_attacks[_combo_step].get("combo_window"))
 	else:
@@ -671,6 +691,45 @@ func _on_attack_ended() -> void:
 	if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
 		if not _is_jumping and not _is_guarding:
 			anim_sprite.play("idle")
+
+
+## Processa acertos de golpe: incrementa combo e carrega a barra de Special
+func _on_melee_target_hit(target: Node, _dmg: float) -> void:
+	combo_hits += 1
+	combo_changed.emit(combo_hits)
+
+	# Proteções estritas do medidor de Golpe Especial:
+	# 1. Não carrega durante o próprio Especial
+	if combat_state == CombatState.SPECIAL:
+		return
+
+	# 2. Ignora alvos nulos ou inválidos
+	if target == null or not is_instance_valid(target):
+		return
+
+	# 3. O próprio jogador não gera carga
+	if target == self:
+		return
+
+	# 4. NPCs civis não geram carga
+	if target.is_in_group("npcs") or target.is_in_group("civilians"):
+		return
+
+	# 5. Apenas inimigos vivos geram carga
+	if not target.is_in_group("enemies"):
+		return
+
+	var health: Node = null
+	if target.has_node("HealthComponent"):
+		health = target.get_node("HealthComponent")
+	elif "health_component" in target:
+		health = target.health_component
+
+	if health != null and "is_dead" in health and health.is_dead:
+		return
+
+	current_special = clampf(current_special + SPECIAL_CHARGE_PER_HIT, 0.0, max_special)
+	special_changed.emit(current_special, max_special)
 
 
 ## Feedback visual de dano sofrido

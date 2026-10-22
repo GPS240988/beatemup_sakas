@@ -23,7 +23,8 @@ $test_files = @(
     "tests/level_events_test.gd",
     "tests/navigation_integrity_test.gd",
     "tests/performance_audit_test.gd",
-    "tests/arcade_combat_system_test.gd"
+    "tests/arcade_combat_system_test.gd",
+    "tests/player_hud_test.gd"
 )
 
 

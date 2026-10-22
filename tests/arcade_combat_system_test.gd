@@ -273,21 +273,26 @@ func test_special_attack_mechanics() -> void:
 	dead_enemy.health_component.current_health = 0.0
 	dead_enemy.health_component.is_dead = true
 
-	# 1. Custo de vida do especial (15% de 100 = 15 HP)
+	# 1. Validação estrita do medidor de Especial (Requisito 100% de carga)
 	var hp_init: float = player.health_component.current_health
+	player.current_special = 50.0
+	var fail_started: bool = player.execute_special()
+	assert_test(fail_started == false, "Especial NÃO é acionado com carga parcial (< 100%)")
+	assert_test(player.combat_state != PlayerControllerClass.CombatState.SPECIAL, "Jogador não entra em SPECIAL com carga parcial")
+	assert_test(is_equal_approx(player.health_component.current_health, hp_init), "HP não é consumido em tentativa inválida de Especial")
+
+	# 2. Acionamento com 100% de carga
+	player.current_special = 100.0
 	var spec_started: bool = player.execute_special()
-	assert_test(spec_started == true, "Especial e acionado com sucesso")
+	assert_test(spec_started == true, "Especial é acionado com sucesso quando 100% carregado")
 	assert_test(player.combat_state == PlayerControllerClass.CombatState.SPECIAL, "Jogador entra no estado SPECIAL")
 	assert_test(player._is_invulnerable == true, "Jogador ganha invulnerabilidade durante o especial")
-	assert_test(is_equal_approx(player.health_component.current_health, hp_init - 15.0), "Especial consome 15% de vida")
+	assert_test(is_equal_approx(player.current_special, 0.0), "Especial consome 100% da barra acumulada")
+	assert_test(is_equal_approx(player.health_component.current_health, hp_init), "Especial NÃO consome mais vida do jogador (custo é medidor cheio)")
 
-	# 2. Regra de nao matar o jogador se HP for baixo
-	player.combat_state = PlayerControllerClass.CombatState.NORMAL
-	player._is_invulnerable = false
-	player.health_component.current_health = 10.0
-	player.execute_special()
-	assert_test(player.health_component.current_health == 1.0, "Especial nunca mata o jogador (HP mantido em 1.0)")
-	assert_test(player.health_component.is_dead == false, "Jogador permanece vivo apos especial com vida baixa")
+	# 3. Tentativa repetida sem recarregar falha
+	var repeat_started: bool = player.execute_special()
+	assert_test(repeat_started == false, "Tentativa repetida sem recarregar falha e não consome recursos")
 
 
 	# 3. Aplicacao do impacto global

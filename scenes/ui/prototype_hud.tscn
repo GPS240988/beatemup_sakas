@@ -1,18 +1,39 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="1_hud_script"]
 [ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="2_touch_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/player_hud.tscn" id="3_player_hud_scene"]
 
 [node name="PrototypeHud" type="CanvasLayer"]
 script = ExtResource("1_hud_script")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-offset_right = 440.0
-offset_bottom = 260.0
+[node name="GameHUD" type="MarginContainer" parent="."]
+unique_name_in_owner = true
+offset_right = 650.0
+offset_bottom = 160.0
+mouse_filter = 2
 theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
+theme_override_constants/margin_top = 18
+
+[node name="PlayersContainer" type="VBoxContainer" parent="GameHUD"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PlayerHUD" parent="GameHUD/PlayersContainer" instance=ExtResource("3_player_hud_scene")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+offset_top = 160.0
+offset_right = 440.0
+offset_bottom = 420.0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 10
 
 [node name="PanelContainer" type="PanelContainer" parent="MarginContainer"]
 layout_mode = 2

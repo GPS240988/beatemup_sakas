@@ -517,7 +517,50 @@ MapX (Node2D, script: base_level.gd)
 
 ---
 
-## 29. DEFINITION OF DONE (DOD)
+## 30. ARCADE HUD & UI ARCHITECTURE CONTRACT
+`STATUS: IMPLEMENTED`
+
+### 1. Separação de Responsabilidade e Nova Identidade Visual:
+- **Arte Canônica**: Baseada no modelo oficial `modelo_hud_vf.jpg` (2170×725px), com Pixel Art HD, acabamento profissional e estética arcade retrô dos anos 90.
+- **Identidade Temática dos 4 Heróis**:
+  - **Guilherme**: Azul elétrico (`#00A2FF`).
+  - **Gabriel**: Verde neon (`#00FF66`).
+  - **André**: Amarelo/Laranja ouro (`#FFCC00`).
+  - **Juliana**: Magenta/Roxo neon (`#FF00CC`).
+- **Remoção Canônica do Nível**: A HUD **NÃO** exibe o nível do herói. Não há nós de nível ou textos fixos residuais.
+- **Contador de Continues**: Dinâmico, iniciando obrigatoriamente com o valor padrão **1** em uma nova sessão (`current_continues = 1`).
+
+### 2. Barras Segmentadas (Regra Crítica de Geometria e Contenção Estrita):
+- **Estrutura Segmentada**: As barras de Vida (HP) e Especial são compostas por exatamente **8 segmentos em paralelogramo inclinado**, desenhados proceduralmente pela classe `SegmentedBar`.
+- **Estados Visuais**:
+  - **Preenchido**: Cor temática com chanfro superior luminoso (highlight) e sombra inferior/lateral (relevo arcade 3D). HP é estritamente vermelho arcade (`#FF1818`); Especial utiliza a cor temática do herói selecionado.
+  - **Buffer (Dano de HP)**: Segmentos em tom âmbar suave (`#FFB833`) que sustentam temporariamente a perda de vida antes de transicionarem para vazio.
+  - **Vazio**: Segmentos escuros grafite/marinho (`#151B27`) com contorno nítido (`#28364D`).
+- **Contenção Geométrica Estrita (Zero Overflow)**: Nenhum segmento ultrapassa as bordas esquerda, direita, superior ou inferior da moldura, mesmo no estado 100% preenchido. A quantidade de segmentos preenchidos obedece a:
+  $$\text{segmentos\_preenchidos} = \text{floor}(\text{progresso\_normalizado} \times 8)$$
+  com garantia de que heróis vivos retêm ao menos 1 segmento visível, e exatamente 0 apenas ao morrer.
+
+### 3. Sistema de Especial: Carregamento Gradual e Ativação Restrita a 100%:
+- **Carga Inicial e Máxima**: Inicia estritamente em **0.0** (`SPECIAL_INITIAL_CHARGE`), com teto em **100.0** (`SPECIAL_MAX_CHARGE`).
+- **Taxa de Carregamento**: Concede exatamente **2.0 pontos** por acerto real e aceito pelo sistema de dano em inimigo vivo (`SPECIAL_CHARGE_PER_HIT`), exigindo ~50 acertos para carregar do zero.
+- **Proteções de Integridade**:
+  - Golpes que erram o alvo (whiffs) não geram carga.
+  - Alvos no mesmo golpe não concedem carga duplicada (controle de acerto único por golpe).
+  - Inimigos mortos, civis (NPCs) e o próprio jogador não concedem carga.
+  - Dano infligido pelo próprio especial não recarrega o medidor.
+- **Ativação Restrita (Gatekeeping em Gameplay)**: `execute_special()` só pode ser disparado quando o medidor estiver rigorosamente em **100%** (`current_special >= max_special`). Pressões com carga parcial não geram dano, nem animação cinematográfica, nem invulnerabilidade.
+- **Substituição de Custo**: O custo antigo de 15% de HP máximo foi **integralmente extinto**, sendo substituído pelo consumo de 100% da barra de especial. Especial não consome mais vida do herói.
+
+### 4. Efeito de Aura Elétrica de Especial Pronto:
+- **Aura Neon Pulsante**: Ao atingir 100%, o retrato do personagem recebe uma aura de energia elétrica azul animada (`hud_electric_aura.png`), pulsando suavemente ao redor da moldura.
+- **Desativação Instantânea**: Ao consumir o especial ou se a carga cair abaixo de 100%, a aura é desligada imediatamente.
+
+### 5. Indicador Dinâmico de Combo:
+- **Visibilidade Dinâmica**: Oculto com 0 hits (`hits <= 0`). Visível com acertos reais confirmados, acompanhado de animação arcade de impacto (punch de escala 1.25 → 1.0). Placa de combo em estética de pincelada agressiva (`hud_combo_plate.png`).
+
+---
+
+## 31. DEFINITION OF DONE (DOD)
 `STATUS: IMPLEMENTED`
 
 Uma funcionalidade, refatoração ou evolução arquitetural só pode ser considerada **CONCLUÍDA** quando todos os itens abaixo forem rigorosamente satisfeitos:
@@ -530,9 +573,8 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 [x] Camadas e máscaras de colisão verificadas (Layers 1 a 5)
 [x] Malha e agentes de navegação verificados (sem rebuild global em runtime)
 [x] Testes headless executados com 100% de sucesso
-[x] Bateria de regressão completa (18 suítes) executada sem falhas
+[x] Bateria de regressão completa (19 suítes) executada sem falhas
 [x] Auditoria de performance a 60 FPS aprovada (desktop e mobile)
 [x] Nenhuma regressão conhecida em combate, IA, mapas ou UI
 [x] GAME_RULES.md atualizado refletindo estritamente a realidade do código
-
 ```
