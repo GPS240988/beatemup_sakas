@@ -24,7 +24,9 @@ $test_files = @(
     "tests/navigation_integrity_test.gd",
     "tests/performance_audit_test.gd",
     "tests/arcade_combat_system_test.gd",
-    "tests/player_hud_test.gd"
+    "tests/player_hud_test.gd",
+    "tests/arcade_hud_refinement_test.gd",
+    "tests/sergio_npc_test.gd"
 )
 
 

@@ -76,24 +76,51 @@ func _draw() -> void:
 	if w <= 0.0 or h <= 0.0:
 		return
 
-	# 1. Desenha a moldura externa angulada com brilho arcade
+	# 1. Moldura externa angulada com chassi cyber-arcade profissional de alto impacto
 	if draw_frame:
-		var frame_pts: PackedVector2Array = [
-			Vector2(slant_offset * 0.5, 0.0),
-			Vector2(w - 1.0, 0.0),
-			Vector2(w - 1.0 - slant_offset * 0.5, h - 1.0),
-			Vector2(0.0, h - 1.0)
-		]
-		draw_colored_polygon(frame_pts, frame_bg_color)
-		
-		var outline_pts: PackedVector2Array = [
-			Vector2(slant_offset * 0.5, 0.0),
-			Vector2(w - 1.0, 0.0),
-			Vector2(w - 1.0 - slant_offset * 0.5, h - 1.0),
-			Vector2(0.0, h - 1.0),
-			Vector2(slant_offset * 0.5, 0.0)
-		]
-		draw_polyline(outline_pts, frame_color, 2.0, true)
+		# Paralelogramo externo rigoroso acompanhando a diagonal do layout
+		var f_p0 := Vector2(slant_offset, 0.0)
+		var f_p1 := Vector2(w - 1.0, 0.0)
+		var f_p2 := Vector2(w - 1.0 - slant_offset, h - 1.0)
+		var f_p3 := Vector2(0.0, h - 1.0)
+
+		# Camada 1: Halo Difuso de Neon Arcade (Outer Glow de gabinete)
+		var glow_expand: float = 3.0
+		var g_p0 := Vector2(slant_offset - glow_expand * 0.5, -glow_expand)
+		var g_p1 := Vector2(w - 1.0 + glow_expand, -glow_expand)
+		var g_p2 := Vector2(w - 1.0 - slant_offset + glow_expand * 0.5, h - 1.0 + glow_expand)
+		var g_p3 := Vector2(-glow_expand, h - 1.0 + glow_expand)
+		draw_colored_polygon([g_p0, g_p1, g_p2, g_p3], Color(frame_color.r, frame_color.g, frame_color.b, 0.22))
+
+		# Camada 2: Chassi Metálico Carbono/Obsidiana
+		draw_colored_polygon([f_p0, f_p1, f_p2, f_p3], Color(0.05, 0.07, 0.12, 0.98))
+
+		# Camada 3: Fundo Rebaixado Interno dos 8 Segmentos (Inner Recess)
+		var inner_inset: float = 3.0
+		var in_p0 := Vector2(slant_offset + inner_inset * 0.6, inner_inset)
+		var in_p1 := Vector2(w - 1.0 - inner_inset * 0.8, inner_inset)
+		var in_p2 := Vector2(w - 1.0 - slant_offset - inner_inset * 0.6, h - 1.0 - inner_inset)
+		var in_p3 := Vector2(inner_inset * 0.8, h - 1.0 - inner_inset)
+		draw_colored_polygon([in_p0, in_p1, in_p2, in_p3], Color(0.02, 0.04, 0.08, 1.0))
+
+		# Camada 4: Borda de Relevo Escuro e Chanfros Metálicos
+		draw_polyline([f_p0, f_p1, f_p2, f_p3, f_p0], Color(0.02, 0.03, 0.06, 1.0), 2.0, true)
+
+		# Camada 5: Trilho Laser Superior Neon (Linha Saturada + Núcleo Intenso Incandescente)
+		var neon_glow_col: Color = frame_color.lightened(0.25)
+		draw_line(f_p0 + Vector2(1, 1), f_p1 + Vector2(-1, 1), neon_glow_col, 2.5, true)
+		draw_line(f_p0 + Vector2(2, 1.5), f_p1 + Vector2(-2, 1.5), Color.WHITE.lerp(neon_glow_col, 0.4), 1.2, true)
+
+		# Camada 6: Trilho Inferior Metálico de Sustentação
+		draw_line(f_p3 + Vector2(1, -1), f_p2 + Vector2(-1, -1), frame_color.darkened(0.35), 2.0, true)
+
+		# Camada 7: Chanfros Diagonais e Cantoneiras Cyber nas Extremidades
+		draw_line(f_p3, f_p0, frame_color.lightened(0.4), 2.5, true)
+		draw_line(f_p2, f_p1, frame_color.darkened(0.45), 2.5, true)
+
+		# Ponto de Brilho nos Vértices Diagonais (Hotspots luminosos)
+		draw_circle(f_p0 + Vector2(1, 1), 2.0, Color.WHITE)
+		draw_circle(f_p1 + Vector2(-1, 1), 1.5, neon_glow_col)
 
 	# 2. Geometria interna dos paralelogramos inclinados
 	var avail_w: float = w - padding_left - padding_right - slant_offset

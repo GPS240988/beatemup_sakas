@@ -230,6 +230,11 @@ MapX (Node2D, script: base_level.gd)
   - `EVENT`: Comportamento delegado a scripts narrativos externos.
   - `DISABLED`: Física e processamento desativados sem remover o nó da árvore.
 - **Throttling de Pathfinding**: Navegação via `NavigationAgent2D` com intervalo mínimo obrigatório de `PATHFIND_MIN_INTERVAL = 0.25s`, prevenindo sobrecarga de CPU por spam de rotas.
+- **NPC Especial Sérgio (`SergioNPC` — Fase 1-1 / `map_1.tscn`)**:
+  - **Identidade e Cena**: `scenes/actors/sergio_npc.tscn` (script: `scripts/actors/sergio_npc.gd`).
+  - **Sprite e Dimensões**: `assets/sprites/characters/sergio.webp` (220×300px nativos, `scale = Vector2(0.8, 0.8)`, pés estritamente em `(0, 0)`, sombra e colisor na base).
+  - **Patrulha Acelerada**: Percorre ativamente todos os setores da malha navegável (`NavigationRegion2D` / `map_1_navpoly.tres`) com `run_speed = 230.0 px/s` e circuito contínuo de 9 waypoints.
+  - **Balão de Diálogo Retrô Arcade**: Exibe de tempos em tempos a mensagem *"Socorro, minha locadora foi invadida. Me ajudem"* na tipografia `arcade_bold.ttf`, contida em caixa de diálogo com paleta Dark Base (`#060A14`), moldura ouro arcade (`#FFD700`), brilho neon e orientação visual travada (zero espelhamento do texto ao mudar de direção).
 
 ---
 
@@ -445,7 +450,7 @@ MapX (Node2D, script: base_level.gd)
 ## 25. CI/CD RULES
 `STATUS: IMPLEMENTED`
 
-1. **Bateria Completa de Testes**: A saúde do projeto é auditada pelo runner automatizado `tests/run_all_tests.ps1`, abrangendo atualmente **18 suítes completas**:
+1. **Bateria Completa de Testes**: A saúde do projeto é auditada pelo runner automatizado `tests/run_all_tests.ps1`, abrangendo atualmente **21 suítes completas**:
    - `tests/map_structure_test.gd`
    - `tests/prop_contracts_test.gd`
    - `tests/actor_contracts_test.gd`
@@ -464,7 +469,10 @@ MapX (Node2D, script: base_level.gd)
    - `tests/navigation_integrity_test.gd`
    - `tests/performance_audit_test.gd`
    - `tests/arcade_combat_system_test.gd`
-2. **Critério de Bloqueio**: O pipeline de CI e qualquer gate de entrega exige **100% de aprovação (0 falhas)** nas 18 suítes.
+   - `tests/player_hud_test.gd`
+   - `tests/arcade_hud_refinement_test.gd`
+   - `tests/sergio_npc_test.gd`
+2. **Critério de Bloqueio**: O pipeline de CI e qualquer gate de entrega exige **100% de aprovação (0 falhas)** nas 21 suítes.
 3. **Política de Git**: Commits atômicos e padronizados por categoria (`arch:`, `test:`, `perf:`, `docs:`).
 
 
@@ -527,16 +535,21 @@ MapX (Node2D, script: base_level.gd)
   - **Gabriel**: Verde neon (`#00FF66`).
   - **André**: Amarelo/Laranja ouro (`#FFCC00`).
   - **Juliana**: Magenta/Roxo neon (`#FF00CC`).
-- **Remoção Canônica do Nível**: A HUD **NÃO** exibe o nível do herói. Não há nós de nível ou textos fixos residuais.
-- **Contador de Continues**: Dinâmico, iniciando obrigatoriamente com o valor padrão **1** em uma nova sessão (`current_continues = 1`).
+- **Remoção Canônica de Textos Numéricos e Nível**: A HUD **NÃO** exibe o nível do herói e **NÃO** exibe textos numéricos brutos como `100/100` ou `8/100`. As barras segmentadas falam visualmente por si mesmas em pura estética arcade.
+- **Nome do Personagem com Destaque e Sem Duplicidade**: O banner do nome (`hud_name_frame_*.png`) posiciona-se no início da barra ao lado do retrato, ampliado e em alta definição. O rótulo em texto simples é ocultado para evitar sobreposição ou duplicidade.
+- **Placa de Ficha (Continues) Ampliada**: Imagem da ficha com dados ampliada com destaque (`hud_continue_plate.png`/`.webp`), acompanhada do número dinâmico em tipografia arcade condizente (`assets/fonts/arcade_bold.ttf`, tamanho >= 26, contorno escuro e amarelo ouro).
 
-### 2. Barras Segmentadas (Regra Crítica de Geometria e Contenção Estrita):
+### 2. Barras Segmentadas com Chassi Diagonal Cyber-Arcade:
 - **Estrutura Segmentada**: As barras de Vida (HP) e Especial são compostas por exatamente **8 segmentos em paralelogramo inclinado**, desenhados proceduralmente pela classe `SegmentedBar`.
+- **Chassi Diagonal e Efeitos Visuais**:
+  - A moldura acompanha rigorosamente a mesma inclinação diagonal dos segmentos (`slant_offset`).
+  - Trilho superior neon luminoso com reflexo arcade na cor temática do herói / barra.
+  - Trilho inferior de sustentação e chanfros metálicos escuros laterais (`#04070C`).
 - **Estados Visuais**:
   - **Preenchido**: Cor temática com chanfro superior luminoso (highlight) e sombra inferior/lateral (relevo arcade 3D). HP é estritamente vermelho arcade (`#FF1818`); Especial utiliza a cor temática do herói selecionado.
   - **Buffer (Dano de HP)**: Segmentos em tom âmbar suave (`#FFB833`) que sustentam temporariamente a perda de vida antes de transicionarem para vazio.
   - **Vazio**: Segmentos escuros grafite/marinho (`#151B27`) com contorno nítido (`#28364D`).
-- **Contenção Geométrica Estrita (Zero Overflow)**: Nenhum segmento ultrapassa as bordas esquerda, direita, superior ou inferior da moldura, mesmo no estado 100% preenchido. A quantidade de segmentos preenchidos obedece a:
+- **Contenção Geométrica Estrita (Zero Overflow)**: Nenhum segmento ultrapassa as bordas da moldura. Quantidade de segmentos:
   $$\text{segmentos\_preenchidos} = \text{floor}(\text{progresso\_normalizado} \times 8)$$
   com garantia de que heróis vivos retêm ao menos 1 segmento visível, e exatamente 0 apenas ao morrer.
 
@@ -549,14 +562,21 @@ MapX (Node2D, script: base_level.gd)
   - Inimigos mortos, civis (NPCs) e o próprio jogador não concedem carga.
   - Dano infligido pelo próprio especial não recarrega o medidor.
 - **Ativação Restrita (Gatekeeping em Gameplay)**: `execute_special()` só pode ser disparado quando o medidor estiver rigorosamente em **100%** (`current_special >= max_special`). Pressões com carga parcial não geram dano, nem animação cinematográfica, nem invulnerabilidade.
-- **Substituição de Custo**: O custo antigo de 15% de HP máximo foi **integralmente extinto**, sendo substituído pelo consumo de 100% da barra de especial. Especial não consome mais vida do herói.
+- **Substituição de Custo**: O custo antigo de 15% de HP foi extinto; especial consome 100% da barra de especial sem subtrair HP do herói.
 
 ### 4. Efeito de Aura Elétrica de Especial Pronto:
 - **Aura Neon Pulsante**: Ao atingir 100%, o retrato do personagem recebe uma aura de energia elétrica azul animada (`hud_electric_aura.png`), pulsando suavemente ao redor da moldura.
 - **Desativação Instantânea**: Ao consumir o especial ou se a carga cair abaixo de 100%, a aura é desligada imediatamente.
 
-### 5. Indicador Dinâmico de Combo:
-- **Visibilidade Dinâmica**: Oculto com 0 hits (`hits <= 0`). Visível com acertos reais confirmados, acompanhado de animação arcade de impacto (punch de escala 1.25 → 1.0). Placa de combo em estética de pincelada agressiva (`hud_combo_plate.png`).
+### 5. Indicador Dinâmico de Combo (Grafite Agressivo e Alta Escala):
+- **Visibilidade Dinâmica**: Oculto com 0 hits (`hits <= 0`). Visível com acertos reais confirmados, acompanhado de animação arcade de impacto (punch de escala 1.35 → 1.0). Placa de combo em estética de grafite agressivo (`hud_combo_plate.png`) com número dinâmico em tipografia arcade condizente (`arcade_bold.ttf`).
+
+### 6. Persistência de Vida e Energia Entre Seções do Mesmo Mapa:
+- **Regra de Continuidade**: Dentro do mesmo mapa/fase (ex: seções de `Fase 1` - Mapas 1 a 4), a vida (`current_health`) e energia especial (`current_special`) acumuladas são preservadas entre transições via `GameSession.save_player_progression()` e restauradas no carregamento da nova seção.
+- **Reset em Novo Mapa**: Ao transicionar para um mapa de outro grupo ou reiniciar a partida, a vida e energia são redefinidas para os valores padrão.
+
+### 7. Indicador "SIGA →" com Acompanhamento de Câmera:
+- **Comportamento Dinâmico**: Ao derrotar o último inimigo de um encontro, o banner estático de texto central ("Área Limpa") é suprimido, e o indicador visual piscante "SIGA →" é ativado na tela, acompanhando a posição da câmera para permanecer visível independentemente de onde o personagem estiver no cenário.
 
 ---
 
@@ -573,7 +593,7 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 [x] Camadas e máscaras de colisão verificadas (Layers 1 a 5)
 [x] Malha e agentes de navegação verificados (sem rebuild global em runtime)
 [x] Testes headless executados com 100% de sucesso
-[x] Bateria de regressão completa (19 suítes) executada sem falhas
+[x] Bateria de regressão completa (21 suítes) executada sem falhas
 [x] Auditoria de performance a 60 FPS aprovada (desktop e mobile)
 [x] Nenhuma regressão conhecida em combate, IA, mapas ou UI
 [x] GAME_RULES.md atualizado refletindo estritamente a realidade do código

@@ -18,6 +18,9 @@ signal combo_changed(hits: int)
 ## Sinal emitido quando a barra de golpe especial é atualizada
 signal special_changed(current: float, max_special: float)
 
+## Sinal emitido quando o jogador gasta uma ficha e renasce (Drop-in Continue Arcade)
+signal player_respawned(continues_left: int)
+
 ## Estados de combate do herói
 enum CombatState {
 	NORMAL,
@@ -88,6 +91,10 @@ var combo_hits: int = 0
 var current_special: float = SPECIAL_INITIAL_CHARGE
 var max_special: float = SPECIAL_MAX_CHARGE
 
+# Sistema de Continues Arcade (padrão 1 ficha inicial)
+var current_continues: int = 1
+var _respawn_tween: Tween = null
+
 # Modificadores de atributos
 var _str_mult: float = 1.0
 var _spd_mult: float = 1.0
@@ -99,6 +106,10 @@ func _ready() -> void:
 	add_to_group("player")
 	add_to_group("damageable")
 	_ensure_fallback_inputs()
+
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and "current_continues" in session:
+		current_continues = int(session.current_continues)
 
 	if health_component != null:
 		health_component.damaged.connect(_on_damaged)
@@ -752,8 +763,12 @@ func _restore_visual_modulation() -> void:
 			anim_sprite.play("idle")
 
 
-## Reação ao estado de derrota
+## Reação ao estado de derrota ou ativação de Continue Arcade
 func _on_died() -> void:
+	if current_continues > 0:
+		_trigger_arcade_respawn()
+		return
+
 	combat_state = CombatState.DEAD
 	if melee_attack != null:
 		melee_attack.cancel_attack()
@@ -766,6 +781,121 @@ func _on_died() -> void:
 	if anim_sprite != null:
 		anim_sprite.play("death")
 	state_changed.emit("Derrotado")
+
+
+## Dispara o respawn arcade dos céus consumindo 1 ficha
+func _trigger_arcade_respawn() -> void:
+	current_continues -= 1
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and "current_continues" in session:
+		session.current_continues = current_continues
+
+	player_respawned.emit(current_continues)
+
+	if melee_attack != null:
+		melee_attack.cancel_attack()
+	if punch_visual != null:
+		punch_visual.visible = false
+
+	# Pausa movimento do solo e projeta o herói nos céus
+	combat_state = CombatState.NORMAL
+	velocity = Vector2.ZERO
+	_is_invulnerable = true
+	_is_jumping = false
+	_jump_v_velocity = 0.0
+
+	if visual_root != null:
+		visual_root.rotation_degrees = 0.0
+		visual_root.modulate = Color.WHITE
+		visual_root.position.y = -500.0
+
+	if anim_sprite != null:
+		if anim_sprite.sprite_frames != null and anim_sprite.sprite_frames.has_animation("fall"):
+			anim_sprite.play("fall")
+		elif anim_sprite.sprite_frames != null and anim_sprite.sprite_frames.has_animation("jump"):
+			anim_sprite.play("jump")
+		else:
+			anim_sprite.play("idle")
+
+	if _respawn_tween != null and _respawn_tween.is_valid():
+		_respawn_tween.kill()
+
+	_respawn_tween = create_tween()
+	if visual_root != null:
+		_respawn_tween.tween_property(visual_root, "position:y", 0.0, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_respawn_tween.tween_callback(_on_respawn_landing)
+
+
+## Aterrissagem com tremor de terra, queda de todos os inimigos na tela e restauração de vida/especial
+func _on_respawn_landing() -> void:
+	if visual_root != null:
+		visual_root.position.y = 0.0
+		visual_root.rotation_degrees = 0.0
+		visual_root.modulate = Color.WHITE
+
+	# 1. Restaura vida por completo (100%)
+	if health_component != null:
+		health_component.reset()
+
+	# 2. Define a energia especial pela metade (50% = 4 segmentos)
+	current_special = max_special * 0.5
+	special_changed.emit(current_special, max_special)
+
+	# 3. Tremor de tela de impacto arcade
+	CombatFeedbackClass.trigger_screen_shake(self, 12.0, 0.40)
+
+	# 4. Derruba todos os inimigos vivos na tela (cooldown tático para o jogador se reorganizar)
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		var enemies: Array[Node] = tree.get_nodes_in_group("enemies")
+		for enemy in enemies:
+			if enemy == null or not is_instance_valid(enemy):
+				continue
+			var e_health = _find_health_component(enemy)
+			if e_health != null and e_health.is_dead:
+				continue
+
+			var shock_dir: float = signf(enemy.global_position.x - global_position.x)
+			if shock_dir == 0.0:
+				shock_dir = -facing_direction
+
+			var shockwave_info = DamageInfoClass.new(
+				0.0,
+				self,
+				global_position,
+				Vector2(shock_dir, 0.0),
+				"special",
+				180.0,
+				0.4,
+				false,
+				true,
+				0.0,
+				"special"
+			)
+			if enemy.has_method("_on_damaged_info"):
+				enemy._on_damaged_info(shockwave_info)
+			elif enemy.has_method("take_damage"):
+				enemy.take_damage(shockwave_info)
+
+	if anim_sprite != null:
+		anim_sprite.play("idle")
+
+	state_changed.emit("Normal")
+	_apply_respawn_invulnerability(2.0)
+
+
+## Concede 2 segundos de invulnerabilidade com piscar visual característico dos beat 'em ups
+func _apply_respawn_invulnerability(duration: float) -> void:
+	_is_invulnerable = true
+	var blink_tween := create_tween()
+	var steps: int = int(duration / 0.12)
+	for i in range(steps):
+		var alpha: float = 0.35 if (i % 2 == 0) else 1.0
+		if visual_root != null:
+			blink_tween.tween_property(visual_root, "modulate:a", alpha, 0.06)
+	if visual_root != null:
+		blink_tween.tween_property(visual_root, "modulate", Color.WHITE, 0.05)
+	blink_tween.tween_callback(func(): _is_invulnerable = false)
 
 
 ## Ponto de entrada canônico para recebimento de dano (Damage Contract)

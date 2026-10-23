@@ -10,6 +10,7 @@
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_1_navpoly.tres" id="8_navpoly"]
 [ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
 [ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
+[ext_resource type="PackedScene" path="res://scenes/actors/sergio_npc.tscn" id="11_sergio_scene"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
 size = Vector2(2200, 68.125)
@@ -150,6 +151,9 @@ position = Vector2(1074, 665)
 
 [node name="NPCs" type="Node2D" parent="World/Actors" unique_id=2102606010]
 y_sort_enabled = true
+
+[node name="Sergio" parent="World/Actors/NPCs" instance=ExtResource("11_sergio_scene")]
+position = Vector2(320, 680)
 
 [node name="Foreground" type="Node2D" parent="." unique_id=339708996]
 z_index = 10

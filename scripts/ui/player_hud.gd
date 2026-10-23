@@ -153,9 +153,9 @@ func set_character_theme(char_id: String) -> void:
 	
 	var palette = theme_colors.get(current_character_id, theme_colors["guilherme"])
 	
-	# Aplica cor temática da moldura na barra de vida
+	# Aplica moldura vermelha arcade de alto impacto na barra de vida
 	if hp_bar != null:
-		hp_bar.frame_color = palette["frame"]
+		hp_bar.frame_color = Color(1.0, 0.14, 0.18, 1.0)
 		hp_bar.queue_redraw()
 	
 	# Configura a barra de Especial com a cor temática do herói
@@ -327,6 +327,13 @@ func bind_player(player_node: Node) -> void:
 		if not player_node.is_connected("combo_changed", _on_player_combo_changed):
 			player_node.connect("combo_changed", _on_player_combo_changed)
 	
+	# 4. Continues / Respawn Arcade
+	if player_node.has_signal("player_respawned"):
+		if not player_node.is_connected("player_respawned", _on_player_respawned):
+			player_node.connect("player_respawned", _on_player_respawned)
+	if "current_continues" in player_node:
+		set_continues(int(player_node.current_continues))
+	
 	_load_character_profile_from_session()
 
 
@@ -341,6 +348,8 @@ func unbind_player() -> void:
 			_bound_player.disconnect("special_changed", _on_player_special_changed)
 		if _bound_player.has_signal("combo_changed") and _bound_player.is_connected("combo_changed", _on_player_combo_changed):
 			_bound_player.disconnect("combo_changed", _on_player_combo_changed)
+		if _bound_player.has_signal("player_respawned") and _bound_player.is_connected("player_respawned", _on_player_respawned):
+			_bound_player.disconnect("player_respawned", _on_player_respawned)
 	_bound_player = null
 
 
@@ -350,6 +359,9 @@ func _load_character_profile_from_session() -> void:
 	if session != null and "selected_character_id" in session:
 		char_id = str(session.selected_character_id).to_lower()
 	
+	if session != null and "current_continues" in session:
+		set_continues(int(session.current_continues))
+	
 	var names: Dictionary = {
 		"guilherme": "GUILHERME",
 		"gabriel": "GABRIEL",
@@ -358,6 +370,10 @@ func _load_character_profile_from_session() -> void:
 	}
 	set_player_name(names.get(char_id, "GUILHERME"))
 	set_character_theme(char_id)
+
+
+func _on_player_respawned(continues_left: int) -> void:
+	set_continues(continues_left)
 
 
 func _on_player_health_changed(cur: float, max_val: float) -> void:
@@ -376,6 +392,7 @@ func _on_player_combo_changed(hits: int) -> void:
 func _update_name_display() -> void:
 	if name_label != null:
 		name_label.text = player_name
+		name_label.visible = false
 
 
 func _update_continue_display() -> void:
@@ -394,6 +411,7 @@ func _update_hp_display(_animate: bool) -> void:
 func _update_hp_label() -> void:
 	if hp_label != null:
 		hp_label.text = "%d / %d" % [int(current_hp), int(max_hp)]
+		hp_label.visible = false
 
 
 func _update_special_display(_animate: bool) -> void:
@@ -406,6 +424,7 @@ func _update_special_display(_animate: bool) -> void:
 func _update_special_label() -> void:
 	if special_label != null:
 		special_label.text = "%d / %d" % [int(current_special), int(max_special)]
+		special_label.visible = false
 
 
 func _apply_special_ready_effect(ready: bool) -> void:

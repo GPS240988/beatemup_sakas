@@ -92,7 +92,7 @@ func set_portrait(texture: Texture2D) -> void:
 
 
 func set_level(value: int) -> void:
-	if player_hud != null:
+	if player_hud != null and player_hud.has_method("set_level"):
 		player_hud.set_level(value)
 
 

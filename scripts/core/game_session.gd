@@ -111,11 +111,43 @@ func _ready() -> void:
 	reset_session()
 
 
+## Estado de progressão do jogador entre seções do mesmo mapa (ex: Fase 1)
+var current_stage_group: String = "fase1"
+var preserved_health: float = -1.0
+var preserved_special: float = -1.0
+var current_continues: int = 1
+
+
 ## Redefine os dados da sessão para os padrões iniciais
 func reset_session() -> void:
 	selected_character_id = "guilherme"
 	selected_skin_id = "palmeirense"
 	difficulty_id = ""
+	current_continues = 1
+	clear_player_progression()
+
+
+## Salva a vida e especial atuais do jogador para o grupo de mapa corrente
+func save_player_progression(stage_group: String, health: float, special: float) -> void:
+	current_stage_group = stage_group
+	preserved_health = health
+	preserved_special = special
+
+
+## Retorna os valores preservados se pertencerem ao mesmo grupo de mapa
+func get_preserved_player_progression(stage_group: String) -> Dictionary:
+	if current_stage_group == stage_group and preserved_health > 0.0:
+		return {
+			"health": preserved_health,
+			"special": preserved_special
+		}
+	return {}
+
+
+## Limpa os dados de progressão (ao trocar para outro mapa ou reiniciar)
+func clear_player_progression() -> void:
+	preserved_health = -1.0
+	preserved_special = -1.0
 
 
 ## Verifica se o personagem está desbloqueado

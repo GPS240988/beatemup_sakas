@@ -13,6 +13,7 @@ const SpawnPointClass = preload("res://scripts/spawning/spawn_point.gd")
 @export_group("Configuração do Mapa")
 @export var map_name: String = "Fase 1 - Seção 1"
 @export var map_index: int = 1
+@export var map_group: String = "fase1"
 @export var next_map_scene_path: String = ""
 @export var is_final_map: bool = false
 @export var victory_scene_path: String = "res://scenes/ui/credits.tscn"
@@ -108,13 +109,27 @@ func _ready() -> void:
 		player.state_changed.connect(hud.update_player_state)
 		if player.health_component != null:
 			player.health_component.health_changed.connect(hud.update_player_health)
-			player.health_component.died.connect(hud.show_game_over)
+			player.health_component.died.connect(_on_player_died_for_hud)
 			hud.update_player_health(player.health_component.current_health, player.health_component.max_health)
 		hud.on_player_moved(player.global_position, Vector2.ZERO)
 		
 		# Vincula à PlayerHUD arcade oficial
 		if hud.has_method("bind_player"):
 			hud.bind_player(player)
+
+	# Restaura vida e especial do jogador de seções anteriores do mesmo mapa (ex: Fase 1)
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and player != null:
+		var saved_prog = session.get_preserved_player_progression(map_group)
+		if not saved_prog.is_empty():
+			if player.health_component != null and saved_prog.has("health") and saved_prog["health"] > 0.0:
+				player.health_component.current_health = saved_prog["health"]
+				if hud != null:
+					hud.update_player_health(player.health_component.current_health, player.health_component.max_health)
+			if saved_prog.has("special") and "current_special" in player:
+				player.current_special = saved_prog["special"]
+				if player.has_signal("special_changed"):
+					player.special_changed.emit(player.current_special, player.max_special)
 
 	if hud != null:
 		if hud.has_method("set_level"):
@@ -162,18 +177,9 @@ func _on_encounter_cleared() -> void:
 	if exit_area != null:
 		exit_area.monitoring = true
 
-	# 2. Ativa o indicador visual piscante SIGA →
+	# 2. Ativa o indicador visual piscante SIGA → (piscando na tela independente da posição do personagem)
 	if siga_indicator != null:
 		siga_indicator.activate()
-
-	# 3. Notifica a HUD
-	if hud != null and hud.banner_panel != null and hud.banner_label != null:
-		hud.banner_panel.visible = true
-		if _boss_spawned:
-			hud.banner_label.text = "⚔️ ÁREA LIMPA! CHEFÃO DERROTADO!\nSIGA → PARA A PRÓXIMA SEÇÃO"
-		else:
-			hud.banner_label.text = "⚔️ ÁREA LIMPA!\nSIGA → PARA A PRÓXIMA SEÇÃO"
-		hud.banner_label.modulate = Color(0.3, 1.0, 0.4)
 
 
 ## Invoca o Chefe no mapa com aviso na HUD e registro no CombatDirector
@@ -228,6 +234,16 @@ func _advance_to_next_map() -> void:
 	if siga_indicator != null:
 		siga_indicator.deactivate()
 
+	# Salva a vida e energia especial para a próxima seção do mesmo mapa
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and player != null:
+		var cur_hp: float = player.health_component.current_health if player.health_component != null else 100.0
+		var cur_sp: float = player.current_special if "current_special" in player else 0.0
+		if not is_final_map and not next_map_scene_path.is_empty():
+			session.save_player_progression(map_group, cur_hp, cur_sp)
+		else:
+			session.clear_player_progression()
+
 	if is_final_map or next_map_scene_path.is_empty():
 		# Fim do Mapa 4 (Clímax da Fase 1) -> Vitória!
 		if hud != null and hud.banner_panel != null and hud.banner_label != null:
@@ -252,6 +268,14 @@ func _safe_change_scene(scene_path: String) -> void:
 	var err: Error = get_tree().change_scene_to_file(scene_path)
 	if err != OK:
 		printerr("Erro ao transicionar para o mapa '%s': %d" % [scene_path, err])
+
+
+func _on_player_died_for_hud() -> void:
+	if player != null and "current_continues" in player and player.current_continues > 0:
+		# O jogador consumirá a ficha e ressurgirá dos céus (Mecânica Arcade Continue)
+		return
+	if hud != null and hud.has_method("show_game_over"):
+		hud.show_game_over()
 
 
 func _unhandled_input(event: InputEvent) -> void:
