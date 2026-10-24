@@ -2,10 +2,12 @@
 
 [ext_resource type="Script" uid="uid://b2bqunugcp3e6" path="res://scripts/actors/sergio_npc.gd" id="1_sergio_script"]
 [ext_resource type="Texture2D" uid="uid://cxc7kaqjjcc44" path="res://assets/sprites/characters/sergio/walk_sergio.webp" id="2_sergio_tex"]
-[ext_resource type="FontFile" uid="uid://c1s32gg3wbh72" path="res://assets/fonts/arcade_bold.ttf" id="3_font"]
-[ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="4_health"]
-[ext_resource type="SpriteFrames" uid="uid://b7r1edpteyqhv" path="res://scenes/actors/sergio_walk_frames.tres" id="5_walk_frames"]
-[ext_resource type="Texture2D" uid="uid://dl0puhd6wb0sh" path="res://assets/ui/hud/molduras_conversa/balao3.png" id="6_balao3_tex"]
+[ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="3_health"]
+[ext_resource type="SpriteFrames" uid="uid://b7r1edpteyqhv" path="res://scenes/ac   tors/sergio_walk_frames.tres" id="4_walk_frames"]
+[ext_resource type="Texture2D" uid="uid://b3vdgvuunrdqt" path="res://assets/sprites/falas/fala_sergio1.webp" id="5_fala1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/falas/fala_sergio2.webp" id="6_fala2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/falas/fala_sergio3.webp" id="7_fala3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/falas/fala_sergio4.webp" id="8_fala4"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
 height = 48.0
@@ -19,6 +21,7 @@ y_sort_enabled = true
 collision_mask = 2
 motion_mode = 1
 script = ExtResource("1_sergio_script")
+speech_textures = Array[Texture2D]([ExtResource("5_fala1"), ExtResource("6_fala2"), ExtResource("7_fala3"), ExtResource("8_fala4")])
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=292815516]
 position = Vector2(0, -6)
@@ -40,9 +43,10 @@ texture = ExtResource("2_sergio_tex")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual" unique_id=16044864]
 position = Vector2(0, -113)
 scale = Vector2(0.35, 0.35)
-sprite_frames = ExtResource("5_walk_frames")
+sprite_frames = ExtResource("4_walk_frames")
 animation = &"walk"
-autoplay = "walk"
+frame = 3
+frame_progress = 0.5342819
 
 [node name="Hurtbox" type="Area2D" parent="." unique_id=1210019200]
 collision_layer = 4
@@ -54,7 +58,7 @@ position = Vector2(0, -110)
 shape = SubResource("CapsuleShape2D_hurt")
 
 [node name="HealthComponent" type="Node" parent="." unique_id=469074350]
-script = ExtResource("4_health")
+script = ExtResource("3_health")
 max_health = 50.0
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=372594611]
@@ -65,61 +69,9 @@ radius = 16.0
 
 [node name="SpeechBubble" type="Node2D" parent="." unique_id=2078872351]
 z_index = 5
-position = Vector2(0, -220)
+position = Vector2(0, -200)
 
-[node name="PanelContainer" type="Control" parent="SpeechBubble" unique_id=754464306]
-custom_minimum_size = Vector2(340, 140)
-layout_mode = 3
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -170.0
-offset_top = -140.0
-offset_right = 170.0
-grow_horizontal = 2
-grow_vertical = 0
-
-[node name="BalloonTexture" type="TextureRect" parent="SpeechBubble/PanelContainer" unique_id=1928130262]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_right = -7.0
-offset_bottom = 9.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("6_balao3_tex")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="MarginContainer" type="MarginContainer" parent="SpeechBubble/PanelContainer" unique_id=192159502]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -4.0
-offset_top = -22.0
-offset_bottom = -25.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 12
-
-[node name="Label" type="Label" parent="SpeechBubble/PanelContainer/MarginContainer" unique_id=2030023520]
-custom_minimum_size = Vector2(280, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 1
-theme_override_colors/font_color = Color(0.08, 0.08, 0.12, 1)
-theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 13
-text = "Socorro, 
- minha locadora
- foi invadida. Me ajudem"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
+[node name="SpeechSprite" type="Sprite2D" parent="SpeechBubble" unique_id=754464306]
+position = Vector2(95, -55)
+scale = Vector2(0.35, 0.35)
+texture = ExtResource("5_fala1")

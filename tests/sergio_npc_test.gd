@@ -61,7 +61,7 @@ func _run_sergio_tests() -> void:
 	var health_comp: Node = sergio.get_node_or_null("HealthComponent")
 	var nav_agent: NavigationAgent2D = sergio.get_node_or_null("NavigationAgent2D") as NavigationAgent2D
 	var bubble: Node2D = sergio.get_node_or_null("SpeechBubble") as Node2D
-	var label: Label = sergio.get_node_or_null("SpeechBubble/PanelContainer/MarginContainer/Label") as Label
+	var speech_sprite: Sprite2D = sergio.get_node_or_null("SpeechBubble/SpeechSprite") as Sprite2D
 
 	assert_test(visual != null, "Nó Visual presente")
 	assert_test(sprite != null, "Nó Sprite2D presente em Visual")
@@ -70,7 +70,7 @@ func _run_sergio_tests() -> void:
 	assert_test(health_comp != null, "Nó HealthComponent presente")
 	assert_test(nav_agent != null, "Nó NavigationAgent2D presente")
 	assert_test(bubble != null, "Nó SpeechBubble presente")
-	assert_test(label != null, "Nó Label de texto arcade presente no balão")
+	assert_test(speech_sprite != null, "Nó SpeechSprite presente no SpeechBubble")
 
 	root.add_child(sergio)
 	await process_frame
@@ -91,39 +91,25 @@ func _run_sergio_tests() -> void:
 		assert_test(anim_sprite.sprite_frames != null, "AnimatedSprite2D possui SpriteFrames atribuído")
 		assert_test(anim_sprite.sprite_frames.has_animation("walk"), "SpriteFrames possui animação 'walk'")
 
-	# PARTE 3: Balão de Fala Retrô Arcade e Molduras Dinâmicas
-	print("\n--- 3. Validando Caixa de Diálogo Retrô Arcade com Molduras ---")
-	var expected_text: String = "Socorro, minha locadora foi invadida. Me ajudem"
-	assert_test(sergio.dialogue_text == expected_text, "Texto padrão do Sérgio confere rigorosamente com a diretiva")
-	assert_test(label.text == expected_text, "Texto no Label arcade confere rigorosamente")
+	# PARTE 3: Falas em Imagem Pré-Renderizadas (Assets / Sprites / Falas)
+	print("\n--- 3. Validando Falas em Imagem do Sérgio ---")
+	assert_test(sergio.speech_textures.size() == 4, "Sérgio possui exatamente 4 texturas de fala em imagem")
 
-	# Validação do array de frases alternadas
-	assert_test(sergio.dialogue_phrases.size() >= 3, "Sérgio possui pelo menos 3 frases alternadas")
-	assert_test(sergio.dialogue_phrases.has("Socorro, minha locadora foi invadida. Me ajudem"), "Contém frase 1 (locadora)")
-	assert_test(sergio.dialogue_phrases.has("Minha mulher está grávida, nos ajude"), "Contém frase 2 (mulher grávida)")
-	assert_test(sergio.dialogue_phrases.has("Minha veia está entupida, acho que vou infartar"), "Contém frase 3 (veia entupida)")
+	# Valida caminhos dos 4 arquivos webp
+	for i in range(4):
+		var tex: Texture2D = sergio.speech_textures[i]
+		assert_test(tex != null, "Textura de fala %d carregada" % (i + 1))
+		if tex != null:
+			var p: String = tex.resource_path
+			assert_test(p.find("fala_sergio%d" % (i + 1)) != -1, "Textura %d aponta para fala_sergio%d.webp (%s)" % [i + 1, i + 1, p])
 
-	# Validação da moldura dinâmica de balão
-	var balloon_rect: TextureRect = sergio.get_node_or_null("SpeechBubble/PanelContainer/BalloonTexture") as TextureRect
-	assert_test(balloon_rect != null, "TextureRect de balão presente em SpeechBubble")
-	if balloon_rect != null:
-		assert_test(balloon_rect.texture != null, "Balão possui textura carregada")
-		if balloon_rect.texture != null:
-			assert_test(balloon_rect.texture.resource_path.find("molduras_conversa") != -1, "Textura provém de molduras_conversa (%s)" % balloon_rect.texture.resource_path)
-
-	# Testa troca para frase da mulher grávida e ajuste do balão
-	sergio.show_speech_bubble("Minha mulher está grávida, nos ajude")
-	assert_test(label.text == "Minha mulher está grávida, nos ajude", "Label atualizado para frase da mulher grávida")
-	if balloon_rect != null and balloon_rect.texture != null:
-		assert_test(balloon_rect.texture.resource_path.find("balao7") != -1, "Balão 7 selecionado para frase média/longa")
-
-	var font: Font = label.get_theme_font("font")
-	assert_test(font != null, "Fonte tipográfica customizada configurada no Label")
-	if font != null:
-		assert_test(font.resource_path.find("arcade") != -1, "Fonte utilizada é a arcade_bold.ttf (%s)" % font.resource_path)
+	# Testa exibição de cada fala alternada no SpeechSprite
+	for i in range(4):
+		sergio.show_speech_bubble(i)
+		assert_test(speech_sprite.texture == sergio.speech_textures[i], "show_speech_bubble(%d) aplicou textura fala_sergio%d" % [i, i + 1])
+		assert_test(bubble.visible, "Balão de fala visível para fala %d" % (i + 1))
 
 	# Exibição e ocultação do balão
-	assert_test(bubble.visible, "show_speech_bubble() torna o balão visível")
 	assert_test(sergio._is_dialogue_visible, "Flag interna de diálogo marca visibilidade ativa")
 
 	# Simula espelhamento de direção e verifica se balão não inverte
@@ -131,7 +117,7 @@ func _run_sergio_tests() -> void:
 	sergio._update_facing_direction()
 	assert_test(sergio.facing_direction == -1.0, "Sérgio virou para a esquerda (facing_direction == -1.0)")
 	assert_test(visual.scale.x < 0.0, "Visual espelhado para a esquerda")
-	assert_test(bubble.scale.x > 0.0, "Balão de diálogo NÃO espelha (texto legível da esquerda para direita)")
+	assert_test(bubble.scale.x > 0.0, "Balão de diálogo NÃO espelha (imagem legível da esquerda para direita)")
 
 	sergio.hide_speech_bubble()
 	await create_timer(0.2).timeout
