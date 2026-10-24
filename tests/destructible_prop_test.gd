@@ -289,9 +289,9 @@ func _run_destructible_prop_tests() -> void:
 	var took: bool = generic_prop.take_damage(15.0)
 	assert_test(took, "Ataque '%s' aplicou dano com sucesso" % attacker_name)
 
-	# Dano por perigo ambiental
+	# Dano por perigo ambiental (aplica dano letal restante)
 	var hazard_name: String = "ExplosiveHazard"
-	var took_hazard: bool = generic_prop.take_damage(15.0)
+	var took_hazard: bool = generic_prop.take_damage(generic_prop.current_health)
 	assert_test(took_hazard, "Perigo '%s' causou destruição com sucesso" % hazard_name)
 	assert_test(generic_prop.is_prop_destroyed(), "Prop destruído por perigo ambiental desacoplado")
 

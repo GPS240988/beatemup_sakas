@@ -84,11 +84,38 @@ func _run_sergio_tests() -> void:
 	assert_test(sprite.position.y < 0.0, "Sprite projetado acima da origem no solo (Y < 0)")
 	assert_test(col_shape.position.y <= 0.0, "Colisor de contato posicionado na base dos pés")
 
-	# PARTE 3: Balão de Fala Retrô Arcade
-	print("\n--- 3. Validando Caixa de Diálogo Retrô Arcade ---")
+	# Validação da animação de caminhada
+	var anim_sprite: AnimatedSprite2D = sergio.get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
+	assert_test(anim_sprite != null, "Nó AnimatedSprite2D de caminhada presente em Visual")
+	if anim_sprite != null:
+		assert_test(anim_sprite.sprite_frames != null, "AnimatedSprite2D possui SpriteFrames atribuído")
+		assert_test(anim_sprite.sprite_frames.has_animation("walk"), "SpriteFrames possui animação 'walk'")
+
+	# PARTE 3: Balão de Fala Retrô Arcade e Molduras Dinâmicas
+	print("\n--- 3. Validando Caixa de Diálogo Retrô Arcade com Molduras ---")
 	var expected_text: String = "Socorro, minha locadora foi invadida. Me ajudem"
 	assert_test(sergio.dialogue_text == expected_text, "Texto padrão do Sérgio confere rigorosamente com a diretiva")
 	assert_test(label.text == expected_text, "Texto no Label arcade confere rigorosamente")
+
+	# Validação do array de frases alternadas
+	assert_test(sergio.dialogue_phrases.size() >= 3, "Sérgio possui pelo menos 3 frases alternadas")
+	assert_test(sergio.dialogue_phrases.has("Socorro, minha locadora foi invadida. Me ajudem"), "Contém frase 1 (locadora)")
+	assert_test(sergio.dialogue_phrases.has("Minha mulher está grávida, nos ajude"), "Contém frase 2 (mulher grávida)")
+	assert_test(sergio.dialogue_phrases.has("Minha veia está entupida, acho que vou infartar"), "Contém frase 3 (veia entupida)")
+
+	# Validação da moldura dinâmica de balão
+	var balloon_rect: TextureRect = sergio.get_node_or_null("SpeechBubble/PanelContainer/BalloonTexture") as TextureRect
+	assert_test(balloon_rect != null, "TextureRect de balão presente em SpeechBubble")
+	if balloon_rect != null:
+		assert_test(balloon_rect.texture != null, "Balão possui textura carregada")
+		if balloon_rect.texture != null:
+			assert_test(balloon_rect.texture.resource_path.find("molduras_conversa") != -1, "Textura provém de molduras_conversa (%s)" % balloon_rect.texture.resource_path)
+
+	# Testa troca para frase da mulher grávida e ajuste do balão
+	sergio.show_speech_bubble("Minha mulher está grávida, nos ajude")
+	assert_test(label.text == "Minha mulher está grávida, nos ajude", "Label atualizado para frase da mulher grávida")
+	if balloon_rect != null and balloon_rect.texture != null:
+		assert_test(balloon_rect.texture.resource_path.find("balao7") != -1, "Balão 7 selecionado para frase média/longa")
 
 	var font: Font = label.get_theme_font("font")
 	assert_test(font != null, "Fonte tipográfica customizada configurada no Label")
@@ -96,7 +123,6 @@ func _run_sergio_tests() -> void:
 		assert_test(font.resource_path.find("arcade") != -1, "Fonte utilizada é a arcade_bold.ttf (%s)" % font.resource_path)
 
 	# Exibição e ocultação do balão
-	sergio.show_speech_bubble()
 	assert_test(bubble.visible, "show_speech_bubble() torna o balão visível")
 	assert_test(sergio._is_dialogue_visible, "Flag interna de diálogo marca visibilidade ativa")
 
@@ -131,6 +157,24 @@ func _run_sergio_tests() -> void:
 	sergio.global_position = sergio.map_patrol_points[initial_idx]
 	sergio._physics_process(0.05)
 	assert_test(sergio.current_waypoint_index != initial_idx, "Atingir waypoint avança automaticamente para o próximo no circuito")
+
+	# PARTE 5: Parada de Animação ao Colidir com Parede/Obstáculo
+	print("\n--- 5. Validando Parada de Animação em Colisão/Parede ---")
+	# Movimento livre com velocidade acelerada
+	sergio.velocity = Vector2(230.0, 0.0)
+	sergio._update_run_animation(0.016)
+	assert_test(anim_sprite.is_playing() and anim_sprite.animation == "walk", "Em deslocamento livre, animação 'walk' está tocando")
+
+	# Bloqueio em colisão (simula parede onde deslocamento real é bloqueado)
+	sergio.velocity = Vector2.ZERO
+	sergio._update_run_animation(0.016)
+	assert_test(not anim_sprite.is_playing(), "Ao parar na parede/colisão, animação 'walk' pausa/para")
+	assert_test(anim_sprite.frame == 0, "Ao parar, retorna ao frame neutro (repouso no solo)")
+
+	# Retomada após desbloqueio
+	sergio.velocity = Vector2(230.0, 0.0)
+	sergio._update_run_animation(0.016)
+	assert_test(anim_sprite.is_playing(), "Ao desbloquear da parede, animação 'walk' é retomada imediatamente")
 
 	root.remove_child(sergio)
 	sergio.free()

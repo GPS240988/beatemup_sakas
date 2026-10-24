@@ -13,9 +13,16 @@ const SERGIO_TEXTURE: Texture2D = preload("res://assets/sprites/characters/sergi
 
 @export_group("Diálogo Arcade")
 @export var dialogue_text: String = "Socorro, minha locadora foi invadida. Me ajudem"
+@export var dialogue_phrases: Array[String] = [
+	"Socorro, minha locadora foi invadida. Me ajudem",
+	"Minha mulher está grávida, nos ajude",
+	"Minha veia está entupida, acho que vou infartar"
+]
 @export var dialogue_display_duration: float = 3.8
 @export var dialogue_interval: float = 4.2
 @export var auto_dialogue: bool = true
+
+var current_phrase_index: int = 0
 
 @export_group("Patrulha Acelerada no Mapa")
 @export var accelerated_speed: float = 230.0
@@ -40,10 +47,14 @@ var _dialogue_timer: float = 0.0
 var _is_dialogue_visible: bool = false
 var _waypoint_timer: float = 0.0
 var _anim_time: float = 0.0
+var _bubble_tween: Tween = null
 
 @onready var speech_bubble: Node2D = get_node_or_null("SpeechBubble") as Node2D
 @onready var dialogue_label: Label = get_node_or_null("SpeechBubble/PanelContainer/MarginContainer/Label") as Label
+@onready var balloon_texture_rect: TextureRect = get_node_or_null("SpeechBubble/PanelContainer/BalloonTexture") as TextureRect
+@onready var panel_container: Control = get_node_or_null("SpeechBubble/PanelContainer") as Control
 @onready var sprite_node: Sprite2D = get_node_or_null("Visual/Sprite2D") as Sprite2D
+@onready var animated_sprite: AnimatedSprite2D = get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
 
 
 func _ready() -> void:
@@ -58,14 +69,19 @@ func _ready() -> void:
 	if sprite_node != null and sprite_node.texture == null:
 		sprite_node.texture = SERGIO_TEXTURE
 
+	# Inicia animação de caminhada se nó AnimatedSprite2D existir
+	if animated_sprite != null:
+		animated_sprite.play("walk")
+
 	# Inicializa temporizador do balão de fala
 	_dialogue_timer = dialogue_interval * 0.5
 	if speech_bubble != null:
 		speech_bubble.visible = false
 
-	# Garante que o texto oficial esteja atribuído
+	# Garante que o texto oficial esteja atribuído e ajusta balão inicial
 	if dialogue_label != null:
 		dialogue_label.text = dialogue_text
+	_apply_balloon_for_text(dialogue_text)
 
 	# Posiciona Sérgio no waypoint mais próximo ou no primeiro
 	if not map_patrol_points.is_empty():
@@ -77,7 +93,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 
-	# Atualiza ciclo de diálogo retrô de tempos em tempos
+	# Atualiza ciclo de diálogo retrô de tempos em tempos alternando frases
 	_update_dialogue_cycle(delta)
 
 	# Atualiza patrulha acelerada por todo o mapa
@@ -94,7 +110,7 @@ func _physics_process(delta: float) -> void:
 		speech_bubble.scale.x = 1.0
 
 
-## Gerencia o ciclo periódico do balão de fala retrô
+## Gerencia o ciclo periódico do balão de fala retrô com alternância de frases
 func _update_dialogue_cycle(delta: float) -> void:
 	if not auto_dialogue or speech_bubble == null:
 		return
@@ -106,13 +122,18 @@ func _update_dialogue_cycle(delta: float) -> void:
 			hide_speech_bubble()
 			_dialogue_timer = dialogue_interval
 	else:
-		# Aguardando intervalo para reaparecer de tempos em tempos
+		# Aguardando intervalo para reaparecer de tempos em tempos com a próxima frase
 		if _dialogue_timer <= 0.0:
-			show_speech_bubble()
+			if not dialogue_phrases.is_empty():
+				var next_phrase: String = dialogue_phrases[current_phrase_index]
+				current_phrase_index = (current_phrase_index + 1) % dialogue_phrases.size()
+				show_speech_bubble(next_phrase)
+			else:
+				show_speech_bubble()
 			_dialogue_timer = dialogue_display_duration
 
 
-## Exibe a caixa de diálogo retrô com animação pop e efeito visual
+## Exibe a caixa de diálogo retrô com animação pop e modelo de balão dinâmico
 func show_speech_bubble(text_to_show: String = "") -> void:
 	if speech_bubble == null:
 		return
@@ -120,17 +141,90 @@ func show_speech_bubble(text_to_show: String = "") -> void:
 	if text_to_show != "":
 		dialogue_text = text_to_show
 
+	# Aplica o balão dinâmico conforme o tamanho da frase
+	_apply_balloon_for_text(dialogue_text)
+
 	if dialogue_label != null:
 		dialogue_label.text = dialogue_text
 
 	speech_bubble.visible = true
 	_is_dialogue_visible = true
 
+	if _bubble_tween != null and _bubble_tween.is_valid():
+		_bubble_tween.kill()
+
 	# Micro-animação pop retrô de escala (0.7 -> 1.0)
 	speech_bubble.scale = Vector2(0.7, 0.7)
-	var tween: Tween = create_tween()
-	if tween != null:
-		tween.tween_property(speech_bubble, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_bubble_tween = create_tween()
+	if _bubble_tween != null:
+		_bubble_tween.tween_property(speech_bubble, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Seleciona e ajusta o modelo de balão com base no tamanho da frase
+func _apply_balloon_for_text(text: String) -> void:
+	var path: String = _get_balloon_path_for_text(text)
+	if balloon_texture_rect != null and ResourceLoader.exists(path):
+		var tex: Texture2D = load(path) as Texture2D
+		if tex != null:
+			balloon_texture_rect.texture = tex
+
+	if panel_container != null:
+		var target_w: float = 340.0
+		var target_h: float = 140.0
+		var length: int = text.length()
+		if length <= 22:
+			target_w = 230.0
+			target_h = 130.0
+		elif length <= 30:
+			target_w = 270.0
+			target_h = 135.0
+		elif length <= 38:
+			target_w = 320.0
+			target_h = 140.0
+		elif length <= 52:
+			target_w = 360.0
+			target_h = 145.0
+		else:
+			target_w = 420.0
+			target_h = 150.0
+		panel_container.custom_minimum_size = Vector2(target_w, target_h)
+		panel_container.size = Vector2(target_w, target_h)
+		panel_container.offset_left = -target_w * 0.5
+		panel_container.offset_right = target_w * 0.5
+		panel_container.offset_top = -target_h
+		panel_container.offset_bottom = 0.0
+
+		if balloon_texture_rect != null:
+			balloon_texture_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var margin_c: MarginContainer = panel_container.get_node_or_null("MarginContainer") as MarginContainer
+		if margin_c != null:
+			margin_c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			margin_c.offset_bottom = -25.0
+		if dialogue_label != null:
+			dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			dialogue_label.custom_minimum_size = Vector2(target_w - 55.0, 0.0)
+
+
+## Retorna o caminho do arquivo de balão ideal para a quantidade de caracteres
+func _get_balloon_path_for_text(text: String) -> String:
+	var length: int = text.length()
+	if length <= 20:
+		return "res://assets/ui/hud/molduras_conversa/balao5.png"
+	elif length <= 26:
+		return "res://assets/ui/hud/molduras_conversa/balao2.png"
+	elif length <= 32:
+		return "res://assets/ui/hud/molduras_conversa/balao1.png"
+	elif length <= 38:
+		# Ex: 'Minha mulher está grávida, nos ajude' (36 caracteres)
+		return "res://assets/ui/hud/molduras_conversa/balao7.png"
+	elif length <= 52:
+		# Ex: 'Socorro, minha locadora foi invadida. Me ajudem' (47 caracteres)
+		# Ex: 'Minha veia está entupida, acho que vou infartar' (47 caracteres)
+		return "res://assets/ui/hud/molduras_conversa/balao3.png"
+	elif length <= 68:
+		return "res://assets/ui/hud/molduras_conversa/balao4.png"
+	else:
+		return "res://assets/ui/hud/molduras_conversa/balao8.png"
 
 
 ## Oculta a caixa de diálogo retrô
@@ -138,10 +232,13 @@ func hide_speech_bubble() -> void:
 	if speech_bubble == null:
 		return
 
-	var tween: Tween = create_tween()
-	if tween != null:
-		tween.tween_property(speech_bubble, "scale", Vector2(0.7, 0.7), 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tween.tween_callback(func() -> void:
+	if _bubble_tween != null and _bubble_tween.is_valid():
+		_bubble_tween.kill()
+
+	_bubble_tween = create_tween()
+	if _bubble_tween != null:
+		_bubble_tween.tween_property(speech_bubble, "scale", Vector2(0.7, 0.7), 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		_bubble_tween.tween_callback(func() -> void:
 			if speech_bubble != null:
 				speech_bubble.visible = false
 				speech_bubble.scale = Vector2.ONE
@@ -189,22 +286,32 @@ func _select_closest_or_next_waypoint() -> void:
 	target_position = map_patrol_points[current_waypoint_index]
 
 
-## Animação orgânica de corrida acelerada
+## Animação orgânica de corrida acelerada (pausa automaticamente se bloqueado em colisores)
 func _update_run_animation(delta: float) -> void:
 	if visual_root == null:
 		return
 
-	var speed_sq: float = velocity.length_squared()
-	if speed_sq > 400.0:
+	# Verifica velocidade pretendida e deslocamento físico real no mundo (pós move_and_slide)
+	var intended_speed_sq: float = velocity.length_squared()
+	var real_speed_sq: float = get_real_velocity().length_squared()
+	var is_blocked: bool = is_on_wall() and real_speed_sq < 100.0
+
+	if intended_speed_sq > 400.0 and not is_blocked:
+		if animated_sprite != null and not animated_sprite.is_playing():
+			animated_sprite.play("walk")
+
 		_anim_time += delta * 18.0
 		# Pulo/trote dinâmico nos passos
-		visual_root.position.y = -absf(sin(_anim_time)) * 6.0
-		# Leve inclinação lateral de quem corre em desespero
-		visual_root.rotation = sin(_anim_time * 0.5) * 0.05
+		visual_root.position.y = -absf(sin(_anim_time)) * 4.0
 		# Leve flutuação suave no balão
 		if speech_bubble != null and _is_dialogue_visible:
 			speech_bubble.position.y = -255.0 + sin(_anim_time * 0.8) * 3.0
 	else:
+		# Bloqueado em uma parede/colisor ou parado: pausa a caminhada e apoia pés no solo
+		if animated_sprite != null and animated_sprite.is_playing():
+			animated_sprite.pause()
+			animated_sprite.set_frame_and_progress(0, 0.0)
+
 		visual_root.position.y = move_toward(visual_root.position.y, 0.0, delta * 30.0)
 		visual_root.rotation = move_toward(visual_root.rotation, 0.0, delta * 2.0)
 		if speech_bubble != null:

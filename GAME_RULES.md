@@ -232,9 +232,15 @@ MapX (Node2D, script: base_level.gd)
 - **Throttling de Pathfinding**: Navegação via `NavigationAgent2D` com intervalo mínimo obrigatório de `PATHFIND_MIN_INTERVAL = 0.25s`, prevenindo sobrecarga de CPU por spam de rotas.
 - **NPC Especial Sérgio (`SergioNPC` — Fase 1-1 / `map_1.tscn`)**:
   - **Identidade e Cena**: `scenes/actors/sergio_npc.tscn` (script: `scripts/actors/sergio_npc.gd`).
-  - **Sprite e Dimensões**: `assets/sprites/characters/sergio.webp` (220×300px nativos, `scale = Vector2(0.8, 0.8)`, pés estritamente em `(0, 0)`, sombra e colisor na base).
+  - **Sprite e Animação de Caminhada**: `AnimatedSprite2D` em `Visual` animado em 4 quadros (`assets/sprites/characters/sergio/walk_sergio.webp` via `scenes/actors/sergio_walk_frames.tres`, `scale = Vector2(0.28, 0.28)` com pés estritamente em `(0, 0)`, sombra e colisor na base).
   - **Patrulha Acelerada**: Percorre ativamente todos os setores da malha navegável (`NavigationRegion2D` / `map_1_navpoly.tres`) com `run_speed = 230.0 px/s` e circuito contínuo de 9 waypoints.
-  - **Balão de Diálogo Retrô Arcade**: Exibe de tempos em tempos a mensagem *"Socorro, minha locadora foi invadida. Me ajudem"* na tipografia `arcade_bold.ttf`, contida em caixa de diálogo com paleta Dark Base (`#060A14`), moldura ouro arcade (`#FFD700`), brilho neon e orientação visual travada (zero espelhamento do texto ao mudar de direção).
+  - **Balões de Conversa Dinâmicos (`assets/ui/hud/molduras_conversa/`)**: Falas dentro de balões adaptados proporcionalmente ao comprimento da frase (`balao1.png` a `balao8.png`), com fundo sólido, contorno preto e tipografia arcade (`arcade_bold.ttf`).
+  - **Ciclo de Frases Alternadas**: Alterna ciclicamente enquanto corre pelo mapa:
+    1. *"Socorro, minha locadora foi invadida. Me ajudem"* (`balao3.png`)
+    2. *"Minha mulher está grávida, nos ajude"* (`balao7.png`)
+    3. *"Minha veia está entupida, acho que vou infartar"* (`balao3.png`)
+    - Reação a dano: *"SOCORRO!! NÃO ME BATA, MINHA LOCADORA FOI INVASÃO!"* (`balao4.png`).
+  - **Orientação de Leitura**: Orientação visual travada (`speech_bubble.scale.x = 1.0`), garantindo zero espelhamento do texto ou do balão quando o ator vira para a esquerda.
 
 ---
 
@@ -433,13 +439,16 @@ MapX (Node2D, script: base_level.gd)
 1. **Obrigatoriedade de Testes**: Toda funcionalidade nova ou refatoração estrutural deve ser acompanhada de uma suíte automatizada de testes headless.
 2. **Proibição de Declaração sem Execução**: Nenhum teste pode ser considerado válido sem a execução efetiva do comando no motor e validação do código de saída (`exit code 0`).
 3. **Sem Retornos Silenciosos**: Testes não podem conter cláusulas `return` prematuras que encerrem a rotina sem contabilizar asserções (`assert_test()`).
+4. **Estratégia de Otimização de Tokens (Testes Focados vs. Regressão Global)**:
+   - Em iterações pontuais via conversa natural, execute **exclusivamente a suíte focada no componente alterado** (ex.: `player_hud_test.gd` para UI de HUD, `sergio_npc_test.gd` para NPC, etc.). Isso evita despejo de milhares de linhas de log no contexto e reduz o consumo de tokens em mais de 90%.
+   - A bateria completa de 21 suítes (`tests/run_all_tests.ps1`) é reservada para entregas de marcos arquiteturais, pipelines de CI ou quando expressamente solicitada pelo usuário.
 
 ---
 
 ## 24. HEADLESS TEST RULES
 `STATUS: IMPLEMENTED`
 
-1. **Execução Headless Oficial**: Os testes são executados através do binário de console do Godot Engine:
+1. **Execução Headless Oficial Focada**: Os testes individuais são executados diretamente através do binário de console do Godot Engine:
    ```powershell
    godot_console.exe --headless -s tests/<nome_do_teste>.gd
    ```
@@ -450,7 +459,7 @@ MapX (Node2D, script: base_level.gd)
 ## 25. CI/CD RULES
 `STATUS: IMPLEMENTED`
 
-1. **Bateria Completa de Testes**: A saúde do projeto é auditada pelo runner automatizado `tests/run_all_tests.ps1`, abrangendo atualmente **21 suítes completas**:
+1. **Bateria Completa de Regressão**: A integridade global do projeto é auditada pelo runner automatizado `tests/run_all_tests.ps1`, abrangendo atualmente **21 suítes completas**:
    - `tests/map_structure_test.gd`
    - `tests/prop_contracts_test.gd`
    - `tests/actor_contracts_test.gd`
@@ -472,7 +481,7 @@ MapX (Node2D, script: base_level.gd)
    - `tests/player_hud_test.gd`
    - `tests/arcade_hud_refinement_test.gd`
    - `tests/sergio_npc_test.gd`
-2. **Critério de Bloqueio**: O pipeline de CI e qualquer gate de entrega exige **100% de aprovação (0 falhas)** nas 21 suítes.
+2. **Critério de Bloqueio**: O pipeline de CI e fechamentos de versão exigem **100% de aprovação (0 falhas)** nas 21 suítes.
 3. **Política de Git**: Commits atômicos e padronizados por categoria (`arch:`, `test:`, `perf:`, `docs:`).
 
 
@@ -592,8 +601,8 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 [x] Referências de nós dinâmicas e desacopladas (sem caminhos rígidos)
 [x] Camadas e máscaras de colisão verificadas (Layers 1 a 5)
 [x] Malha e agentes de navegação verificados (sem rebuild global em runtime)
-[x] Testes headless executados com 100% de sucesso
-[x] Bateria de regressão completa (21 suítes) executada sem falhas
+[x] Testes headless focados do componente executados com 100% de sucesso
+[x] Bateria de regressão completa (21 suítes) executada sem falhas (para marcos/releases)
 [x] Auditoria de performance a 60 FPS aprovada (desktop e mobile)
 [x] Nenhuma regressão conhecida em combate, IA, mapas ou UI
 [x] GAME_RULES.md atualizado refletindo estritamente a realidade do código

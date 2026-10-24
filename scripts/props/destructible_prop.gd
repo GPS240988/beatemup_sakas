@@ -39,13 +39,17 @@ signal prop_destroyed()
 
 @export_group("Atributos do Prop")
 @export var prop_name: String = "Caixa de Madeira"
-@export var max_health: float = 30.0
+@export var max_health: float = 50.0
 @export var is_destructible: bool = true
 @export var drops_item: bool = false
 @export var drop_item_scene: PackedScene = null
 
+@export_group("Texturas de Dano por Estágio (Opcional)")
+## Lista de texturas em ordem sequencial de avaria (ex: games1, games2, games3, games4)
+@export var damage_stage_textures: Array[Texture2D] = []
+
 var current_state: PropState = PropState.ACTIVE
-var current_health: float = 30.0
+var current_health: float = 50.0
 var is_broken: bool = false
 var is_destroyed: bool = false
 
@@ -86,6 +90,9 @@ func _ready() -> void:
 		visual_intact.visible = true
 	if visual_broken != null:
 		visual_broken.visible = false
+
+	if not damage_stage_textures.is_empty():
+		_update_damage_stage_visual()
 
 	_setup_health_component()
 
@@ -190,6 +197,8 @@ func _transition_to_damaged() -> void:
 		return
 	current_state = PropState.DAMAGED
 	state_changed.emit(current_state)
+	if not damage_stage_textures.is_empty():
+		_update_damage_stage_visual()
 	_play_impact_effect()
 
 
@@ -237,7 +246,9 @@ func destroy_prop() -> void:
 	_spawn_drop()
 
 	# 6. Atualização visual desacoplada
-	if visual_intact != null and visual_broken != null:
+	if not damage_stage_textures.is_empty():
+		_update_damage_stage_visual()
+	elif visual_intact != null and visual_broken != null:
 		visual_intact.visible = false
 		visual_broken.visible = true
 	elif visual_root != null:
@@ -252,15 +263,22 @@ func destroy_prop() -> void:
 
 ## Toca efeitos visuais e sonoros de impacto (se disponíveis)
 func _play_impact_effect() -> void:
-	if effects == null:
-		return
-	var sound: AudioStreamPlayer2D = effects.get_node_or_null("ImpactSound") as AudioStreamPlayer2D
-	if sound != null and not sound.playing:
-		sound.play()
-	var particles: CPUParticles2D = effects.get_node_or_null("ImpactParticles") as CPUParticles2D
-	if particles != null:
-		particles.restart()
-		particles.emitting = true
+	if effects != null:
+		var sound: AudioStreamPlayer2D = effects.get_node_or_null("ImpactSound") as AudioStreamPlayer2D
+		if sound != null and not sound.playing:
+			sound.play()
+		var particles: CPUParticles2D = effects.get_node_or_null("ImpactParticles") as CPUParticles2D
+		if particles != null:
+			particles.restart()
+			particles.emitting = true
+
+	# Micro tremor visual ao sofrer impacto (Dark Premium Medieval / Arcade feel)
+	if visual_root != null and is_inside_tree():
+		var orig_pos := visual_root.position
+		var tween := create_tween()
+		if tween != null:
+			tween.tween_property(visual_root, "position", orig_pos + Vector2(randf_range(-2.5, 2.5), randf_range(-1.5, 1.5)), 0.04)
+			tween.tween_property(visual_root, "position", orig_pos, 0.04)
 
 
 ## Toca efeitos visuais e sonoros de destruição (se disponíveis)
@@ -310,10 +328,57 @@ func reset_prop() -> void:
 	elif visual_root != null:
 		visual_root.visible = true
 
+	if not damage_stage_textures.is_empty():
+		_update_damage_stage_visual()
+
 	if health_component != null and health_component.has_method("reset"):
 		health_component.reset()
 
 	state_changed.emit(current_state)
+
+
+func _resolve_stage_sprite() -> Sprite2D:
+	if visual_root == null:
+		return null
+	var sprite := visual_root.get_node_or_null("Sprite2D") as Sprite2D
+	if sprite != null:
+		return sprite
+	for child in visual_root.get_children():
+		if child is Sprite2D:
+			return child as Sprite2D
+		if child is Node2D:
+			for subchild in child.get_children():
+				if subchild is Sprite2D:
+					return subchild as Sprite2D
+	return null
+
+
+func _update_damage_stage_visual() -> void:
+	if damage_stage_textures.is_empty():
+		return
+	var sprite := _resolve_stage_sprite()
+	if sprite == null:
+		return
+
+	var total_stages := damage_stage_textures.size()
+	var target_index := 0
+
+	if current_state == PropState.DESTROYED or current_state == PropState.DESTROYING or is_destroyed or current_health <= 0.0:
+		target_index = total_stages - 1
+	elif current_state == PropState.ACTIVE or current_health >= max_health:
+		target_index = 0
+	else:
+		var damage_ratio: float = clampf(1.0 - (current_health / maxf(1.0, max_health)), 0.0, 1.0)
+		target_index = clampi(int(floor(damage_ratio * float(total_stages - 1))), 0, total_stages - 1)
+		if target_index == 0 and total_stages > 1:
+			target_index = 1
+
+	if target_index >= 0 and target_index < total_stages and damage_stage_textures[target_index] != null:
+		sprite.texture = damage_stage_textures[target_index]
+
+	var shadow := visual_root.get_node_or_null("Shadow") as CanvasItem
+	if shadow != null:
+		shadow.visible = (target_index < total_stages - 1)
 
 
 ## Consultas de estado

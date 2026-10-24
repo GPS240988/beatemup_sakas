@@ -1,118 +1,125 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene format=3 uid="uid://bm5qsuqs2ao8t"]
 
-[ext_resource type="Script" path="res://scripts/actors/sergio_npc.gd" id="1_sergio_script"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/sergio.webp" id="2_sergio_tex"]
-[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="3_font"]
-[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4_health"]
+[ext_resource type="Script" uid="uid://b2bqunugcp3e6" path="res://scripts/actors/sergio_npc.gd" id="1_sergio_script"]
+[ext_resource type="Texture2D" uid="uid://cxc7kaqjjcc44" path="res://assets/sprites/characters/sergio/walk_sergio.webp" id="2_sergio_tex"]
+[ext_resource type="FontFile" uid="uid://c1s32gg3wbh72" path="res://assets/fonts/arcade_bold.ttf" id="3_font"]
+[ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="4_health"]
+[ext_resource type="SpriteFrames" uid="uid://b7r1edpteyqhv" path="res://scenes/actors/sergio_walk_frames.tres" id="5_walk_frames"]
+[ext_resource type="Texture2D" uid="uid://dl0puhd6wb0sh" path="res://assets/ui/hud/molduras_conversa/balao3.png" id="6_balao3_tex"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
-radius = 10.0
 height = 48.0
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_hurt"]
 radius = 24.0
 height = 180.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_retro_bubble"]
-bg_color = Color(0.04, 0.06, 0.12, 0.94)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.85, 0.2, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-shadow_color = Color(1, 0.75, 0.1, 0.45)
-shadow_size = 8
-
-[node name="SergioNPC" type="CharacterBody2D" groups=["actors", "damageable", "npcs"]]
+[node name="SergioNPC" type="CharacterBody2D" unique_id=868306597 groups=["actors", "damageable", "npcs"]]
 y_sort_enabled = true
-collision_layer = 1
 collision_mask = 2
 motion_mode = 1
 script = ExtResource("1_sergio_script")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=292815516]
 position = Vector2(0, -6)
 rotation = 1.5707963
 shape = SubResource("CapsuleShape2D_feet")
 
-[node name="Visual" type="Node2D" parent="."]
+[node name="Visual" type="Node2D" parent="." unique_id=1177880936]
 
-[node name="Shadow" type="Polygon2D" parent="Visual"]
+[node name="Shadow" type="Polygon2D" parent="Visual" unique_id=2107851946]
 color = Color(0.08, 0.08, 0.12, 0.5)
 polygon = PackedVector2Array(-36, 0, -26, -8, 0, -12, 26, -8, 36, 0, 26, 8, 0, 12, -26, 8)
 
-[node name="Sprite2D" type="Sprite2D" parent="Visual"]
-position = Vector2(0, -120)
-scale = Vector2(0.8, 0.8)
+[node name="Sprite2D" type="Sprite2D" parent="Visual" unique_id=16044863]
+visible = false
+position = Vector2(0, -113)
+scale = Vector2(0.35, 0.35)
 texture = ExtResource("2_sergio_tex")
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual" unique_id=16044864]
+position = Vector2(0, -113)
+scale = Vector2(0.35, 0.35)
+sprite_frames = ExtResource("5_walk_frames")
+animation = &"walk"
+autoplay = "walk"
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1210019200]
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=63447838]
 position = Vector2(0, -110)
 shape = SubResource("CapsuleShape2D_hurt")
 
-[node name="HealthComponent" type="Node" parent="."]
+[node name="HealthComponent" type="Node" parent="." unique_id=469074350]
 script = ExtResource("4_health")
 max_health = 50.0
 
-[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=372594611]
 path_desired_distance = 15.0
 target_desired_distance = 25.0
 avoidance_enabled = true
 radius = 16.0
 
-[node name="SpeechBubble" type="Node2D" parent="."]
+[node name="SpeechBubble" type="Node2D" parent="." unique_id=2078872351]
 z_index = 5
-position = Vector2(0, -255)
+position = Vector2(0, -220)
 
-[node name="PanelContainer" type="PanelContainer" parent="SpeechBubble"]
+[node name="PanelContainer" type="Control" parent="SpeechBubble" unique_id=754464306]
+custom_minimum_size = Vector2(340, 140)
+layout_mode = 3
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -175.0
-offset_top = -48.0
-offset_right = 175.0
-offset_bottom = 0.0
+offset_left = -170.0
+offset_top = -140.0
+offset_right = 170.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_retro_bubble")
 
-[node name="MarginContainer" type="MarginContainer" parent="SpeechBubble/PanelContainer"]
-layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 8
+[node name="BalloonTexture" type="TextureRect" parent="SpeechBubble/PanelContainer" unique_id=1928130262]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -7.0
+offset_bottom = 9.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("6_balao3_tex")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Label" type="Label" parent="SpeechBubble/PanelContainer/MarginContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="SpeechBubble/PanelContainer" unique_id=192159502]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = -22.0
+offset_bottom = -25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="Label" type="Label" parent="SpeechBubble/PanelContainer/MarginContainer" unique_id=2030023520]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.08, 0.08, 0.12, 1)
 theme_override_fonts/font = ExtResource("3_font")
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(1, 0.98, 0.85, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
-theme_override_colors/font_outline_color = Color(0.12, 0.04, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-text = "Socorro, minha locadora foi invadida. Me ajudem"
+theme_override_font_sizes/font_size = 13
+text = "Socorro, 
+ minha locadora
+ foi invadida. Me ajudem"
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="Tail" type="Polygon2D" parent="SpeechBubble"]
-position = Vector2(0, 0)
-color = Color(1, 0.85, 0.2, 1)
-polygon = PackedVector2Array(-8, 0, 8, 0, 0, 10)
-
-[node name="TailInner" type="Polygon2D" parent="SpeechBubble/Tail"]
-color = Color(0.04, 0.06, 0.12, 0.94)
-polygon = PackedVector2Array(-6, 0, 6, 0, 0, 7)
+autowrap_mode = 3
