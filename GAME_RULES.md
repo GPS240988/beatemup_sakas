@@ -141,6 +141,7 @@ MapX (Node2D, script: base_level.gd)
 - **Ancoragem Espacial Obrigatória (Pés em `0, 0`)**:
   - A origem local `(0, 0)` representa o ponto exato de contato dos pés com o chão.
   - A representação gráfica (`Visual`) projeta-se estritamente para cima (`Y < 0`).
+  - **Alinhamento de Chão para Poses Deitadas**: Sprites deitados (`death`, `fall_03`, `getup`) devem ter os pixels de contato tangenciando a base do canvas sem vazios verticais inferiores, assegurando que o corpo descanse diretamente sobre a linha $Y = 0$ e a sombra projetada.
   - O colisor físico de pés (`CollisionShape2D`) abrange apenas a base de contato no solo.
 - **Camadas Físicas**: `collision_layer = 1` (Atores) e `collision_mask = 2` (Mundo Sólido e Mobílias). Atores não colidem fisicamente entre si para evitar travamento mútuo em corredores estreitos.
 - **Localização Canônica**: Devem residir obrigatoriamente dentro de `World/Actors/` (`Player`, `Enemies` ou `NPCs`).
@@ -204,7 +205,7 @@ MapX (Node2D, script: base_level.gd)
   - `FALL`: Projeção ao solo impulsionada por knockback ao receber finalizadores ou golpes especiais.
   - `DOWNED`: Caído no chão temporariamente imobilizado (0.35s).
   - `GETUP`: Retorno gradual ao solo e levantamento (0.28s) antes de voltar para `FLANKING`.
-  - `DEAD`: Derrota com desligamento de colisores e aviso ao `CombatDirector`.
+  - `DEAD`: Derrota com desligamento imediato de colisores físicos e Hurtbox, aviso ao `CombatDirector`, emissão de poeira (`CombatFeedback.spawn_dust`) e sequência canônica arcade de piscar (`modulate:a`) por 1.2s antes de sumir com `queue_free()`, preparando o fluxo limpo de respawn.
 - **Resistência de Chefes**:
   - `BossAlessandro` possui poise arcade: não sofre queda em golpes normais, apenas em Golpes Especiais globais.
 - **Prevenção de Starvation e Retenção**: `chase_timeout_seconds` (3.5s em capangas; 4.0s no chefe) força o inimigo a liberar o token caso não consiga desferir o golpe a tempo.
@@ -260,7 +261,10 @@ MapX (Node2D, script: base_level.gd)
 - **Sistema Reutilizável de Feedback Audiovisual (`CombatFeedback`)**:
   - **Hitstop Local**: Pausa de física e visual local do atacante e vítima (3 a 6 frames) sem congelar a árvore nem travar HUD/Mobile.
   - **Screen Shake**: Tremor suave e amortecido de câmera nos golpes pesados, finalizadores e especial.
-  - **Faíscas e Partículas (CPUParticles2D)**: Faíscas direcionais amigáveis a mobile respeitando a orientação do golpe.
+  - **Faíscas e Partículas (CPUParticles2D + AnimatedSprite2D)**: Faíscas em Pixel Art HD (`impacto`, `impactoazul`, `combinado`) combinadas com partículas direcionais de alta velocidade e poeira de solo (`poeira`).
+  - **Padronização da Altura de Impacto**: Golpes e faíscas NUNCA devem ser instanciados nos pés/canelas ($Y = -35$ a $-40$). A altura canônica do impacto de combate situa-se no tronco/peito do alvo:
+    - Preferencial: `target_hurtbox.global_position` (quando o alvo possuir nó `Hurtbox`).
+    - Fallback: `target.global_position + Vector2(0.0, -85.0)` (e $Y = -90.0$ para impactos de guarda).
 - **Vitória do Encontro (`encounter_cleared`)**:
   - Ocorre estritamente quando `alive_enemies.is_empty()` **E** `pending_spawns_count == 0` **E** não houver chefe configurado pendente de spawn.
 
@@ -531,6 +535,36 @@ MapX (Node2D, script: base_level.gd)
    - Instanciar a cena base `destructible_prop.tscn`, configurar `max_health`, sprites em `Visual` e cena de drop opcional.
 5. **Novo Gatilho de Nível (`Trigger.tscn`)**:
    - Instanciar `LevelEventTrigger`, configurar `event_id`, máscara Layer 1 e conectar sinal `triggered`.
+
+---
+
+## 29. PALETTE SWAP SYSTEM (ENEMY VISUAL VARIANTS)
+`STATUS: IMPLEMENTED`
+
+### Propósito
+Permite diferenciar visualmente inimigos do mesmo tipo (ex: Jogador de Magic) sem regenerar sprites. Utiliza um **CanvasItem Shader de Hue Shift seletivo** que rotaciona a matiz de uma faixa de cor alvo (casaco azul ≈ 220°) preservando pele, cabelo, calça e botas intactos.
+
+### Arquivos
+- **Shader**: `shaders/palette_swap.gdshader` — Shader com parâmetros `hue_shift`, `target_hue`, `hue_tolerance`, `min_saturation`, `saturation_adjust`, `value_adjust`.
+- **Integração**: `scripts/actors/enemy_ai.gd` — Enum `PaletteVariant`, `@export palette_variant`, métodos `_apply_palette_swap()` e `set_palette()`.
+- **SpawnPoint**: `scripts/spawning/spawn_point.gd` — `@export enemy_palette_variant: int` para injeção de paleta no spawn.
+
+### Variantes Disponíveis (`EnemyAI.PaletteVariant`)
+| Enum | Valor | Hue Shift | Cor Resultante |
+|------|:-----:|:---------:|----------------|
+| `ORIGINAL` | 0 | 0° | Azul original (sem shader) |
+| `RED` | 1 | 140° | Casaco vermelho |
+| `GREEN` | 2 | 260° | Casaco verde |
+| `PURPLE` | 3 | 80° | Casaco roxo/magenta |
+| `ORANGE` | 4 | 170° | Casaco laranja |
+| `CYAN` | 5 | 320° | Casaco ciano/turquesa |
+| `RANDOM` | 6 | Sorteio | Variante aleatória ao spawnar |
+
+### Regras
+1. **Performance**: Variante `ORIGINAL` não aplica shader (zero custo de GPU extra).
+2. **Instância Única**: Cada inimigo recebe um `ShaderMaterial` próprio para permitir variações individuais na mesma cena.
+3. **SpawnPoint Integration**: O campo `enemy_palette_variant` no SpawnPoint injeta a paleta antes de `_ready()`. Valor `-1` = usa o padrão da cena.
+4. **Runtime API**: `set_palette(PaletteVariant)` altera a paleta em tempo de execução (buffs visuais, eventos).
 
 ---
 

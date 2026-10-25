@@ -297,7 +297,12 @@ func _try_hit_target(node: Node) -> void:
 
 	if applied:
 		CombatFeedbackClass.apply_hitstop(_owner_actor, target_actor, hitstop_duration)
-		CombatFeedbackClass.spawn_hit_spark(self, target_pos + Vector2(0, -35), Vector2(facing_direction, 0), impact_profile)
+		# Posiciona o impacto na altura anatômica do tronco/peito do alvo
+		var spark_pos: Vector2 = target_pos + Vector2(0.0, -85.0)
+		var target_hurtbox: Area2D = target_actor.get_node_or_null("Hurtbox") as Area2D
+		if target_hurtbox != null:
+			spark_pos = target_hurtbox.global_position
+		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(facing_direction, 0), impact_profile)
 		if impact_profile in ["heavy", "finisher", "special"]:
 			CombatFeedbackClass.trigger_screen_shake(self, 6.0, 0.22)
 		target_hit.emit(target_actor, damage)

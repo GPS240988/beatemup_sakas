@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://b2bqunugcp3e6" path="res://scripts/actors/sergio_npc.gd" id="1_sergio_script"]
 [ext_resource type="Texture2D" uid="uid://cxc7kaqjjcc44" path="res://assets/sprites/characters/sergio/walk_sergio.webp" id="2_sergio_tex"]
 [ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="3_health"]
-[ext_resource type="SpriteFrames" uid="uid://b7r1edpteyqhv" path="res://scenes/ac   tors/sergio_walk_frames.tres" id="4_walk_frames"]
+[ext_resource type="SpriteFrames" uid="uid://b7r1edpteyqhv" path="res://scenes/actors/sergio_walk_frames.tres" id="4_walk_frames"]
 [ext_resource type="Texture2D" uid="uid://b3vdgvuunrdqt" path="res://assets/sprites/falas/fala_sergio1.webp" id="5_fala1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/falas/fala_sergio2.webp" id="6_fala2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/falas/fala_sergio3.webp" id="7_fala3"]

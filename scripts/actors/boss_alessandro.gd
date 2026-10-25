@@ -5,7 +5,6 @@ extends EnemyAI
 ## Utiliza os sprites oficiais em 250x330, inteligência artificial aprimorada com
 ## alternância entre socos, chutes e combos pesados, e barra de vida de Chefe.
 
-@onready var anim_sprite: AnimatedSprite2D = $Visual/AnimatedSprite2D
 @onready var boss_name_label: Label = $Visual/BossNameLabel
 
 var _attack_variant: int = 0

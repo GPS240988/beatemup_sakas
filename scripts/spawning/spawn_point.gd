@@ -20,6 +20,10 @@ signal spawned(entity: Node)
 @export var default_scene: PackedScene = null
 @export var is_active: bool = true
 
+## Variante de paleta de cores a aplicar nos inimigos spawnados neste ponto.
+## -1 = usar o padrão da cena; 0 = ORIGINAL; 6 = RANDOM; 1-5 = variantes específicas.
+@export_range(-1, 6) var enemy_palette_variant: int = -1
+
 
 func _ready() -> void:
 	add_to_group("spawn_points")
@@ -40,6 +44,10 @@ func spawn(scene_to_spawn: PackedScene = null, target_parent: Node = null) -> No
 	var instance: Node = scene.instantiate()
 	if instance == null:
 		return null
+
+	# Aplica variante de paleta se configurada neste SpawnPoint
+	if enemy_palette_variant >= 0 and instance.has_method("set_palette"):
+		instance.set("palette_variant", enemy_palette_variant)
 
 	if instance is Node2D:
 		(instance as Node2D).global_position = global_position

@@ -51,11 +51,54 @@ static func trigger_screen_shake(context_node: Node, intensity: float = 8.0, dur
 	tween.tween_property(camera, "offset", original_offset, step_time * 0.5)
 
 
-## Gera partículas de impacto direcionais (CPUParticles2D - 100% amigável a mobile)
+## Gera partículas de impacto direcionais (CPUParticles2D) e efeitos visuais animados (Pixel Art HD)
 static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, profile: String = "punch") -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
 
+	# 1. Faíscas animadas em Pixel Art HD dos Beat 'em Ups clássicos
+	var vfx_frames: SpriteFrames = load("res://scenes/vfx/hit_effects_frames.tres") as SpriteFrames
+	if vfx_frames != null:
+		var effect_sprite := AnimatedSprite2D.new()
+		effect_sprite.name = "AnimatedHitSpark"
+		effect_sprite.top_level = true
+		effect_sprite.sprite_frames = vfx_frames
+		effect_sprite.global_position = pos
+		effect_sprite.z_index = 50
+
+		var anim_name: StringName = &"impacto"
+		var sprite_scale: float = 0.65
+		match profile:
+			"light", "punch":
+				anim_name = &"impacto"
+				sprite_scale = 0.65
+			"medium", "kick":
+				anim_name = &"impacto"
+				sprite_scale = 0.80
+			"heavy", "finisher":
+				anim_name = &"combinado"
+				sprite_scale = 0.85
+			"special":
+				anim_name = &"impactoazul"
+				sprite_scale = 0.95
+			_:
+				anim_name = &"impacto"
+				sprite_scale = 0.70
+
+		effect_sprite.scale = Vector2(sprite_scale, sprite_scale)
+		effect_sprite.rotation = randf_range(-0.25, 0.25)
+		parent.add_child(effect_sprite)
+		effect_sprite.play(anim_name)
+		effect_sprite.animation_finished.connect(effect_sprite.queue_free)
+
+		# Timer de segurança para remoção
+		var safety_timer: SceneTreeTimer = parent.get_tree().create_timer(0.4)
+		safety_timer.timeout.connect(func():
+			if is_instance_valid(effect_sprite):
+				effect_sprite.queue_free()
+		)
+
+	# 2. Partículas direcionais de alta velocidade (CPUParticles2D)
 	var particles := CPUParticles2D.new()
 	particles.name = "ImpactSpark"
 	particles.top_level = true
@@ -119,6 +162,31 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 		if is_instance_valid(particles):
 			particles.queue_free()
 	)
+
+
+## Gera nuvem de poeira de impacto no solo (Knockdown / Aterrissagem)
+static func spawn_dust(parent: Node, pos: Vector2, scale_factor: float = 0.65) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
+
+	var vfx_frames: SpriteFrames = load("res://scenes/vfx/hit_effects_frames.tres") as SpriteFrames
+	if vfx_frames != null and vfx_frames.has_animation(&"poeira"):
+		var dust := AnimatedSprite2D.new()
+		dust.name = "LandingDust"
+		dust.top_level = true
+		dust.sprite_frames = vfx_frames
+		dust.global_position = pos
+		dust.scale = Vector2(scale_factor, scale_factor)
+		dust.z_index = 10
+		parent.add_child(dust)
+		dust.play(&"poeira")
+		dust.animation_finished.connect(dust.queue_free)
+
+		var safety_timer: SceneTreeTimer = parent.get_tree().create_timer(0.4)
+		safety_timer.timeout.connect(func():
+			if is_instance_valid(dust):
+				dust.queue_free()
+		)
 
 
 ## Produz flash visual rápido na entidade (modulação clara momentânea)

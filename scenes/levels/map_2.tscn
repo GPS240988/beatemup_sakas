@@ -3,14 +3,15 @@
 [ext_resource type="Script" uid="uid://ge8vtyt1ugdm" path="res://scripts/levels/base_level.gd" id="1_base_level"]
 [ext_resource type="Texture2D" uid="uid://o78q2ivl8thb" path="res://assets/backgrounds/maps/fase1/Fase1_2.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
-[ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
+[ext_resource type="PackedScene" uid="uid://cxvd6h0452i8y" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
 [ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
+[ext_resource type="PackedScene" uid="uid://bm5qsuqs2ao8t" path="res://scenes/actors/sergio_npc.tscn" id="6_bnoob"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_2_navpoly.tres" id="8_navpoly"]
 [ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
 [ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
-[ext_resource type="PackedScene" path="res://scenes/props/destructible_games_box.tscn" id="11_hiphc"]
+[ext_resource type="PackedScene" uid="uid://c85moa1s18w10" path="res://scenes/props/destructible_games_box.tscn" id="11_hiphc"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
 size = Vector2(2200, 48)
@@ -133,15 +134,24 @@ y_sort_enabled = true
 
 [node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=1553066722 instance=ExtResource("4_enemy_scene")]
 position = Vector2(750, 650)
+palette_variant = 6
 
 [node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=567898096 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1100, 680)
+palette_variant = 6
 
 [node name="BasicEnemy3" parent="World/Actors/Enemies" unique_id=1519327728 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1500, 660)
+palette_variant = 6
 
 [node name="NPCs" type="Node2D" parent="World/Actors" unique_id=1277292145]
 y_sort_enabled = true
+
+[node name="Sergio" parent="World/Actors/NPCs" unique_id=868306597 instance=ExtResource("6_bnoob")]
+position = Vector2(586, 676)
+dialogue_phrases = Array[String](["Socorro, /n minha locadora foi invadida. Me ajudem", "Minha mulher está grávida, nos ajude", "Minha veia está entupida, acho que vou infartar"])
+accelerated_speed = 130.0
+map_patrol_points = Array[Vector2]([Vector2(181, 657), Vector2(702, 662), Vector2(1070, 530), Vector2(1440, 704), Vector2(1880, 680)])
 
 [node name="Foreground" type="Node2D" parent="." unique_id=261324236]
 z_index = 10
@@ -193,4 +203,5 @@ offset_bottom = 709.0
 [node name="PrototypeHud" parent="." unique_id=1067635431 instance=ExtResource("7_hud_scene")]
 
 [node name="GamesBox" parent="." unique_id=388001449 instance=ExtResource("11_hiphc")]
-position = Vector2(680, 640)
+position = Vector2(1853, 709)
+max_health = 70.0

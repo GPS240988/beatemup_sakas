@@ -552,7 +552,11 @@ func _apply_global_special_impact() -> void:
 		elif enemy_health != null:
 			enemy_health.take_damage(spec_info)
 
-		CombatFeedbackClass.spawn_hit_spark(self, enemy_pos + Vector2(0, -40), Vector2(hit_dir_x, 0), "special")
+		var spark_pos: Vector2 = enemy_pos + Vector2(0.0, -85.0)
+		var enemy_hurtbox: Area2D = enemy_node.get_node_or_null("Hurtbox") as Area2D
+		if enemy_hurtbox != null:
+			spark_pos = enemy_hurtbox.global_position
+		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(hit_dir_x, 0), "special")
 
 	# Props destrutíveis no cenário também sofrem o impacto do Especial
 	var all_props: Array[Node] = tree.get_nodes_in_group("destructibles")
@@ -922,7 +926,7 @@ func take_damage(damage_input: Variant) -> bool:
 	# Se estiver em guarda, reduz 70% do dano e anula knockback
 	if _is_guarding:
 		amount *= 0.30
-		CombatFeedbackClass.spawn_hit_spark(self, global_position + Vector2(facing_direction * 20.0, -40.0), hit_dir, "light")
+		CombatFeedbackClass.spawn_hit_spark(self, global_position + Vector2(facing_direction * 20.0, -90.0), hit_dir, "light")
 		return health_component.take_damage(amount)
 
 	var applied: bool = health_component.take_damage(amount)

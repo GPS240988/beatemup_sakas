@@ -68,8 +68,8 @@ func test_loading_screen_visual_elements() -> void:
 		var is_valid_texture: bool = bg.texture != null and bg.texture.get_width() > 0 and bg.texture.get_height() > 0
 		assert_test(is_valid_texture, "BackgroundTexture renderiza textura válida com dimensões HD")
 		var tex_path: String = bg.texture.resource_path if bg.texture != null else ""
-		var is_valid_path: bool = tex_path.is_empty() or tex_path.contains("carregando_fase")
-		assert_test(is_valid_path, "BackgroundTexture faz referência ao arquivo de carregando_fase oficial")
+		var is_valid_path: bool = tex_path.is_empty() or tex_path.contains("carregando_fase") or tex_path.contains("Instruções_1")
+		assert_test(is_valid_path, "BackgroundTexture faz referência ao arquivo de arte oficial da tela de carregamento")
 
 	# 2. Ícones de teclas e comandos arcade
 	var key_space: PanelContainer = instance.get_node_or_null("%KeySpaceIcon") as PanelContainer

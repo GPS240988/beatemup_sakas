@@ -28,8 +28,22 @@ enum Archetype {
 	FLANKER
 }
 
+## Variantes de paleta de cores para diferenciar visualmente os inimigos
+enum PaletteVariant {
+	ORIGINAL,   ## Azul original do casaco
+	RED,        ## Casaco vermelho
+	GREEN,      ## Casaco verde
+	PURPLE,     ## Casaco roxo
+	ORANGE,     ## Casaco laranja
+	CYAN,       ## Casaco ciano/turquesa
+	RANDOM      ## Sorteia aleatoriamente ao spawnar
+}
+
 ## Arquétipo tático deste inimigo
 @export var archetype: Archetype = Archetype.GRUNT
+
+## Variante de paleta de cores deste inimigo (shader hue-shift)
+@export var palette_variant: PaletteVariant = PaletteVariant.ORIGINAL
 
 ## Sinal emitido quando o inimigo é derrotado
 signal enemy_defeated()
@@ -63,12 +77,25 @@ signal enemy_defeated()
 @export var post_hurt_cooldown: float = 0.40
 
 const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
+const PaletteSwapShader: Shader = preload("res://shaders/palette_swap.gdshader")
+
+## Mapeamento de PaletteVariant → hue_shift em graus
+## Azul original ≈ 220°. Rotação relativa para cada cor:
+const PALETTE_HUE_SHIFTS: Dictionary = {
+	PaletteVariant.ORIGINAL: 0.0,
+	PaletteVariant.RED: 140.0,      # 220 + 140 = 360 → vermelho
+	PaletteVariant.GREEN: 260.0,    # 220 + 260 = 480 ≡ 120 → verde
+	PaletteVariant.PURPLE: 80.0,    # 220 + 80 = 300 → roxo/magenta
+	PaletteVariant.ORANGE: 170.0,   # 220 + 170 = 390 ≡ 30 → laranja
+	PaletteVariant.CYAN: 320.0,     # 220 + 320 = 540 ≡ 180 → ciano
+}
 
 ## Referências internas
 @onready var visual_root: Node2D = $Visual
 @onready var health_component: HealthComponent = $HealthComponent
 @onready var melee_attack: MeleeAttack = $MeleeAttack
 @onready var punch_visual: Node2D = get_node_or_null("Visual/PunchVisual")
+@onready var anim_sprite: AnimatedSprite2D = get_node_or_null("Visual/AnimatedSprite2D")
 @onready var health_bar: ProgressBar = $FloatingHealthBar
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var nav_agent: NavigationAgent2D = get_node_or_null("NavigationAgent2D")
@@ -97,6 +124,9 @@ func _ready() -> void:
 	add_to_group("actors")
 	add_to_group("enemies")
 	add_to_group("damageable")
+
+	# Aplica palette swap via shader se variante não for ORIGINAL
+	_apply_palette_swap()
 
 	_apply_archetype_configuration()
 
@@ -201,6 +231,20 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	if current_state in [State.FLANKING, State.ALIGNING_DEPTH, State.APPROACHING, State.CHASE]:
+		if velocity.length() > 5.0:
+			_play_anim("walk")
+		else:
+			_play_anim("idle")
+
+
+
+## Executa animação no AnimatedSprite2D de forma segura e resiliente
+func _play_anim(anim_name: String) -> void:
+	if anim_sprite != null and anim_sprite.sprite_frames != null:
+		if anim_sprite.sprite_frames.has_animation(anim_name):
+			if anim_sprite.animation != anim_name or not anim_sprite.is_playing():
+				anim_sprite.play(anim_name)
 
 
 ## Atualiza a direção visual para encarar o alvo
@@ -209,12 +253,13 @@ func _update_facing(target_x: float) -> void:
 	if absf(diff_x) > 6.0:
 		facing_direction = 1.0 if diff_x > 0.0 else -1.0
 		if visual_root != null:
-			visual_root.scale.x = facing_direction
+			visual_root.scale.x = absf(visual_root.scale.y) * facing_direction
 
 
 ## Estado de espera observacional
 func _process_waiting(_delta: float) -> void:
 	velocity = Vector2.ZERO
+	_play_anim("idle")
 	_update_facing(player_target.global_position.x)
 
 	if _attack_timer <= 0.0:
@@ -393,6 +438,7 @@ func _process_approaching(delta: float) -> void:
 ## Estado de preparação do golpe (Telegraph / Wind-up)
 func _process_telegraph(delta: float) -> void:
 	velocity = Vector2.ZERO
+	_play_anim("guard")
 	_state_timer -= delta
 
 	# Se o jogador esquivar ou se distanciar bruscamente durante o wind-up, cancela
@@ -425,10 +471,12 @@ func _process_recovery(delta: float) -> void:
 	if _state_timer <= 0.0:
 		_attack_timer = attack_cooldown
 		current_state = State.FLANKING
+		_play_anim("idle")
 
 
 ## Estado de dano / atordoamento
 func _process_hurt(delta: float) -> void:
+	_play_anim("hurt")
 	velocity = velocity.move_toward(Vector2.ZERO, 300.0 * delta)
 	_state_timer -= delta
 
@@ -436,17 +484,24 @@ func _process_hurt(delta: float) -> void:
 		_reset_visual_modulate()
 		_attack_timer = maxf(_attack_timer, post_hurt_cooldown)
 		current_state = State.FLANKING
+		_play_anim("idle")
 
 
 ## Estado de queda e projeção no solo (Knockdown)
 func _process_fall(delta: float) -> void:
+	_play_anim("fall")
 	velocity = velocity.move_toward(Vector2.ZERO, 380.0 * delta)
 	_state_timer -= delta
 	if _state_timer <= 0.0:
 		current_state = State.DOWNED
 		_state_timer = 0.35
 		velocity = Vector2.ZERO
-		if visual_root != null:
+		CombatFeedback.spawn_dust(self, global_position)
+		if anim_sprite != null:
+			visual_root.rotation_degrees = 0.0
+			visual_root.position.y = 0.0
+			_play_anim("downed")
+		elif visual_root != null:
 			visual_root.rotation_degrees = 90.0
 			visual_root.position.y = -10.0
 
@@ -454,20 +509,27 @@ func _process_fall(delta: float) -> void:
 ## Inimigo caído no chão
 func _process_downed(delta: float) -> void:
 	velocity = Vector2.ZERO
+	_play_anim("downed")
 	_state_timer -= delta
 	if _state_timer <= 0.0:
 		current_state = State.GETUP
 		_state_timer = 0.28
+		_play_anim("getup")
 
 
 ## Inimigo se levantando do chão
 func _process_getup(delta: float) -> void:
 	velocity = Vector2.ZERO
+	_play_anim("getup")
 	_state_timer -= delta
 	if visual_root != null:
-		var progress: float = clampf(1.0 - (_state_timer / 0.28), 0.0, 1.0)
-		visual_root.rotation_degrees = lerpf(90.0, 0.0, progress)
-		visual_root.position.y = lerpf(-10.0, 0.0, progress)
+		if anim_sprite == null:
+			var progress: float = clampf(1.0 - (_state_timer / 0.28), 0.0, 1.0)
+			visual_root.rotation_degrees = lerpf(90.0, 0.0, progress)
+			visual_root.position.y = lerpf(-10.0, 0.0, progress)
+		else:
+			visual_root.rotation_degrees = 0.0
+			visual_root.position.y = 0.0
 	if _state_timer <= 0.0:
 		if visual_root != null:
 			visual_root.rotation_degrees = 0.0
@@ -475,6 +537,7 @@ func _process_getup(delta: float) -> void:
 		_reset_visual_modulate()
 		_attack_timer = maxf(_attack_timer, post_hurt_cooldown)
 		current_state = State.FLANKING
+		_play_anim("idle")
 
 
 
@@ -482,6 +545,13 @@ func _trigger_attack() -> void:
 	if melee_attack == null:
 		return
 	current_state = State.ATTACKING
+	match archetype:
+		Archetype.AGGRESSOR, Archetype.FLANKER:
+			_play_anim("kick")
+		Archetype.TANK:
+			_play_anim("heavy")
+		_:
+			_play_anim("punch")
 	melee_attack.execute_attack(facing_direction)
 
 
@@ -503,6 +573,7 @@ func _on_attack_ended() -> void:
 	if current_state != State.DEAD and current_state != State.HURT:
 		current_state = State.RECOVERY
 		_state_timer = recovery_duration
+		_play_anim("idle")
 
 		# Recuo seguro no eixo X contrário à direção do golpe
 		var recoil_dir: float = -facing_direction
@@ -572,12 +643,69 @@ func _on_damaged_info(info: RefCounted) -> void:
 		current_state = State.FALL
 		_state_timer = 0.32
 		velocity = Vector2(knockback_dir * maxf(180.0, knockback * 2.2), 0.0)
+		_play_anim("fall")
 		if visual_root != null:
 			visual_root.modulate = Color(2.5, 0.3, 0.3, 1.0)
-			visual_root.rotation_degrees = -30.0 * knockback_dir
+			if anim_sprite == null:
+				visual_root.rotation_degrees = -30.0 * knockback_dir
+			else:
+				visual_root.rotation_degrees = 0.0
 	else:
 		_on_damaged(float(info.get("amount")) if info != null else 10.0)
 		velocity = Vector2(knockback_dir * maxf(80.0, knockback), 0.0)
+
+
+## Aplica o shader de palette swap no AnimatedSprite2D com base na variante exportada
+func _apply_palette_swap() -> void:
+	if anim_sprite == null:
+		return
+
+	# Resolve RANDOM para uma variante concreta aleatória (excluindo ORIGINAL e RANDOM)
+	var effective_variant: PaletteVariant = palette_variant
+	if effective_variant == PaletteVariant.RANDOM:
+		var options: Array[int] = [
+			PaletteVariant.RED,
+			PaletteVariant.GREEN,
+			PaletteVariant.PURPLE,
+			PaletteVariant.ORANGE,
+			PaletteVariant.CYAN,
+		]
+		effective_variant = options[randi() % options.size()] as PaletteVariant
+
+	# ORIGINAL = sem shader (performance: evita draw call extra)
+	if effective_variant == PaletteVariant.ORIGINAL:
+		anim_sprite.material = null
+		return
+
+	# Cria ShaderMaterial único por instância para permitir variações individuais
+	var mat: ShaderMaterial = ShaderMaterial.new()
+	mat.shader = PaletteSwapShader
+
+	var hue_shift_value: float = PALETTE_HUE_SHIFTS.get(effective_variant, 0.0) as float
+	mat.set_shader_parameter("hue_shift", hue_shift_value)
+	mat.set_shader_parameter("target_hue", 220.0)       # Azul do casaco
+	mat.set_shader_parameter("hue_tolerance", 45.0)
+	mat.set_shader_parameter("min_saturation", 0.08)
+	mat.set_shader_parameter("saturation_adjust", 0.0)
+	mat.set_shader_parameter("value_adjust", 0.0)
+
+	anim_sprite.material = mat
+
+
+## Permite alterar a paleta em runtime (ex: ao ser atingido por magia, buff visual)
+func set_palette(new_variant: Variant) -> void:
+	if new_variant is int:
+		palette_variant = new_variant as PaletteVariant
+	elif new_variant is PaletteVariant:
+		palette_variant = new_variant
+	_apply_palette_swap()
+
+
+## Alias tipado de set_palette
+func set_palette_variant(new_variant: PaletteVariant) -> void:
+	palette_variant = new_variant
+	_apply_palette_swap()
+
 
 
 ## Aplica configurações de arquétipo tático sem alterar os valores padrão do GRUNT
@@ -640,16 +768,52 @@ func _on_died() -> void:
 	set_collision_mask_value(1, false)
 	set_collision_mask_value(2, false)
 
+	# Desativa Hurtbox para não receber golpes adicionais caído
+	var hurtbox_node: Area2D = get_node_or_null("Hurtbox") as Area2D
+	if hurtbox_node != null:
+		hurtbox_node.set_deferred("monitoring", false)
+		hurtbox_node.set_deferred("monitorable", false)
+
 	if visual_root != null:
-		visual_root.rotation_degrees = 90.0
-		visual_root.position.y = -10.0
-		visual_root.modulate = Color(0.4, 0.4, 0.4, 0.75)
+		if anim_sprite != null:
+			visual_root.rotation_degrees = 0.0
+			visual_root.position.y = 0.0
+			_play_anim("death")
+			CombatFeedback.spawn_dust(self, global_position)
+		else:
+			visual_root.rotation_degrees = 90.0
+			visual_root.position.y = -10.0
+		visual_root.modulate = Color(0.6, 0.6, 0.6, 1.0)
 
 	# Notifica diretor e emite sinal de vitória
 	if combat_director != null and is_instance_valid(combat_director):
 		combat_director.notify_enemy_defeated(self)
 
 	enemy_defeated.emit()
+
+	# Inicia sequência arcade de piscar e desaparecer
+	_start_death_fade_sequence()
+
+
+## Inicia sequência clássica arcade de piscar e sumir
+func _start_death_fade_sequence() -> void:
+	if visual_root == null:
+		queue_free()
+		return
+
+	var tween: Tween = create_tween()
+	if tween == null:
+		queue_free()
+		return
+
+	# Pisca 4 vezes (1.2 segundos no total)
+	for i in range(4):
+		tween.tween_property(visual_root, "modulate:a", 0.15, 0.15)
+		tween.tween_property(visual_root, "modulate:a", 0.75, 0.15)
+
+	# Desaparece e remove o nó do mapa
+	tween.tween_property(visual_root, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(queue_free)
 
 
 ## Solicita token ao diretor de combate com fallback autônomo
