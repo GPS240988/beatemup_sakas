@@ -126,6 +126,8 @@ func _ready() -> void:
 
 	if anim_sprite != null:
 		anim_sprite.play("idle")
+		if not anim_sprite.animation_finished.is_connected(_on_anim_sprite_animation_finished):
+			anim_sprite.animation_finished.connect(_on_anim_sprite_animation_finished)
 
 	_apply_character_stat_modifiers()
 	_build_combo_chain()
@@ -226,7 +228,7 @@ func _build_combo_chain() -> void:
 	atk4.set("animation", &"heavy")
 	atk4.set("startup", 0.08)
 	atk4.set("active", 0.20)
-	atk4.set("recovery", 0.38 / maxf(0.1, _tec_mult))
+	atk4.set("recovery", 0.58 / maxf(0.1, _tec_mult))
 	atk4.set("damage", 48.0 * _str_mult)
 	atk4.set("horizontal_range", 115.0)
 	atk4.set("depth_tolerance", 30.0 * _tec_mult)
@@ -478,13 +480,16 @@ func execute_special() -> bool:
 	if session != null and "selected_character_id" in session:
 		char_id = str(session.selected_character_id).to_lower()
 
-	# Extrai textura existente do herói
+	# Extrai textura existente do herói para apresentação do Especial
 	var hero_tex: Texture2D = null
 	if anim_sprite != null and anim_sprite.sprite_frames != null:
-		if anim_sprite.sprite_frames.has_animation("heavy"):
-			hero_tex = anim_sprite.sprite_frames.get_frame_texture("heavy", 0)
-		elif anim_sprite.sprite_frames.has_animation("punch"):
-			hero_tex = anim_sprite.sprite_frames.get_frame_texture("punch", 0)
+		var sf: SpriteFrames = anim_sprite.sprite_frames
+		if sf.has_animation("idle") and sf.get_frame_count("idle") > 0:
+			hero_tex = sf.get_frame_texture("idle", 0)
+		elif sf.has_animation("punch") and sf.get_frame_count("punch") > 0:
+			hero_tex = sf.get_frame_texture("punch", 0)
+		elif sf.has_animation("heavy") and sf.get_frame_count("heavy") > 0:
+			hero_tex = sf.get_frame_texture("heavy", 0)
 
 	var presentation := SpecialPresentationClass.new(char_id, hero_tex)
 	var scene_root := get_tree().root
@@ -705,6 +710,15 @@ func _on_attack_ended() -> void:
 
 	if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
 		if not _is_jumping and not _is_guarding:
+			anim_sprite.play("idle")
+
+
+## Garante que animações de golpe que terminem não fiquem presas no último quadro
+func _on_anim_sprite_animation_finished() -> void:
+	if anim_sprite == null or health_component == null or health_component.is_dead:
+		return
+	if anim_sprite.animation in [&"heavy", &"punch", &"kick"]:
+		if not _is_jumping and not _is_guarding and (melee_attack == null or not melee_attack.is_attacking):
 			anim_sprite.play("idle")
 
 

@@ -339,7 +339,7 @@ func test_player_scene_integration() -> void:
 		assert_test(anim_sprite.sprite_frames.get_frame_count(&"kick") == 3, "Animacao 'kick' possui 3 frames")
 
 		assert_test(anim_sprite.sprite_frames.has_animation(&"heavy"), "Player possui animacao 'heavy' no SpriteFrames")
-		assert_test(anim_sprite.sprite_frames.get_frame_count(&"heavy") == 3, "Animacao 'heavy' possui 3 frames")
+		assert_test(anim_sprite.sprite_frames.get_frame_count(&"heavy") == 6, "Animacao 'heavy' possui 6 frames")
 
 		assert_test(anim_sprite.sprite_frames.has_animation(&"guard"), "Player possui animacao 'guard' no SpriteFrames")
 		assert_test(anim_sprite.sprite_frames.has_animation(&"hurt"), "Player possui animacao 'hurt' no SpriteFrames")

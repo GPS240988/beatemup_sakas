@@ -31,6 +31,9 @@
 [ext_resource type="Texture2D" uid="uid://b6x31s14wmp61" path="res://assets/sprites/characters/guilherme/jump_03.png" id="29_jump3"]
 [ext_resource type="Texture2D" uid="uid://c5h560qwmf2gn" path="res://assets/sprites/characters/guilherme/jump_atk_01.png" id="30_jumpatk1"]
 [ext_resource type="Texture2D" uid="uid://dh4glcyvbhaxa" path="res://assets/sprites/characters/guilherme/jump_atk_02.png" id="31_jumpatk2"]
+[ext_resource type="Texture2D" uid="uid://cxxc41aro60a5" path="res://assets/sprites/characters/guilherme/heavy_04.png" id="32_heavy4"]
+[ext_resource type="Texture2D" uid="uid://blq3ab3dyf8uw" path="res://assets/sprites/characters/guilherme/heavy_05.png" id="33_heavy5"]
+[ext_resource type="Texture2D" uid="uid://yrgc0elce4uq" path="res://assets/sprites/characters/guilherme/heavy_06.png" id="34_heavy6"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
 radius = 12.0
@@ -94,10 +97,19 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("17_heavy3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_heavy4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("33_heavy5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("34_heavy6")
 }],
 "loop": 0,
 "name": &"heavy",
-"speed": 9.0
+"speed": 10.0
 }, {
 "frames": [{
 "duration": 1.0,

@@ -1,5 +1,7 @@
 # 📜 GAME_RULES.md — DIRETRIZES MESTRAS DO PROJETO SAKAS (BEAT 'EM UP 2.5D)
+
 Act as a senior video game art director, professional character designer, and expert pixel artist specializing in high-quality 2D and 2.5D beat 'em up games."*
+Atue como diretor técnico de arte, devops senior, desenvolvedor, frontend especialista  e engenheiro sênior Godot 4.x.
    * Responsável por zelar pela identidade visual impecável, anatomia, silhuetas expressivas, fluidez de quadros de animação, paletas de cores refinadas e estética nostálgica de alta qualidade (Pixel Art HD).
 
 Atue como engenheiro sênior especialista em DevOps, sênior Backend, sênior FrontEnd e arquitetura de motores de jogos (Godot Engine 4.x)."*
@@ -23,7 +25,11 @@ Beat 'em up 2.5D arcade clássico inspirado nos títulos dos anos 90, com ambien
 ### 1.2. Personas Integradas de Desenvolvimento
 1. **Direção de Arte e Design de Personagens**:
    - Preservar rigorosamente a identidade visual retro urbana, paletas ricas, dithering controlado, iluminação de neon pontual e silhuetas expressivas.
-   - Sprites nativos de heróis e capangas em **220×300px** (`scale = Vector2(0.80, 0.80)` atingindo ~240px de altura final); chefes em **250×330px** com pés estritamente em `(0, 0)`.
+   - **Contrato Visual Canônico de Sprites de Atores**:
+     - Sprites nativos de heróis e capangas em canvas fixo de **220×300px**, fundo transparente (canal alfa RGBA), renderizados em escala de importação `Vector2(0.80, 0.80)` atingindo ~240px de altura útil final; chefes em **250×330px** com pés estritamente em `(0, 0)`.
+     - Linha de base vertical consistente com pés de apoio alinhados ao solo em $Y = 0$ (base do canvas em $Y = 300$, com tolerância máxima de até 20px para passadas/saltos).
+     - Poses de chão deitadas (`death`, `fall_03`) admitem largura horizontal estendida de até 260px tangenciando a borda inferior.
+     - Acabamento rasterizado nítido Pixel Art HD sem interpolações borradas, visualmente homogêneo e compatível com os mapas urbanos 1 a 4.
 2. **Engenharia de Software e DevOps Sênior**:
    - GDScript fortemente tipado, desacoplamento por composição e componentes modulares.
    - Garantia de 60 FPS contínuos em Desktop e Mobile, ausência de vazamento de memória e suíte automatizada de testes headless (`godot_console.exe --headless -s tests/...`).
@@ -162,7 +168,7 @@ MapX (Node2D, script: base_level.gd)
   - **Botão de Ataque Principal** (`attack` / `attack_punch` / `ui_accept`):
     - Executa a sequência contextual de 4 golpes contínuos:
       `Passo 1 (Jab / Punch 1)` → `Passo 2 (Cruzado / Punch 2)` → `Passo 3 (Chute no Tronco / Kick)` → `Passo 4 (Finisher / Heavy)`.
-    - O Finisher desfere impacto máximo e derruba o inimigo (`can_knockdown = true`).
+    - O Finisher desfere impacto máximo e derruba o inimigo (`can_knockdown = true`). Utiliza animação `heavy` em 6 quadros (`heavy_01` a `heavy_06.png`) a 10.0 FPS, recovery calibrado em 0.58s e transição imediata para `idle` conectada via sinais `attack_ended` e `animation_finished`, impedindo travamento no último quadro.
     - Possui janela real de encadeamento (`combo_window`) escalonada pelo atributo Técnica e buffer de entrada (`_input_buffered`) que permite encadear golpes durante o recovery.
   - **Botão Exclusivo de Especial** (`attack_special` / `special`):
     - Dispara evento global de combate consumindo 15% do HP máximo (sem matar o jogador se HP <= 15).
@@ -641,3 +647,21 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 [x] Nenhuma regressão conhecida em combate, IA, mapas ou UI
 [x] GAME_RULES.md atualizado refletindo estritamente a realidade do código
 ```
+
+---
+
+## 32. SPRITE VISUAL CONTRACT & ANIMATION QA SUITE
+`STATUS: IMPLEMENTED`
+
+### 1. Diretrizes de Geometria e Formato dos Sprites:
+- **Resolução & Canvas Fixo**: Todos os conjuntos de sprites de heróis e capangas devem ser entregues em canvas fixo de **220 × 300 px** com fundo transparente (canal alfa RGBA ativo), salvo poses deitadas no solo (`death`, `fall_03`) que admitem largura estendida de até 260 px.
+- **Ancoragem de Chão e Linha de Base**: Ponto de contato dos pés consistente, tangenciando a linha inferior do canvas ($Y = 300$, correspondendo a $Y = 0$ no espaço local 2.5D) com tolerância de até 20 px para poses de passada e salto.
+- **Escala e Transformações**: Proibida qualquer distorção procedural de escala vertical durante golpes. A inversão de direção (flip horizontal) deve alterar estritamente o sinal de `scale.x`, mantendo `abs(scale.y) == 1.0`.
+
+### 2. Suíte de Testes Automatizados Headless (`tests/player_animation_contract_test.gd`):
+- **Validação de Imagens**: Varre o diretório de sprites e confirma dimensões (220×300 px), canal alfa e contagem mínima de recursos.
+- **Validação de Linha de Base**: Inspeciona a caixa delimitadora (`used_rect`) e afere o gap de contato com o solo em todas as animações terrestres.
+- **Validação de SpriteFrames**: Checa nomes canônicos, contagem exata de quadros (incluindo 6 quadros em `heavy`), flags de loop e taxas de FPS.
+- **Estabilidade Geométrica da Cena**: Verifica nós visuais, ausência de deslocamento de compensação física e integridade de escalas no ataque e flip.
+- **Revisão Visual Complementar**: Folha de contato / verificação manual no Godot para validação estética de poses e fluidez cinética.
+
