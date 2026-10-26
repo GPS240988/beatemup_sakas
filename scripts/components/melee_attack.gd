@@ -1,10 +1,21 @@
 class_name MeleeAttack
 extends Node2D
 
+## Fases formais do ciclo de ataque arcade 2.5D
+enum Phase {
+	INACTIVE,
+	STARTUP,
+	ACTIVE,
+	RECOVERY
+}
+
+## Sinal emitido na transição de fases do ataque
+signal attack_phase_changed(new_phase: Phase)
+
 ## Sinal emitido quando o golpe é iniciado
 signal attack_started()
 
-## Sinal emitido quando o golpe é concluído (incluindo cooldown)
+## Sinal emitido quando o golpe é concluído (incluindo cooldown/recovery)
 signal attack_ended()
 
 ## Sinal emitido quando um alvo válido é atingido
@@ -19,10 +30,16 @@ signal target_hit(target: Node, damage: float)
 ## Tolerância de alinhamento em profundidade no eixo Y (em pixels no chão)
 @export var depth_tolerance: float = 26.0
 
+## Duração em segundos da preparação antes da abertura da hitbox
+@export var startup_duration: float = 0.0
+
 ## Duração em segundos em que a janela de acerto fica ativa
 @export var active_duration: float = 0.15
 
-## Intervalo mínimo total entre ataques (cooldown)
+## Duração em segundos da recuperação pós-janela ativa (se 0.0, deriva de attack_cooldown)
+@export var recovery_duration: float = 0.25
+
+## Intervalo total entre ataques mantido para compatibilidade
 @export var attack_cooldown: float = 0.40
 
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
@@ -51,13 +68,25 @@ var hitbox_shape: CollisionShape2D
 ## Estados internos
 var is_attacking: bool = false
 var is_active_window: bool = false
+var current_phase: Phase = Phase.INACTIVE
 
 var facing_direction: float = 1.0 # 1.0 = Direita, -1.0 = Esquerda
 var hit_targets: Array[Node] = []
 
-var _cooldown_timer: float = 0.0
-var _active_timer: float = 0.0
+var _phase_timer: float = 0.0
+var _hitstop_timer: float = 0.0
 var _owner_actor: CharacterBody2D
+
+
+func is_in_hitstop() -> bool:
+	return _hitstop_timer > 0.0
+
+
+## Aplica hitstop local no componente de ataque para congelar timers de fase e preservar hitbox
+func apply_hitstop(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	_hitstop_timer = maxf(_hitstop_timer, duration)
 
 
 func _ready() -> void:
@@ -68,23 +97,53 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _cooldown_timer > 0.0:
-		_cooldown_timer -= delta
-		if _cooldown_timer <= 0.0:
-			is_attacking = false
-			attack_ended.emit()
+	# Hitstop local: congela temporizadores de fase e preserva a janela ativa sem avançar o ciclo
+	if _hitstop_timer > 0.0:
+		_hitstop_timer -= delta
+		if _hitstop_timer <= 0.0:
+			_hitstop_timer = 0.0
+		return
 
-	if is_active_window:
-		_active_timer -= delta
-		if _active_timer <= 0.0:
-			_set_hitbox_active(false)
-		else:
-			_poll_overlapping_targets(false)
+	match current_phase:
+		Phase.STARTUP:
+			_phase_timer -= delta
+			if _phase_timer <= 0.0:
+				current_phase = Phase.ACTIVE
+				is_active_window = true
+				_ensure_hitbox_nodes()
+				_update_hitbox_transform()
+				_set_hitbox_active(true)
+				_phase_timer += active_duration
+				attack_phase_changed.emit(Phase.ACTIVE)
+				_poll_overlapping_targets(true)
+
+		Phase.ACTIVE:
+			_phase_timer -= delta
+			if _phase_timer <= 0.0:
+				is_active_window = false
+				_set_hitbox_active(false)
+				var rec_dur: float = recovery_duration if recovery_duration > 0.0 else maxf(0.0, attack_cooldown - (startup_duration + active_duration))
+				if rec_dur > 0.0:
+					current_phase = Phase.RECOVERY
+					_phase_timer += rec_dur
+					attack_phase_changed.emit(Phase.RECOVERY)
+				else:
+					_finish_attack()
+			else:
+				_poll_overlapping_targets(false)
+
+		Phase.RECOVERY:
+			_phase_timer -= delta
+			if _phase_timer <= 0.0:
+				_finish_attack()
+
+		Phase.INACTIVE:
+			pass
 
 
 ## Executa a tentativa de ataque na direção informada (1.0 ou -1.0)
 func execute_attack(direction: float) -> bool:
-	if is_attacking or _cooldown_timer > 0.0:
+	if is_attacking or current_phase != Phase.INACTIVE:
 		return false
 
 	if _owner_actor == null:
@@ -97,29 +156,57 @@ func execute_attack(direction: float) -> bool:
 
 	facing_direction = 1.0 if direction >= 0.0 else -1.0
 	is_attacking = true
-	is_active_window = true
-	_cooldown_timer = attack_cooldown
-	_active_timer = active_duration
 	hit_targets.clear()
 
 	_ensure_hitbox_nodes()
 	_update_hitbox_transform()
-	_set_hitbox_active(true)
-	attack_started.emit()
 
-	# Varredura de alvos na abertura da janela ativa
-	_poll_overlapping_targets(true)
+	if startup_duration > 0.0:
+		current_phase = Phase.STARTUP
+		is_active_window = false
+		_phase_timer = startup_duration
+		_set_hitbox_active(false)
+		attack_phase_changed.emit(Phase.STARTUP)
+		attack_started.emit()
+	else:
+		current_phase = Phase.ACTIVE
+		is_active_window = true
+		_phase_timer = active_duration
+		_set_hitbox_active(true)
+		attack_phase_changed.emit(Phase.ACTIVE)
+		attack_started.emit()
+		_poll_overlapping_targets(true)
+
 	return true
 
 
-## Cancela qualquer ataque em andamento
-func cancel_attack() -> void:
+## Finaliza o ataque ao término de todas as fases temporais
+func _finish_attack() -> void:
+	current_phase = Phase.INACTIVE
 	is_attacking = false
 	is_active_window = false
-	_cooldown_timer = 0.0
-	_active_timer = 0.0
+	_phase_timer = 0.0
+	_set_hitbox_active(false)
+	attack_phase_changed.emit(Phase.INACTIVE)
+	attack_ended.emit()
+
+
+## Cancela qualquer ataque em andamento de forma limpa e imediata
+func cancel_attack() -> void:
+	current_phase = Phase.INACTIVE
+	is_attacking = false
+	is_active_window = false
+	_phase_timer = 0.0
+	_hitstop_timer = 0.0
 	hit_targets.clear()
 	_set_hitbox_active(false)
+	attack_phase_changed.emit(Phase.INACTIVE)
+
+
+## Retorna a duração total da sequência completa do ataque (startup + active + recovery)
+func get_total_duration() -> float:
+	var rec: float = recovery_duration if recovery_duration > 0.0 else maxf(0.0, attack_cooldown - (startup_duration + active_duration))
+	return startup_duration + active_duration + rec
 
 
 ## Garante a presença dos nós de Hitbox mesmo se instanciado puramente por código
@@ -169,14 +256,14 @@ func _set_hitbox_active(active: bool) -> void:
 
 ## Analisa os nós que colidiram com a Hitbox
 func _on_hitbox_detect(collider: Node) -> void:
-	if not is_active_window:
+	if not is_active_window or current_phase != Phase.ACTIVE:
 		return
 	_try_hit_target(collider)
 
 
 ## Varre os alvos potenciais (via Area2D overlapping e verificação direta do grupo apenas quando necessário)
 func _poll_overlapping_targets(force_group_scan: bool = false) -> void:
-	if not is_active_window:
+	if not is_active_window or current_phase != Phase.ACTIVE:
 		return
 
 	var has_monitoring_hitbox: bool = (hitbox_area != null and is_instance_valid(hitbox_area) and is_inside_tree() and hitbox_area.monitoring)
@@ -217,7 +304,7 @@ func _is_target_group_match(candidate: Node) -> bool:
 
 ## Valida as 6 regras de acerto 2.5D antes de aplicar dano
 func _try_hit_target(node: Node) -> void:
-	if node == null or not is_active_window:
+	if node == null or not is_active_window or current_phase != Phase.ACTIVE:
 		return
 
 	# Obtém a entidade principal caso o colisor seja um Hurtbox/Area filha
@@ -303,6 +390,7 @@ func _try_hit_target(node: Node) -> void:
 		if target_hurtbox != null:
 			spark_pos = target_hurtbox.global_position
 		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(facing_direction, 0), impact_profile)
+		CombatFeedbackClass.play_impact_sound(self, impact_profile)
 		if impact_profile in ["heavy", "finisher", "special"]:
 			CombatFeedbackClass.trigger_screen_shake(self, 6.0, 0.22)
 		target_hit.emit(target_actor, damage)
@@ -315,8 +403,16 @@ func apply_attack_data(data: RefCounted) -> void:
 	damage = float(data.get("damage"))
 	horizontal_range = float(data.get("horizontal_range"))
 	depth_tolerance = float(data.get("depth_tolerance"))
+	if data.get("startup") != null:
+		startup_duration = float(data.get("startup"))
+	else:
+		startup_duration = 0.0
 	active_duration = float(data.get("active"))
-	attack_cooldown = float(data.get("recovery"))
+	if data.get("recovery") != null:
+		recovery_duration = float(data.get("recovery"))
+	else:
+		recovery_duration = attack_cooldown
+	attack_cooldown = recovery_duration
 	knockback_force = float(data.get("knockback"))
 	hitstun_duration = float(data.get("hitstun"))
 	can_knockdown = bool(data.get("can_knockdown"))

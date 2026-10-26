@@ -143,6 +143,10 @@ func apply_difficulty_profile(profile: Resource) -> void:
 	max_simultaneous_active_enemy_attacks = profile.max_simultaneous_active_enemy_attacks
 	token_timeout_seconds = profile.token_timeout_seconds
 
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and "difficulty_id" in session and str(session.difficulty_id).to_lower() == "dificil":
+		token_timeout_seconds = profile.token_timeout_seconds * 0.85
+
 	for enemy in registered_enemies:
 		_apply_profile_to_enemy(enemy)
 
@@ -150,19 +154,71 @@ func apply_difficulty_profile(profile: Resource) -> void:
 func _apply_profile_to_enemy(enemy: CharacterBody2D) -> void:
 	if enemy == null or difficulty_profile == null:
 		return
+
+	# Validação e aplicação das flags de composição de arquétipos do perfil
+	if enemy.get("archetype") != null and enemy.has_method("_apply_archetype_configuration"):
+		var arch: int = int(enemy.get("archetype"))
+		var arch_changed: bool = false
+		if arch == 2 and not difficulty_profile.allow_tanks: # TANK
+			enemy.set("archetype", 0) # Rebaixa para GRUNT
+			arch_changed = true
+		elif arch == 1 and not difficulty_profile.allow_aggressors: # AGGRESSOR
+			enemy.set("archetype", 0) # Rebaixa para GRUNT
+			arch_changed = true
+		elif arch == 3 and not difficulty_profile.allow_flankers: # FLANKER
+			enemy.set("archetype", 0) # Rebaixa para GRUNT
+			arch_changed = true
+		if arch_changed:
+			enemy._apply_archetype_configuration()
+
+	# Preservação imutável dos valores-base para evitar acúmulo em re-aplicações
+	if not enemy.has_meta("base_attack_windup") and enemy.get("attack_windup_seconds") != null:
+		enemy.set_meta("base_attack_windup", float(enemy.attack_windup_seconds))
+	if not enemy.has_meta("base_attack_cooldown") and enemy.get("attack_cooldown") != null:
+		enemy.set_meta("base_attack_cooldown", float(enemy.attack_cooldown))
+
+	var base_windup: float = float(enemy.get_meta("base_attack_windup", enemy.get("attack_windup_seconds")))
+	var base_cooldown: float = float(enemy.get_meta("base_attack_cooldown", enemy.get("attack_cooldown")))
+
+	# Integração do Modo de Dificuldade Global (GameSession: Normal vs Difícil)
+	var global_hp_mult: float = 1.0
+	var global_dmg_mult: float = 1.0
+	var global_aggression_mult: float = 1.0
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and "difficulty_id" in session:
+		var diff_id: String = str(session.difficulty_id).to_lower()
+		if session.DIFFICULTIES.has(diff_id):
+			var diff_data: Dictionary = session.DIFFICULTIES[diff_id]
+			global_hp_mult = float(diff_data.get("enemy_health_mult", 1.0))
+			global_dmg_mult = float(diff_data.get("enemy_damage_mult", 1.0))
+			if diff_id == "dificil":
+				global_aggression_mult = 1.25
+
 	if enemy.get("attack_windup_seconds") != null:
-		enemy.attack_windup_seconds *= difficulty_profile.telegraph_duration_multiplier
+		var windup_speed: float = 1.15 if global_aggression_mult > 1.0 else 1.0
+		enemy.attack_windup_seconds = (base_windup * difficulty_profile.telegraph_duration_multiplier) / windup_speed
 	if enemy.get("attack_cooldown") != null:
-		enemy.attack_cooldown /= maxf(0.1, difficulty_profile.attack_frequency_multiplier)
+		enemy.attack_cooldown = base_cooldown / maxf(0.1, difficulty_profile.attack_frequency_multiplier * global_aggression_mult)
+
 	if enemy.get("health_component") != null:
 		var hc: HealthComponent = enemy.health_component
-		if hc != null and hc.max_health > 0.0:
-			hc.max_health *= difficulty_profile.health_multiplier
-			hc.current_health = hc.max_health
+		if hc != null:
+			if not enemy.has_meta("base_max_health"):
+				enemy.set_meta("base_max_health", float(hc.max_health))
+			var base_hp: float = float(enemy.get_meta("base_max_health"))
+			if base_hp > 0.0:
+				var new_max: float = base_hp * difficulty_profile.health_multiplier * global_hp_mult
+				var health_ratio: float = (hc.current_health / hc.max_health) if hc.max_health > 0.0 else 1.0
+				hc.max_health = new_max
+				hc.current_health = new_max * health_ratio
+
 	if enemy.get("melee_attack") != null:
 		var ma: MeleeAttack = enemy.melee_attack
 		if ma != null:
-			ma.damage *= difficulty_profile.damage_multiplier
+			if not enemy.has_meta("base_melee_damage"):
+				enemy.set_meta("base_melee_damage", float(ma.damage))
+			var base_dmg: float = float(enemy.get_meta("base_melee_damage"))
+			ma.damage = base_dmg * difficulty_profile.damage_multiplier * global_dmg_mult
 
 
 ## Incrementa a contagem de reforços ou inimigos de ondas pendentes

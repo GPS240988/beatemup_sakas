@@ -1,31 +1,37 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/siga_indicator.gd" id="1_siga_script"]
-[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="2_arcade_font"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_siga_panel"]
-bg_color = Color(0.06, 0.08, 0.14, 0.92)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.88, 0.15, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(1, 0.8, 0.1, 0.7)
-shadow_size = 14
+[ext_resource type="Texture2D" path="res://assets/backgrounds/vamos.webp" id="2_vamos_texture"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/siga.webp" id="3_siga_texture"]
 
 [node name="SigaIndicator" type="Control"]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 170.0
-offset_bottom = 58.0
+offset_right = 1.0
+offset_bottom = 1.0
 mouse_filter = 2
 script = ExtResource("1_siga_script")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="VamosLayer" type="CanvasLayer" parent="."]
+layer = 50
+
+[node name="VamosControl" type="Control" parent="VamosLayer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 24.0
+offset_right = 160.0
+offset_bottom = 200.0
+grow_horizontal = 2
+pivot_offset = Vector2(160, 88)
+mouse_filter = 2
+
+[node name="VamosRect" type="TextureRect" parent="VamosLayer/VamosControl"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -33,18 +39,13 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_siga_panel")
+texture = ExtResource("2_vamos_texture")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Label" type="Label" parent="PanelContainer"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_colors/font_color = Color(1, 0.88, 0.15, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
-theme_override_colors/font_outline_color = Color(0.3, 0.05, 0.0, 1)
-theme_override_constants/outline_size = 4
-theme_override_constants/shadow_offset_x = 3
-theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/font_size = 32
-text = "SIGA →"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="ExitSignSprite" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+visible = false
+z_index = 80
+texture = ExtResource("3_siga_texture")
+scale = Vector2(0.75, 0.75)

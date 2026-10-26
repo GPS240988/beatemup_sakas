@@ -73,6 +73,15 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_loading_script")
 
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.03, 0.06, 1)
+
 [node name="BackgroundTexture" type="TextureRect" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
@@ -82,9 +91,10 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
-stretch_mode = 6
+stretch_mode = 5
 
 [node name="TopVignette" type="ColorRect" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -117,6 +127,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="BottomBar" type="PanelContainer" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0

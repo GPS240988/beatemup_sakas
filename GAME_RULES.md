@@ -49,6 +49,40 @@ COMBAT / NPC / EVENTS (CombatDirector, DialogueDirector, LevelEventDirector)
 PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
 ```
 
+### 1.4. Fluxo Canônico de Interface e Contrato de Comandos
+`STATUS: IMPLEMENTED`
+
+1. **Sequência Canônica de Transição de Telas**:
+   ```text
+   TitleScreen (title_screen.tscn)
+     ↓ [Toque / Espaço / Enter]
+   MainMenu (main_menu.tscn) — Botão 'Selecionar Personagens' DESABILITADO
+     ↓ [Novo Jogo / Iniciar]
+   CharacterSelect (character_select.tscn)
+     ↓ [Confirmar Herói Guilherme]
+   DifficultySelect (difficulty_select.tscn) — com assets/backgrounds/dificuldade.webp
+     ↓ [Confirmar Normal ou Difícil]
+   LoadingScreen / Instruções (loading_screen.tscn) — com assets/backgrounds/Instruções_1.webp
+     ↓ [Qualquer Tecla / Clique para Continuar]
+   Fase 1 (scenes/levels/map_1.tscn)
+   ```
+2. **Contrato de Comandos Restritos de Jogabilidade**:
+   - `W / A / S / D` e `Setas Direcionais`: Movimentação 2.5D do personagem nos eixos X e Y.
+   - `J`: Golpe básico / Combo de pancadaria (Jab -> Cross -> Kick -> Finisher). O encadeamento é contínuo e consistente tanto parado quanto em movimento via cancelamento de recuperação e buffer de entrada.
+   - `Espaço`: Voadora do personagem (`jump_kick` / `execute_aerial`).
+   - `O`: Golpe Especial de área (`execute_special`).
+   - `K` e `H`: Bloqueio defensivo / Guarda (`guard`).
+   - `Esc`: Pausar a partida abrindo o Menu de Pausa Transparente (`scenes/ui/pause_menu.tscn`).
+3. **Menu de Pausa In-Game e Salvamento Persistente**:
+   - `pause_menu.tscn`: Renderizado em camada superior (`CanvasLayer` layer = 100) com fundo translúcido escuro (`Color(0.015, 0.02, 0.04, 0.78)`), preservando o cenário e os atores pausados ao fundo.
+   - Opções interativas:
+     - **Salvar**: Grava o progresso atual (fase, HP, Especial, vidas e dificuldade) no slot persistente (`user://save_slot_X.json`) via `GameSession.save_game_to_slot()`.
+     - **Continuar**: Despausa o jogo (`get_tree().paused = false`) e fecha o menu.
+     - **Configurações**: Abre subpainel de áudio in-game com ajuste de Volume Master (0% a 100%).
+     - **Sair**: Despausa e retorna com segurança ao Menu Principal (`scenes/ui/main_menu.tscn`).
+4. **Paletas de Inimigos e Luminosidade**:
+   - Inimigos com a paleta vermelha (`PaletteVariant.RED`) utilizam `value_adjust = 0.32` e `saturation_adjust = 0.12` no shader, garantindo leitura visual clara e nítida sem escurecer nos mapas urbanos noturnos.
+
 ---
 
 ## 2. LEVEL SCENE CONTRACT
@@ -169,9 +203,10 @@ MapX (Node2D, script: base_level.gd)
     - Executa a sequência contextual de 4 golpes contínuos:
       `Passo 1 (Jab / Punch 1)` → `Passo 2 (Cruzado / Punch 2)` → `Passo 3 (Chute no Tronco / Kick)` → `Passo 4 (Finisher / Heavy)`.
     - O Finisher desfere impacto máximo e derruba o inimigo (`can_knockdown = true`). Utiliza animação `heavy` em 6 quadros (`heavy_01` a `heavy_06.png`) a 10.0 FPS, recovery calibrado em 0.58s e transição imediata para `idle` conectada via sinais `attack_ended` e `animation_finished`, impedindo travamento no último quadro.
-    - Possui janela real de encadeamento (`combo_window`) escalonada pelo atributo Técnica e buffer de entrada (`_input_buffered`) que permite encadear golpes durante o recovery.
+    - Ciclo temporal formal de ataque no `MeleeAttack` (`Phase`): `STARTUP` (preparação visual sem hitbox ativa nem dano), `ACTIVE` (hitbox ativa com dano único estrito por alvo) e `RECOVERY` (hitbox desativada imediatamente). Sinais `attack_started` e `attack_ended` são emitidos estritamente uma única vez no início e na conclusão completa do ciclo.
+    - Possui janela real de encadeamento (`combo_window`) escalonada pelo atributo Técnica e buffer de entrada (`_input_buffered`) durante startup/active que permite encadear golpes no início do recovery ou cancelando o recovery remanescente.
   - **Botão Exclusivo de Especial** (`attack_special` / `special`):
-    - Dispara evento global de combate consumindo 15% do HP máximo (sem matar o jogador se HP <= 15).
+    - Dispara evento global de combate consumindo 100% da barra de Especial (sem subtrair vida do jogador, exigindo medidor completamente cheio).
     - Concede invulnerabilidade temporária durante a apresentação.
     - Exibe apresentação visual cinematográfica rápida (0.35s - 0.50s) com frames existentes do herói e tema de cor próprio.
     - Aplica dano global e queda obrigatória em todos os inimigos vivos do encontro, preservando NPCs civis.
@@ -265,14 +300,41 @@ MapX (Node2D, script: base_level.gd)
   - **Mapa 3 (Desafio)**: 2 tokens ofensivos, telegraph mais rápido, introdução de Aggressors e reforços dinâmicos.
   - **Mapa 4 (Maestria)**: 2 tokens ofensivos, composição complexa (Tanks + Aggressors + Flankers) e clímax com o Chefe Alessandro.
 - **Sistema Reutilizável de Feedback Audiovisual (`CombatFeedback`)**:
-  - **Hitstop Local**: Pausa de física e visual local do atacante e vítima (3 a 6 frames) sem congelar a árvore nem travar HUD/Mobile.
-  - **Screen Shake**: Tremor suave e amortecido de câmera nos golpes pesados, finalizadores e especial.
+  - **Hitstop Local Consistente**:
+    - Pausa estritamente local de física e visual aplicada aos atores envolvidos no impacto (`attacker` e `victim`) via `CombatFeedback.apply_hitstop(attacker, victim, duration)`.
+    - **Proibição Absoluta de `get_tree().paused`**: É vedado congelar a árvore global de nós (`SceneTree`), assegurando que timers globais, HUD, fluxo de interface e entrada de comandos continuem 100% responsivos.
+    - **Congelamento Visual Preciso**: O `AnimatedSprite2D` dos combatentes afetados tem sua velocidade travada em `speed_scale = 0.0` no frame exato de contato, retomando seu valor original pré-hitstop (geralmente `1.0`) assim que o timer local do ator zera.
+    - **Preservação da Janela Ativa (`MeleeAttack`)**: Durante o hitstop do atacante (`_hitstop_timer > 0.0`), a contagem regressiva da fase (`_phase_timer`) é congelada, impedindo o consumo prematuro da janela de dano enquanto o sprite está parado.
+    - **Resiliência a Golpes Sobrepostos**: Acertos rápidos sucessivos estendem o timer (`max(_hitstop_timer, new_duration)`) sem resetar prematuramente a animação nem deixar atores permanentemente travados.
+    - **Tratamento de Morte e Cancelamento**: Caso o ator seja derrotado (`_on_died()`) ou o ataque seja cancelado (`cancel_attack()`), o timer de hitstop é zerado imediatamente e o `speed_scale` é restaurado para evitar congelamentos pós-morte.
+  - **Screen Shake Concorrente Amortecido**:
+    - Tremor de câmera acionado estritamente em golpes pesados (`heavy`), finalizadores (`finisher`), especiais (`special`) e respawn arcade.
+    - **Imunidade a Conflito de Tweens**: O offset de repouso original é cacheado de forma canônica (`_base_camera_offset`). Tremores concorrentes interrompem o tween anterior sem acumular desvios nem deixar offset residual na câmera.
+  - **Sequência Audiovisual Coerente**:
+    - Após um acerto confirmado, a leitura visual obedece estritamente ao encadeamento: `pose de contato → hitstop local → faísca/partículas no ponto de impacto → reação do alvo/knockback → recuperação`.
+    - **Isolamento de Whiff**: Golpes desferidos sem atingir alvos válidos jamais emitem faíscas nem acionam tremor de câmera.
+    - **Knockback Direcional Consistente**: A direção da força de recuo/queda deriva primariamente do vetor de impacto do golpe (`DamageInfo.direction`) e da posição do atacante, garantindo que o alvo seja projetado no sentido do golpe desferido.
   - **Faíscas e Partículas (CPUParticles2D + AnimatedSprite2D)**: Faíscas em Pixel Art HD (`impacto`, `impactoazul`, `combinado`) combinadas com partículas direcionais de alta velocidade e poeira de solo (`poeira`).
   - **Padronização da Altura de Impacto**: Golpes e faíscas NUNCA devem ser instanciados nos pés/canelas ($Y = -35$ a $-40$). A altura canônica do impacto de combate situa-se no tronco/peito do alvo:
     - Preferencial: `target_hurtbox.global_position` (quando o alvo possuir nó `Hurtbox`).
     - Fallback: `target.global_position + Vector2(0.0, -85.0)` (e $Y = -90.0$ para impactos de guarda).
+  - **Ponto de Integração de Áudio de Combate**: Método desacoplado `CombatFeedback.play_impact_sound()` pronto para rotear efeitos sonoros conforme perfis (`punch`, `kick`, `finisher`, `special`) quando os recursos de áudio forem adicionados ao repositório.
 - **Vitória do Encontro (`encounter_cleared`)**:
   - Ocorre estritamente quando `alive_enemies.is_empty()` **E** `pending_spawns_count == 0` **E** não houver chefe configurado pendente de spawn.
+
+- **Balanceamento Arcade e Economia de Combate (FASE P6)**:
+  - **Economia do Especial**: Taxa de carregamento calibrada em 3.5% por acerto (`SPECIAL_CHARGE_PER_HIT`), permitindo ao jogador carregar 1 barra de especial completa a cada ~28 acertos, perfeitamente compatível com a densidade de inimigos de cada seção. O especial consome 100% da barra sem consumir vida do herói.
+  - **Cadência e Dano de Combo do Herói**: O combo canônico de 4 golpes causa 80.0 de dano base acumulado (Jab: 10, Cross: 15, Hook: 20, Finisher: 35 com knockdown), eliminando 1 Grunt padrão no Mapa 1 com 1 combo limpo.
+  - **Curva de Dificuldade dos Mapas (1 a 4)**:
+    - *Mapa 1 (A Locadora)*: 1 token ofensivo, Grunts (80 HP, 10 DMG). Ensino de mecânicas e leitura limpa.
+    - *Mapa 2 (Balcão da Locadora)*: 2 tokens ofensivos, Flankers ativos e 1 onda de reforço fora da tela (1.15 HP, 1.10 DMG).
+    - *Mapa 3 (O Beco de Entrada)*: 2 tokens ofensivos, Aggressors velozes (1.30 HP, 1.25 DMG).
+    - *Mapa 4 (O Beco Final)*: 2 tokens ofensivos, Tanks com super armor e Chefe Alessandro (1.40 HP, 1.25 DMG, com telegraph mantido acima de 0.20s para reação humana justa).
+  - **Mecânica Universal de Continue / Respawn Arcade**:
+    - Garantido pelo menos 1 continue arcade por mapa (`current_continues = 1`), reabastecido para cada nova seção ou início direto de fase.
+    - Respawn com queda arcade dos céus, 100% HP restaurado, 50% de especial inicial, tremor de tela, queda de inimigos ao solo e 2.0s de invulnerabilidade com piscar visual.
+    - Blindagem contra acionamento indevido de Game Over durante o respawn via flag atômica `is_respawning`.
+  - **Sequência de Morte e Fade dos Inimigos**: O shader de `palette_swap` modula canal alpha e cor (`tex_color.a * COLOR.a` e `tex_color * COLOR`), assegurando que em todos os mapas e para todas as paletas de cores, os inimigos derrotados apresentem a sequência de piscar 4 vezes e desaparecer suavemente do cenário antes do despawn.
 
 ---
 
@@ -340,6 +402,26 @@ MapX (Node2D, script: base_level.gd)
 - **Integração com CombatDirector**:
   - Tipos `ENEMY`, `REINFORCEMENT` e `BOSS` registram-se automaticamente no `CombatDirector` e atualizam `pending_spawns_count`.
   - Tipos `NPC` são direcionados para o contêiner `World/Actors/NPCs` com isolamento total de combate.
+
+- **Regras de Ondas de Reforço e Spawns Fora da Tela (FASE P5)**:
+  - **Gatilho de Onda**: Disparado em `BaseLevel._on_enemy_defeated()` sob condição testável (`alive_enemies.size() <= reinforcement_trigger_enemy_count`).
+  - **Contagem e Blindagem Imediata de Saída**: Antes de iniciar o timer do encontro (`reinforcement_delay_seconds`), o `BaseLevel` invoca imediatamente `combat_director.add_pending_spawns(reinforcement_count)`. A saída (`ExitArea`) e o indicador `SIGA →` permanecem rigorosamente travados enquanto `pending_spawns_count > 0`, mesmo que todos os inimigos da onda inicial tenham sido derrotados durante o delay.
+  - **Geometria de Entrada Fora da Tela (World Rect)**: As coordenadas dos reforços são calculadas dinamicamente em coordenadas de mundo fora do retângulo visível da `Camera2D` (`get_offscreen_spawn_position()`) com margem de segurança (70px a 150px) e restritas aos limites caminháveis do cenário. Se a câmera estiver encostada no limite direito do mapa, a posição inverte automaticamente para fora da tela à esquerda. Múltiplos reforços recebem separação no eixo $Y$ para evitar sobreposição imediata.
+  - **Entrada Legível e Abordagem Justa**: Reforços entram obrigatoriamente no estado `FLANKING` (caminhando em aproximação), garantindo que nenhum inimigo golpeie o jogador instantaneamente ao cruzar a borda da tela sem preparação prévia.
+  - **Variedade Visual por Arquétipos**: Através de `reinforcement_archetypes`, cada reforço recebe seu perfil tático (ex: `AGGRESSOR`, `FLANKER`), herdando a variação automática de paleta de cores (vermelho, verde, roxo) estabelecida na FASE 4.
+  - **Idempotência e Resiliência de Ciclo de Vida**:
+    - Disparos múltiplos de eventos de derrota jamais duplicam a cota agendada da onda.
+    - Em caso de transição de mapa, morte definitiva do herói ou limpeza da árvore (`_exit_tree()`), timers e contadores pendentes são cancelados e zerados com segurança via `_clear_pending_reinforcements()`.
+
+- **Guia de Replicação para o Mapa 3 (O Beco de Entrada)**:
+  - **Passo 1**: Abrir a cena `scenes/levels/map_3.tscn` no editor ou inspecionar suas propriedades de nó raiz.
+  - **Passo 2**: No nó raiz `Map3`, configurar as propriedades do grupo `Ondas de Reforço (P5)`:
+    - `reinforcement_waves_enabled = true`
+    - `reinforcement_trigger_enemy_count = 1`
+    - `reinforcement_delay_seconds = 2.0`
+    - `reinforcement_count = 2`
+    - `reinforcement_archetypes = [1, 3]` (Garante entrada de 1 Aggressor vermelho e 1 Flanker verde)
+  - **Passo 3**: O Mapa 3 já possui contêiner `SpawnPoints` (com `SpawnPoint_Reinforce` em $X=1580, Y=640$), nó `SpawnDirector`, câmera e limites caminháveis calibrados. O `BaseLevel` orquestrará a onda automaticamente sem exigir scripts ou nós adicionais.
 
 ---
 

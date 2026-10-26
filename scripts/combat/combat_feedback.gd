@@ -13,16 +13,22 @@ static func apply_hitstop(attacker: Node, victim: Node, duration: float) -> void
 	if duration <= 0.0:
 		return
 
-	if attacker != null and is_instance_valid(attacker) and attacker.has_method("apply_hitstop"):
-		attacker.apply_hitstop(duration)
-
-	if victim != null and is_instance_valid(victim) and victim.has_method("apply_hitstop"):
-		victim.apply_hitstop(duration)
+	_apply_single_actor_hitstop(attacker, duration)
+	_apply_single_actor_hitstop(victim, duration)
 
 
-## Dispara tremor de câmera (Screen Shake) baseado em trauma amortecido
+static func _apply_single_actor_hitstop(actor: Node, duration: float) -> void:
+	if actor == null or not is_instance_valid(actor):
+		return
+	if actor.has_method("apply_hitstop"):
+		actor.apply_hitstop(duration)
+	elif actor.get_parent() != null and is_instance_valid(actor.get_parent()) and actor.get_parent().has_method("apply_hitstop"):
+		actor.get_parent().apply_hitstop(duration)
+
+
+## Dispara tremor de câmera (Screen Shake) baseado em trauma amortecido e seguro contra concorrência
 static func trigger_screen_shake(context_node: Node, intensity: float = 8.0, duration: float = 0.25) -> void:
-	if context_node == null or not context_node.is_inside_tree():
+	if context_node == null or not context_node.is_inside_tree() or intensity <= 0.0 or duration <= 0.0:
 		return
 
 	var viewport := context_node.get_viewport()
@@ -30,15 +36,27 @@ static func trigger_screen_shake(context_node: Node, intensity: float = 8.0, dur
 		return
 
 	var camera := viewport.get_camera_2d()
-	if camera == null:
+	if camera == null or not is_instance_valid(camera):
 		return
 
-	# Aplica tremor via Tween suave amortecido
-	var original_offset: Vector2 = camera.offset
+	# 1. Garante que o offset de repouso canônico da câmera é preservado mesmo sob múltiplos tremores
+	if not camera.has_meta(&"_base_camera_offset"):
+		camera.set_meta(&"_base_camera_offset", camera.offset)
+	var base_offset: Vector2 = camera.get_meta(&"_base_camera_offset")
+
+	# 2. Interrompe tween concorrente anterior para impedir disputa sobre a propriedade offset
+	if camera.has_meta(&"_shake_tween"):
+		var prev_tween = camera.get_meta(&"_shake_tween")
+		if prev_tween is Tween and prev_tween.is_valid():
+			prev_tween.kill()
+
 	var tween: Tween = camera.create_tween()
 	if tween == null:
+		camera.offset = base_offset
 		return
+	camera.set_meta(&"_shake_tween", tween)
 
+	# 3. Interpolação amortecida dos passos de tremor
 	var steps: int = 4
 	var step_time: float = duration / float(steps)
 	for i in range(steps):
@@ -47,8 +65,23 @@ static func trigger_screen_shake(context_node: Node, intensity: float = 8.0, dur
 			randf_range(-intensity, intensity) * damp,
 			randf_range(-intensity * 0.5, intensity * 0.5) * damp
 		)
-		tween.tween_property(camera, "offset", original_offset + shake_offset, step_time * 0.5)
-	tween.tween_property(camera, "offset", original_offset, step_time * 0.5)
+		tween.tween_property(camera, "offset", base_offset + shake_offset, step_time * 0.5)
+
+	# 4. Retorno estrito e garantido ao offset original de repouso
+	tween.tween_property(camera, "offset", base_offset, step_time * 0.5)
+	tween.tween_callback(func():
+		if is_instance_valid(camera):
+			camera.offset = base_offset
+			if camera.has_meta(&"_shake_tween") and camera.get_meta(&"_shake_tween") == tween:
+				camera.remove_meta(&"_shake_tween")
+	)
+
+
+## Ponto de integração arquitetural para efeitos sonoros de combate (P3)
+## Quando arquivos de som forem importados no repositório (ex: em res://assets/audio/),
+## este método concentrará a reprodução de áudio desacoplada por perfil de impacto.
+static func play_impact_sound(_context_node: Node, _profile: String = "punch") -> void:
+	pass
 
 
 ## Gera partículas de impacto direcionais (CPUParticles2D) e efeitos visuais animados (Pixel Art HD)

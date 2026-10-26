@@ -36,13 +36,13 @@ polygon = PackedVector2Array(-36, 0, -26, -8, 0, -12, 26, -8, 36, 0, 26, 8, 0, 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Visual" unique_id=16044863]
 visible = false
-position = Vector2(0, -113)
-scale = Vector2(0.35, 0.35)
+position = Vector2(0, -107)
+scale = Vector2(0.28, 0.28)
 texture = ExtResource("2_sergio_tex")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual" unique_id=16044864]
-position = Vector2(0, -113)
-scale = Vector2(0.35, 0.35)
+position = Vector2(0, -107)
+scale = Vector2(0.28, 0.28)
 sprite_frames = ExtResource("4_walk_frames")
 animation = &"walk"
 frame = 3

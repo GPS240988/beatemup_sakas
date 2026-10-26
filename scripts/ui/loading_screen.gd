@@ -7,6 +7,7 @@ extends Control
 ## Totalmente compatível com Teclado, Gamepad, Mouse e Toque Mobile.
 
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
+const DIFFICULTY_SELECT_SCENE: String = "res://scenes/ui/difficulty_select.tscn"
 const TARGET_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
 
 const LOADING_IMAGE_PATH: String = "res://assets/backgrounds/Instruções_1.webp"
@@ -99,16 +100,24 @@ func _start_prompt_pulse() -> void:
 	_pulse_tween.tween_property(btn_continue, "modulate", Color(0.9, 0.9, 1.0, 0.85), 0.55).set_trans(Tween.TRANS_SINE)
 
 
+func _gui_input(event: InputEvent) -> void:
+	if _is_transitioning:
+		return
+	if event is InputEventMouseButton and event.pressed:
+		_safe_handle_input()
+		_on_continue_pressed()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_transitioning:
 		return
 
-	if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_SPACE or event.keycode == KEY_ENTER)):
-		_safe_handle_input()
-		_on_continue_pressed()
-	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
+	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_safe_handle_input()
 		_on_back_pressed()
+	elif (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton and event.pressed) or event.is_action_pressed("ui_accept"):
+		_safe_handle_input()
+		_on_continue_pressed()
 
 
 func _safe_handle_input() -> void:
@@ -143,10 +152,13 @@ func _on_back_pressed() -> void:
 
 	_play_sound(_sfx_cancel)
 	_safe_handle_input()
-	var err := get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
+	var err := get_tree().change_scene_to_file(DIFFICULTY_SELECT_SCENE)
 	if err != OK:
-		_is_transitioning = false
-		printerr("Erro ao retornar à seleção de personagens: ", err)
+		# Fallback para a tela de seleção de personagens
+		err = get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
+		if err != OK:
+			_is_transitioning = false
+			printerr("Erro ao retornar: ", err)
 
 
 func _play_sound(stream: AudioStreamWAV) -> void:

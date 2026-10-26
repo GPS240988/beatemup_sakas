@@ -1,23 +1,8 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/difficulty_select.gd" id="1_diff_select_script"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header_bar"]
-bg_color = Color(0, 0.94, 1, 1)
-shadow_color = Color(0, 0.94, 1, 0.6)
-shadow_size = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_base"]
-bg_color = Color(0.04, 0.05, 0.09, 0.88)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.15, 0.45, 0.6, 0.5)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+[ext_resource type="Texture2D" path="res://assets/backgrounds/dificuldade.webp" id="2_diff_normal_bg"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/dificuldade_dificil.webp" id="3_diff_dificil_bg"]
 
 [node name="DifficultySelect" type="Control"]
 layout_mode = 3
@@ -35,196 +20,80 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.03, 0.07, 1)
+color = Color(0.02, 0.02, 0.05, 1)
 
-[node name="LedTop" type="Panel" parent="."]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 4.0
-grow_horizontal = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header_bar")
-
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="BackgroundNormal" type="TextureRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 120
-theme_override_constants/margin_top = 50
-theme_override_constants/margin_right = 120
-theme_override_constants/margin_bottom = 40
+texture = ExtResource("2_diff_normal_bg")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="VBoxMain" type="VBoxContainer" parent="MarginContainer"]
-layout_mode = 2
-theme_override_constants/separation = 24
-
-[node name="HeaderContainer" type="VBoxContainer" parent="MarginContainer/VBoxMain"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="SubTitle" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.94, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "// PREPARAÇÃO DA MISSÃO // FASE 1: TEST STREET"
-horizontal_alignment = 1
-
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.96, 1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0.94, 1, 0.6)
-theme_override_constants/shadow_offset_x = 0
-theme_override_constants/shadow_offset_y = 0
-theme_override_constants/shadow_outline_size = 8
-theme_override_font_sizes/font_size = 32
-text = "ESCOLHA A DIFICULDADE"
-horizontal_alignment = 1
-
-[node name="HBoxCards" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 40
-alignment = 1
-
-[node name="Card_normal" type="Button" parent="MarginContainer/VBoxMain/HBoxCards"]
+[node name="BackgroundDificil" type="TextureRect" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(320, 0)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
-
-[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/HBoxCards/Card_normal"]
+modulate = Color(1, 1, 1, 0)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
-theme_override_constants/separation = 16
-alignment = 1
+texture = ExtResource("3_diff_dificil_bg")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="IconLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_normal/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "⚔️"
-horizontal_alignment = 1
-
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_normal/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.94, 1, 1)
-theme_override_font_sizes/font_size = 24
-text = "NORMAL"
-horizontal_alignment = 1
-
-[node name="DescLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_normal/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
-theme_override_font_sizes/font_size = 15
-text = "Desafio equilibrado"
-horizontal_alignment = 1
-
-[node name="DetailLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_normal/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
-theme_override_font_sizes/font_size = 12
-text = "Curva de combate recomendada para novos jogadores."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="SelectTag_normal" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_normal/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.94, 1, 1)
-theme_override_font_sizes/font_size = 12
-text = "◀ ATIVA / SELECIONADA ▶"
-horizontal_alignment = 1
-
-[node name="Card_dificil" type="Button" parent="MarginContainer/VBoxMain/HBoxCards"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(320, 0)
-layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
-
-[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/HBoxCards/Card_dificil"]
+[node name="ClickZones" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
-theme_override_constants/separation = 16
-alignment = 1
 
-[node name="IconLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_dificil/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "💀"
-horizontal_alignment = 1
-
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_dificil/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0, 0.5, 1)
-theme_override_font_sizes/font_size = 24
-text = "DIFÍCIL"
-horizontal_alignment = 1
-
-[node name="DescLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_dificil/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
-theme_override_font_sizes/font_size = 15
-text = "Um desafio maior"
-horizontal_alignment = 1
-
-[node name="DetailLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_dificil/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
-theme_override_font_sizes/font_size = 12
-text = "Inimigos com reflexos afiados e maior agressividade."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="SelectTag_dificil" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_dificil/VBox"]
+[node name="Card_normal" type="Button" parent="ClickZones"]
 unique_name_in_owner = true
-visible = false
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0, 0.5, 1)
-theme_override_font_sizes/font_size = 12
-text = "◀ ATIVA / SELECIONADA ▶"
-horizontal_alignment = 1
+layout_mode = 0
+offset_left = 220.0
+offset_top = 260.0
+offset_right = 650.0
+offset_bottom = 560.0
+mouse_default_cursor_shape = 2
+flat = true
 
-[node name="StatusNoticeLabel" type="Label" parent="MarginContainer/VBoxMain"]
+[node name="Card_dificil" type="Button" parent="ClickZones"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
-theme_override_font_sizes/font_size = 13
-text = "Selecione o nível de desafio e clique em Iniciar Fase 1"
-horizontal_alignment = 1
+layout_mode = 0
+offset_left = 650.0
+offset_top = 260.0
+offset_right = 1040.0
+offset_bottom = 560.0
+mouse_default_cursor_shape = 2
+flat = true
 
-[node name="BottomButtons" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
-layout_mode = 2
-theme_override_constants/separation = 40
-alignment = 1
-
-[node name="BtnBack" type="Button" parent="MarginContainer/VBoxMain/BottomButtons"]
+[node name="BtnStartGame" type="Button" parent="ClickZones"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 46)
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "◀ VOLTAR ÀS SKINS"
+layout_mode = 0
+offset_left = 425.0
+offset_top = 640.0
+offset_right = 655.0
+offset_bottom = 690.0
+mouse_default_cursor_shape = 2
+flat = true
 
-[node name="BtnStartGame" type="Button" parent="MarginContainer/VBoxMain/BottomButtons"]
+[node name="BtnBack" type="Button" parent="ClickZones"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 46)
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "⚡ INICIAR FASE 1"
+layout_mode = 0
+offset_left = 680.0
+offset_top = 640.0
+offset_right = 855.0
+offset_bottom = 690.0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true

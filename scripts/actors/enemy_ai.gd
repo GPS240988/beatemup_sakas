@@ -90,6 +90,27 @@ const PALETTE_HUE_SHIFTS: Dictionary = {
 	PaletteVariant.CYAN: 320.0,     # 220 + 320 = 540 ≡ 180 → ciano
 }
 
+## Ajuste de luminosidade (value) específico para cada paleta:
+## Clareia o casaco vermelho para evitar o aspecto escuro/marrom em cenários
+const PALETTE_VALUE_ADJUSTS: Dictionary = {
+	PaletteVariant.ORIGINAL: 0.0,
+	PaletteVariant.RED: 0.32,       # Clareia a jaqueta vermelha para tom vivo e nítido (+32% brilho)
+	PaletteVariant.GREEN: 0.08,
+	PaletteVariant.PURPLE: 0.12,
+	PaletteVariant.ORANGE: 0.18,
+	PaletteVariant.CYAN: 0.05,
+}
+
+## Ajuste de saturação específico para cada paleta
+const PALETTE_SAT_ADJUSTS: Dictionary = {
+	PaletteVariant.ORIGINAL: 0.0,
+	PaletteVariant.RED: 0.12,       # Realça o tom vermelho vivo
+	PaletteVariant.GREEN: 0.0,
+	PaletteVariant.PURPLE: 0.0,
+	PaletteVariant.ORANGE: 0.05,
+	PaletteVariant.CYAN: 0.0,
+}
+
 ## Referências internas
 @onready var visual_root: Node2D = $Visual
 @onready var health_component: HealthComponent = $HealthComponent
@@ -113,11 +134,23 @@ var _chase_timer: float = 0.0
 var _has_token: bool = false
 var _is_dead_recorded: bool = false
 var _hitstop_timer: float = 0.0
+var _saved_anim_speed_scale: float = 1.0
+
+
+func is_in_hitstop() -> bool:
+	return _hitstop_timer > 0.0
 
 
 ## Aplica hitstop local controlado sem travar a interface nem timers globais
 func apply_hitstop(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	if _hitstop_timer <= 0.0 and anim_sprite != null:
+		_saved_anim_speed_scale = anim_sprite.speed_scale if anim_sprite.speed_scale > 0.0 else 1.0
+		anim_sprite.speed_scale = 0.0
 	_hitstop_timer = maxf(_hitstop_timer, duration)
+	if melee_attack != null and is_instance_valid(melee_attack):
+		melee_attack.apply_hitstop(duration)
 
 
 func _ready() -> void:
@@ -125,10 +158,8 @@ func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("damageable")
 
-	# Aplica palette swap via shader se variante não for ORIGINAL
-	_apply_palette_swap()
-
 	_apply_archetype_configuration()
+	_apply_palette_swap()
 
 	if health_component != null:
 		health_component.damaged.connect(_on_damaged)
@@ -174,6 +205,10 @@ func _find_player_target() -> void:
 func _physics_process(delta: float) -> void:
 	if _hitstop_timer > 0.0:
 		_hitstop_timer -= delta
+		if _hitstop_timer <= 0.0:
+			_hitstop_timer = 0.0
+			if anim_sprite != null:
+				anim_sprite.speed_scale = _saved_anim_speed_scale
 		return
 
 	if current_state == State.DEAD:
@@ -628,7 +663,13 @@ func _on_damaged_info(info: RefCounted) -> void:
 		can_kd = false
 
 	var knockback_dir: float = -facing_direction
-	if player_target != null:
+	if info != null and info.get("direction") != null and info.get("direction").x != 0.0:
+		knockback_dir = signf(info.get("direction").x)
+	elif info != null and info.get("attacker") != null and is_instance_valid(info.get("attacker")):
+		knockback_dir = signf(global_position.x - info.get("attacker").global_position.x)
+		if knockback_dir == 0.0:
+			knockback_dir = -facing_direction
+	elif player_target != null:
 		knockback_dir = signf(global_position.x - player_target.global_position.x)
 		if knockback_dir == 0.0:
 			knockback_dir = -facing_direction
@@ -651,8 +692,10 @@ func _on_damaged_info(info: RefCounted) -> void:
 			else:
 				visual_root.rotation_degrees = 0.0
 	else:
-		_on_damaged(float(info.get("amount")) if info != null else 10.0)
 		velocity = Vector2(knockback_dir * maxf(80.0, knockback), 0.0)
+		var custom_stun: float = float(info.get("hitstun_duration")) if info != null else 0.0
+		if custom_stun > 0.0:
+			_state_timer = custom_stun
 
 
 ## Aplica o shader de palette swap no AnimatedSprite2D com base na variante exportada
@@ -682,12 +725,14 @@ func _apply_palette_swap() -> void:
 	mat.shader = PaletteSwapShader
 
 	var hue_shift_value: float = PALETTE_HUE_SHIFTS.get(effective_variant, 0.0) as float
+	var val_adj: float = PALETTE_VALUE_ADJUSTS.get(effective_variant, 0.0) as float
+	var sat_adj: float = PALETTE_SAT_ADJUSTS.get(effective_variant, 0.0) as float
 	mat.set_shader_parameter("hue_shift", hue_shift_value)
 	mat.set_shader_parameter("target_hue", 220.0)       # Azul do casaco
 	mat.set_shader_parameter("hue_tolerance", 45.0)
 	mat.set_shader_parameter("min_saturation", 0.08)
-	mat.set_shader_parameter("saturation_adjust", 0.0)
-	mat.set_shader_parameter("value_adjust", 0.0)
+	mat.set_shader_parameter("saturation_adjust", sat_adj)
+	mat.set_shader_parameter("value_adjust", val_adj)
 
 	anim_sprite.material = mat
 
@@ -710,6 +755,18 @@ func set_palette_variant(new_variant: PaletteVariant) -> void:
 
 ## Aplica configurações de arquétipo tático sem alterar os valores padrão do GRUNT
 func _apply_archetype_configuration() -> void:
+	# Define a variante de paleta canônica do arquétipo se nenhuma variante customizada foi definida
+	if palette_variant == PaletteVariant.ORIGINAL:
+		match archetype:
+			Archetype.AGGRESSOR:
+				palette_variant = PaletteVariant.RED
+			Archetype.TANK:
+				palette_variant = PaletteVariant.PURPLE
+			Archetype.FLANKER:
+				palette_variant = PaletteVariant.GREEN
+			Archetype.GRUNT:
+				palette_variant = PaletteVariant.ORIGINAL
+
 	match archetype:
 		Archetype.AGGRESSOR:
 			speed_x = 175.0
@@ -737,6 +794,9 @@ func _apply_archetype_configuration() -> void:
 		Archetype.GRUNT:
 			pass
 
+	if is_inside_tree() and anim_sprite != null:
+		_apply_palette_swap()
+
 
 
 func _on_health_changed(current: float, max_val: float) -> void:
@@ -752,6 +812,9 @@ func _on_died() -> void:
 
 	current_state = State.DEAD
 	velocity = Vector2.ZERO
+	_hitstop_timer = 0.0
+	if anim_sprite != null:
+		anim_sprite.speed_scale = 1.0
 
 	_release_combat_resources()
 

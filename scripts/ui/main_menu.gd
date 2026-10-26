@@ -7,6 +7,7 @@ extends Control
 const TITLE_SCREEN_SCENE: String = "res://scenes/ui/title_screen.tscn"
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const CREDITS_SCENE: String = "res://scenes/ui/credits.tscn"
+const CONTINUE_SCENE: String = "res://scenes/ui/continue_screen.tscn"
 
 const BASE_WIDTH: float = 1920.0
 const BASE_HEIGHT: float = 1080.0
@@ -88,8 +89,8 @@ func _setup_hitboxes() -> void:
 		b.mouse_entered.connect(_on_button_hovered.bind(idx))
 		b.pressed.connect(_on_button_clicked.bind(idx))
 
-	if btn_continue != null:
-		btn_continue.disabled = true
+	if btn_char_select != null:
+		btn_char_select.disabled = true
 	if btn_map != null:
 		btn_map.disabled = true
 	if btn_settings != null:
@@ -213,12 +214,12 @@ func _activate_option(index: int) -> void:
 				session.reset_session()
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
-		1: # CONTINUAR (Desabilitado)
-			_deny_action("Continuar indisponível no momento.")
-
-		2: # SELECIONAR PERSONAGENS
+		1: # CONTINUAR
 			_play_sound(_sfx_confirm)
-			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
+			get_tree().change_scene_to_file(CONTINUE_SCENE)
+
+		2: # SELECIONAR PERSONAGENS (Desabilitado)
+			_deny_action("Seleção de Personagens desabilitada nesta versão.")
 
 		3: # MAPA (Desabilitado)
 			_deny_action("Modo Mapa em desenvolvimento.")

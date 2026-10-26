@@ -32,6 +32,11 @@ map_index = 4
 is_final_map = true
 boss_scene = ExtResource("9_boss_alessandro")
 boss_spawn_position = Vector2(1650, 640)
+reinforcement_waves_enabled = true
+reinforcement_trigger_enemy_count = 1
+reinforcement_delay_seconds = 1.5
+reinforcement_count = 3
+reinforcement_archetypes = [1, 2, 3]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=467852972]
 position = Vector2(640, 360)

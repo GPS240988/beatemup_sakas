@@ -142,10 +142,10 @@ func test_main_menu_scene() -> void:
 	assert_test(btn_new != null and not btn_new.disabled, "Botão Novo Jogo existe e está HABILITADO")
 
 	var btn_cont: Button = instance.get_node_or_null("%BtnContinue") as Button
-	assert_test(btn_cont != null and btn_cont.disabled, "Botão Continuar existe e está DESABILITADO")
+	assert_test(btn_cont != null and not btn_cont.disabled, "Botão Continuar existe e está HABILITADO")
 
 	var btn_char: Button = instance.get_node_or_null("%BtnCharSelect") as Button
-	assert_test(btn_char != null and not btn_char.disabled, "Botão Seleção de Personagens existe e está HABILITADO")
+	assert_test(btn_char != null and btn_char.disabled, "Botão Seleção de Personagens existe e está DESABILITADO no menu")
 
 	instance.free()
 

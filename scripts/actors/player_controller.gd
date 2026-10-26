@@ -84,7 +84,7 @@ var _is_guarding: bool = false
 # Configuração oficial do golpe especial e balanceamento arcade
 const SPECIAL_MAX_CHARGE: float = 100.0
 const SPECIAL_INITIAL_CHARGE: float = 0.0
-const SPECIAL_CHARGE_PER_HIT: float = 2.0
+const SPECIAL_CHARGE_PER_HIT: float = 3.5
 
 # Sistema de combos e medidor de golpe especial da HUD
 var combo_hits: int = 0
@@ -93,6 +93,7 @@ var max_special: float = SPECIAL_MAX_CHARGE
 
 # Sistema de Continues Arcade (padrão 1 ficha inicial)
 var current_continues: int = 1
+var is_respawning: bool = false
 var _respawn_tween: Tween = null
 
 # Modificadores de atributos
@@ -223,12 +224,13 @@ func _build_combo_chain() -> void:
 	_combo_attacks.append(atk3)
 
 	# 4. Combo 4: Finisher / Gancho Pesado (Heavy - Causa Knockdown!)
+	# Nota: O heavy só entra ~20% das vezes após o ciclo soco→cruzado→chute (ver _advance_combo_step)
 	var atk4: Resource = AttackDataClass.new()
 	atk4.set("attack_id", "finisher_4")
 	atk4.set("animation", &"heavy")
-	atk4.set("startup", 0.08)
+	atk4.set("startup", 0.06)
 	atk4.set("active", 0.20)
-	atk4.set("recovery", 0.58 / maxf(0.1, _tec_mult))
+	atk4.set("recovery", 0.40 / maxf(0.1, _tec_mult))
 	atk4.set("damage", 48.0 * _str_mult)
 	atk4.set("horizontal_range", 115.0)
 	atk4.set("depth_tolerance", 30.0 * _tec_mult)
@@ -242,15 +244,33 @@ func _build_combo_chain() -> void:
 	_combo_attacks.append(atk4)
 
 
-## Aplica hitstop local controlado no herói
+var _saved_anim_speed_scale: float = 1.0
+
+
+func is_in_hitstop() -> bool:
+	return _hitstop_timer > 0.0
+
+
+## Aplica hitstop local controlado no herói congelando física, animação e hitbox
 func apply_hitstop(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	if _hitstop_timer <= 0.0 and anim_sprite != null:
+		_saved_anim_speed_scale = anim_sprite.speed_scale if anim_sprite.speed_scale > 0.0 else 1.0
+		anim_sprite.speed_scale = 0.0
 	_hitstop_timer = maxf(_hitstop_timer, duration)
+	if melee_attack != null and is_instance_valid(melee_attack):
+		melee_attack.apply_hitstop(duration)
 
 
 func _physics_process(delta: float) -> void:
-	# Hitstop do herói: pausa temporária de física sem pausar a árvore
+	# Hitstop do herói: pausa temporária de física e animação sem pausar a árvore
 	if _hitstop_timer > 0.0:
 		_hitstop_timer -= delta
+		if _hitstop_timer <= 0.0:
+			_hitstop_timer = 0.0
+			if anim_sprite != null:
+				anim_sprite.speed_scale = _saved_anim_speed_scale
 		return
 
 	if _hurt_timer > 0.0:
@@ -358,22 +378,22 @@ func _physics_process(delta: float) -> void:
 		else:
 			_is_guarding = false
 
-	# Leitura de comandos de ataque
+	# Leitura de comandos de ataque e habilidades
 	if not _is_guarding:
-		# Botão Especial Exclusivo
+		# Botão Especial Exclusivo (O)
 		if Input.is_action_just_pressed("attack_special") or Input.is_action_just_pressed("special"):
 			execute_special()
 			return
 
-		# Botão Principal de Ataque (Combo Contextual / Encadeável)
-		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("attack_punch") or Input.is_action_just_pressed("ui_accept"):
-			_on_attack_button_pressed()
-		elif Input.is_action_just_pressed("attack_kick"):
-			execute_kick()
-		elif Input.is_action_just_pressed("attack_aerial"):
+		# Voadora do Personagem / Salto com Ataque Aéreo (Space)
+		if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("attack_aerial"):
 			execute_aerial()
-		elif Input.is_action_just_pressed("jump"):
-			_try_jump()
+			return
+
+		# Botão Principal de Golpe Básico / Combo de Pancadaria (J)
+		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("attack_punch"):
+			_on_attack_button_pressed()
+			return
 
 	# Se estiver executando ataque no solo, mantém os pés firmes no solo
 	if melee_attack != null and melee_attack.is_attacking and not _is_jumping:
@@ -412,22 +432,47 @@ func _on_attack_button_pressed() -> void:
 		return
 
 	if melee_attack != null and melee_attack.is_attacking:
-		# Se a janela de acerto ativa ainda estiver em curso, armazena no buffer
-		if melee_attack.is_active_window:
+		# Se a janela de acerto ativa ou fase de startup ainda estiver em curso, armazena no buffer
+		if melee_attack.is_active_window or melee_attack.current_phase in [MeleeAttack.Phase.STARTUP, MeleeAttack.Phase.ACTIVE]:
 			_input_buffered = true
 			return
 		else:
 			# Na janela de recuperação: cancela e encadeia o próximo golpe imediatamente
 			melee_attack.cancel_attack()
+			_input_buffered = false
+			if _combo_attacks.size() > 0:
+				_combo_step = _advance_combo_step()
+			_execute_combo_attack(_combo_step)
+			return
 
 	# Avança no combo se estiver dentro da janela
 	if _combo_window_timer > 0.0 and _combo_attacks.size() > 0:
-		_combo_step = (_combo_step + 1) % _combo_attacks.size()
+		_combo_step = _advance_combo_step()
 	else:
 		_combo_step = 0
 
 	_execute_combo_attack(_combo_step)
 
+
+## Avança o combo_step respeitando a regra de 20% de chance para o Heavy Finisher.
+## Após o ciclo soco(0) → cruzado(1) → chute(2), o heavy(3) só entra ~20% das vezes.
+## Nos demais passos a progressão é linear normal.
+const HEAVY_FINISHER_CHANCE: float = 0.20
+
+func _advance_combo_step() -> int:
+	if _combo_attacks.is_empty():
+		return 0
+	# Se já está no último passo (heavy), reinicia
+	if _combo_step >= _combo_attacks.size() - 1:
+		return 0
+	var next_step: int = _combo_step + 1
+	# Quando o próximo passo seria o heavy (step 3), aplica chance de 20%
+	if next_step == 3:
+		if randf() <= HEAVY_FINISHER_CHANCE:
+			return 3
+		else:
+			return 0  # Reinicia no soco em vez de soltar o heavy
+	return next_step
 
 
 ## Executa o ataque indexado do combo
@@ -442,6 +487,13 @@ func _execute_combo_attack(step: int) -> bool:
 	var atk: Resource = _combo_attacks[_combo_step]
 	_current_attack_anim = atk.get("animation")
 	melee_attack.apply_attack_data(atk)
+
+	# Mantém a janela de combo aberta durante o golpe para encadeamentos suaves
+	var win: float = float(atk.get("combo_window"))
+	if win > 0.0:
+		_combo_window_timer = win + 0.60
+	else:
+		_combo_window_timer = 0.0
 
 	if melee_attack.execute_attack(facing_direction):
 		combat_state = CombatState.ATTACKING
@@ -584,13 +636,22 @@ func _try_jump() -> void:
 func _try_aerial_attack() -> void:
 	if melee_attack == null:
 		return
+	# Bloqueio estrito: só permite nova voadora quando o personagem estiver no chão e sem ataque ativo
+	if _is_jumping:
+		return
+	if melee_attack.is_attacking:
+		return
+	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
+		return
 	_is_jumping = true
 	_jump_v_velocity = -340.0
 	_current_attack_anim = &"jump_atk"
 	melee_attack.damage = 35.0 * _str_mult
 	melee_attack.horizontal_range = 110.0
+	melee_attack.startup_duration = 0.04
 	melee_attack.active_duration = 0.22
-	melee_attack.attack_cooldown = 0.45 / maxf(0.1, _tec_mult)
+	melee_attack.recovery_duration = 0.23 / maxf(0.1, _tec_mult)
+	melee_attack.attack_cooldown = melee_attack.recovery_duration
 	velocity.x = facing_direction * 240.0
 	if melee_attack.execute_attack(facing_direction):
 		if anim_sprite != null:
@@ -692,7 +753,7 @@ func _on_attack_ended() -> void:
 		if _combo_attacks.size() > 0:
 			if melee_attack != null:
 				melee_attack.cancel_attack()
-			_combo_step = (_combo_step + 1) % _combo_attacks.size()
+			_combo_step = _advance_combo_step()
 			_execute_combo_attack(_combo_step)
 			return
 
@@ -703,10 +764,11 @@ func _on_attack_ended() -> void:
 	combat_state = CombatState.NORMAL
 	state_changed.emit("Normal")
 
-	if _combo_step < _combo_attacks.size():
+	if _combo_step < _combo_attacks.size() - 1:
 		_combo_window_timer = float(_combo_attacks[_combo_step].get("combo_window"))
 	else:
 		_combo_window_timer = 0.0
+		_combo_step = 0
 
 	if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
 		if not _is_jumping and not _is_guarding:
@@ -788,6 +850,9 @@ func _on_died() -> void:
 		return
 
 	combat_state = CombatState.DEAD
+	_hitstop_timer = 0.0
+	if anim_sprite != null:
+		anim_sprite.speed_scale = 1.0
 	if melee_attack != null:
 		melee_attack.cancel_attack()
 	if punch_visual != null:
@@ -803,6 +868,7 @@ func _on_died() -> void:
 
 ## Dispara o respawn arcade dos céus consumindo 1 ficha
 func _trigger_arcade_respawn() -> void:
+	is_respawning = true
 	current_continues -= 1
 	var session = get_node_or_null("/root/GameSession")
 	if session != null and "current_continues" in session:
@@ -846,6 +912,7 @@ func _trigger_arcade_respawn() -> void:
 
 ## Aterrissagem com tremor de terra, queda de todos os inimigos na tela e restauração de vida/especial
 func _on_respawn_landing() -> void:
+	is_respawning = false
 	if visual_root != null:
 		visual_root.position.y = 0.0
 		visual_root.rotation_degrees = 0.0
@@ -998,13 +1065,12 @@ func _ensure_fallback_inputs() -> void:
 	_register_key_if_missing("move_up", KEY_W, KEY_UP)
 	_register_key_if_missing("move_down", KEY_S, KEY_DOWN)
 	_register_key_if_missing("attack_punch", KEY_J, KEY_NONE)
-	_register_key_if_missing("attack_kick", KEY_K, KEY_NONE)
-	_register_key_if_missing("attack_special", KEY_L, KEY_NONE)
-	_register_key_if_missing("special", KEY_L, KEY_O)
-	_register_key_if_missing("attack_aerial", KEY_U, KEY_NONE)
+	_register_key_if_missing("attack", KEY_J, KEY_NONE)
+	_register_key_if_missing("attack_special", KEY_O, KEY_NONE)
+	_register_key_if_missing("special", KEY_O, KEY_NONE)
+	_register_key_if_missing("attack_aerial", KEY_SPACE, KEY_NONE)
 	_register_key_if_missing("jump", KEY_SPACE, KEY_NONE)
-	_register_key_if_missing("guard", KEY_H, KEY_NONE)
-	_register_key_if_missing("attack", KEY_J, KEY_Z)
+	_register_key_if_missing("guard", KEY_K, KEY_H)
 	_register_key_if_missing("restart", KEY_R, KEY_NONE)
 
 

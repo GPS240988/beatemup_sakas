@@ -14,6 +14,7 @@ extends Control
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
 const LOADING_SCREEN_SCENE: String = "res://scenes/ui/loading_screen.tscn"
+const DIFFICULTY_SELECT_SCENE: String = "res://scenes/ui/difficulty_select.tscn"
 const FIRST_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
 
 const HERO_ORDER: Array[String] = ["guilherme", "gabriel", "andre", "juliana"]
@@ -373,9 +374,9 @@ func _on_confirm_pressed() -> void:
 
 	_safe_handle_input()
 	await get_tree().create_timer(0.20).timeout
-	var err := get_tree().change_scene_to_file(LOADING_SCREEN_SCENE)
+	var err := get_tree().change_scene_to_file(DIFFICULTY_SELECT_SCENE)
 	if err != OK:
-		printerr("Erro ao carregar a tela de apresentação da Fase 1: ", err)
+		printerr("Erro ao carregar a tela de dificuldade: ", err)
 
 
 func _deny_character_selection() -> void:

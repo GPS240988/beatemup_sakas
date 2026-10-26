@@ -82,8 +82,8 @@ void fragment() {
 			hsv.z = clamp(hsv.z + value_adjust * blend, 0.0, 1.0);
 		}
 
-		COLOR = vec4(hsv_to_rgb(hsv), tex_color.a);
+		COLOR = vec4(hsv_to_rgb(hsv) * COLOR.rgb, tex_color.a * COLOR.a);
 	} else {
-		COLOR = tex_color;
+		COLOR = tex_color * COLOR;
 	}
 }

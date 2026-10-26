@@ -1,0 +1,285 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/continue_screen.gd" id="1_continue_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/continuar.webp" id="2_continue_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_normal"]
+bg_color = Color(0.06, 0.08, 0.13, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.48, 0.28, 0.7)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_selected"]
+bg_color = Color(0.12, 0.16, 0.25, 0.92)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.96, 0.84, 0.35, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.96, 0.84, 0.35, 0.35)
+shadow_size = 8
+
+[node name="ContinueScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_continue_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.05, 1)
+
+[node name="BackgroundTexture" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_continue_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SlotsContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Slot1" type="Button" parent="SlotsContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 500.0
+offset_top = 160.0
+offset_right = 1100.0
+offset_bottom = 260.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_slot_selected")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_slot_selected")
+
+[node name="Margin1" type="MarginContainer" parent="SlotsContainer/Slot1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox1" type="VBoxContainer" parent="SlotsContainer/Slot1/Margin1"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Slot1Title" type="Label" parent="SlotsContainer/Slot1/Margin1/VBox1"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.82, 0.35, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 17
+text = "SLOT 1"
+
+[node name="Slot1Details" type="Label" parent="SlotsContainer/Slot1/Margin1/VBox1"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 0.98, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "— VAZIO —"
+
+[node name="Slot2" type="Button" parent="SlotsContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 500.0
+offset_top = 270.0
+offset_right = 1100.0
+offset_bottom = 370.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_slot_selected")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_slot_selected")
+
+[node name="Margin2" type="MarginContainer" parent="SlotsContainer/Slot2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox2" type="VBoxContainer" parent="SlotsContainer/Slot2/Margin2"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Slot2Title" type="Label" parent="SlotsContainer/Slot2/Margin2/VBox2"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.82, 0.35, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 17
+text = "SLOT 2"
+
+[node name="Slot2Details" type="Label" parent="SlotsContainer/Slot2/Margin2/VBox2"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 0.98, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "— VAZIO —"
+
+[node name="Slot3" type="Button" parent="SlotsContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 500.0
+offset_top = 380.0
+offset_right = 1100.0
+offset_bottom = 480.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_slot_selected")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_slot_selected")
+
+[node name="Margin3" type="MarginContainer" parent="SlotsContainer/Slot3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox3" type="VBoxContainer" parent="SlotsContainer/Slot3/Margin3"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Slot3Title" type="Label" parent="SlotsContainer/Slot3/Margin3/VBox3"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.82, 0.35, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 17
+text = "SLOT 3"
+
+[node name="Slot3Details" type="Label" parent="SlotsContainer/Slot3/Margin3/VBox3"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 0.98, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "— VAZIO —"
+
+[node name="Slot4" type="Button" parent="SlotsContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 500.0
+offset_top = 490.0
+offset_right = 1100.0
+offset_bottom = 590.0
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_slot_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_slot_selected")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_slot_selected")
+
+[node name="Margin4" type="MarginContainer" parent="SlotsContainer/Slot4"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox4" type="VBoxContainer" parent="SlotsContainer/Slot4/Margin4"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Slot4Title" type="Label" parent="SlotsContainer/Slot4/Margin4/VBox4"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.82, 0.35, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 17
+text = "SLOT 4"
+
+[node name="Slot4Details" type="Label" parent="SlotsContainer/Slot4/Margin4/VBox4"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 0.98, 0.9)
+theme_override_font_sizes/font_size = 13
+text = "— VAZIO —"
+
+[node name="NoticeLabel" type="Label" parent="SlotsContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 400.0
+offset_top = 600.0
+offset_right = 1200.0
+offset_bottom = 630.0
+theme_override_colors/font_color = Color(1, 0.35, 0.35, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+
+[node name="BtnConfirm" type="Button" parent="SlotsContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 420.0
+offset_top = 635.0
+offset_right = 650.0
+offset_bottom = 685.0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="BtnBack" type="Button" parent="SlotsContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 680.0
+offset_top = 635.0
+offset_right = 855.0
+offset_bottom = 685.0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true

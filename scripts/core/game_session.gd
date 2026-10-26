@@ -100,8 +100,8 @@ const DIFFICULTIES: Dictionary = {
 	"dificil": {
 		"name": "Difícil",
 		"description": "Um desafio maior",
-		"enemy_health_mult": 1.4,
-		"enemy_damage_mult": 1.3
+		"enemy_health_mult": 2.1,
+		"enemy_damage_mult": 1.95
 	}
 }
 
@@ -231,3 +231,119 @@ func get_technique_multiplier(char_id: String) -> float:
 	var stats: Dictionary = get_character_stats(char_id)
 	var tec_val: float = float(stats.get("technique", 3))
 	return 0.70 + (tec_val * 0.10)
+
+
+# ============================================================
+# SISTEMA DE SALVAMENTO PERSISTENTE (SLOTS 1 A 4)
+# ============================================================
+const SAVE_PATH_TEMPLATE: String = "user://save_slot_%d.json"
+
+const LEVEL_NAMES: Dictionary = {
+	"res://scenes/levels/map_1.tscn": "Mapa 1: A Locadora",
+	"res://scenes/levels/map_2.tscn": "Mapa 2: Rua do Beco",
+	"res://scenes/levels/map_3.tscn": "Mapa 3: Galpão Subterrâneo",
+	"res://scenes/levels/map_4.tscn": "Mapa 4: O Bar da Vila",
+}
+
+
+## Verifica se existe arquivo de save válido para o slot indicado
+func has_save_in_slot(slot: int) -> bool:
+	if slot < 1 or slot > 4:
+		return false
+	var path: String = SAVE_PATH_TEMPLATE % slot
+	return FileAccess.file_exists(path)
+
+
+## Retorna os metadados do save no slot ou dicionário vazio se inexistente
+func get_save_info(slot: int) -> Dictionary:
+	if not has_save_in_slot(slot):
+		return {}
+	var path: String = SAVE_PATH_TEMPLATE % slot
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var json_str: String = file.get_as_text()
+	file.close()
+	var json := JSON.new()
+	var parse_result := json.parse(json_str)
+	if parse_result != OK or not (json.data is Dictionary):
+		return {}
+	return json.data as Dictionary
+
+
+## Salva os dados completos da sessão e fase atual no slot escolhido
+func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, player_sp: float = -1.0) -> bool:
+	if slot < 1 or slot > 4:
+		slot = 1
+
+	var hp_to_save: float = player_hp if player_hp > 0.0 else (preserved_health if preserved_health > 0.0 else 100.0)
+	var sp_to_save: float = player_sp if player_sp >= 0.0 else (preserved_special if preserved_special >= 0.0 else 0.0)
+
+	var lvl_name: String = LEVEL_NAMES.get(level_path, "Fase Desconhecida")
+	var time_dict := Time.get_datetime_dict_from_system()
+	var date_formatted: String = "%02d/%02d/%04d %02d:%02d" % [
+		time_dict.get("day", 1),
+		time_dict.get("month", 1),
+		time_dict.get("year", 2026),
+		time_dict.get("hour", 0),
+		time_dict.get("minute", 0)
+	]
+
+	var save_data: Dictionary = {
+		"slot": slot,
+		"timestamp": Time.get_unix_time_from_system(),
+		"date_time": date_formatted,
+		"level_path": level_path,
+		"level_name": lvl_name,
+		"character_id": selected_character_id,
+		"skin_id": selected_skin_id,
+		"difficulty_id": difficulty_id if difficulty_id != "" else "normal",
+		"health": hp_to_save,
+		"special": sp_to_save,
+		"continues": current_continues
+	}
+
+	var json_text: String = JSON.stringify(save_data, "\t")
+	var path: String = SAVE_PATH_TEMPLATE % slot
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		printerr("Erro ao abrir arquivo para salvar slot %d: %d" % [slot, FileAccess.get_open_error()])
+		return false
+	file.store_string(json_text)
+	file.close()
+	return true
+
+
+## Carrega os dados de um slot salvo e realiza a transição de fase correspondente
+func load_game_from_slot(slot: int) -> bool:
+	var data := get_save_info(slot)
+	if data.is_empty():
+		return false
+
+	selected_character_id = str(data.get("character_id", "guilherme"))
+	selected_skin_id = str(data.get("skin_id", "palmeirense"))
+	difficulty_id = str(data.get("difficulty_id", "normal"))
+	current_continues = int(data.get("continues", 1))
+
+	var hp: float = float(data.get("health", 100.0))
+	var sp: float = float(data.get("special", 0.0))
+	var lvl_path: String = str(data.get("level_path", FIRST_LEVEL_PATH))
+
+	save_player_progression("fase1", hp, sp)
+
+	character_selected.emit(selected_character_id)
+	skin_selected.emit(selected_skin_id)
+	difficulty_selected.emit(difficulty_id)
+	game_started.emit(selected_character_id, selected_skin_id, difficulty_id)
+
+	var err := get_tree().change_scene_to_file(lvl_path)
+	return err == OK
+
+
+## Remove o save do slot (para reset)
+func delete_save_slot(slot: int) -> bool:
+	if not has_save_in_slot(slot):
+		return true
+	var path: String = SAVE_PATH_TEMPLATE % slot
+	var err := DirAccess.remove_absolute(path)
+	return err == OK

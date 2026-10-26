@@ -41,6 +41,11 @@ size = Vector2(60, 80)
 script = ExtResource("1_base_level")
 map_name = "Fase 1 - Seção 1: Entrada da Rua"
 next_map_scene_path = "res://scenes/levels/map_2.tscn"
+reinforcement_waves_enabled = true
+reinforcement_trigger_enemy_count = 1
+reinforcement_delay_seconds = 2.0
+reinforcement_count = 3
+reinforcement_archetypes = [0, 0, 0]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=510724758]
 position = Vector2(640, 360)
@@ -151,7 +156,7 @@ y_sort_enabled = true
 
 [node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=443930519 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1460, 694)
-palette_variant = 6
+palette_variant = 1
 
 [node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=731056628 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1620, 704)

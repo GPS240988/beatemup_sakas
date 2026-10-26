@@ -90,11 +90,11 @@ static func create_for_map(map_index: int) -> Resource:
 			p.max_attack_tokens = 2
 			p.max_simultaneous_active_enemy_attacks = 1
 			p.token_timeout_seconds = 3.2
-			p.aggression_factor = 1.40
-			p.attack_frequency_multiplier = 1.25
-			p.telegraph_duration_multiplier = 0.85
-			p.health_multiplier = 1.50
-			p.damage_multiplier = 1.35
+			p.aggression_factor = 1.30
+			p.attack_frequency_multiplier = 1.20
+			p.telegraph_duration_multiplier = 0.90
+			p.health_multiplier = 1.40
+			p.damage_multiplier = 1.25
 			p.allow_flankers = true
 			p.allow_aggressors = true
 			p.allow_tanks = true
