@@ -144,7 +144,7 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REF" = refs/heads/main
           python -m script.release_promotion pypi-preflight --run-id "$QUALIFICATION_RUN_ID" --bump "$BUMP" --previous "$PREVIOUS_VERSION"
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         if: steps.preflight.outputs.pending == 'true'
         with:
           packages-dir: pending-pypi/
