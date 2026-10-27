@@ -39,6 +39,9 @@ enum PaletteVariant {
 	RANDOM      ## Sorteia aleatoriamente ao spawnar
 }
 
+## Nome exibido na HUD Arcade quando o inimigo é alvo
+@export var display_name: String = "JOGADOR DE MAGIC"
+
 ## Arquétipo tático deste inimigo
 @export var archetype: Archetype = Archetype.GRUNT
 

@@ -27,6 +27,15 @@ extends CanvasLayer
 @onready var enemy_health_label: Label = %EnemyHealthLabel
 @onready var touch_toggle_btn: Button = %TouchToggleBtn
 
+# Game Over overlay
+@onready var game_over_layer: CanvasLayer = get_node_or_null("%GameOverLayer") as CanvasLayer
+@onready var game_over_rect: TextureRect = get_node_or_null("%GameOverRect") as TextureRect
+
+var _game_over_active: bool = false
+var _can_restart: bool = false
+var _game_over_tween: Tween = null
+var _restart_scene_path: String = ""
+
 
 func _ready() -> void:
 	if label_level_name != null:
@@ -45,6 +54,12 @@ func _ready() -> void:
 		_update_toggle_btn_text()
 
 	_update_debug_display(Vector2.ZERO, Vector2.ZERO)
+
+	# Game Over layer inicia oculto
+	if game_over_layer != null:
+		game_over_layer.visible = false
+	if game_over_rect != null:
+		game_over_rect.modulate.a = 0.0
 
 
 ## Alterna manualmente a exibição dos controles na tela (para Mobile ou teste no PC)
@@ -141,9 +156,19 @@ func update_enemy_health(current: float, max_val: float) -> void:
 		enemy_hud.set_enemy_health(current, max_val)
 
 
-func set_enemy_target(enemy_node: Node) -> void:
+func set_stage_section(stage: int, section: int = 1) -> void:
+	if center_hud != null:
+		center_hud.set_stage_index(stage, section)
+
+
+func set_stage(stage_num: int, section_num: int = 1) -> void:
+	if center_hud != null:
+		center_hud.set_stage_index(stage_num, section_num)
+
+
+func set_enemy_target(enemy_node: Node, from_player_hit: bool = false) -> void:
 	if enemy_hud != null:
-		enemy_hud.target_enemy(enemy_node)
+		enemy_hud.target_enemy(enemy_node, from_player_hit)
 
 
 func set_enemy_name(value: String) -> void:
@@ -162,12 +187,77 @@ func update_player_state(state_name: String) -> void:
 		label_debug_status.text = "Estado: %s" % state_name
 
 
-## Exibe mensagem de derrota do jogador
+## Exibe a tela de Game Over com fade-in da imagem game_over.webp por ~5 segundos.
+## Somente após a conclusão da animação o jogador tem permissão para pressionar [R] e reiniciar.
+## O caminho da cena a reiniciar é definido por set_restart_scene().
 func show_game_over() -> void:
-	if banner_panel != null and banner_label != null:
-		banner_panel.visible = true
-		banner_label.text = "☠️ VOCÊ FOI DERROTADO!\nPressione [R] para Reiniciar"
-		banner_label.modulate = Color(1.0, 0.35, 0.35)
+	if _game_over_active:
+		return
+	_game_over_active = true
+	_can_restart = false
+
+	# Oculta banners antigos se visíveis
+	if banner_panel != null:
+		banner_panel.visible = false
+
+	if game_over_layer == null or game_over_rect == null:
+		# Fallback: usa o banner legado se o layer não existir
+		if banner_panel != null and banner_label != null:
+			banner_panel.visible = true
+			banner_label.text = "☠️ GAME OVER"
+			banner_label.modulate = Color(1.0, 0.35, 0.35)
+		_can_restart = true
+		return
+
+	# Exibe a camada
+	game_over_layer.visible = true
+	game_over_rect.modulate.a = 0.0
+
+	if _game_over_tween != null and _game_over_tween.is_valid():
+		_game_over_tween.kill()
+
+	# Fade in da imagem de Game Over por aproximadamente 5 segundos
+	_game_over_tween = create_tween()
+	_game_over_tween.tween_property(game_over_rect, "modulate:a", 1.0, 5.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Somente após o término completo do fade in (5s), libera a ação de reiniciar
+	_game_over_tween.tween_callback(func():
+		_can_restart = true
+	)
+
+
+## Define o caminho da cena a ser carregada quando R é pressionado no Game Over
+func set_restart_scene(scene_path: String) -> void:
+	_restart_scene_path = scene_path
+
+
+## Processa entrada de reiniciar durante o Game Over apenas após o término do fade in (5s)
+func _unhandled_input(event: InputEvent) -> void:
+	if not _game_over_active or not _can_restart:
+		return
+
+	if event.is_action_pressed("restart"):
+		_restart_current_stage()
+
+
+## Reinicia a fase correspondente ao mapa atual com continues zerado
+func _restart_current_stage() -> void:
+	if not _game_over_active or not _can_restart:
+		return
+
+	# Reseta progresso da fase e define continues como 0 (zerado após Game Over, e não 1)
+	var session: Node = get_node_or_null("/root/GameSession")
+	if session != null:
+		if "current_continues" in session:
+			session.current_continues = 0
+		if session.has_method("clear_player_progression"):
+			session.clear_player_progression()
+
+	if not _restart_scene_path.is_empty():
+		get_tree().change_scene_to_file(_restart_scene_path)
+	else:
+		# Fallback: recarrega a cena atual
+		get_tree().reload_current_scene()
 
 
 ## Exibe mensagem de vitória sobre o inimigo

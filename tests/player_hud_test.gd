@@ -49,9 +49,9 @@ func _run_all_tests_async() -> void:
 	# --- 2. Verificação de Continues Dinâmicos ---
 	print("\n--- 2. Verificando Contador de Continues (Início em 1) ---")
 	assert_test(hud.current_continues == 1, "Continues inicia por padrão em 1 em uma nova sessão")
-	assert_test(hud.continue_label.text == "1", "ContinueLabel exibe dinamicamente '1'")
+	assert_test(hud.continue_label.text == "CONTINUE ×1", "ContinueLabel exibe dinamicamente 'CONTINUE ×1'")
 	hud.set_continues(3)
-	assert_test(hud.current_continues == 3 and hud.continue_label.text == "3", "Atualização dinâmica de continues para '3'")
+	assert_test(hud.current_continues == 3 and hud.continue_label.text == "CONTINUE ×3", "Atualização dinâmica de continues para 'CONTINUE ×3'")
 
 	# --- 3. Verificação de Integridade Geométrica das Barras Segmentadas (8 Segmentos) ---
 	print("\n--- 3. Verificando Barras Segmentadas e Contenção Geométrica ---")

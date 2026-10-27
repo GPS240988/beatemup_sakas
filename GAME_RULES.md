@@ -336,10 +336,13 @@ MapX (Node2D, script: base_level.gd)
     - *Mapa 2 (Balcão da Locadora)*: 2 tokens ofensivos, Flankers ativos e 1 onda de reforço fora da tela (1.15 HP, 1.10 DMG).
     - *Mapa 3 (O Beco de Entrada)*: 2 tokens ofensivos, Aggressors velozes (1.30 HP, 1.25 DMG).
     - *Mapa 4 (O Beco Final)*: 2 tokens ofensivos, Tanks com super armor e Chefe Alessandro (1.40 HP, 1.25 DMG, com telegraph mantido acima de 0.20s para reação humana justa).
-  - **Mecânica Universal de Continue / Respawn Arcade**:
-    - Garantido pelo menos 1 continue arcade por mapa (`current_continues = 1`), reabastecido para cada nova seção ou início direto de fase.
+  - **Mecânica Universal de Continue / Respawn Arcade & Game Over**:
+    - Nova partida inicia com 1 ficha de continue (`current_continues = 1`).
     - Respawn com queda arcade dos céus, 100% HP restaurado, 50% de especial inicial, tremor de tela, queda de inimigos ao solo e 2.0s de invulnerabilidade com piscar visual.
     - Blindagem contra acionamento indevido de Game Over durante o respawn via flag atômica `is_respawning`.
+    - Ao esgotar as fichas e ocorrer a morte definitiva, a tela de Game Over exibe a imagem `game_over.webp` com efeito suave de fade in por ~5 segundos.
+    - O comando `[R]` para reiniciar a fase é estritamente bloqueado durante o fade in, sendo liberado apenas após os 5 segundos completos de transição.
+    - Ao reiniciar pelo Game Over, o jogador retorna ao início da fase (Fase 1 retorna para `map_1.tscn`) com a contagem de continues ZERADA (`current_continues = 0`), e não 1 como padrão. A imagem de fundo já contém a legenda nativa ('aperte o r para reiniciar'), dispensando textos de instrução redundantes sobrepostos.
   - **Sequência de Morte e Fade dos Inimigos**: O shader de `palette_swap` modula canal alpha e cor (`tex_color.a * COLOR.a` e `tex_color * COLOR`), assegurando que em todos os mapas e para todas as paletas de cores, os inimigos derrotados apresentem a sequência de piscar 4 vezes e desaparecer suavemente do cenário antes do despawn.
 
 ---

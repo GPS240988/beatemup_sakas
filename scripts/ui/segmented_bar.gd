@@ -67,7 +67,8 @@ extends Control
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(320, 36)
+	if custom_minimum_size == Vector2.ZERO:
+		custom_minimum_size = Vector2(250, 20)
 
 
 func _draw() -> void:

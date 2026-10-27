@@ -45,6 +45,9 @@ func _run_tests_async() -> void:
 	assert_test(hud.player_hud.hp_bar.frame_color == Color(0.0, 0.65, 1.0, 1.0), "Moldura da vida utiliza azul neon arcade (#00A2FF)")
 	assert_test(hud.player_hud.name_label != null and hud.player_hud.name_label.visible, "Nome do jogador visível e nítido")
 	assert_test(hud.player_hud.continue_label != null, "ContinueLabel existe para contador de fichas")
+	assert_test(hud.player_hud.continue_label.text == "CONTINUE ×1", "ContinueLabel exibe texto canônico 'CONTINUE ×1'")
+	assert_test(hud.player_hud.get_node_or_null("MainRow/BarsColumn/HeaderRow/ContinueContainer/DiceIcon") != null, "Ícone de dado arcade (DiceIcon) configurado na linha do nome")
+	assert_test(hud.player_hud.special_bar.custom_minimum_size.x < hud.player_hud.hp_bar.custom_minimum_size.x, "Barra Especial (~150px) é significativamente mais curta que a barra de vida (~250px)")
 	assert_test(hud.player_hud.combo_container != null, "ComboContainer arcade existe")
 
 	# 4. Verificação do Módulo CenterHUD (Fase e Cronômetro)
@@ -61,6 +64,7 @@ func _run_tests_async() -> void:
 	print("\n--- 4. Verificando Alvo Inimigo (EnemyHUD) ---")
 	assert_test(hud.enemy_hud.custom_minimum_size == Vector2(340, 78), "EnemyHUD tem dimensões compactas oficiais (340x78)")
 	assert_test(hud.enemy_hud.enemy_name_label != null, "EnemyNameLabel existe alinhado à direita")
+	assert_test(hud.enemy_hud.enemy_name_label.text == "JOGADOR DE MAGIC", "Nome do inimigo padrão é 'JOGADOR DE MAGIC'")
 	assert_test(hud.enemy_hud.hp_bar != null and hud.enemy_hud.hp_bar is SegmentedBar, "Barra de vida do inimigo é SegmentedBar")
 	assert_test(hud.enemy_hud.hp_bar.filled_color == Color(0.95, 0.12, 0.12, 1.0), "Barra de vida do inimigo utiliza segmentos vermelhos da referência 2")
 	assert_test(hud.enemy_hud.portrait_texture != null and hud.enemy_hud.portrait_texture.texture != null, "Retrato do inimigo carregado")
@@ -71,8 +75,8 @@ func _run_tests_async() -> void:
 	assert_test(is_equal_approx(hud.enemy_hud.current_hp, 60.0), "update_enemy_health atualiza EnemyHUD para 60.0")
 	assert_test(hud.enemy_hud.hp_bar.value <= 60.0, "HpBar do inimigo reflete novo valor")
 
-	hud.set_level(2)
-	assert_test(hud.center_hud.stage_label.text.contains("FASE 2"), "set_level atualiza fase no CenterHUD")
+	hud.set_stage_section(1, 4)
+	assert_test(hud.center_hud.stage_label.text == "FASE 1-4", "set_stage_section atualiza fase no CenterHUD para FASE 1-4")
 
 	hud.set_combo_hits(8)
 	assert_test(hud.player_hud.combo_container.visible, "ComboContainer visível com 8 hits")

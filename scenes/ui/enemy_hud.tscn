@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://24ipy1nrj5sq"]
 
 [ext_resource type="Script" path="res://scripts/ui/enemy_hud.gd" id="1_enemy_script"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud/portraits/portrait_enemy.png" id="2_enemy_portrait"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/portraits/portrait_jogador_de_magic.png" id="2_enemy_portrait"]
 [ext_resource type="Texture2D" path="res://assets/ui/hud/hud_portrait_frame_arcade.png" id="3_portrait_frame"]
 [ext_resource type="Script" path="res://scripts/ui/segmented_bar.gd" id="4_segmented_bar"]
 [ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="5_arcade_font"]
@@ -46,17 +46,17 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
 theme_override_fonts/font = ExtResource("5_arcade_font")
 theme_override_font_sizes/font_size = 15
-text = "INIMIGO"
+text = "JOGADOR DE MAGIC"
 horizontal_alignment = 2
 vertical_alignment = 1
 
 [node name="HPContainer" type="Control" parent="MainRow/BarsColumn"]
-custom_minimum_size = Vector2(230, 20)
+custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
 
 [node name="HpBar" type="Control" parent="MainRow/BarsColumn/HPContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 20)
+custom_minimum_size = Vector2(250, 20)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

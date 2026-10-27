@@ -13,6 +13,8 @@ const SpawnPointClass = preload("res://scripts/spawning/spawn_point.gd")
 const PauseMenuScene: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 
 @export_group("Configuração do Mapa")
+@export var stage_number: int = 1
+@export var section_number: int = 1
 @export var map_name: String = "Fase 1 - Seção 1"
 @export var map_index: int = 1
 @export var map_group: String = "fase1"
@@ -138,28 +140,33 @@ func _ready() -> void:
 		if hud.has_method("bind_player"):
 			hud.bind_player(player)
 
-		# Conecta acertos para rastrear inimigo na EnemyHUD
+		# Conecta acertos para rastrear inimigo na EnemyHUD (prioridade máxima para acertos do jogador)
 		if player.melee_attack != null and hud.has_method("set_enemy_target"):
 			player.melee_attack.target_hit.connect(func(target: Node, _dmg: float):
 				if target != null and is_instance_valid(target) and target.is_in_group("enemies"):
-					hud.set_enemy_target(target)
+					hud.set_enemy_target(target, true)
 			)
 
 	if combat_director != null and hud != null and hud.has_method("set_enemy_target"):
 		if combat_director.has_signal("enemy_registered"):
 			combat_director.enemy_registered.connect(func(enemy: CharacterBody2D):
 				if enemy != null and is_instance_valid(enemy):
-					hud.set_enemy_target(enemy)
+					hud.set_enemy_target(enemy, false)
 			)
+
+	# Atualiza a HUD Arcade com a numeração canônica de Fase e Seção (ex: FASE 1-1, FASE 1-2)
+	if hud != null:
+		if hud.has_method("set_stage_section"):
+			hud.set_stage_section(stage_number, section_number)
+		elif hud.center_hud != null:
+			hud.center_hud.set_stage_index(stage_number, section_number)
 
 	# Restaura vida e especial do jogador de seções anteriores do mesmo mapa (ex: Fase 1)
 	var session = get_node_or_null("/root/GameSession")
 	if session != null and player != null:
-		# Garante 1 ficha de continue/respawn ativa em todos os 4 mapas
-		if "current_continues" in session and session.current_continues < 1:
-			session.current_continues = 1
-		if "current_continues" in player and player.current_continues < 1:
-			player.current_continues = 1
+		# Sincroniza fichas de continue com a sessão
+		if "current_continues" in session and "current_continues" in player:
+			player.current_continues = session.current_continues
 		if hud != null and hud.has_method("bind_player"):
 			hud.bind_player(player)
 
@@ -418,9 +425,9 @@ func _advance_to_next_map() -> void:
 	# Salva a vida e energia especial para a próxima seção do mesmo mapa
 	var session = get_node_or_null("/root/GameSession")
 	if session != null and player != null:
-		# Assegura ficha de respawn para a nova seção
-		if "current_continues" in session:
-			session.current_continues = maxi(1, int(session.current_continues))
+		# Sincroniza fichas de continue com a sessão para a nova seção
+		if "current_continues" in session and "current_continues" in player:
+			session.current_continues = player.current_continues
 		var cur_hp: float = player.health_component.current_health if player.health_component != null else 100.0
 		var cur_sp: float = player.current_special if "current_special" in player else 0.0
 		if not is_final_map and not next_map_scene_path.is_empty():
@@ -463,6 +470,10 @@ func _on_player_died_for_hud() -> void:
 		return
 	_clear_pending_reinforcements()
 	if hud != null and hud.has_method("show_game_over"):
+		# Define a cena de reinício como o primeiro mapa da fase atual (Fase 1 → map_1.tscn)
+		var restart_path: String = _get_stage_restart_scene_path()
+		if hud.has_method("set_restart_scene"):
+			hud.set_restart_scene(restart_path)
 		hud.show_game_over()
 
 
@@ -477,7 +488,22 @@ func _exit_tree() -> void:
 	_clear_pending_reinforcements()
 
 
+## Retorna o caminho da cena de reinício para a fase atual.
+## Fase 1 sempre retorna para map_1.tscn. Fases futuras retornarão para o mapa inicial da fase em questão.
+func _get_stage_restart_scene_path() -> String:
+	# Para a Fase 1 (mapas 1 a 4), o reinício sempre volta para o map_1
+	if stage_number == 1:
+		return "res://scenes/levels/map_1.tscn"
+	# Fases futuras: retorna para o primeiro mapa daquela fase
+	# Por enquanto fallback para o próprio scene_file_path
+	return scene_file_path if not scene_file_path.is_empty() else "res://scenes/levels/map_1.tscn"
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	# Durante o Game Over, o PrototypeHud gerencia a entrada R para reiniciar a fase
+	if hud != null and "_game_over_active" in hud and hud._game_over_active:
+		return
+
 	if event.is_action_pressed("restart"):
 		get_tree().reload_current_scene()
 	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):

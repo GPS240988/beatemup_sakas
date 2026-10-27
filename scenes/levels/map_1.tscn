@@ -39,6 +39,8 @@ size = Vector2(60, 80)
 
 [node name="Map1" type="Node2D" unique_id=1806759155]
 script = ExtResource("1_base_level")
+stage_number = 1
+section_number = 1
 map_name = "Fase 1 - Seção 1: Entrada da Rua"
 next_map_scene_path = "res://scenes/levels/map_2.tscn"
 reinforcement_waves_enabled = true

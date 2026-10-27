@@ -400,7 +400,7 @@ func _update_name_display() -> void:
 
 func _update_continue_display() -> void:
 	if continue_label != null:
-		continue_label.text = "%d" % current_continues
+		continue_label.text = "CONTINUE ×%d" % current_continues
 
 
 func _update_hp_display(_animate: bool) -> void:

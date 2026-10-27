@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://cfprototypehud01"]
+[gd_scene load_steps=9 format=3 uid="uid://cfprototypehud01"]
 
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="1_hud_script"]
 [ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="2_touch_script"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/center_hud.tscn" id="4_center_hud_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/enemy_hud.tscn" id="5_enemy_hud_scene"]
 [ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="6_arcade_font"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/game_over.webp" id="7_game_over_texture"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_banner"]
 bg_color = Color(0.04, 0.06, 0.1, 0.94)
@@ -160,3 +161,21 @@ layout_mode = 0
 [node name="TouchToggleBtn" type="Button" parent="LegacyContainer"]
 unique_name_in_owner = true
 layout_mode = 0
+
+[node name="GameOverLayer" type="CanvasLayer" parent="."]
+unique_name_in_owner = true
+layer = 90
+visible = false
+
+[node name="GameOverRect" type="TextureRect" parent="GameOverLayer"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+modulate = Color(1, 1, 1, 0)
+mouse_filter = 2
+texture = ExtResource("7_game_over_texture")
+expand_mode = 1
+stretch_mode = 5

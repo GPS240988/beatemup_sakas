@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/hud/hud_portrait_frame_arcade.png" id="3_portrait_frame"]
 [ext_resource type="Texture2D" path="res://assets/ui/hud/hud_electric_aura.png" id="4_electric_aura"]
 [ext_resource type="Texture2D" path="res://assets/ui/hud/hud_name_frame_guilherme.png" id="5_name_frame"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_coin_icon.png" id="6_coin_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_dice_icon.png" id="6_dice_icon"]
 [ext_resource type="Script" path="res://scripts/ui/segmented_bar.gd" id="7_segmented_bar"]
 [ext_resource type="Texture2D" path="res://assets/ui/hud/hud_combo_plate_arcade.png" id="8_combo_plate"]
 [ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="9_arcade_font"]
@@ -88,7 +88,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="NameContainer" type="Control" parent="MainRow/BarsColumn/HeaderRow"]
-custom_minimum_size = Vector2(140, 20)
+custom_minimum_size = Vector2(130, 20)
 layout_mode = 2
 
 [node name="NameFrame" type="TextureRect" parent="MainRow/BarsColumn/HeaderRow/NameContainer"]
@@ -122,14 +122,14 @@ vertical_alignment = 1
 
 [node name="ContinueContainer" type="HBoxContainer" parent="MainRow/BarsColumn/HeaderRow"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 4
 alignment = 1
 
-[node name="CoinIcon" type="TextureRect" parent="MainRow/BarsColumn/HeaderRow/ContinueContainer"]
-custom_minimum_size = Vector2(16, 16)
+[node name="DiceIcon" type="TextureRect" parent="MainRow/BarsColumn/HeaderRow/ContinueContainer"]
+custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
 size_flags_vertical = 4
-texture = ExtResource("6_coin_icon")
+texture = ExtResource("6_dice_icon")
 expand_mode = 1
 stretch_mode = 5
 
@@ -146,17 +146,17 @@ theme_override_colors/font_color = Color(1, 0.88, 0.2, 1)
 theme_override_colors/font_outline_color = Color(0.1, 0.05, 0, 1)
 theme_override_constants/outline_size = 3
 theme_override_fonts/font = ExtResource("9_arcade_font")
-theme_override_font_sizes/font_size = 14
-text = "1"
+theme_override_font_sizes/font_size = 11
+text = "CONTINUE ×1"
 vertical_alignment = 1
 
 [node name="HPContainer" type="Control" parent="MainRow/BarsColumn"]
-custom_minimum_size = Vector2(230, 20)
+custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
 
 [node name="HpBar" type="Control" parent="MainRow/BarsColumn/HPContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 20)
+custom_minimum_size = Vector2(250, 20)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -193,12 +193,13 @@ text = "100 / 100"
 vertical_alignment = 1
 
 [node name="SpecialContainer" type="Control" parent="MainRow/BarsColumn"]
-custom_minimum_size = Vector2(230, 12)
+custom_minimum_size = Vector2(150, 10)
 layout_mode = 2
+size_flags_horizontal = 0
 
 [node name="SpecialBar" type="Control" parent="MainRow/BarsColumn/SpecialContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 12)
+custom_minimum_size = Vector2(150, 10)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

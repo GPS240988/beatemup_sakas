@@ -42,6 +42,10 @@ func set_stage_index(map_index: int, sub_index: int = 1) -> void:
 	set_stage_text("FASE %d-%d" % [map_index, sub_index])
 
 
+func set_stage(stage_num: int, section_num: int = 1) -> void:
+	set_stage_index(stage_num, section_num)
+
+
 func set_time_seconds(seconds: int) -> void:
 	_remaining_seconds = float(maxi(0, seconds))
 	_update_timer_display()

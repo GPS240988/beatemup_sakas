@@ -27,6 +27,8 @@ size = Vector2(60, 80)
 
 [node name="Map4" type="Node2D" unique_id=20037952]
 script = ExtResource("1_base_level")
+stage_number = 1
+section_number = 4
 map_name = "Fase 1 - Seção 4: O Beco Final"
 map_index = 4
 is_final_map = true

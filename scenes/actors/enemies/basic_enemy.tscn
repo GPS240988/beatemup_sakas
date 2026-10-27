@@ -21,6 +21,7 @@ collision_layer = 1
 collision_mask = 2
 motion_mode = 1
 script = ExtResource("1_enemy_script")
+display_name = "JOGADOR DE MAGIC"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -9)
