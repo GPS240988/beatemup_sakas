@@ -1,113 +1,69 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3 uid="uid://cfprototypehud01"]
 
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="1_hud_script"]
 [ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="2_touch_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/player_hud.tscn" id="3_player_hud_scene"]
+[ext_resource type="PackedScene" path="res://scenes/ui/center_hud.tscn" id="4_center_hud_scene"]
+[ext_resource type="PackedScene" path="res://scenes/ui/enemy_hud.tscn" id="5_enemy_hud_scene"]
+[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="6_arcade_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_banner"]
+bg_color = Color(0.04, 0.06, 0.1, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9, 0.75, 0.2, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.8)
+shadow_size = 8
 
 [node name="PrototypeHud" type="CanvasLayer"]
 script = ExtResource("1_hud_script")
 
-[node name="GameHUD" type="MarginContainer" parent="."]
+[node name="TopBar" type="Control" parent="."]
 unique_name_in_owner = true
-offset_right = 650.0
-offset_bottom = 160.0
-mouse_filter = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 18
-
-[node name="PlayersContainer" type="VBoxContainer" parent="GameHUD"]
-unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 120.0
+grow_horizontal = 2
 mouse_filter = 2
 
-[node name="PlayerHUD" parent="GameHUD/PlayersContainer" instance=ExtResource("3_player_hud_scene")]
+[node name="PlayerHUD" parent="TopBar" instance=ExtResource("3_player_hud_scene")]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 0
+offset_left = 18.0
+offset_top = 16.0
+offset_right = 358.0
+offset_bottom = 94.0
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="CenterHUD" parent="TopBar" instance=ExtResource("4_center_hud_scene")]
 unique_name_in_owner = true
-visible = false
-offset_top = 160.0
-offset_right = 440.0
-offset_bottom = 420.0
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 10
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -70.0
+offset_top = 16.0
+offset_right = 70.0
+offset_bottom = 72.0
+grow_horizontal = 2
 
-[node name="PanelContainer" type="PanelContainer" parent="MarginContainer"]
-layout_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/PanelContainer"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="LevelNameLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
+[node name="EnemyHUD" parent="TopBar" instance=ExtResource("5_enemy_hud_scene")]
 unique_name_in_owner = true
-layout_mode = 2
-text = "FASE: TEST STREET (PC / Mobile)"
-
-[node name="ControlsLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "PC: [W/A/S/D] Mover | [J/Espaço] Atacar | [R] Reiniciar"
-
-[node name="HSeparator1" type="HSeparator" parent="MarginContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="PlayerHealthLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Jogador: 100 / 100 HP"
-
-[node name="PlayerHealthBar" type="ProgressBar" parent="MarginContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 16)
-layout_mode = 2
-value = 100.0
-show_percentage = false
-
-[node name="EnemyHealthLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Inimigo: 80 / 80 HP"
-
-[node name="EnemyHealthBar" type="ProgressBar" parent="MarginContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 16)
-layout_mode = 2
-value = 100.0
-show_percentage = false
-
-[node name="HSeparator2" type="HSeparator" parent="MarginContainer/PanelContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="DebugPosLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Posição (Chão): X=0.0 | Y=0.0"
-
-[node name="DebugStatusLabel" type="Label" parent="MarginContainer/PanelContainer/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Estado: Normal"
-
-[node name="TopRightControls" type="MarginContainer" parent="."]
-visible = false
+layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -260.0
-offset_bottom = 70.0
+offset_left = -358.0
+offset_top = 16.0
+offset_right = -18.0
+offset_bottom = 94.0
 grow_horizontal = 0
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-
-[node name="TouchToggleBtn" type="Button" parent="TopRightControls"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(230, 42)
-layout_mode = 2
-text = "📱 Controles Touch: DESLIGADO"
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -121,17 +77,21 @@ mouse_filter = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_banner")
 
 [node name="MarginContainer" type="MarginContainer" parent="CenterContainer/BannerPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 30
+theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 30
+theme_override_constants/margin_right = 32
 theme_override_constants/margin_bottom = 20
 
 [node name="BannerLabel" type="Label" parent="CenterContainer/BannerPanel/MarginContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("6_arcade_font")
 theme_override_font_sizes/font_size = 22
 text = "STATUS DO COMBATE"
 horizontal_alignment = 1
@@ -145,3 +105,58 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("2_touch_script")
+
+[node name="LegacyContainer" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="GameHUD" type="MarginContainer" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="PlayersContainer" type="VBoxContainer" parent="LegacyContainer/GameHUD"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="LevelNameLabel" type="Label" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="ControlsLabel" type="Label" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="PlayerHealthLabel" type="Label" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="PlayerHealthBar" type="ProgressBar" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="EnemyHealthLabel" type="Label" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="EnemyHealthBar" type="ProgressBar" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="DebugPosLabel" type="Label" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="DebugStatusLabel" type="Label" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="TouchToggleBtn" type="Button" parent="LegacyContainer"]
+unique_name_in_owner = true
+layout_mode = 0

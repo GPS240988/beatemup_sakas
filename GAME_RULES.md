@@ -82,6 +82,12 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
      - **Sair**: Despausa e retorna com segurança ao Menu Principal (`scenes/ui/main_menu.tscn`).
 4. **Paletas de Inimigos e Luminosidade**:
    - Inimigos com a paleta vermelha (`PaletteVariant.RED`) utilizam `value_adjust = 0.32` e `saturation_adjust = 0.12` no shader, garantindo leitura visual clara e nítida sem escurecer nos mapas urbanos noturnos.
+5. **Contrato e Arquitetura da HUD Arcade Oficial (referência 2.webp)**:
+   - `PlayerHUD` (`scenes/ui/player_hud.tscn`): Canto superior esquerdo compacto (340×78px). Retrato com moldura azul arcade neon, nome do herói em fonte arcade nítida, contador de fichas/continues com ícone de moeda de ouro (`hud_coin_icon.png`), barra de vida segmentada amarela/dourada com animação fluida de damage buffer e barra de especial azul elétrico (com aura pulsante de 100%).
+   - `CenterHUD` (`scenes/ui/center_hud.tscn`): Centro superior em placa azul-marinho com borda neon (140×56px). Exibe identificador de fase dinâmico ('FASE 1-1') e cronômetro digital arcade em contagem decrescente ('02:37').
+   - `EnemyHUD` (`scenes/ui/enemy_hud.tscn`): Canto superior direito compacto espelhado (340×78px). Nome do alvo alinhado à direita, barra de vida vermelha segmentada com damage buffer e retrato do inimigo/boss com moldura azul arcade.
+   - `Arcade Combo Counter`: Placa dinâmica recortada em azul escuro (`hud_combo_plate_arcade.png`) com contador de acertos em escala de impacto (punch scale tween).
+   - Suíte de validação: `tests/arcade_hud_migration_test.gd` e `tests/player_hud_test.gd`.
 
 ---
 

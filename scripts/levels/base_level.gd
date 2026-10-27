@@ -138,6 +138,20 @@ func _ready() -> void:
 		if hud.has_method("bind_player"):
 			hud.bind_player(player)
 
+		# Conecta acertos para rastrear inimigo na EnemyHUD
+		if player.melee_attack != null and hud.has_method("set_enemy_target"):
+			player.melee_attack.target_hit.connect(func(target: Node, _dmg: float):
+				if target != null and is_instance_valid(target) and target.is_in_group("enemies"):
+					hud.set_enemy_target(target)
+			)
+
+	if combat_director != null and hud != null and hud.has_method("set_enemy_target"):
+		if combat_director.has_signal("enemy_registered"):
+			combat_director.enemy_registered.connect(func(enemy: CharacterBody2D):
+				if enemy != null and is_instance_valid(enemy):
+					hud.set_enemy_target(enemy)
+			)
+
 	# Restaura vida e especial do jogador de seções anteriores do mesmo mapa (ex: Fase 1)
 	var session = get_node_or_null("/root/GameSession")
 	if session != null and player != null:
@@ -364,6 +378,8 @@ func _spawn_boss() -> void:
 			combat_director.is_cleared = false
 			combat_director.encounter_state = "COMBAT"
 			combat_director.notify_spawn_completed(boss)
+		if hud != null and hud.has_method("set_enemy_target"):
+			hud.set_enemy_target(boss)
 
 	# Notificação de Boss na HUD
 	if hud != null and hud.banner_panel != null and hud.banner_label != null:

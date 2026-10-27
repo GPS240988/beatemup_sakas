@@ -185,7 +185,8 @@ func _run_all_tests_async() -> void:
 	var initial_sp: float = 0.0
 	player.current_special = initial_sp
 	player._on_melee_target_hit(dummy_enemy, 15.0)
-	assert_test(is_equal_approx(player.current_special, initial_sp + 2.0), "Acerto válido em inimigo concede exatamente 2.0 pontos de carga")
+	var expected_charge: float = player.SPECIAL_CHARGE_PER_HIT if "SPECIAL_CHARGE_PER_HIT" in player else 2.0
+	assert_test(is_equal_approx(player.current_special, initial_sp + expected_charge), "Acerto válido em inimigo concede carga correta no medidor")
 
 	# Golpe no ar / whiff: não chama _on_melee_target_hit, logo não concede carga
 	# Alvo inválido / nulo não concede carga

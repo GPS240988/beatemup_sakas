@@ -1,0 +1,109 @@
+[gd_scene format=3 uid="uid://24ipy1nrj5sq"]
+
+[ext_resource type="Script" path="res://scripts/ui/enemy_hud.gd" id="1_enemy_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/portraits/portrait_enemy.png" id="2_enemy_portrait"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_portrait_frame_arcade.png" id="3_portrait_frame"]
+[ext_resource type="Script" path="res://scripts/ui/segmented_bar.gd" id="4_segmented_bar"]
+[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="5_arcade_font"]
+
+[node name="EnemyHUD" type="Control"]
+custom_minimum_size = Vector2(340, 78)
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -340.0
+offset_bottom = 78.0
+grow_horizontal = 0
+mouse_filter = 2
+script = ExtResource("1_enemy_script")
+
+[node name="MainRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="BarsColumn" type="VBoxContainer" parent="MainRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="HeaderRow" type="HBoxContainer" parent="MainRow/BarsColumn"]
+layout_mode = 2
+alignment = 2
+
+[node name="EnemyNameLabel" type="Label" parent="MainRow/BarsColumn/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("5_arcade_font")
+theme_override_font_sizes/font_size = 15
+text = "INIMIGO"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="HPContainer" type="Control" parent="MainRow/BarsColumn"]
+custom_minimum_size = Vector2(230, 20)
+layout_mode = 2
+
+[node name="HpBar" type="Control" parent="MainRow/BarsColumn/HPContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 20)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_segmented_bar")
+filled_color = Color(0.95, 0.12, 0.12, 1)
+filled_highlight = Color(1, 0.55, 0.55, 0.85)
+filled_shadow = Color(0.55, 0.04, 0.04, 0.75)
+buffer_color = Color(1, 0.72, 0.15, 1)
+frame_color = Color(0, 0.65, 1, 1)
+slant_offset = -6.0
+padding_left = 10.0
+padding_right = 6.0
+padding_top = 4.0
+padding_bottom = 4.0
+segment_gap = 3.0
+
+[node name="PortraitBox" type="Control" parent="MainRow"]
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+
+[node name="PortraitTexture" type="TextureRect" parent="MainRow/PortraitBox"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_enemy_portrait")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="PortraitFrame" type="TextureRect" parent="MainRow/PortraitBox"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_portrait_frame")
+expand_mode = 1
+stretch_mode = 6

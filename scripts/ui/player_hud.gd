@@ -153,16 +153,19 @@ func set_character_theme(char_id: String) -> void:
 	
 	var palette = theme_colors.get(current_character_id, theme_colors["guilherme"])
 	
-	# Aplica moldura vermelha arcade de alto impacto na barra de vida
+	# Aplica moldura azul neon arcade e segmentos dourados/amarelos da referência 2
 	if hp_bar != null:
-		hp_bar.frame_color = Color(1.0, 0.14, 0.18, 1.0)
+		hp_bar.frame_color = Color(0.0, 0.65, 1.0, 1.0)
+		hp_bar.filled_color = Color(1.0, 0.72, 0.05, 1.0)
+		hp_bar.filled_highlight = Color(1.0, 0.90, 0.50, 0.90)
+		hp_bar.filled_shadow = Color(0.70, 0.45, 0.0, 0.80)
 		hp_bar.queue_redraw()
 	
-	# Configura a barra de Especial com a cor temática do herói
+	# Configura a barra de Especial com a cor temática do herói (azul elétrico para Guilherme)
 	if special_bar != null:
 		special_bar.set_theme_colors(palette["primary"], palette["highlight"], palette["shadow"], palette["frame"])
 	
-	# Carrega banner com o nome e pinceladas do personagem
+	# Carrega banner com o nome para compatibilidade com a suite de testes
 	var banner_path: String = "res://assets/ui/hud/hud_name_frame_%s.png" % current_character_id
 	if ResourceLoader.exists(banner_path) and name_frame != null:
 		var tex = load(banner_path) as Texture2D
@@ -392,7 +395,7 @@ func _on_player_combo_changed(hits: int) -> void:
 func _update_name_display() -> void:
 	if name_label != null:
 		name_label.text = player_name
-		name_label.visible = false
+		name_label.visible = true
 
 
 func _update_continue_display() -> void:

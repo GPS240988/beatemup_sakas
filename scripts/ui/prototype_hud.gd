@@ -1,25 +1,30 @@
 class_name PrototypeHud
 extends CanvasLayer
 
+## Gerenciador Geral da HUD Oficial Arcade do Projeto Sakas
+## Conecta os módulos PlayerHUD (Superior Esquerdo), CenterHUD (Centro Superior)
+## e EnemyHUD (Superior Direito) em estrita conformidade com a referência visual 2.
+
 @onready var player_hud: PlayerHUD = %PlayerHUD
-@onready var game_hud: MarginContainer = %GameHUD
-@onready var debug_margin: MarginContainer = %MarginContainer
-
-@onready var label_level_name: Label = %LevelNameLabel
-@onready var label_controls: Label = %ControlsLabel
-@onready var label_debug_pos: Label = %DebugPosLabel
-@onready var label_debug_status: Label = %DebugStatusLabel
-
-@onready var player_health_bar: ProgressBar = %PlayerHealthBar
-@onready var player_health_label: Label = %PlayerHealthLabel
-
-@onready var enemy_health_bar: ProgressBar = %EnemyHealthBar
-@onready var enemy_health_label: Label = %EnemyHealthLabel
+@onready var center_hud: CenterHUD = %CenterHUD
+@onready var enemy_hud: EnemyHUD = %EnemyHUD
 
 @onready var banner_panel: PanelContainer = %BannerPanel
 @onready var banner_label: Label = %BannerLabel
 
 @onready var touch_controls: TouchControls = $TouchControls
+
+# Nós de compatibilidade herdada
+@onready var game_hud: MarginContainer = %GameHUD
+@onready var debug_margin: MarginContainer = %MarginContainer
+@onready var label_level_name: Label = %LevelNameLabel
+@onready var label_controls: Label = %ControlsLabel
+@onready var label_debug_pos: Label = %DebugPosLabel
+@onready var label_debug_status: Label = %DebugStatusLabel
+@onready var player_health_bar: ProgressBar = %PlayerHealthBar
+@onready var player_health_label: Label = %PlayerHealthLabel
+@onready var enemy_health_bar: ProgressBar = %EnemyHealthBar
+@onready var enemy_health_label: Label = %EnemyHealthLabel
 @onready var touch_toggle_btn: Button = %TouchToggleBtn
 
 
@@ -27,12 +32,12 @@ func _ready() -> void:
 	if label_level_name != null:
 		label_level_name.text = "FASE: TEST STREET (Beat 'em Up 2.5D)"
 	if label_controls != null:
-		label_controls.text = "PC: [WASD] Mover | [J] Soco | [K] Chute | [L] Especial | [U] Aéreo | [Espaço] Bloqueio | [R] Reiniciar"
+		label_controls.text = "PC: [WASD] Mover | [J] Soco | [K] Chute | [O] Especial | [Espaço] Voadora | [Esc] Pausa"
 
 	if banner_panel != null:
 		banner_panel.visible = false
 
-	# Ao iniciar o jogo / emular com F5, os botões e analógico touch iniciam sempre OCULTOS (tela limpa)
+	# Ao iniciar o jogo / emular com F5, os botões e analógico touch iniciam sempre OCULTOS no Desktop
 	set_touch_controls_visible(false)
 
 	if touch_toggle_btn != null:
@@ -94,6 +99,15 @@ func set_portrait(texture: Texture2D) -> void:
 func set_level(value: int) -> void:
 	if player_hud != null and player_hud.has_method("set_level"):
 		player_hud.set_level(value)
+	if center_hud != null:
+		center_hud.set_stage_index(value)
+
+
+func set_stage_name(value: String) -> void:
+	if center_hud != null:
+		center_hud.set_stage_text(value)
+	if label_level_name != null:
+		label_level_name.text = value
 
 
 func set_continues(value: int) -> void:
@@ -123,6 +137,23 @@ func update_enemy_health(current: float, max_val: float) -> void:
 		enemy_health_bar.value = current
 	if enemy_health_label != null:
 		enemy_health_label.text = "Inimigo: %d / %d HP" % [int(current), int(max_val)]
+	if enemy_hud != null:
+		enemy_hud.set_enemy_health(current, max_val)
+
+
+func set_enemy_target(enemy_node: Node) -> void:
+	if enemy_hud != null:
+		enemy_hud.target_enemy(enemy_node)
+
+
+func set_enemy_name(value: String) -> void:
+	if enemy_hud != null:
+		enemy_hud.set_enemy_name(value)
+
+
+func set_enemy_portrait(tex: Texture2D) -> void:
+	if enemy_hud != null:
+		enemy_hud.set_enemy_portrait(tex)
 
 
 ## Atualiza o estado da ação do jogador

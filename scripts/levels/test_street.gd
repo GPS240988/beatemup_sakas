@@ -35,3 +35,5 @@ func _ready() -> void:
 	if enemy != null and hud != null and enemy.health_component != null:
 		enemy.health_component.health_changed.connect(hud.update_enemy_health)
 		hud.update_enemy_health(enemy.health_component.current_health, enemy.health_component.max_health)
+		if hud.has_method("set_enemy_target"):
+			hud.set_enemy_target(enemy)
