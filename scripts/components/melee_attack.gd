@@ -44,6 +44,7 @@ signal target_hit(target: Node, damage: float)
 
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
+const ImpactZonesClass = preload("res://scripts/combat/impact_zones.gd")
 
 ## Propriedades físicas e de impacto do golpe
 @export var knockback_force: float = 50.0
@@ -51,6 +52,13 @@ const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 @export var can_knockdown: bool = false
 @export var hitstop_duration: float = 0.05
 @export var impact_profile: String = "punch"
+
+## Regiões anatômicas preferenciais para este ataque ("head", "upper_torso", "lower_torso", "legs")
+@export var preferred_regions: Array[String] = []
+
+## Ajuste de altura vertical da hitbox relativo ao centro padrão (valores negativos sobem)
+@export var hitbox_offset_y: float = 0.0
+var _base_hitbox_y: float = -100.0
 
 ## Grupo de alvos válidos ("enemies" ou "player")
 @export var target_group: String = "enemies"
@@ -232,16 +240,23 @@ func _ensure_hitbox_nodes() -> void:
 		hitbox_shape.shape = rect
 		hitbox_area.add_child(hitbox_shape)
 
+	if hitbox_area != null and hitbox_area.position.y != 0.0:
+		_base_hitbox_y = hitbox_area.position.y
+
 	if not hitbox_area.area_entered.is_connected(_on_hitbox_detect):
 		hitbox_area.area_entered.connect(_on_hitbox_detect)
 	if not hitbox_area.body_entered.is_connected(_on_hitbox_detect):
 		hitbox_area.body_entered.connect(_on_hitbox_detect)
 
 
-## Atualiza o posicionamento horizontal da hitbox conforme a direção do golpe
+## Atualiza o posicionamento horizontal e vertical da hitbox conforme a direção e tipo de golpe
 func _update_hitbox_transform() -> void:
 	if hitbox_area != null:
 		hitbox_area.position.x = (horizontal_range * 0.5) * facing_direction
+		if hitbox_offset_y != 0.0:
+			hitbox_area.position.y = hitbox_offset_y
+		elif _base_hitbox_y != 0.0:
+			hitbox_area.position.y = _base_hitbox_y
 
 
 ## Liga ou desliga a monitoração da Hitbox de forma segura
@@ -360,6 +375,29 @@ func _try_hit_target(node: Node) -> void:
 	# Registra que o alvo foi atingido neste golpe (impede dano múltiplo)
 	hit_targets.append(target_actor)
 
+	# Determinação anatômica da região e da coordenada espacial do impacto
+	var hitbox_gpos: Vector2 = hitbox_area.global_position if hitbox_area != null else (attacker_pos + Vector2(facing_direction * (horizontal_range * 0.5), -100.0))
+	var hitbox_sz: Vector2 = Vector2(horizontal_range, 70.0)
+	if hitbox_shape != null and hitbox_shape.shape is RectangleShape2D:
+		hitbox_sz = (hitbox_shape.shape as RectangleShape2D).size
+
+	# Se o atacante estiver no ar (ex: voadora / jump kick), ajusta pelo deslocamento vertical do visual
+	if _owner_actor != null:
+		var visual: Node2D = _owner_actor.get_node_or_null("Visual") as Node2D
+		if visual != null and visual.position.y != 0.0:
+			hitbox_gpos.y += visual.position.y
+
+	var impact_res: Dictionary = ImpactZonesClass.resolve_impact_on_target(
+		target_actor,
+		hitbox_gpos,
+		hitbox_sz,
+		preferred_regions,
+		facing_direction,
+		impact_profile
+	)
+	var impact_region: String = impact_res.get("region", "upper_torso")
+	var spark_pos: Vector2 = impact_res.get("position", target_pos + Vector2(0.0, -85.0))
+
 	# Criação desacoplada de DamageInfo (FASE 6 / COMBATE ARCADE)
 	var damage_info := DamageInfoClass.new(
 		damage,
@@ -372,7 +410,9 @@ func _try_hit_target(node: Node) -> void:
 		can_hit_props,
 		can_knockdown,
 		hitstop_duration,
-		impact_profile
+		impact_profile,
+		impact_region,
+		spark_pos
 	)
 
 	# Aplica o dano: O atacante entrega DamageInfo, o receptor decide como processar
@@ -384,12 +424,7 @@ func _try_hit_target(node: Node) -> void:
 
 	if applied:
 		CombatFeedbackClass.apply_hitstop(_owner_actor, target_actor, hitstop_duration)
-		# Posiciona o impacto na altura anatômica do tronco/peito do alvo
-		var spark_pos: Vector2 = target_pos + Vector2(0.0, -85.0)
-		var target_hurtbox: Area2D = target_actor.get_node_or_null("Hurtbox") as Area2D
-		if target_hurtbox != null:
-			spark_pos = target_hurtbox.global_position
-		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(facing_direction, 0), impact_profile)
+		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(facing_direction, 0), impact_profile, impact_region)
 		CombatFeedbackClass.play_impact_sound(self, impact_profile)
 		if impact_profile in ["heavy", "finisher", "special"]:
 			CombatFeedbackClass.trigger_screen_shake(self, 6.0, 0.22)
@@ -421,6 +456,18 @@ func apply_attack_data(data: RefCounted) -> void:
 	elif data.get("hitstop_frames") != null:
 		hitstop_duration = float(data.get("hitstop_frames")) / 60.0
 	impact_profile = str(data.get("impact_profile"))
+	if data.get("preferred_regions") != null:
+		var pr = data.get("preferred_regions")
+		preferred_regions.clear()
+		if pr is Array:
+			for r in pr:
+				preferred_regions.append(str(r))
+	else:
+		preferred_regions.clear()
+	if data.get("hitbox_offset_y") != null:
+		hitbox_offset_y = float(data.get("hitbox_offset_y"))
+	else:
+		hitbox_offset_y = 0.0
 
 
 

@@ -85,7 +85,7 @@ static func play_impact_sound(_context_node: Node, _profile: String = "punch") -
 
 
 ## Gera partículas de impacto direcionais (CPUParticles2D) e efeitos visuais animados (Pixel Art HD)
-static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, profile: String = "punch") -> void:
+static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, profile: String = "punch", region: String = "") -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
 
@@ -98,6 +98,9 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 		effect_sprite.sprite_frames = vfx_frames
 		effect_sprite.global_position = pos
 		effect_sprite.z_index = 50
+		effect_sprite.set_meta("impact_region", region)
+		effect_sprite.set_meta("impact_position", pos)
+		effect_sprite.set_meta("impact_profile", profile)
 
 		var anim_name: StringName = &"impacto"
 		var sprite_scale: float = 0.65
@@ -136,6 +139,8 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 	particles.name = "ImpactSpark"
 	particles.top_level = true
 	particles.global_position = pos
+	particles.set_meta("impact_region", region)
+	particles.set_meta("impact_position", pos)
 	particles.emitting = false
 	particles.one_shot = true
 	particles.lifetime = SPARK_LIFETIME

@@ -1,0 +1,77 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/map_menu.gd" id="1_map_menu_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/Mapa.webp" id="2_mapa_bg"]
+
+[node name="MapMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_map_menu_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.05, 1)
+
+[node name="BackgroundTexture" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_mapa_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClickZones" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BtnBack" type="Button" parent="ClickZones"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 140.0
+offset_top = 890.0
+offset_right = 315.0
+offset_bottom = 940.0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="BtnConfirm" type="Button" parent="ClickZones"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 830.0
+offset_top = 890.0
+offset_right = 1005.0
+offset_bottom = 940.0
+mouse_default_cursor_shape = 2
+flat = true
+
+[node name="NoticeLabel" type="Label" parent="ClickZones"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 500.0
+offset_top = 830.0
+offset_right = 1100.0
+offset_bottom = 860.0
+theme_override_colors/font_color = Color(1.0, 0.35, 0.35, 1.0)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+text = "MODALIDADE MAPA EM DESENVOLVIMENTO"
+
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true

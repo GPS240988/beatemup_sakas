@@ -8,6 +8,7 @@ const TITLE_SCREEN_SCENE: String = "res://scenes/ui/title_screen.tscn"
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const CREDITS_SCENE: String = "res://scenes/ui/credits.tscn"
 const CONTINUE_SCENE: String = "res://scenes/ui/continue_screen.tscn"
+const MAP_MENU_SCENE: String = "res://scenes/ui/map_menu.tscn"
 
 const BASE_WIDTH: float = 1920.0
 const BASE_HEIGHT: float = 1080.0
@@ -91,8 +92,7 @@ func _setup_hitboxes() -> void:
 
 	if btn_char_select != null:
 		btn_char_select.disabled = true
-	if btn_map != null:
-		btn_map.disabled = true
+
 	if btn_settings != null:
 		btn_settings.disabled = true
 
@@ -221,8 +221,9 @@ func _activate_option(index: int) -> void:
 		2: # SELECIONAR PERSONAGENS (Desabilitado)
 			_deny_action("Seleção de Personagens desabilitada nesta versão.")
 
-		3: # MAPA (Desabilitado)
-			_deny_action("Modo Mapa em desenvolvimento.")
+		3: # MAPA
+			_play_sound(_sfx_confirm)
+			get_tree().change_scene_to_file(MAP_MENU_SCENE)
 
 		4: # CONFIGURAÇÕES (Desabilitado)
 			_deny_action("Configurações em desenvolvimento.")

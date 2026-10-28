@@ -87,7 +87,9 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    - `CenterHUD` (`scenes/ui/center_hud.tscn`): Centro superior em placa azul-marinho com borda neon (140×56px). Exibe identificador de fase dinâmico ('FASE 1-1') e cronômetro digital arcade em contagem decrescente ('02:37').
    - `EnemyHUD` (`scenes/ui/enemy_hud.tscn`): Canto superior direito compacto espelhado (340×78px). Nome do alvo alinhado à direita, barra de vida vermelha segmentada com damage buffer e retrato do inimigo/boss com moldura azul arcade.
    - `Arcade Combo Counter`: Placa dinâmica recortada em azul escuro (`hud_combo_plate_arcade.png`) com contador de acertos em escala de impacto (punch scale tween).
-   - Suíte de validação: `tests/arcade_hud_migration_test.gd` e `tests/player_hud_test.gd`.
+   - `SigaIndicator` (`scenes/ui/siga_indicator.tscn`): Indicador de avanço arcade exibindo o banner `vamos.webp` com pulso de impacto no centro superior (offset_top = 90.0, desobstruindo o CenterHUD). A placa legada de saída ("Siga") fica permanentemente oculta.
+   - `GameOverLayer`: Camada arcade (`CanvasLayer` layer = 90) com imagem de fim de jogo `game_over.webp`. Fade in cinematográfico de aproximadamente 5.0 segundos com bloqueio estrito de reinício (`_can_restart = false`). Comando `[R]` liberado apenas após o término do fade in, reiniciando o primeiro mapa da fase correspondente com quantidade de continues ZERADA (`current_continues = 0`) e sem labels de instrução redundantes (legenda nativa na imagem).
+   - Suíte de validação: `tests/arcade_hud_migration_test.gd`, `tests/player_hud_test.gd` e `tests/game_over_flow_test.gd`.
 
 ---
 
@@ -320,10 +322,28 @@ MapX (Node2D, script: base_level.gd)
     - Após um acerto confirmado, a leitura visual obedece estritamente ao encadeamento: `pose de contato → hitstop local → faísca/partículas no ponto de impacto → reação do alvo/knockback → recuperação`.
     - **Isolamento de Whiff**: Golpes desferidos sem atingir alvos válidos jamais emitem faíscas nem acionam tremor de câmera.
     - **Knockback Direcional Consistente**: A direção da força de recuo/queda deriva primariamente do vetor de impacto do golpe (`DamageInfo.direction`) e da posição do atacante, garantindo que o alvo seja projetado no sentido do golpe desferido.
-  - **Faíscas e Partículas (CPUParticles2D + AnimatedSprite2D)**: Faíscas em Pixel Art HD (`impacto`, `impactoazul`, `combinado`) combinadas com partículas direcionais de alta velocidade e poeira de solo (`poeira`).
-  - **Padronização da Altura de Impacto**: Golpes e faíscas NUNCA devem ser instanciados nos pés/canelas ($Y = -35$ a $-40$). A altura canônica do impacto de combate situa-se no tronco/peito do alvo:
-    - Preferencial: `target_hurtbox.global_position` (quando o alvo possuir nó `Hurtbox`).
-    - Fallback: `target.global_position + Vector2(0.0, -85.0)` (e $Y = -90.0$ para impactos de guarda).
+  - **Regra Definitiva de Posicionamento e Região de Impacto**:
+    - O efeito visual de impacto (faíscas `AnimatedHitSpark` e partículas `CPUParticles2D`) DEVE corresponder à região anatômica efetivamente atingida pelo golpe. O tronco não é a posição canônica universal; é apenas uma das regiões possíveis.
+    - **Diferença entre Validação de Dano e Localização Visual**:
+      - `Hurtbox` (Area2D na Layer 3, Mask 0): autoridade física receptora de dano. Valida o recebimento do ataque junto ao `HealthComponent`.
+      - `ImpactZones`: componente e marcadores espaciais que identificam a região anatômica (`head`, `upper_torso`, `lower_torso`, `legs`) e fornecem a referência espacial exata para os efeitos visuais, sem duplicar a aplicação de dano.
+    - **Hierarquia de Prioridade para a Posição do Impacto**:
+      1. Ponto de contato real (centro da interseção geométrica entre a hitbox do ataque e a região atingida).
+      2. Marcador espacial dedicado da região (`Head`, `UpperTorso`, `LowerTorso`, `Legs`).
+      3. Centro espacial calibrado da região anatômica identificada.
+      4. Centro da `Hurtbox` geral (apenas fallback).
+      5. Posição proporcional baseada nas dimensões reais do personagem (último recurso). Deslocamentos fixos como `Vector2(0, -85)` possuem caráter estrito de fallback e foram removidos como método universal.
+    - **Tratamento Específico do Jogador de Magic (`BasicEnemy`)**: Dimensões, proporções e escala nativa de execução (`scale = Vector2(0.42, 0.42)`, `position = Vector2(0, -96)`, altura total ~165px) permanecem estritamente preservadas. As 4 zonas são calibradas para seu sprite real: `head` ([-170, -125]), `upper_torso` ([-125, -85]), `lower_torso` ([-85, -45]), `legs` ([-45, 0]).
+    - **Padronização dos Demais Inimigos (220×300)**: Heróis e capangas em canvas 220×300 utilizam escala 0.80 e altura ~200-210px: `head` ([-210, -155]), `upper_torso` ([-155, -105]), `lower_torso` ([-105, -55]), `legs` ([-55, 0]). Chefe Alessandro (250×330): `head` ([-195, -145]), `upper_torso` ([-145, -95]), `lower_torso` ([-95, -45]), `legs` ([-45, 0]).
+    - **Mapeamento Anatômico dos Golpes**:
+      - Jab (`punch_1`): Cabeça e tórax superior (`head`, `upper_torso`).
+      - Cross (`punch_2`): Tórax superior e cabeça (`upper_torso`, `head`).
+      - Kick (`kick_3`): Tronco inferior e cintura (`lower_torso`).
+      - Finisher (`finisher_4`): Tórax superior e cabeça (`upper_torso`, `head`), golpe pesado com knockdown.
+      - Jump kick: Cabeça e tórax superior (`head`, `upper_torso`).
+      - Especial: Área global resolvendo a região anatômica de cada alvo atingido.
+    - **Garantia de Dano Único**: Um ataque que intersecta múltiplas regiões do mesmo alvo aplica dano estritamente uma única vez (`hit_targets.append(target_actor)`).
+    - **Suíte de Validação**: `tests/anatomical_combat_impact_test.gd`.
   - **Ponto de Integração de Áudio de Combate**: Método desacoplado `CombatFeedback.play_impact_sound()` pronto para rotear efeitos sonoros conforme perfis (`punch`, `kick`, `finisher`, `special`) quando os recursos de áudio forem adicionados ao repositório.
 - **Vitória do Encontro (`encounter_cleared`)**:
   - Ocorre estritamente quando `alive_enemies.is_empty()` **E** `pending_spawns_count == 0` **E** não houver chefe configurado pendente de spawn.

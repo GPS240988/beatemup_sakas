@@ -33,6 +33,7 @@ func _run_all_tests() -> void:
 	test_character_select_scene()
 	test_skin_select_scene()
 	test_difficulty_select_scene()
+	test_map_menu_scene()
 
 	print("==================================================")
 	print("RESULTADO DOS TESTES UI: %d/%d PASSARAM (Falhas: %d)" % [passed_tests, total_tests, failed_tests])
@@ -234,5 +235,42 @@ func test_difficulty_select_scene() -> void:
 
 	var btn_back: Button = instance.get_node_or_null("%BtnBack") as Button
 	assert_test(btn_back != null, "Botão Voltar às Skins existe")
+
+	instance.free()
+
+func test_map_menu_scene() -> void:
+	print("\n--- Testando Cena do Menu de Mapa (map_menu.tscn) ---")
+	var scene: PackedScene = load("res://scenes/ui/map_menu.tscn")
+	assert_test(scene != null, "Cena map_menu.tscn carregada com sucesso")
+
+	var instance: Node = scene.instantiate()
+	assert_test(instance is Control, "MapMenu é um nó Control")
+
+	# Background - arte oficial 16:9 HD
+	var bg: TextureRect = instance.get_node_or_null("%BackgroundTexture") as TextureRect
+	assert_test(bg != null, "BackgroundTexture (TextureRect) existe na cena do mapa")
+	if bg != null:
+		assert_test(bg.texture != null, "BackgroundTexture possui textura oficial (Mapa.webp)")
+
+	# ClickZones container
+	var click_zones: Control = instance.get_node_or_null("%ClickZones") as Control
+	assert_test(click_zones != null, "ClickZones existe na cena do mapa")
+
+	# Botões
+	var btn_back: Button = instance.get_node_or_null("%BtnBack") as Button
+	assert_test(btn_back != null, "Botão Voltar existe no menu de mapa")
+
+	var btn_confirm: Button = instance.get_node_or_null("%BtnConfirm") as Button
+	assert_test(btn_confirm != null, "Botão Confirmar (Iniciar Partida) existe no menu de mapa")
+
+	# NoticeLabel - mensagem de desenvolvimento
+	var notice: Label = instance.get_node_or_null("%NoticeLabel") as Label
+	assert_test(notice != null, "NoticeLabel existe no menu de mapa")
+	if notice != null:
+		assert_test(notice.text == "MODALIDADE MAPA EM DESENVOLVIMENTO", "NoticeLabel exibe mensagem de desenvolvimento correta")
+
+	# AudioPlayer
+	var audio: AudioStreamPlayer = instance.get_node_or_null("%AudioPlayer") as AudioStreamPlayer
+	assert_test(audio != null, "AudioStreamPlayer existe no menu de mapa")
 
 	instance.free()

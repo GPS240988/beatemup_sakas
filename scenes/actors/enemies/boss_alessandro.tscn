@@ -1,8 +1,9 @@
-[gd_scene load_steps=34 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Script" path="res://scripts/actors/boss_alessandro.gd" id="1_boss_script"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health_script"]
 [ext_resource type="Script" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
+[ext_resource type="Script" path="res://scripts/combat/impact_zones.gd" id="4_impact_zones"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/chefes/alessandro/sprite-frame-caminhar-1.webp" id="4_cam1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/chefes/alessandro/sprite-frame-caminhar-2.webp" id="5_cam2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/chefes/alessandro/sprite-frame-caminhar-3.webp" id="6_cam3"]
@@ -234,6 +235,22 @@ monitoring = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
 shape = SubResource("RectangleShape2D_hurtbox")
+
+[node name="ImpactZones" type="Node2D" parent="."]
+script = ExtResource("4_impact_zones")
+profile = 3
+
+[node name="Head" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -165)
+
+[node name="UpperTorso" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -120)
+
+[node name="LowerTorso" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -75)
+
+[node name="Legs" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -22)
 
 [node name="FloatingHealthBar" type="ProgressBar" parent="."]
 offset_left = -45.0

@@ -16,6 +16,8 @@ var can_destroy_props: bool = true
 var can_knockdown: bool = false
 var hitstop_duration: float = 0.05
 var impact_profile: String = "punch"
+var impact_region: String = "upper_torso"
+var impact_position: Vector2 = Vector2.ZERO
 
 
 func _init(
@@ -29,7 +31,9 @@ func _init(
 	p_can_destroy_props: bool = true,
 	p_can_knockdown: bool = false,
 	p_hitstop: float = 0.05,
-	p_impact_profile: String = "punch"
+	p_impact_profile: String = "punch",
+	p_impact_region: String = "upper_torso",
+	p_impact_pos: Vector2 = Vector2.ZERO
 ) -> void:
 	amount = p_amount
 	attacker = p_attacker
@@ -42,4 +46,6 @@ func _init(
 	can_knockdown = p_can_knockdown
 	hitstop_duration = p_hitstop
 	impact_profile = p_impact_profile
+	impact_region = p_impact_region
+	impact_position = p_impact_pos
 

@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://ddpvwavqv5tjn" path="res://scripts/actors/player_controller.gd" id="1_player_script"]
 [ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="2_health_script"]
 [ext_resource type="Script" uid="uid://dgggt62axoi4n" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
+[ext_resource type="Script" path="res://scripts/combat/impact_zones.gd" id="28_impact_zones"]
 [ext_resource type="Texture2D" uid="uid://dbyyxu35w6wmx" path="res://assets/sprites/characters/guilherme/idle.png" id="4_idle"]
 [ext_resource type="Texture2D" uid="uid://cojrn34fws0gj" path="res://assets/sprites/characters/guilherme/walk1.png" id="5_walk1"]
 [ext_resource type="Texture2D" uid="uid://bqyvfko7qcsxq" path="res://assets/sprites/characters/guilherme/walk2.png" id="6_walk2"]
@@ -240,6 +241,22 @@ monitoring = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=2015219780]
 shape = SubResource("RectangleShape2D_hurtbox")
+
+[node name="ImpactZones" type="Node2D" parent="."]
+script = ExtResource("28_impact_zones")
+profile = 2
+
+[node name="Head" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -180)
+
+[node name="UpperTorso" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -135)
+
+[node name="LowerTorso" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -82)
+
+[node name="Legs" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -30)
 
 [node name="Visual" type="Node2D" parent="." unique_id=2044739810]
 

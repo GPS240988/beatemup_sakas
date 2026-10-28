@@ -51,6 +51,7 @@ const AttackDataClass = preload("res://scripts/combat/attack_data.gd")
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 const SpecialPresentationClass = preload("res://scripts/combat/special_presentation.gd")
+const ImpactZonesClass = preload("res://scripts/combat/impact_zones.gd")
 
 ## Referências internas
 @onready var visual_root: Node2D = $Visual
@@ -183,6 +184,8 @@ func _build_combo_chain() -> void:
 	atk1.set("combo_window", 0.42 * _tec_mult)
 	atk1.set("can_knockdown", false)
 	atk1.set("impact_profile", "punch")
+	atk1.preferred_regions.assign(["head", "upper_torso"])
+	atk1.hitbox_offset_y = -125.0
 	_combo_attacks.append(atk1)
 
 	# 2. Combo 2: Cruzado / Segundo Soco (Punch 2)
@@ -202,6 +205,8 @@ func _build_combo_chain() -> void:
 	atk2.set("combo_window", 0.45 * _tec_mult)
 	atk2.set("can_knockdown", false)
 	atk2.set("impact_profile", "punch")
+	atk2.preferred_regions.assign(["upper_torso", "head"])
+	atk2.hitbox_offset_y = -110.0
 	_combo_attacks.append(atk2)
 
 	# 3. Combo 3: Chute no Tronco (Kick)
@@ -221,6 +226,8 @@ func _build_combo_chain() -> void:
 	atk3.set("combo_window", 0.48 * _tec_mult)
 	atk3.set("can_knockdown", false)
 	atk3.set("impact_profile", "kick")
+	atk3.preferred_regions.assign(["lower_torso"])
+	atk3.hitbox_offset_y = -70.0
 	_combo_attacks.append(atk3)
 
 	# 4. Combo 4: Finisher / Gancho Pesado (Heavy - Causa Knockdown!)
@@ -241,6 +248,8 @@ func _build_combo_chain() -> void:
 	atk4.set("combo_window", 0.0)
 	atk4.set("can_knockdown", true)
 	atk4.set("impact_profile", "finisher")
+	atk4.preferred_regions.assign(["upper_torso", "head"])
+	atk4.hitbox_offset_y = -120.0
 	_combo_attacks.append(atk4)
 
 
@@ -590,6 +599,17 @@ func _apply_global_special_impact() -> void:
 		if hit_dir_x == 0.0:
 			hit_dir_x = facing_direction
 
+		var impact_res: Dictionary = ImpactZonesClass.resolve_impact_on_target(
+			enemy_node,
+			enemy_pos + Vector2(0.0, -110.0),
+			Vector2(100.0, 100.0),
+			["upper_torso", "head"],
+			hit_dir_x,
+			"special"
+		)
+		var spark_pos: Vector2 = impact_res.get("position", enemy_pos + Vector2(0.0, -110.0))
+		var impact_reg: String = impact_res.get("region", "upper_torso")
+
 		var spec_info := DamageInfoClass.new(
 			60.0 * _str_mult,
 			self,
@@ -601,7 +621,9 @@ func _apply_global_special_impact() -> void:
 			true,
 			true, # can_knockdown = true!
 			0.08,
-			"special"
+			"special",
+			impact_reg,
+			spark_pos
 		)
 
 		if enemy_node.has_method("take_damage"):
@@ -609,11 +631,7 @@ func _apply_global_special_impact() -> void:
 		elif enemy_health != null:
 			enemy_health.take_damage(spec_info)
 
-		var spark_pos: Vector2 = enemy_pos + Vector2(0.0, -85.0)
-		var enemy_hurtbox: Area2D = enemy_node.get_node_or_null("Hurtbox") as Area2D
-		if enemy_hurtbox != null:
-			spark_pos = enemy_hurtbox.global_position
-		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(hit_dir_x, 0), "special")
+		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(hit_dir_x, 0), "special", impact_reg)
 
 	# Props destrutíveis no cenário também sofrem o impacto do Especial
 	var all_props: Array[Node] = tree.get_nodes_in_group("destructibles")
@@ -652,6 +670,9 @@ func _try_aerial_attack() -> void:
 	melee_attack.active_duration = 0.22
 	melee_attack.recovery_duration = 0.23 / maxf(0.1, _tec_mult)
 	melee_attack.attack_cooldown = melee_attack.recovery_duration
+	melee_attack.impact_profile = "kick"
+	melee_attack.preferred_regions = ["head", "upper_torso"]
+	melee_attack.hitbox_offset_y = -130.0
 	velocity.x = facing_direction * 240.0
 	if melee_attack.execute_attack(facing_direction):
 		if anim_sprite != null:

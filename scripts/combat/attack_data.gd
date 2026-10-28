@@ -21,6 +21,8 @@ extends Resource
 @export var can_launch: bool = false
 @export var cancel_window: float = 0.10
 @export var impact_profile: String = "punch"
+@export var preferred_regions: Array[String] = []
+@export var hitbox_offset_y: float = 0.0
 
 ## Retorna a duração em segundos correspondente aos frames de hitstop (base 60 FPS)
 func get_hitstop_duration() -> float:

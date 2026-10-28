@@ -128,7 +128,6 @@ anchor_left = 0.364
 anchor_top = 0.675
 anchor_right = 0.636
 anchor_bottom = 0.740
-disabled = true
 flat = true
 
 [node name="BtnSettings" type="Button" parent="AspectWrapper/MenuHitboxes"]
