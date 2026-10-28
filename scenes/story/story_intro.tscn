@@ -23,3 +23,4 @@ color = Color(0.01, 0.01, 0.02, 1)
 
 [node name="NarrativeDirector" parent="." instance=ExtResource("2_narrative_scene")]
 unique_name_in_owner = true
+

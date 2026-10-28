@@ -44,3 +44,4 @@ func _advance_to_game() -> void:
 	if err != OK:
 		_is_transitioning = false
 		printerr("Erro ao carregar a Fase 1 a partir da introdução: ", err)
+
