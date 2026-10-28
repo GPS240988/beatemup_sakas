@@ -39,6 +39,8 @@ export_presets.cfg
 # OS
 .DS_Store
 Thumbs.db
+*.TMP
+scratch/
 # macOS iCloud sync duplicate files (e.g. "foo 2.gd", "foo.py 2.uid")
 * 2.gd
 * 2.gd.uid

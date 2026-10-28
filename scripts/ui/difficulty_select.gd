@@ -9,6 +9,7 @@ extends Control
 ## Ao retornar, volta para a Seleção de Personagens (character_select.tscn).
 
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
+const MAP_MENU_SCENE: String = "res://scenes/ui/map_menu.tscn"
 const INSTRUCTIONS_SCENE: String = "res://scenes/ui/loading_screen.tscn"
 const FIRST_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
 
@@ -100,9 +101,11 @@ func _on_start_pressed() -> void:
 
 	_safe_handle_input()
 	await get_tree().create_timer(0.15).timeout
-	var err := get_tree().change_scene_to_file(INSTRUCTIONS_SCENE)
+	var err := get_tree().change_scene_to_file(MAP_MENU_SCENE)
 	if err != OK:
-		get_tree().change_scene_to_file(FIRST_LEVEL_SCENE)
+		err = get_tree().change_scene_to_file(INSTRUCTIONS_SCENE)
+		if err != OK:
+			get_tree().change_scene_to_file(FIRST_LEVEL_SCENE)
 
 
 func _on_back_pressed() -> void:

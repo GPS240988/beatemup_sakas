@@ -8,7 +8,9 @@ extends Control
 
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const DIFFICULTY_SELECT_SCENE: String = "res://scenes/ui/difficulty_select.tscn"
+const MAP_MENU_SCENE: String = "res://scenes/ui/map_menu.tscn"
 const TARGET_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
+const STORY_INTRO_SCENE: String = "res://scenes/story/story_intro.tscn"
 
 const LOADING_IMAGE_PATH: String = "res://assets/backgrounds/Instruções_1.webp"
 const FALLBACK_IMAGE_PATH: String = "res://assets/backgrounds/maps/carregar/carregando_fase1.webp"
@@ -103,7 +105,7 @@ func _start_prompt_pulse() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if _is_transitioning:
 		return
-	if event is InputEventMouseButton and event.pressed:
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_safe_handle_input()
 		_on_continue_pressed()
 
@@ -115,7 +117,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_safe_handle_input()
 		_on_back_pressed()
-	elif (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton and event.pressed) or event.is_action_pressed("ui_accept"):
+	elif (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed) or event.is_action_pressed("ui_accept"):
 		_safe_handle_input()
 		_on_continue_pressed()
 
@@ -137,12 +139,19 @@ func _on_continue_pressed() -> void:
 	if session != null and "selected_character_id" in session:
 		print("Iniciando Fase 1 com o personagem: ", session.selected_character_id)
 
-	# Transição protegida para a cena oficial da Fase 1 (map_1.tscn)
+	# Transição protegida: se for Novo Jogo, exibe a cena de abertura narrativa (res://scenes/story/story_intro.tscn)
+	var target_scene := TARGET_LEVEL_SCENE
+	if session != null and "has_played_intro" in session and not session.has_played_intro:
+		if ResourceLoader.exists(STORY_INTRO_SCENE):
+			target_scene = STORY_INTRO_SCENE
+
 	_safe_handle_input()
-	var err := get_tree().change_scene_to_file(TARGET_LEVEL_SCENE)
+	var err := get_tree().change_scene_to_file(target_scene)
 	if err != OK:
-		_is_transitioning = false
-		printerr("Erro ao carregar a cena do mapa 1: ", err)
+		err = get_tree().change_scene_to_file(TARGET_LEVEL_SCENE)
+		if err != OK:
+			_is_transitioning = false
+			printerr("Erro ao carregar a cena do mapa 1: ", err)
 
 
 func _on_back_pressed() -> void:
@@ -152,13 +161,15 @@ func _on_back_pressed() -> void:
 
 	_play_sound(_sfx_cancel)
 	_safe_handle_input()
-	var err := get_tree().change_scene_to_file(DIFFICULTY_SELECT_SCENE)
+	var err := get_tree().change_scene_to_file(MAP_MENU_SCENE)
 	if err != OK:
-		# Fallback para a tela de seleção de personagens
-		err = get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
+		err = get_tree().change_scene_to_file(DIFFICULTY_SELECT_SCENE)
 		if err != OK:
-			_is_transitioning = false
-			printerr("Erro ao retornar: ", err)
+			# Fallback para a tela de seleção de personagens
+			err = get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
+			if err != OK:
+				_is_transitioning = false
+				printerr("Erro ao retornar: ", err)
 
 
 func _play_sound(stream: AudioStreamWAV) -> void:

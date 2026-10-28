@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/story/story_intro_scene.gd" id="1_intro_scene_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/narrative_director.tscn" id="2_narrative_scene"]
+
+[node name="StoryIntro" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_intro_scene_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.01, 0.02, 1)
+
+[node name="NarrativeDirector" parent="." instance=ExtResource("2_narrative_scene")]
+unique_name_in_owner = true

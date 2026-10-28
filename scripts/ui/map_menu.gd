@@ -2,9 +2,16 @@ class_name MapMenu
 extends Control
 
 ## Tela de Menu de Mapa com arte oficial 16:9 HD (assets/backgrounds/Mapa.webp).
-## Em estrita conformidade com GAME_RULES.md (Persona Senior Front-End e Arquitetura UI).
+## Integração com fluxo de campanha (DifficultySelect -> MapMenu -> LoadingScreen/Instruções -> Fase 1)
+## e acesso direto via Menu Principal com suporte a mouse, teclado e touch mobile.
+## Em estrita conformidade com GAME_RULES.md.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
+const DIFFICULTY_SELECT_SCENE: String = "res://scenes/ui/difficulty_select.tscn"
+const INSTRUCTIONS_SCENE: String = "res://scenes/ui/loading_screen.tscn"
+
+const MAP_IMAGE_PATH: String = "res://assets/backgrounds/Mapa.webp"
+const FALLBACK_MAP_IMAGE_PATH: String = "res://assets/backgrounds/mapa.webp"
 
 @onready var background_texture: TextureRect = %BackgroundTexture
 @onready var btn_back: Button = %BtnBack
@@ -19,11 +26,53 @@ var _sfx_cancel: AudioStreamWAV
 
 func _ready() -> void:
 	_generate_audio_effects()
+	_load_background_image()
+	_setup_buttons()
 
+	# Oculta aviso em tempo de execução para manter a arte do mapa limpa e imersiva
+	if notice_label != null:
+		notice_label.visible = false
+
+
+func _load_background_image() -> void:
+	if background_texture == null:
+		return
+
+	var tex: Texture2D = null
+	if ResourceLoader.exists(MAP_IMAGE_PATH):
+		tex = load(MAP_IMAGE_PATH) as Texture2D
+	elif ResourceLoader.exists(FALLBACK_MAP_IMAGE_PATH):
+		tex = load(FALLBACK_MAP_IMAGE_PATH) as Texture2D
+
+	if tex == null:
+		for path_to_try in [MAP_IMAGE_PATH, FALLBACK_MAP_IMAGE_PATH]:
+			var global_p := ProjectSettings.globalize_path(path_to_try)
+			if FileAccess.file_exists(global_p):
+				var img := Image.load_from_file(global_p)
+				if img != null:
+					tex = ImageTexture.create_from_image(img)
+					tex.resource_path = path_to_try
+					break
+
+	if tex != null:
+		background_texture.texture = tex
+
+
+func _setup_buttons() -> void:
 	if btn_back != null:
 		btn_back.pressed.connect(_on_back_pressed)
+		btn_back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	if btn_confirm != null:
 		btn_confirm.pressed.connect(_on_confirm_pressed)
+		btn_confirm.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+
+func _gui_input(event: InputEvent) -> void:
+	if _is_transitioning:
+		return
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		_safe_handle_input()
+		_on_confirm_pressed()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -33,7 +82,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_safe_handle_input()
 		_on_back_pressed()
-	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)):
+	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)) or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_safe_handle_input()
 		_on_confirm_pressed()
 
@@ -43,12 +92,18 @@ func _on_back_pressed() -> void:
 		return
 	_is_transitioning = true
 	_play_sound(_sfx_cancel)
-
 	_safe_handle_input()
-	var err := get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+	var session = get_node_or_null("/root/GameSession")
+	var is_in_game_flow: bool = (session != null and "difficulty_id" in session and session.difficulty_id != "")
+	var target_scene := DIFFICULTY_SELECT_SCENE if is_in_game_flow else MAIN_MENU_SCENE
+
+	var err := get_tree().change_scene_to_file(target_scene)
 	if err != OK:
-		_is_transitioning = false
-		printerr("Erro ao retornar ao menu principal: ", err)
+		err = get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		if err != OK:
+			_is_transitioning = false
+			printerr("Erro ao retornar do mapa: ", err)
 
 
 func _on_confirm_pressed() -> void:
@@ -56,15 +111,19 @@ func _on_confirm_pressed() -> void:
 		return
 	_is_transitioning = true
 	_play_sound(_sfx_confirm)
-	_show_notice("Funcionalidade em desenvolvimento.", Color(1.0, 0.5, 0.3, 1.0))
 	_safe_handle_input()
-	_is_transitioning = false
 
+	var session = get_node_or_null("/root/GameSession")
+	if session != null:
+		if not ("selected_character_id" in session) or session.selected_character_id == "":
+			session.selected_character_id = "guilherme"
+		if not ("difficulty_id" in session) or session.difficulty_id == "":
+			session.difficulty_id = "normal"
 
-func _show_notice(msg: String, col: Color = Color(1.0, 0.35, 0.35, 1.0)) -> void:
-	if notice_label != null:
-		notice_label.text = msg
-		notice_label.modulate = col
+	var err := get_tree().change_scene_to_file(INSTRUCTIONS_SCENE)
+	if err != OK:
+		_is_transitioning = false
+		printerr("Erro ao transicionar para instruções da fase: ", err)
 
 
 func _safe_handle_input() -> void:

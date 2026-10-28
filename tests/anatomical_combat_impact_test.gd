@@ -9,6 +9,7 @@ const BossAlessandroScene: PackedScene = preload("res://scenes/actors/enemies/bo
 const AttackDataClass = preload("res://scripts/combat/attack_data.gd")
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
 const ImpactZonesClass = preload("res://scripts/combat/impact_zones.gd")
+const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 
 var total_tests: int = 0
 var passed_tests: int = 0
@@ -247,6 +248,28 @@ func _run_suite() -> void:
 	assert_test(guard_applied, "Dano na guarda processado com sucesso")
 	assert_test(player.health_component.current_health == hp_before_guard - (20.0 * 0.30), "Dano na guarda reduzido em 70% (20 * 0.30 = 6.0)")
 	assert_test(player.combat_state != PlayerController.CombatState.HURT and player.combat_state != PlayerController.CombatState.FALL, "Jogador em guarda NÃO entra em HURT nem FALL")
+
+	# -------------------------------------------------------------
+	# 17. Simetria Horizontal e Calibração de Offset do Hit Spark
+	# -------------------------------------------------------------
+	print("\n--- 17. Simetria Horizontal do Efeito de Impacto ---")
+	var dummy_holder := Node2D.new()
+	root.add_child(dummy_holder)
+	CombatFeedbackClass.spawn_hit_spark(dummy_holder, Vector2(500, 300), Vector2.RIGHT, "punch")
+	CombatFeedbackClass.spawn_hit_spark(dummy_holder, Vector2(500, 300), Vector2.LEFT, "punch")
+	var sparks: Array[AnimatedSprite2D] = []
+	for child in dummy_holder.get_children():
+		if child is AnimatedSprite2D:
+			sparks.append(child)
+	assert_test(sparks.size() >= 2, "Instanciação de faíscas direita/esquerda realizada")
+	if sparks.size() >= 2:
+		var s_right := sparks[0]
+		var s_left := sparks[1]
+		assert_test(s_right.offset.x > 0.0 and s_right.offset.y > 0.0, "Offset local de compensação calibrado para centrar o miolo visual do sprite")
+		assert_test(s_right.scale.x > 0.0, "Escala horizontal positiva para ataque à direita")
+		assert_test(s_left.scale.x < 0.0, "Escala horizontal invertida (negativa) para ataque à esquerda")
+		assert_test(absf(s_right.scale.x) == absf(s_left.scale.x), "Magnitude da escala visual simétrica entre direita e esquerda")
+	dummy_holder.queue_free()
 
 	# Limpeza dos nós de teste
 	magic_enemy.queue_free()

@@ -11,6 +11,7 @@ const EncounterDifficultyProfileClass = preload("res://scripts/combat/encounter_
 const SpawnDirectorClass = preload("res://scripts/spawning/spawn_director.gd")
 const SpawnPointClass = preload("res://scripts/spawning/spawn_point.gd")
 const PauseMenuScene: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
+const NarrativeDirectorClass = preload("res://scripts/events/narrative_director.gd")
 
 @export_group("Configuração do Mapa")
 @export var stage_number: int = 1
@@ -186,6 +187,30 @@ func _ready() -> void:
 			hud.set_level(map_index)
 		if hud.label_level_name != null:
 			hud.label_level_name.text = "%s (Mapa %d/4)" % [map_name, map_index]
+
+	# Disparo da abertura narrativa cinemática (Novo Jogo -> Mapa 1)
+	_check_and_trigger_opening_narrative()
+
+
+func _check_and_trigger_opening_narrative() -> void:
+	if stage_number != 1 or section_number != 1 or Engine.is_editor_hint():
+		return
+
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and "has_played_intro" in session and not session.has_played_intro:
+		_trigger_opening_narrative()
+
+
+func _trigger_opening_narrative() -> void:
+	var nar_director: NarrativeDirector = null
+	var nar_scene: PackedScene = load("res://scenes/ui/narrative_director.tscn") as PackedScene
+	if nar_scene != null:
+		nar_director = nar_scene.instantiate() as NarrativeDirector
+	else:
+		nar_director = NarrativeDirectorClass.new()
+	nar_director.name = "NarrativeDirector"
+	add_child(nar_director)
+	nar_director.play_sequence_from_path("res://resources/story/story_intro_map1.tres")
 
 
 func _physics_process(delta: float) -> void:

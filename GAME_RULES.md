@@ -62,10 +62,20 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
      ↓ [Confirmar Herói Guilherme]
    DifficultySelect (difficulty_select.tscn) — com assets/backgrounds/dificuldade.webp
      ↓ [Confirmar Normal ou Difícil]
+   MapMenu (map_menu.tscn) — com assets/backgrounds/Mapa.webp (também acessível pelo Menu Principal)
+     ↓ [Qualquer Tecla / Clique / Toque para Avançar]
    LoadingScreen / Instruções (loading_screen.tscn) — com assets/backgrounds/Instruções_1.webp
      ↓ [Qualquer Tecla / Clique para Continuar]
+   Abertura Narrativa Cinemática (NarrativeDirector — Saka's: A Última Ficha)
+     ↓ [Avanço Automático / [Espaço] / [ESC] Pular]
    Fase 1 (scenes/levels/map_1.tscn)
    ```
+   *Nota de Navegação Inversa e Abertura Narrativa*:
+   - Ao iniciar um **NOVO JOGO**, a abertura narrativa é disparada logo após as instruções ao transicionar para a Fase 1.
+   - Ao **CONTINUAR** partida salva (save slot), a flag `GameSession.has_played_intro = true` impede estritamente a reprodução automática do prólogo.
+   - Na tela de instruções (`loading_screen.tscn`), [ESC] ou 'Voltar' retorna ao Mapa (`map_menu.tscn`).
+   - Na tela de Mapa (`map_menu.tscn`), se acessada durante a campanha (após seleção de dificuldade), [ESC] retorna a `difficulty_select.tscn`. Se acessada diretamente pelo Menu Principal, retorna a `main_menu.tscn`.
+   - Na tela de Mapa, qualquer toque/clique na tela ou confirmação arcade [Enter]/[Espaço] avança para `loading_screen.tscn` (Instruções_1).
 2. **Contrato de Comandos Restritos de Jogabilidade**:
    - `W / A / S / D` e `Setas Direcionais`: Movimentação 2.5D do personagem nos eixos X e Y.
    - `J`: Golpe básico / Combo de pancadaria (Jab -> Cross -> Kick -> Finisher). O encadeamento é contínuo e consistente tanto parado quanto em movimento via cancelamento de recuperação e buffer de entrada.
@@ -342,6 +352,10 @@ MapX (Node2D, script: base_level.gd)
       - Finisher (`finisher_4`): Tórax superior e cabeça (`upper_torso`, `head`), golpe pesado com knockdown.
       - Jump kick: Cabeça e tórax superior (`head`, `upper_torso`).
       - Especial: Área global resolvendo a região anatômica de cada alvo atingido.
+    - **Simetria Horizontal e Calibração de Offset de VFX de Impacto**:
+      - Os frames originais de faíscas de impacto (`assets/sprites/Efeitos/` em canvas 195×196) possuem o miolo da explosão no quadrante superior esquerdo (~55, ~64) e não no centro geométrico da textura (97.5, 98.0).
+      - `CombatFeedback.spawn_hit_spark()` aplica compensação local de offset (`visual_offset = Vector2(43, 35)` para punch/kick, `Vector2(21, 26)` para finisher, `Vector2(46, 27)` para especial) e espelhamento horizontal via `scale.x = sprite_scale * facing_sign`.
+      - Isso garante que a faísca visual coincida rigorosamente com o ponto de impacto no corpo do alvo em ambos os lados, eliminando a assimetria onde golpes para a direita pareciam detonar no atacante.
     - **Garantia de Dano Único**: Um ataque que intersecta múltiplas regiões do mesmo alvo aplica dano estritamente uma única vez (`hit_targets.append(target_actor)`).
     - **Suíte de Validação**: `tests/anatomical_combat_impact_test.gd`.
   - **Ponto de Integração de Áudio de Combate**: Método desacoplado `CombatFeedback.play_impact_sound()` pronto para rotear efeitos sonoros conforme perfis (`punch`, `kick`, `finisher`, `special`) quando os recursos de áudio forem adicionados ao repositório.
@@ -473,6 +487,26 @@ MapX (Node2D, script: base_level.gd)
   - Suporta avanço automático por timer ou avanço manual pelo jogador (`advance_message()`).
   - Totalmente desacoplado do combate: anúncios, falas de chefes ou avisos narrativos não interrompem o loop de física do jogo.
 
+- **Sistema Declarativo de Narrativa Cinemática (`StoryEvent`, `StorySequence`, `NarrativeDirector`)**:
+  - **Recursos Declarativos**:
+    - `StoryEvent` (`scripts/events/story_event.gd`): Especifica `id`, `image_path`, blocos de `texts` (1–2 frases curtas, leitura ágil de 2–4s), `speaker`, `entry_effect` (`fade_in`, `slow_zoom`, `crossfade`, `glitch`), `exit_effect`, `zoom_start`, `zoom_end`, `glitch_frames` e identificador de áudio.
+    - `StorySequence` (`scripts/events/story_sequence.gd`): Agrupa eventos de forma sequencial desacoplada de código monolítico.
+    - `res://resources/story/story_intro_map1.tres`: Recurso oficial da Abertura Narrativa do Mapa 1 composto pelas 3 cenas obrigatórias:
+      1. *CENA 01 (Título)*: Fundo preto, silêncio inicial (0.5s), texto central dourado "Saka's", subtítulo branco "A ÚLTIMA FICHA" (~2s), Fade In -> Hold -> Fade Out.
+      2. *CENA 02 (Os Quatro)*: Imagem `assets/story/map_1/intro_group.webp` com `slow_zoom` (100% para 103%), texto de apresentação dos 4 amigos (Guilherme, Gabriel, André e Juliana).
+      3. *CENA 03 (Os Que Não Estão)*: Imagem `assets/story/map_1/missing_friends.webp` com efeito analógico de `glitch` (2 a 3 frames) e revelação dos desaparecidos (Alessandro e Fernando).
+  - **Diretor de Apresentação (`NarrativeDirector`)**:
+    - Instanciado em `CanvasLayer` superior (layer = 120), preservando a cena de gameplay intacta ao fundo.
+    - Estilização Dark Premium Medieval / Cyber-Arcade: painel em vidro escuro translúcido (`Color(0.04, 0.05, 0.09, 0.88)`), moldura dourada e tipografia arcade nítida.
+    - Suporte integral a Teclado, Gamepad, Mouse e Toque Mobile:
+      - Avanço por clique na tela, toque ou teclas [Espaço]/[Enter]/[A].
+      - Botão visual "PULAR ⏩" no canto superior e comando [ESC] para pular a sequência completa a qualquer momento.
+      - Efeitos sonoros procedurais autônomos (`_create_wav`, `_create_noise_wav`): zumbido analógico grave, chime de nostalgia e estática de glitch.
+  - **Integração de Sessão e Salvamento**:
+    - Novo Jogo inicia com `GameSession.has_played_intro = false`, garantindo a exibição na transição pós-instruções.
+    - Ao concluir ou pular, `has_played_intro` é definido como `true`.
+    - Ao carregar jogo salvo (CONTINUAR via `load_game_from_slot`), `has_played_intro = true` é ativado de imediato, garantindo que o prólogo **NÃO** seja reproduzido novamente.
+
 ---
 
 ## 17. COLLISION LAYERS AND MASKS
@@ -596,6 +630,7 @@ MapX (Node2D, script: base_level.gd)
    - `tests/combat_integration_test.gd`
    - `tests/npc_test.gd`
    - `tests/level_events_test.gd`
+   - `tests/narrative_intro_test.gd`
    - `tests/navigation_integrity_test.gd`
    - `tests/performance_audit_test.gd`
    - `tests/arcade_combat_system_test.gd`

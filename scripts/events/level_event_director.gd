@@ -8,6 +8,7 @@ extends Node
 
 const DialogueDirectorClass = preload("res://scripts/events/dialogue_director.gd")
 const LevelEventTriggerClass = preload("res://scripts/events/level_event_trigger.gd")
+const NarrativeDirectorClass = preload("res://scripts/events/narrative_director.gd")
 
 signal event_started(event_name: String)
 signal event_completed(event_name: String)
@@ -21,6 +22,7 @@ var completed_events: Array[String] = []
 @onready var spawn_director: Node = get_node_or_null("../SpawnDirector")
 @onready var combat_director: Node = get_node_or_null("../CombatDirector")
 @onready var dialogue_director: Node = get_node_or_null("DialogueDirector")
+@onready var narrative_director: Node = get_node_or_null("NarrativeDirector")
 @onready var triggers_container: Node = get_node_or_null("Triggers")
 
 
@@ -89,6 +91,34 @@ func execute_event(event_name: String, params: Dictionary = {}) -> void:
 			if exit != null:
 				exit.set_deferred("monitoring", true)
 			complete_event(event_name)
+
+		"narrative_sequence":
+			var seq_res: Resource = params.get("sequence", null)
+			var seq_path: String = params.get("sequence_path", "res://resources/story/story_intro_map1.tres")
+			if narrative_director == null and is_inside_tree():
+				narrative_director = get_tree().get_first_node_in_group("narrative_director")
+			if narrative_director == null:
+				narrative_director = NarrativeDirectorClass.new()
+				narrative_director.name = "NarrativeDirector"
+				add_child(narrative_director)
+
+			if narrative_director != null and narrative_director.has_signal("sequence_completed"):
+				narrative_director.sequence_completed.connect(func(_seq_id: String):
+					complete_event(event_name)
+				, CONNECT_ONE_SHOT)
+				if narrative_director.has_signal("sequence_skipped"):
+					narrative_director.sequence_skipped.connect(func(_seq_id: String):
+						complete_event(event_name)
+					, CONNECT_ONE_SHOT)
+
+				if seq_res != null and narrative_director.has_method("play_sequence"):
+					narrative_director.play_sequence(seq_res)
+				elif not seq_path.is_empty() and narrative_director.has_method("play_sequence_from_path"):
+					narrative_director.play_sequence_from_path(seq_path)
+				else:
+					complete_event(event_name)
+			else:
+				complete_event(event_name)
 
 		_:
 			# Evento customizado

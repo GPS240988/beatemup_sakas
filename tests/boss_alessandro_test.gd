@@ -153,6 +153,7 @@ func test_map1_no_boss_and_map4_boss_spawn() -> void:
 	assert_test(not map4.siga_indicator.visible, "Indicador SIGA permanece oculto antes do surgimento do Chefe")
 
 	# Simula derrota de inimigos para invocar o Chefe no Mapa 4
+	map4.reinforcement_waves_enabled = false
 	var dummy_enemy = CharacterBody2D.new()
 	map4._on_enemy_defeated(dummy_enemy)
 

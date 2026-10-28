@@ -13,6 +13,7 @@ signal game_started(character_id: String, skin_id: String, difficulty_id: String
 var selected_character_id: String = "guilherme"
 var selected_skin_id: String = "palmeirense"
 var difficulty_id: String = ""
+var has_played_intro: bool = false
 
 ## Caminho oficial da Fase 1 (Mapa 1: A Locadora)
 const FIRST_LEVEL_PATH: String = "res://scenes/levels/map_1.tscn"
@@ -123,6 +124,7 @@ func reset_session() -> void:
 	selected_character_id = "guilherme"
 	selected_skin_id = "palmeirense"
 	difficulty_id = ""
+	has_played_intro = false
 	current_continues = 1
 	clear_player_progression()
 
@@ -324,6 +326,7 @@ func load_game_from_slot(slot: int) -> bool:
 	selected_skin_id = str(data.get("skin_id", "palmeirense"))
 	difficulty_id = str(data.get("difficulty_id", "normal"))
 	current_continues = int(data.get("continues", 1))
+	has_played_intro = true
 
 	var hp: float = float(data.get("health", 100.0))
 	var sp: float = float(data.get("special", 0.0))

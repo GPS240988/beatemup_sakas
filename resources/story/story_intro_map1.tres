@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="StorySequence" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/story_event.gd" id="1_1ngd7"]
+[ext_resource type="Script" path="res://scripts/events/story_sequence.gd" id="2_upi0n"]
+
+[sub_resource type="Resource" id="Resource_wfhp5"]
+script = ExtResource("1_1ngd7")
+id = "title_card"
+texts = Array[String](["Saka's", "A ÚLTIMA FICHA"])
+duration_per_text = 2.0
+pause_after = 0.5
+sound_effect_name = "deep_intro_hum"
+
+[sub_resource type="Resource" id="Resource_thklw"]
+script = ExtResource("1_1ngd7")
+id = "the_four"
+image_path = "res://assets/story/map_1/intro_group.webp"
+texts = Array[String](["Anos depois da adolescência, quatro velhos amigos ainda continuavam se encontrando.", "Guilherme, Gabriel, André e Juliana."])
+duration_per_text = 3.0
+entry_effect = "slow_zoom"
+exit_effect = "crossfade"
+pause_after = 0.3
+zoom_end = 1.03
+sound_effect_name = "nostalgia_chime"
+
+[sub_resource type="Resource" id="Resource_aql4o"]
+script = ExtResource("1_1ngd7")
+id = "the_missing"
+image_path = "res://assets/story/map_1/missing_friends.webp"
+texts = Array[String](["Mas dois deles já estavam desaparecidos havia algum tempo.", "Alessandro. Fernando."])
+duration_per_text = 3.2
+entry_effect = "glitch"
+pause_after = 0.5
+glitch_frames = 3
+sound_effect_name = "glitch_static"
+
+[resource]
+script = ExtResource("2_upi0n")
+sequence_id = "story_intro_map1"
+events = Array[Resource]([SubResource("Resource_wfhp5"), SubResource("Resource_thklw"), SubResource("Resource_aql4o")])

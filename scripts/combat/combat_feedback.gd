@@ -104,24 +104,35 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 
 		var anim_name: StringName = &"impacto"
 		var sprite_scale: float = 0.65
+		# Calibração do centro visual: as texturas originais (195x196) possuem o miolo da explosão
+		# no quadrante superior esquerdo (x ~ 50-75, y ~ 60-72) em vez do centro geométrico (97.5, 98.0).
+		# O offset local compensa o pivô para que o centro visual da faísca fique exatamente no ponto de impacto 'pos'.
+		var visual_offset := Vector2(43.0, 35.0)
 		match profile:
 			"light", "punch":
 				anim_name = &"impacto"
 				sprite_scale = 0.65
+				visual_offset = Vector2(43.0, 35.0)
 			"medium", "kick":
 				anim_name = &"impacto"
 				sprite_scale = 0.80
+				visual_offset = Vector2(43.0, 35.0)
 			"heavy", "finisher":
 				anim_name = &"combinado"
 				sprite_scale = 0.85
+				visual_offset = Vector2(21.0, 26.0)
 			"special":
 				anim_name = &"impactoazul"
 				sprite_scale = 0.95
+				visual_offset = Vector2(46.0, 27.0)
 			_:
 				anim_name = &"impacto"
 				sprite_scale = 0.70
+				visual_offset = Vector2(43.0, 35.0)
 
-		effect_sprite.scale = Vector2(sprite_scale, sprite_scale)
+		var facing_sign: float = -1.0 if direction.x < 0.0 else 1.0
+		effect_sprite.offset = visual_offset
+		effect_sprite.scale = Vector2(sprite_scale * facing_sign, sprite_scale)
 		effect_sprite.rotation = randf_range(-0.25, 0.25)
 		parent.add_child(effect_sprite)
 		effect_sprite.play(anim_name)
