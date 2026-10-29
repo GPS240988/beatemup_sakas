@@ -1,13 +1,18 @@
 extends SceneTree
 
 ## Suíte de Testes Automatizados Headless: Sistema Narrativo e Abertura Cinemática (Saka's: A Última Ficha).
-## Valida em estrita conformidade com GAME_RULES.md:
+## Valida em estrita conformidade com Direcao_de_Arte.md, GAME_RULES.md e PADRAO_CENAS_APRESENTACAO.md:
 ## 1. Integridade dos recursos declarativos StoryEvent e StorySequence.
 ## 2. Validação da sequência declarativa res://resources/story/story_intro_map1.tres (CENA 01, 02, 03).
 ## 3. Presença e integridade dos assets cinematográficos em assets/story/map_1/.
 ## 4. Funcionamento do NarrativeDirector: avanço de texto, suspensão de combate, pular cena e áudio procedural.
 ## 5. Regras de Sessão: Novo Jogo reproduz prólogo; Continuar NÃO reproduz prólogo automaticamente.
 ## 6. Integração do LevelEventDirector com eventos de narrativa.
+## 7. Validação da cena story_intro.tscn e transição segura pós-instruções.
+## 8. Sistema de Enquadramento: proporção preservada (STRETCH_KEEP_ASPECT_CENTERED), filtro nearest e palco seguro.
+## 9. Avanço Manual Estrito: ausência de temporizadores automáticos de avanço de texto.
+## 10. Moldura Oficial 9-Patch e Tipografia Arcade: textura oficial e arcade_bold.ttf presentes.
+## 11. Proteção e Isolamento de Input para Gameplay: descarte de ações para evitar pulo/golpe acidental.
 
 const StoryEventClass = preload("res://scripts/events/story_event.gd")
 const StorySequenceClass = preload("res://scripts/events/story_sequence.gd")
@@ -43,8 +48,12 @@ func _run_all_tests() -> void:
 	test_story_assets_directory()
 	test_narrative_director_runtime()
 	test_session_intro_flow_rules()
-	test_level_event_director_narrative_integration()
+	await test_level_event_director_narrative_integration()
 	test_story_intro_scene_and_loading_transition()
+	test_safe_framing_and_aspect_ratio()
+	await test_manual_advance_and_no_timer_skips()
+	test_official_9patch_frame_and_typography()
+	await test_input_isolation_for_gameplay()
 
 	print("==================================================")
 	print("RESULTADO DOS TESTES NARRATIVOS: %d/%d PASSARAM (Falhas: %d)" % [passed_tests, total_tests, failed_tests])
@@ -178,22 +187,18 @@ func test_session_intro_flow_rules() -> void:
 	var session = load("res://scripts/core/game_session.gd").new()
 	root.add_child(session)
 
-	# 1. Novo Jogo: deve reproduzir prólogo (has_played_intro = false)
 	session.reset_session()
-	assert_test(not session.has_played_intro, "Novo Jogo (reset_session) garante has_played_intro = false")
+	assert_test(session.has_played_intro == false, "Novo Jogo (reset_session) garante has_played_intro = false")
 
-	# 2. Ao concluir ou pular o prólogo, flag é marcada
 	session.has_played_intro = true
-	assert_test(session.has_played_intro, "has_played_intro marcado como true após prólogo")
+	assert_test(session.has_played_intro == true, "has_played_intro marcado como true após prólogo")
 
-	# 3. Continuar (load_game_from_slot): NÃO deve reproduzir prólogo novamente
 	session.has_played_intro = false
 	# Simula carregamento de save
 	session.save_game_to_slot(1, "res://scenes/levels/map_1.tscn", 100.0, 0.0)
 	session.load_game_from_slot(1)
 	assert_test(session.has_played_intro, "Continuar partida (load_game_from_slot) define has_played_intro = true automaticamente")
 
-	# Limpa o slot de teste
 	session.delete_save_slot(1)
 	root.remove_child(session)
 	session.free()
@@ -210,12 +215,10 @@ func test_level_event_director_narrative_integration() -> void:
 			tracker["completed"] = true
 	)
 
-	# Dispara evento com sequence_path
 	event_dir.execute_event("narrative_sequence", {
 		"sequence_path": "res://resources/story/story_intro_map1.tres"
 	})
 
-	# Pula a cena imediatamente para simular resposta rápida do jogador
 	var nar = event_dir.get_node_or_null("NarrativeDirector")
 	if nar != null and nar.has_method("skip_sequence"):
 		nar.skip_sequence()
@@ -243,6 +246,120 @@ func test_story_intro_scene_and_loading_transition() -> void:
 	root.remove_child(instance)
 	instance.free()
 
-	# Valida transição em LoadingScreen
 	var loading_script = load("res://scripts/ui/loading_screen.gd")
 	assert_test("STORY_INTRO_SCENE" in loading_script and loading_script.STORY_INTRO_SCENE == intro_scene_path, "LoadingScreen possui constante STORY_INTRO_SCENE apontando para story_intro.tscn")
+
+
+func test_safe_framing_and_aspect_ratio() -> void:
+	print("\n--- 8. Validando Sistema de Enquadramento e Área Segura ---")
+	var director_scene: PackedScene = load("res://scenes/ui/narrative_director.tscn")
+	var nar = director_scene.instantiate()
+	root.add_child(nar)
+
+	var art_stage: Control = nar.get_node_or_null("%ArtStage")
+	assert_test(art_stage != null, "ArtStage (palco dedicado de arte) existe na cena")
+	if art_stage != null:
+		assert_test(art_stage.anchor_bottom <= 0.76, "ArtStage termina acima de 76% da tela (garante que caixa inferior não encobre a arte)")
+
+	var img_disp: TextureRect = nar.get_node_or_null("%ImageDisplay")
+	assert_test(img_disp != null, "ImageDisplay existe no palco")
+	if img_disp != null:
+		assert_test(img_disp.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED, "ImageDisplay utiliza STRETCH_KEEP_ASPECT_CENTERED (sem corte de bordas)")
+		assert_test(img_disp.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "ImageDisplay preserva nitidez de pixel art com filtro NEAREST")
+
+	var amb_bg: TextureRect = nar.get_node_or_null("%AmbientBackground")
+	assert_test(amb_bg != null, "AmbientBackground existe para preenchimento de aspectos fora de 16:9")
+
+	root.remove_child(nar)
+	nar.free()
+
+
+func test_manual_advance_and_no_timer_skips() -> void:
+	print("\n--- 9. Validando Avanço Estritamente Manual (Sem Temporizadores) ---")
+	var director_scene: PackedScene = load("res://scenes/ui/narrative_director.tscn")
+	var nar = director_scene.instantiate()
+	root.add_child(nar)
+
+	nar.play_sequence_from_path("res://resources/story/story_intro_map1.tres")
+	# Aguarda conclusão do fade inicial (~0.35s)
+	await create_timer(0.40).timeout
+
+	# Avança CENA 01 (Title Card) para CENA 02 (The Four)
+	nar.advance_or_skip_text()
+	# Aguarda transição da imagem da CENA 02 (~0.35s)
+	await create_timer(0.40).timeout
+
+	var initial_text_index = nar.current_text_index
+	var initial_event_index = nar.current_event_index
+
+	# Aguarda 0.6s sem nenhuma interação: a fala NÃO pode mudar sozinha
+	await create_timer(0.60).timeout
+
+	assert_test(nar.current_event_index == initial_event_index, "Evento narrativo não avançou automaticamente sem input")
+	assert_test(nar.current_text_index == initial_text_index, "Texto do diálogo permaneceu na tela sem avançar por timer")
+
+	# Avanço manual via confirmação explícita
+	nar.advance_or_skip_text()
+	assert_test(nar.current_text_index == initial_text_index + 1, "Avanço manual avançou com sucesso para o próximo bloco")
+
+	nar.skip_sequence()
+	root.remove_child(nar)
+	nar.free()
+
+
+func test_official_9patch_frame_and_typography() -> void:
+	print("\n--- 10. Validando Moldura Oficial 9-Patch e Tipografia Arcade ---")
+	var frame_tex_path := "res://assets/ui/hud/dialog_frame_9patch.png"
+	var badge_tex_path := "res://assets/ui/hud/speaker_badge_9patch.png"
+	var font_path := "res://assets/fonts/arcade_bold.ttf"
+
+	assert_test(ResourceLoader.exists(frame_tex_path) or FileAccess.file_exists(ProjectSettings.globalize_path(frame_tex_path)), "Textura dialog_frame_9patch.png existe no repositório")
+	assert_test(ResourceLoader.exists(badge_tex_path) or FileAccess.file_exists(ProjectSettings.globalize_path(badge_tex_path)), "Textura speaker_badge_9patch.png existe no repositório")
+	assert_test(ResourceLoader.exists(font_path) or FileAccess.file_exists(ProjectSettings.globalize_path(font_path)), "Fonte arcade_bold.ttf existe no repositório")
+
+	var director_scene: PackedScene = load("res://scenes/ui/narrative_director.tscn")
+	var nar = director_scene.instantiate()
+	root.add_child(nar)
+
+	var frame: NinePatchRect = nar.get_node_or_null("%DialogueFrame")
+	assert_test(frame != null, "DialogueFrame é um nó NinePatchRect")
+	if frame != null:
+		assert_test(frame.patch_margin_left == 16 and frame.patch_margin_top == 16, "DialogueFrame possui margens 9-slice configuradas em 16px")
+
+	var speaker_badge: NinePatchRect = nar.get_node_or_null("%SpeakerBadge")
+	assert_test(speaker_badge != null, "SpeakerBadge existe fixado na moldura")
+
+	var dial_lbl: Label = nar.get_node_or_null("%DialogueLabel")
+	assert_test(dial_lbl != null, "DialogueLabel existe")
+	if dial_lbl != null:
+		assert_test(dial_lbl.autowrap_mode != TextServer.AUTOWRAP_OFF, "DialogueLabel possui autowrap ativado")
+
+	var scene_counter: Label = nar.get_node_or_null("%SceneCounterLabel")
+	assert_test(scene_counter != null, "SceneCounterLabel existe no rodapé da moldura")
+
+	var prompt_lbl: Label = nar.get_node_or_null("%PromptLabel")
+	assert_test(prompt_lbl != null, "PromptLabel existe informando comando de avanço")
+
+	root.remove_child(nar)
+	nar.free()
+
+
+func test_input_isolation_for_gameplay() -> void:
+	print("\n--- 11. Validando Isolamento de Input para Gameplay ---")
+	var intro_scene_path := "res://scenes/story/story_intro.tscn"
+	var intro_scene: PackedScene = load(intro_scene_path)
+	var instance: StoryIntroScene = intro_scene.instantiate() as StoryIntroScene
+	root.add_child(instance)
+
+	# Simula ação de pulo e ataque antes da transição
+	Input.action_press("jump")
+	Input.action_press("attack")
+
+	# Dispara avanço e verifica se StoryIntroScene limpa os estados das ações
+	instance._advance_to_game()
+
+	assert_test(not Input.is_action_pressed("jump"), "Ação 'jump' liberada na saída da narrativa")
+	assert_test(not Input.is_action_pressed("attack"), "Ação 'attack' liberada na saída da narrativa")
+
+	root.remove_child(instance)
+	instance.free()

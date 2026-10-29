@@ -488,20 +488,24 @@ MapX (Node2D, script: base_level.gd)
   - Totalmente desacoplado do combate: anúncios, falas de chefes ou avisos narrativos não interrompem o loop de física do jogo.
 
 - **Sistema Declarativo de Narrativa Cinemática (`StoryEvent`, `StorySequence`, `NarrativeDirector`)**:
+  - **Padrão Oficial de Apresentação Arcade (Neo-16-bit Urbano)**:
+    - *Enquadramento e Área Segura*: O palco de arte (`ArtStage`) ocupa os 74% superiores da tela com modo `STRETCH_KEEP_ASPECT_CENTERED` e `TEXTURE_FILTER_NEAREST`. As imagens mantêm 100% da proporção original sem corte de personagens nas bordas. Camada de fundo ambiente (`AmbientBackground`) preenche aspectos de tela variáveis sem barras vazias. A moldura inferior nunca encobre rostos, mãos, pés ou silhuetas essenciais.
+    - *Moldura Oficial de Diálogo 9-Patch*: Textura dedicada `assets/ui/hud/dialog_frame_9patch.png` (fundo ameixa/azul escuro `#100D18`, contorno dourado arcade 3px `#EAB308` com cantos chanfrados e arrebites) e badge de orador `assets/ui/hud/speaker_badge_9patch.png`.
+    - *Tipografia Arcade Canônica*: Emprego de `assets/fonts/arcade_bold.ttf` com suporte a caracteres e acentos em português para título, orador (14-16px ouro), diálogo (18-20px marfim `#F4F0E8` com sombra escura), contador de cenas (`CENA 02 / 03`) e prompts arcade (`[ ESPAÇO ] AVANÇAR ❯`).
+    - *Avanço Estritamente Manual*: Nenhuma fala desaparece ou avança por temporizador automático. A fala permanece em tela até confirmação deliberada do jogador ([Espaço], [Enter], Gamepad A, toque no botão `AVANÇAR ❯` ou toque de tela).
+    - *Proteção e Isolamento de Input*: Transições sóbrias (~0.32s) com flag `_is_transitioning` impedem múltiplos saltos por repetição de tecla (`echo`). Ao concluir a sequência, ações pendentes (`jump`, `attack`, `attack_punch`, `ui_accept`) são liberadas via `Input.action_release()` antes da carga de `map_1.tscn`, eliminando sangramento de comandos para o primeiro frame de gameplay.
   - **Recursos Declarativos**:
-    - `StoryEvent` (`scripts/events/story_event.gd`): Especifica `id`, `image_path`, blocos de `texts` (1–2 frases curtas, leitura ágil de 2–4s), `speaker`, `entry_effect` (`fade_in`, `slow_zoom`, `crossfade`, `glitch`), `exit_effect`, `zoom_start`, `zoom_end`, `glitch_frames` e identificador de áudio.
+    - `StoryEvent` (`scripts/events/story_event.gd`): Especifica `id`, `image_path`, blocos de `texts`, `speaker`, `entry_effect` (`fade_in`, `slow_zoom`, `crossfade`, `glitch`), `exit_effect`, `transition_duration` (0.32s), `safe_framing`, `zoom_start`, `zoom_end`, `glitch_frames` e identificador de áudio.
     - `StorySequence` (`scripts/events/story_sequence.gd`): Agrupa eventos de forma sequencial desacoplada de código monolítico.
     - `res://resources/story/story_intro_map1.tres`: Recurso oficial da Abertura Narrativa do Mapa 1 composto pelas 3 cenas obrigatórias:
-      1. *CENA 01 (Título)*: Fundo preto, silêncio inicial (0.5s), texto central dourado "Saka's", subtítulo branco "A ÚLTIMA FICHA" (~2s), Fade In -> Hold -> Fade Out.
-      2. *CENA 02 (Os Quatro)*: Imagem `assets/story/map_1/intro_group.webp` com `slow_zoom` (100% para 103%), texto de apresentação dos 4 amigos (Guilherme, Gabriel, André e Juliana).
+      1. *CENA 01 (Título)*: Fundo preto, silêncio inicial, texto central dourado "Saka's", subtítulo branco "A ÚLTIMA FICHA", avanço por confirmação ou transição suave.
+      2. *CENA 02 (Os Quatro)*: Imagem `assets/story/map_1/intro_group.webp` em palco seguro com `slow_zoom` (100% para 103%), texto de apresentação dos 4 amigos (Guilherme, Gabriel, André e Juliana).
       3. *CENA 03 (Os Que Não Estão)*: Imagem `assets/story/map_1/missing_friends.webp` com efeito analógico de `glitch` (2 a 3 frames) e revelação dos desaparecidos (Alessandro e Fernando).
   - **Diretor de Apresentação (`NarrativeDirector`)**:
     - Instanciado em `CanvasLayer` superior (layer = 120), preservando a cena de gameplay intacta ao fundo.
-    - Estilização Dark Premium Medieval / Cyber-Arcade: painel em vidro escuro translúcido (`Color(0.04, 0.05, 0.09, 0.88)`), moldura dourada e tipografia arcade nítida.
-    - Suporte integral a Teclado, Gamepad, Mouse e Toque Mobile:
-      - Avanço por clique na tela, toque ou teclas [Espaço]/[Enter]/[A].
-      - Botão visual "PULAR ⏩" no canto superior e comando [ESC] para pular a sequência completa a qualquer momento.
-      - Efeitos sonoros procedurais autônomos (`_create_wav`, `_create_noise_wav`): zumbido analógico grave, chime de nostalgia e estática de glitch.
+    - Suporte integral a Teclado, Gamepad, Mouse e Toque Mobile (`InputEventScreenTouch`).
+    - Botão visual "PULAR ⏩" no canto superior e comando [ESC] para pular a sequência completa a qualquer momento.
+    - Efeitos sonoros procedurais autônomos (`_create_wav`, `_create_noise_wav`): zumbido analógico grave, chime de nostalgia e estática de glitch.
   - **Integração de Sessão e Salvamento**:
     - Novo Jogo inicia com `GameSession.has_played_intro = false`, garantindo a exibição na transição pós-instruções.
     - Ao concluir ou pular, `has_played_intro` é definido como `true`.

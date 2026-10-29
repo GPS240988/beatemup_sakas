@@ -3,7 +3,8 @@ extends Control
 
 ## Cena dedicada para apresentação da Abertura Narrativa de Saka's: A Última Ficha.
 ## Transiciona automaticamente para a Fase 1 (scenes/levels/map_1.tscn) ao concluir ou pular.
-## Em estrita conformidade com GAME_RULES.md.
+## Possui proteção explícita contra sangramento de input (Space/Enter) para o gameplay.
+## Em estrita conformidade com Direcao_de_Arte.md e GAME_RULES.md.
 
 const TARGET_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
 const STORY_SEQUENCE_PATH: String = "res://resources/story/story_intro_map1.tres"
@@ -40,8 +41,18 @@ func _advance_to_game() -> void:
 	if get_viewport() != null:
 		get_viewport().set_input_as_handled()
 
+	# Proteção canônica contra avanço acidental para ações de gameplay:
+	# Libera quaisquer ações que possam estar mapeadas para a Barra de Espaço ou Enter
+	Input.action_release("jump")
+	Input.action_release("attack")
+	Input.action_release("attack_punch")
+	Input.action_release("attack_aerial")
+	Input.action_release("ui_accept")
+
+	# Aguarda breve período de estabilização de inputs antes de instanciar a fase
+	await get_tree().create_timer(0.08).timeout
+
 	var err := get_tree().change_scene_to_file(TARGET_LEVEL_SCENE)
 	if err != OK:
 		_is_transitioning = false
 		printerr("Erro ao carregar a Fase 1 a partir da introdução: ", err)
-

@@ -10,14 +10,17 @@ extends Resource
 @export var image_path: String = ""
 @export var texts: Array[String] = []
 @export var speaker: String = ""
+@export var portrait_path: String = ""
 @export var duration_per_text: float = 2.5
 @export var entry_effect: String = "fade_in" # "fade_in", "slow_zoom", "crossfade", "glitch", "none"
 @export var exit_effect: String = "fade_out" # "fade_out", "crossfade", "glitch", "none"
+@export var transition_duration: float = 0.32
 @export var pause_after: float = 0.4
 @export var zoom_start: float = 1.0
 @export var zoom_end: float = 1.0
 @export var glitch_frames: int = 0
 @export var sound_effect_name: String = ""
+@export var safe_framing: bool = true
 
 
 static func create(

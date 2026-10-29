@@ -1,20 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/events/narrative_director.gd" id="1_narrative_script"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.0392157, 0.0509804, 0.0901961, 0.882353)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.85098, 0.65098, 0.14902, 0.8)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0, 0, 0.705882)
-shadow_size = 10
+[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="2_arcade_font"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/dialog_frame_9patch.png" id="3_dialog_frame_tex"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/speaker_badge_9patch.png" id="4_speaker_badge_tex"]
 
 [node name="NarrativeDirector" type="CanvasLayer"]
 process_mode = 3
@@ -40,9 +29,32 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.01, 0.01, 0.02, 1)
+color = Color(0.02, 0.02, 0.04, 1)
 
-[node name="ImageDisplay" type="TextureRect" parent="RootControl"]
+[node name="AmbientBackground" type="TextureRect" parent="RootControl"]
+unique_name_in_owner = true
+visible = false
+modulate = Color(0.2, 0.2, 0.28, 0.35)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ArtStage" type="Control" parent="RootControl"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 0.74
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ImageDisplay" type="TextureRect" parent="RootControl/ArtStage"]
 unique_name_in_owner = true
 texture_filter = 1
 layout_mode = 1
@@ -55,7 +67,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="GlitchBars" type="Control" parent="RootControl"]
+[node name="GlitchBars" type="Control" parent="RootControl/ArtStage"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -68,6 +80,7 @@ mouse_filter = 2
 
 [node name="TitleCardContainer" type="CenterContainer" parent="RootControl"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -84,11 +97,12 @@ alignment = 1
 [node name="TitleHeader" type="Label" parent="RootControl/TitleCardContainer/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.25, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.92, 0.72, 0.1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 32
 text = "Saka's"
 horizontal_alignment = 1
 
@@ -96,95 +110,157 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_shadow_color = Color(0.1, 0.1, 0.15, 0.9)
-theme_override_constants/shadow_offset_x = 3
-theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/font_size = 46
+theme_override_colors/font_shadow_color = Color(0.1, 0.1, 0.15, 0.95)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 48
 text = "A ÚLTIMA FICHA"
 horizontal_alignment = 1
 
-[node name="SubtitleContainer" type="MarginContainer" parent="RootControl"]
+[node name="DialogueArea" type="MarginContainer" parent="RootControl"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
+anchor_top = 0.74
 anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -150.0
+anchor_bottom = 0.97
+offset_left = 50.0
+offset_right = -50.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_constants/margin_left = 60
-theme_override_constants/margin_right = 60
-theme_override_constants/margin_bottom = 40
+theme_override_constants/margin_bottom = 12
 
-[node name="Panel" type="PanelContainer" parent="RootControl/SubtitleContainer"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
-
-[node name="Margin" type="MarginContainer" parent="RootControl/SubtitleContainer/Panel"]
-layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 14
-
-[node name="VBox" type="VBoxContainer" parent="RootControl/SubtitleContainer/Panel/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 6
-alignment = 1
-
-[node name="SpeakerLabel" type="Label" parent="RootControl/SubtitleContainer/Panel/Margin/VBox"]
+[node name="DialogueFrame" type="NinePatchRect" parent="RootControl/DialogueArea"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.82, 0.2, 1)
-theme_override_font_sizes/font_size = 14
-horizontal_alignment = 1
+texture = ExtResource("3_dialog_frame_tex")
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 
-[node name="DialogueLabel" type="Label" parent="RootControl/SubtitleContainer/Panel/Margin/VBox"]
+[node name="SpeakerBadge" type="NinePatchRect" parent="RootControl/DialogueArea/DialogueFrame"]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 22
-autowrap_mode = 3
-horizontal_alignment = 1
+layout_mode = 0
+offset_left = 24.0
+offset_top = -22.0
+offset_right = 204.0
+offset_bottom = 10.0
+texture = ExtResource("4_speaker_badge_tex")
+patch_margin_left = 8
+patch_margin_top = 8
+patch_margin_right = 8
+patch_margin_bottom = 8
 
-[node name="TopOverlay" type="MarginContainer" parent="RootControl"]
+[node name="Margin" type="MarginContainer" parent="RootControl/DialogueArea/DialogueFrame/SpeakerBadge"]
 layout_mode = 1
-anchors_preset = 10
+anchors_preset = 15
 anchor_right = 1.0
-offset_bottom = 65.0
+anchor_bottom = 1.0
 grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 4
+
+[node name="SpeakerLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/SpeakerBadge/Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.7, 0.1, 1)
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 14
+text = "SAKAS"
+
+[node name="ContentMargin" type="MarginContainer" parent="RootControl/DialogueArea/DialogueFrame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 12
 
-[node name="HBox" type="HBoxContainer" parent="RootControl/TopOverlay"]
+[node name="VBox" type="VBoxContainer" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DialogueLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.96, 0.94, 0.91, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.95)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_constants/line_spacing = 6
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="FooterHBox" type="HBoxContainer" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox"]
 layout_mode = 2
 alignment = 1
 
-[node name="PromptLabel" type="Label" parent="RootControl/TopOverlay/HBox"]
+[node name="SceneCounterLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.78, 0.88, 0.7)
+theme_override_colors/font_color = Color(0.58, 0.64, 0.72, 0.85)
+theme_override_fonts/font = ExtResource("2_arcade_font")
 theme_override_font_sizes/font_size = 13
-text = "[ESPAÇO / TOQUE] Avançar"
+text = "CENA 02 / 03"
 
-[node name="Spacer" type="Control" parent="RootControl/TopOverlay/HBox"]
+[node name="Spacer" type="Control" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="BtnSkip" type="Button" parent="RootControl/TopOverlay/HBox"]
+[node name="PromptLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.88, 0.28, 1)
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 13
+text = "[ ESPAÇO ] AVANÇAR ❯"
+
+[node name="BtnMobileAdvance" type="Button" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 32)
 layout_mode = 2
 mouse_default_cursor_shape = 2
-theme_override_colors/font_color = Color(0.9, 0.92, 1, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 12
+text = "AVANÇAR ❯"
+
+[node name="TopOverlay" type="MarginContainer" parent="RootControl"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 60.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 24
+
+[node name="HBox" type="HBoxContainer" parent="RootControl/TopOverlay"]
+layout_mode = 2
+alignment = 2
+
+[node name="BtnSkip" type="Button" parent="RootControl/TopOverlay/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(105, 34)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 12
 text = "PULAR ⏩"
 
 [node name="FadeOverlay" type="ColorRect" parent="RootControl"]
@@ -200,4 +276,3 @@ color = Color(0, 0, 0, 1)
 
 [node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
-
