@@ -6,7 +6,15 @@
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
 [ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
-[ext_resource type="Texture2D" uid="uid://1qmskhm4ie1m" path="res://assets/sprites/characters/npc/loro.gif" id="7_f4idl"]
+[ext_resource type="Texture2D" uid="uid://dgvm14wg6twry" path="res://assets/sprites/characters/npc/loro/loro_0.png" id="7_loro0"]
+[ext_resource type="Texture2D" uid="uid://bf7apilbbkb8w" path="res://assets/sprites/characters/npc/loro/loro_1.png" id="8_loro1"]
+[ext_resource type="Texture2D" uid="uid://brf6rn7dv3q8e" path="res://assets/sprites/characters/npc/loro/loro_2.png" id="9_loro2"]
+[ext_resource type="Texture2D" uid="uid://c4qiptpemloqx" path="res://assets/sprites/characters/npc/loro/loro_3.png" id="10_loro3"]
+[ext_resource type="Texture2D" uid="uid://2t8tyxxtw57h" path="res://assets/sprites/characters/npc/loro/loro_4.png" id="11_loro4"]
+[ext_resource type="Texture2D" uid="uid://vqpwohpm1f5b" path="res://assets/sprites/characters/npc/loro/loro_5.png" id="12_loro5"]
+[ext_resource type="Texture2D" uid="uid://dqp2eye10kl0h" path="res://assets/sprites/characters/npc/loro/loro_6.png" id="13_loro6"]
+[ext_resource type="Texture2D" uid="uid://b8akauvtroo" path="res://assets/sprites/characters/npc/loro/loro_7.png" id="14_loro7"]
+[ext_resource type="Texture2D" uid="uid://c5wojeug44h1b" path="res://assets/sprites/characters/npc/loro/loro_8.png" id="15_loro8"]
 [ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_4_navpoly.tres" id="8_navpoly"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/boss_alessandro.tscn" id="9_boss_alessandro"]
@@ -24,6 +32,41 @@ size = Vector2(40, 220)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
 size = Vector2(60, 80)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_loro"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_loro0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_loro1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_loro2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_loro3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_loro4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_loro5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_loro6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_loro7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_loro8")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}]
 
 [node name="Map4" type="Node2D" unique_id=20037952]
 script = ExtResource("1_base_level")
@@ -118,12 +161,11 @@ y_sort_enabled = true
 position = Vector2(982, 421)
 scale = Vector2(0.3, 0.3)
 
-[node name="loro" type="GIFPlayer" parent="World/Actors/NPCs/Node2D" unique_id=168342595]
-gif = ExtResource("7_f4idl")
-offset_left = -120.0
-offset_top = -186.66663
-offset_right = 136.0
-offset_bottom = 69.333374
+[node name="loro" type="AnimatedSprite2D" parent="World/Actors/NPCs/Node2D" unique_id=168342595]
+position = Vector2(8, -58.667)
+sprite_frames = SubResource("SpriteFrames_loro")
+animation = &"idle"
+autoplay = "idle"
 
 [node name="Foreground" type="Node2D" parent="." unique_id=692981981]
 z_index = 10

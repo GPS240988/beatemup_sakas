@@ -35,8 +35,8 @@ var current_text_index: int = 0
 
 var _is_transitioning: bool = false
 var _active_tween: Tween = null
-var _zoom_tween: Tween = null
 var _pulse_tween: Tween = null
+var _zoom_tween: Tween = null
 
 # Nós visuais internos
 var _root_control: Control
@@ -313,8 +313,6 @@ func _display_image_event(
 			_image_rect.modulate.a = 0.0
 			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, trans_dur).set_trans(Tween.TRANS_SINE)
 			if zoom_end != zoom_start:
-				if _zoom_tween != null and _zoom_tween.is_valid():
-					_zoom_tween.kill()
 				_zoom_tween = create_tween()
 				_zoom_tween.tween_property(_image_rect, "scale", Vector2.ONE * zoom_end, 7.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	elif entry_eff == "glitch":
@@ -390,20 +388,18 @@ func advance_or_skip_text() -> void:
 		return
 
 	var ev: Resource = events[current_event_index]
-	var texts: Array = ev.get("texts")
 
-	# Se estiver na tela de título (CENA 01), avança imediatamente para a próxima cena
+	# Se estiver na tela de título (CENA 01), avança imediatamente mesmo se em transição
 	if str(ev.get("id")) == "title_card":
 		_kill_tweens()
 		_is_transitioning = false
-		if _fade_overlay != null:
-			_fade_overlay.modulate.a = 0.0
 		_advance_to_next_event()
 		return
 
 	if _is_transitioning:
 		return
 
+	var texts: Array = ev.get("texts")
 	_play_sound(_sfx_advance)
 
 	# Avança para o próximo bloco de diálogo da mesma cena
@@ -568,10 +564,13 @@ func _start_prompt_pulse() -> void:
 func _kill_tweens() -> void:
 	if _active_tween != null and _active_tween.is_valid():
 		_active_tween.kill()
-	if _zoom_tween != null and _zoom_tween.is_valid():
-		_zoom_tween.kill()
+		_active_tween = null
 	if _pulse_tween != null and _pulse_tween.is_valid():
 		_pulse_tween.kill()
+		_pulse_tween = null
+	if _zoom_tween != null and _zoom_tween.is_valid():
+		_zoom_tween.kill()
+		_zoom_tween = null
 
 
 func _play_audio_by_name(sound_name: String) -> void:

@@ -94,3 +94,4 @@ Novas cenas devem ser criadas **exclusivamente** via recursos `.tres`, sem neces
 2. [ ] Nenhum elemento essencial (rostos, armas, mãos) está nos 26% inferiores da imagem.
 3. [ ] Textos curtos e diretos (máximo 1–3 linhas por bloco de fala).
 4. [ ] Testado com `godot_console.exe --headless -s tests/narrative_intro_test.gd`.
+
