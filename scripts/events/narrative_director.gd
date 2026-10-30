@@ -22,8 +22,9 @@ const StoryEventClass = preload("res://scripts/events/story_event.gd")
 const StorySequenceClass = preload("res://scripts/events/story_sequence.gd")
 
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
-const DIALOG_FRAME_TEXTURE: Texture2D = preload("res://assets/ui/hud/dialog_frame_9patch.png")
+const DIALOG_FRAME_TEXTURE: Texture2D = preload("res://assets/story/ui/narrative_frame_9patch.png")
 const SPEAKER_BADGE_TEXTURE: Texture2D = preload("res://assets/ui/hud/speaker_badge_9patch.png")
+const ENTER_KEY_BADGE_TEXTURE: Texture2D = preload("res://assets/story/ui/enter_key_badge.png")
 
 @export var default_sequence_path: String = "res://resources/story/story_intro_map1.tres"
 @export var auto_start_on_ready: bool = false
@@ -49,17 +50,21 @@ var _title_container: CenterContainer
 var _title_header_label: Label
 var _title_sub_label: Label
 var _dialogue_area: MarginContainer
-var _dialogue_frame: NinePatchRect
-var _speaker_badge: NinePatchRect
+var _dialogue_frame: PanelContainer
+var _speaker_badge: Control
 var _speaker_label: Label
 var _dialogue_label: Label
 var _scene_counter_label: Label
+var _advance_prompt_box: HBoxContainer
+var _key_badge: TextureRect
+var _key_badge_label: Label
 var _prompt_label: Label
 var _btn_mobile_advance: Button
 var _btn_skip: Button
 var _top_overlay: MarginContainer
 var _fade_overlay: ColorRect
 var _audio_player: AudioStreamPlayer
+# WebView removed to prevent black screen issue during intro-to-gameplay transition
 
 # Efeitos sonoros procedurais integrados
 var _sfx_deep_hum: AudioStreamWAV
@@ -95,11 +100,14 @@ func _bind_scene_nodes() -> void:
 	_title_header_label = get_node_or_null("%TitleHeader") as Label
 	_title_sub_label = get_node_or_null("%TitleSub") as Label
 	_dialogue_area = get_node_or_null("%DialogueArea") as MarginContainer
-	_dialogue_frame = get_node_or_null("%DialogueFrame") as NinePatchRect
-	_speaker_badge = get_node_or_null("%SpeakerBadge") as NinePatchRect
+	_dialogue_frame = get_node_or_null("%DialogueFrame") as PanelContainer
+	_speaker_badge = get_node_or_null("%SpeakerBadge") as Control
 	_speaker_label = get_node_or_null("%SpeakerLabel") as Label
 	_dialogue_label = get_node_or_null("%DialogueLabel") as Label
 	_scene_counter_label = get_node_or_null("%SceneCounterLabel") as Label
+	_advance_prompt_box = get_node_or_null("%AdvancePromptBox") as HBoxContainer
+	_key_badge = get_node_or_null("%KeyBadge") as TextureRect
+	_key_badge_label = get_node_or_null("%KeyBadgeLabel") as Label
 	_prompt_label = get_node_or_null("%PromptLabel") as Label
 	_btn_mobile_advance = get_node_or_null("%BtnMobileAdvance") as Button
 	_top_overlay = get_node_or_null("%TopOverlay") as MarginContainer
@@ -342,21 +350,48 @@ func _show_current_text_block(ev: Resource) -> void:
 	var text_content: String = str(texts[current_text_index])
 	var speaker_name: String = str(ev.get("speaker")).strip_edges()
 
-	# Configura Orador
-	if _speaker_badge != null and _speaker_label != null:
+	# Configura Orador e Badge Superior Flutuante (Estilo Cyber-Brawler)
+	if _speaker_badge != null:
 		if speaker_name.is_empty():
 			_speaker_badge.visible = false
 		else:
 			_speaker_badge.visible = true
+	if _speaker_label != null:
+		if speaker_name.is_empty():
+			_speaker_label.visible = false
+		else:
+			_speaker_label.visible = true
 			_speaker_label.text = speaker_name.to_upper()
 
-	# Configura Texto do Diálogo
+	# Configura Modo de Apresentação (Narração vs Revelação) - Padrão Arcade Beat 'em Up Centralizado e de Alto Impacto
+	var ev_type: String = str(ev.get("event_type")) if ev.get("event_type") != null else "narration"
+	var ev_id: String = str(ev.get("id"))
 	if _dialogue_label != null:
 		_dialogue_label.text = text_content
+		_dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_dialogue_label.add_theme_font_size_override("font_size", 26)
+		if ev_type == "revelation" and ev_id == "arcade_machine":
+			_dialogue_label.add_theme_color_override("font_color", Color(0.98, 0.82, 0.15, 1.0))
+		else:
+			_dialogue_label.add_theme_color_override("font_color", Color(0.96, 0.94, 0.91, 1.0))
 
-	# Configura Contador de Cenas (ex: CENA 02 / 03)
+	# Atualiza Tecla e Indicador de Avanço (Estilo Referência ENTER)
+	if _key_badge_label != null:
+		_key_badge_label.text = "ENTER"
+	if _prompt_label != null:
+		_prompt_label.text = "PARA AVANÇAR ❯"
+
+	# Adapta controle de avanço: no PC exibe apenas prompt arcade do teclado; no mobile/touch nativo exibe botão
+	var is_mobile := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	if _btn_mobile_advance != null:
+		_btn_mobile_advance.visible = is_mobile
+	if _advance_prompt_box != null:
+		_advance_prompt_box.visible = not is_mobile
+
+	# Configura Contador de Cenas (oculto por padrão na estética limpa de cinema arcade)
 	if _scene_counter_label != null:
-		var total_events: int = current_sequence.get("events").size() if current_sequence != null else 3
+		var total_events: int = current_sequence.get("events").size() if current_sequence != null else 7
 		_scene_counter_label.text = "CENA %02d / %02d" % [current_event_index + 1, total_events]
 
 	# Exibe Área de Diálogo com animação suave de entrada da moldura
@@ -368,8 +403,6 @@ func _show_current_text_block(ev: Resource) -> void:
 		panel_tween.tween_property(_dialogue_area, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_SINE)
 
 	_start_prompt_pulse()
-
-	var ev_id: String = str(ev.get("id"))
 	event_started.emit(ev_id, current_text_index)
 
 	# NOTA ARQUITETURAL CANÔNICA (Padrão Sakas):
@@ -500,6 +533,8 @@ func _trigger_glitch_effect(frames_count: int = 3) -> void:
 
 ## Suspende/Restabelece física e controle do jogador durante cutscenes
 func _set_gameplay_suspended(suspended: bool) -> void:
+	if not is_inside_tree() or get_tree() == null:
+		return
 	var player = get_tree().get_first_node_in_group("player")
 	if player != null and is_instance_valid(player):
 		if suspended:
@@ -551,14 +586,15 @@ func _load_texture_to_rect(path: String) -> void:
 
 
 func _start_prompt_pulse() -> void:
-	if _prompt_label == null:
+	var target_node: Control = _advance_prompt_box if _advance_prompt_box != null else _prompt_label
+	if target_node == null:
 		return
 	if _pulse_tween != null and _pulse_tween.is_valid():
 		_pulse_tween.kill()
 
 	_pulse_tween = create_tween().set_loops()
-	_pulse_tween.tween_property(_prompt_label, "modulate:a", 0.45, 0.45).set_trans(Tween.TRANS_SINE)
-	_pulse_tween.tween_property(_prompt_label, "modulate:a", 1.00, 0.45).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.tween_property(target_node, "modulate:a", 0.55, 0.45).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.tween_property(target_node, "modulate:a", 1.00, 0.45).set_trans(Tween.TRANS_SINE)
 
 
 func _kill_tweens() -> void:
@@ -697,71 +733,110 @@ func _build_ui_nodes() -> void:
 	_dialogue_area.visible = false
 	_root_control.add_child(_dialogue_area)
 
-	_dialogue_frame = NinePatchRect.new()
+	# Moldura Cyber-Brawler Glassmorphism (Estrutura Overlay Arcade)
+	_dialogue_frame = PanelContainer.new()
 	_dialogue_frame.name = "DialogueFrame"
-	_dialogue_frame.texture = DIALOG_FRAME_TEXTURE
-	_dialogue_frame.patch_margin_left = 16
-	_dialogue_frame.patch_margin_top = 16
-	_dialogue_frame.patch_margin_right = 16
-	_dialogue_frame.patch_margin_bottom = 16
-	_dialogue_frame.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_STRETCH
-	_dialogue_frame.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_STRETCH
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.047, 0.047, 0.094, 0.94)
+	panel_style.border_width_left = 3
+	panel_style.border_width_top = 3
+	panel_style.border_width_right = 3
+	panel_style.border_width_bottom = 3
+	panel_style.border_color = Color(1.0, 0.165, 0.427, 1.0)
+	panel_style.corner_radius_top_left = 8
+	panel_style.corner_radius_top_right = 8
+	panel_style.corner_radius_bottom_right = 8
+	panel_style.corner_radius_bottom_left = 8
+	panel_style.shadow_color = Color(1.0, 0.165, 0.427, 0.4)
+	panel_style.shadow_size = 12
+	_dialogue_frame.add_theme_stylebox_override("panel", panel_style)
 	_dialogue_frame.mouse_filter = Control.MOUSE_FILTER_PASS
 	_dialogue_area.add_child(_dialogue_frame)
 
-	# Cartão/Badge do Orador fixado na borda superior da moldura
-	_speaker_badge = NinePatchRect.new()
+	# Badge Flutuante do Orador
+	_speaker_badge = PanelContainer.new()
 	_speaker_badge.name = "SpeakerBadge"
-	_speaker_badge.texture = SPEAKER_BADGE_TEXTURE
-	_speaker_badge.patch_margin_left = 8
-	_speaker_badge.patch_margin_top = 8
-	_speaker_badge.patch_margin_right = 8
-	_speaker_badge.patch_margin_bottom = 8
-	_speaker_badge.custom_minimum_size = Vector2(180, 32)
-	_speaker_badge.position = Vector2(24, -22)
+	_speaker_badge.visible = false
+	var spk_style := StyleBoxFlat.new()
+	spk_style.bg_color = Color(0.85, 0.08, 0.35, 1.0)
+	spk_style.border_width_left = 4
+	spk_style.border_color = Color(1.0, 1.0, 1.0, 1.0)
+	spk_style.corner_radius_top_left = 4
+	spk_style.corner_radius_top_right = 4
+	spk_style.corner_radius_bottom_right = 4
+	spk_style.corner_radius_bottom_left = 4
+	_speaker_badge.add_theme_stylebox_override("panel", spk_style)
+	_speaker_badge.position = Vector2(32, -16)
 	_dialogue_frame.add_child(_speaker_badge)
 
-	var badge_margin := MarginContainer.new()
-	badge_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	badge_margin.add_theme_constant_override("margin_left", 12)
-	badge_margin.add_theme_constant_override("margin_right", 12)
-	badge_margin.add_theme_constant_override("margin_top", 4)
-	badge_margin.add_theme_constant_override("margin_bottom", 4)
-	_speaker_badge.add_child(badge_margin)
+	var spk_margin := MarginContainer.new()
+	spk_margin.add_theme_constant_override("margin_left", 12)
+	spk_margin.add_theme_constant_override("margin_right", 12)
+	spk_margin.add_theme_constant_override("margin_top", 3)
+	spk_margin.add_theme_constant_override("margin_bottom", 3)
+	_speaker_badge.add_child(spk_margin)
 
 	_speaker_label = Label.new()
 	_speaker_label.name = "SpeakerLabel"
 	_speaker_label.add_theme_font_override("font", ARCADE_FONT)
-	_speaker_label.add_theme_font_size_override("font_size", 14)
-	_speaker_label.add_theme_color_override("font_color", Color(0.92, 0.70, 0.10, 1.0))
+	_speaker_label.add_theme_font_size_override("font_size", 12)
+	_speaker_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	_speaker_label.text = "SAKAS"
-	badge_margin.add_child(_speaker_label)
+	spk_margin.add_child(_speaker_label)
 
 	# Conteúdo interno do Diálogo e Rodapé
 	var content_margin := MarginContainer.new()
-	content_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	content_margin.add_theme_constant_override("margin_left", 28)
-	content_margin.add_theme_constant_override("margin_right", 28)
-	content_margin.add_theme_constant_override("margin_top", 18)
-	content_margin.add_theme_constant_override("margin_bottom", 12)
+	content_margin.add_theme_constant_override("margin_left", 32)
+	content_margin.add_theme_constant_override("margin_right", 32)
+	content_margin.add_theme_constant_override("margin_top", 10)
+	content_margin.add_theme_constant_override("margin_bottom", 8)
 	content_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dialogue_frame.add_child(content_margin)
 
 	var content_vbox := VBoxContainer.new()
 	content_vbox.alignment = BoxContainer.ALIGNMENT_BEGIN
-	content_vbox.add_theme_constant_override("separation", 8)
+	content_vbox.add_theme_constant_override("separation", 4)
 	content_margin.add_child(content_vbox)
+
+	# Barra de cabeçalho: Transmissão / Status
+	var header_hbox := HBoxContainer.new()
+	content_vbox.add_child(header_hbox)
+
+	var header_trans := Label.new()
+	header_trans.add_theme_font_override("font", ARCADE_FONT)
+	header_trans.add_theme_font_size_override("font_size", 11)
+	header_trans.add_theme_color_override("font_color", Color(1.0, 0.35, 0.65, 1.0))
+	header_trans.text = "▶ TRANSMISSÃO NARRATIVA..."
+	header_hbox.add_child(header_trans)
+
+	var header_spacer := Control.new()
+	header_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_hbox.add_child(header_spacer)
+
+	var header_status := Label.new()
+	header_status.add_theme_font_override("font", ARCADE_FONT)
+	header_status.add_theme_font_size_override("font_size", 11)
+	header_status.add_theme_color_override("font_color", Color(0.02, 0.85, 0.91, 1.0))
+	header_status.text = "STATUS: ONLINE"
+	header_hbox.add_child(header_status)
+
+	var header_div := HSeparator.new()
+	header_div.add_theme_constant_override("separation", 4)
+	content_vbox.add_child(header_div)
 
 	_dialogue_label = Label.new()
 	_dialogue_label.name = "DialogueLabel"
 	_dialogue_label.add_theme_font_override("font", ARCADE_FONT)
-	_dialogue_label.add_theme_font_size_override("font_size", 18)
-	_dialogue_label.add_theme_color_override("font_color", Color(0.96, 0.94, 0.91, 1.0)) # Marfim #F4F0E8
-	_dialogue_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.95))
-	_dialogue_label.add_theme_constant_override("shadow_offset_x", 2)
-	_dialogue_label.add_theme_constant_override("shadow_offset_y", 2)
-	_dialogue_label.add_theme_constant_override("line_spacing", 6)
+	_dialogue_label.add_theme_font_size_override("font_size", 26)
+	_dialogue_label.add_theme_color_override("font_color", Color(1.0, 0.99, 0.88, 1.0))
+	_dialogue_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1.0))
+	_dialogue_label.add_theme_constant_override("shadow_offset_x", 3)
+	_dialogue_label.add_theme_constant_override("shadow_offset_y", 3)
+	_dialogue_label.add_theme_constant_override("line_spacing", 8)
+	_dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_dialogue_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content_vbox.add_child(_dialogue_label)
 
@@ -782,13 +857,38 @@ func _build_ui_nodes() -> void:
 	footer_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer_hbox.add_child(footer_spacer)
 
+	_advance_prompt_box = HBoxContainer.new()
+	_advance_prompt_box.name = "AdvancePromptBox"
+	_advance_prompt_box.add_theme_constant_override("separation", 8)
+	_advance_prompt_box.alignment = BoxContainer.ALIGNMENT_END
+	footer_hbox.add_child(_advance_prompt_box)
+
+	_key_badge = TextureRect.new()
+	_key_badge.name = "KeyBadge"
+	_key_badge.custom_minimum_size = Vector2(56, 26)
+	_key_badge.texture = ENTER_KEY_BADGE_TEXTURE
+	_key_badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_key_badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_advance_prompt_box.add_child(_key_badge)
+
+	_key_badge_label = Label.new()
+	_key_badge_label.name = "KeyBadgeLabel"
+	_key_badge_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_key_badge_label.add_theme_font_override("font", ARCADE_FONT)
+	_key_badge_label.add_theme_font_size_override("font_size", 11)
+	_key_badge_label.add_theme_color_override("font_color", Color(0.98, 0.80, 0.08, 1.0))
+	_key_badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_key_badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_key_badge_label.text = "ENTER"
+	_key_badge.add_child(_key_badge_label)
+
 	_prompt_label = Label.new()
 	_prompt_label.name = "PromptLabel"
 	_prompt_label.add_theme_font_override("font", ARCADE_FONT)
 	_prompt_label.add_theme_font_size_override("font_size", 13)
-	_prompt_label.add_theme_color_override("font_color", Color(0.98, 0.88, 0.28, 1.0)) # Ouro
-	_prompt_label.text = "[ ESPAÇO ] AVANÇAR ❯"
-	footer_hbox.add_child(_prompt_label)
+	_prompt_label.add_theme_color_override("font_color", Color(0.96, 0.94, 0.91, 1.0))
+	_prompt_label.text = "PARA AVANÇAR ❯"
+	_advance_prompt_box.add_child(_prompt_label)
 
 	_btn_mobile_advance = Button.new()
 	_btn_mobile_advance.name = "BtnMobileAdvance"

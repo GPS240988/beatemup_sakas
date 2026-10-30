@@ -1,0 +1,121 @@
+[gd_scene format=3 uid="uid://bxoe510r3os7m"]
+
+[ext_resource type="Script" uid="uid://ge8vtyt1ugdm" path="res://scripts/levels/base_level.gd" id="1_base_level"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/bonus1/garagem.webp" id="2_garage_bg"]
+[ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
+[ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="4_combat_director"]
+[ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="5_siga_indicator"]
+[ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="6_hud_scene"]
+[ext_resource type="NavigationPolygon" path="res://scenes/levels/bonus_garage_navpoly.tres" id="7_navpoly"]
+[ext_resource type="PackedScene" path="res://scenes/props/bonus_car_orange.tscn" id="8_car_orange"]
+[ext_resource type="PackedScene" path="res://scenes/props/bonus_car_blue.tscn" id="9_car_blue"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top"]
+size = Vector2(1700, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_bottom"]
+size = Vector2(1700, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_left"]
+size = Vector2(40, 400)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_right"]
+size = Vector2(40, 400)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
+size = Vector2(60, 320)
+
+[node name="BonusGarage" type="Node2D"]
+script = ExtResource("1_base_level")
+stage_number = 1
+section_number = 5
+map_name = "Fase 1 - Fase Bônus: Garagem"
+map_index = 5
+map_group = "bonus1"
+is_final_map = true
+victory_scene_path = "res://scenes/ui/credits.tscn"
+camera_min_x = 640.0
+camera_max_x = 1032.0
+camera_fixed_y = 470.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(800, 470)
+limit_left = 0
+limit_top = 0
+limit_right = 1672
+limit_bottom = 941
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="Background" type="Node2D" parent="."]
+z_index = -10
+
+[node name="Far" type="Sprite2D" parent="Background"]
+texture = ExtResource("2_garage_bg")
+centered = false
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = ExtResource("7_navpoly")
+
+[node name="StaticWorld" type="Node2D" parent="."]
+
+[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
+collision_layer = 2
+collision_mask = 1
+
+[node name="WallTop" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(836, 495)
+shape = SubResource("RectangleShape2D_wall_top")
+
+[node name="WallBottom" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(836, 845)
+shape = SubResource("RectangleShape2D_wall_bottom")
+
+[node name="WallLeft" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(40, 670)
+shape = SubResource("RectangleShape2D_wall_left")
+
+[node name="WallRight" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(1630, 670)
+shape = SubResource("RectangleShape2D_wall_right")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Props" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Vehicles" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="CarOrange" parent="World/Props/Vehicles" instance=ExtResource("8_car_orange")]
+position = Vector2(480, 660)
+
+[node name="CarBlue" parent="World/Props/Vehicles" instance=ExtResource("9_car_blue")]
+position = Vector2(1160, 680)
+
+[node name="Actors" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Player" parent="World/Actors" instance=ExtResource("3_player_scene")]
+position = Vector2(820, 750)
+
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("4_combat_director")
+
+[node name="PrototypeHud" parent="." instance=ExtResource("6_hud_scene")]
+
+[node name="SigaIndicator" parent="." instance=ExtResource("5_siga_indicator")]
+position = Vector2(1500, 660)
+
+[node name="ExitArea" type="Area2D" parent="."]
+position = Vector2(1620, 660)
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea"]
+shape = SubResource("RectangleShape2D_exit")

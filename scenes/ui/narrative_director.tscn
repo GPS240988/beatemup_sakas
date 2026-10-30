@@ -1,9 +1,33 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/events/narrative_director.gd" id="1_narrative_script"]
 [ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="2_arcade_font"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud/dialog_frame_9patch.png" id="3_dialog_frame_tex"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud/speaker_badge_9patch.png" id="4_speaker_badge_tex"]
+[ext_resource type="Texture2D" uid="uid://cu3n0updvol2t" path="res://assets/story/ui/enter_key_badge.png" id="4_enter_key_badge_tex"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.047, 0.047, 0.094, 0.94)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.165, 0.427, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(1, 0.165, 0.427, 0.4)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_speaker"]
+bg_color = Color(0.85, 0.08, 0.35, 1)
+border_width_left = 4
+border_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.8)
+shadow_size = 6
 
 [node name="NarrativeDirector" type="CanvasLayer"]
 process_mode = 3
@@ -29,12 +53,12 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.02, 0.02, 0.04, 1)
+color = Color(0.016, 0.043, 0.106, 1)
 
 [node name="AmbientBackground" type="TextureRect" parent="RootControl"]
 unique_name_in_owner = true
 visible = false
-modulate = Color(0.2, 0.2, 0.28, 0.35)
+modulate = Color(0.18, 0.22, 0.32, 0.38)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -97,8 +121,8 @@ alignment = 1
 [node name="TitleHeader" type="Label" parent="RootControl/TitleCardContainer/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.72, 0.1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_colors/font_color = Color(0.98, 0.8, 0.08, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.95)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 3
 theme_override_fonts/font = ExtResource("2_arcade_font")
@@ -109,12 +133,12 @@ horizontal_alignment = 1
 [node name="TitleSub" type="Label" parent="RootControl/TitleCardContainer/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_shadow_color = Color(0.1, 0.1, 0.15, 0.95)
+theme_override_colors/font_color = Color(0.96, 0.94, 0.91, 1)
+theme_override_colors/font_shadow_color = Color(0.04, 0.08, 0.18, 0.95)
 theme_override_constants/shadow_offset_x = 4
 theme_override_constants/shadow_offset_y = 4
 theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 46
 text = "A ÚLTIMA FICHA"
 horizontal_alignment = 1
 
@@ -122,121 +146,265 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-anchor_top = 0.74
+anchor_top = 0.72
 anchor_right = 1.0
-anchor_bottom = 0.97
-offset_left = 50.0
-offset_right = -50.0
+anchor_bottom = 0.98
+offset_left = 36.0
+offset_right = -36.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_bottom = 6
 
-[node name="DialogueFrame" type="NinePatchRect" parent="RootControl/DialogueArea"]
+[node name="DialogueFrame" type="PanelContainer" parent="RootControl/DialogueArea"]
 unique_name_in_owner = true
 layout_mode = 2
-texture = ExtResource("3_dialog_frame_tex")
-patch_margin_left = 16
-patch_margin_top = 16
-patch_margin_right = 16
-patch_margin_bottom = 16
-axis_stretch_horizontal = 1
-axis_stretch_vertical = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="SpeakerBadge" type="NinePatchRect" parent="RootControl/DialogueArea/DialogueFrame"]
-unique_name_in_owner = true
+[node name="CornerBrackets" type="Control" parent="RootControl/DialogueArea/DialogueFrame"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CB_TL_H" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
 layout_mode = 0
-offset_left = 24.0
-offset_top = -22.0
-offset_right = 204.0
-offset_bottom = 10.0
-texture = ExtResource("4_speaker_badge_tex")
-patch_margin_left = 8
-patch_margin_top = 8
-patch_margin_right = 8
-patch_margin_bottom = 8
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 26.0
+offset_bottom = 11.0
+color = Color(0.02, 0.85, 0.91, 0.85)
 
-[node name="Margin" type="MarginContainer" parent="RootControl/DialogueArea/DialogueFrame/SpeakerBadge"]
+[node name="CB_TL_V" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 11.0
+offset_bottom = 26.0
+color = Color(0.02, 0.85, 0.91, 0.85)
+
+[node name="CB_TR_H" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -26.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 11.0
+color = Color(1, 0.165, 0.427, 0.85)
+
+[node name="CB_TR_V" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -11.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 26.0
+color = Color(1, 0.165, 0.427, 0.85)
+
+[node name="CB_BL_H" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -11.0
+offset_right = 26.0
+offset_bottom = -8.0
+color = Color(1, 0.165, 0.427, 0.85)
+
+[node name="CB_BL_V" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -26.0
+offset_right = 11.0
+offset_bottom = -8.0
+color = Color(1, 0.165, 0.427, 0.85)
+
+[node name="CB_BR_H" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_left = -26.0
+offset_top = -11.0
+offset_right = -8.0
+offset_bottom = -8.0
+color = Color(0.02, 0.85, 0.91, 0.85)
+
+[node name="CB_BR_V" type="ColorRect" parent="RootControl/DialogueArea/DialogueFrame/CornerBrackets"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -11.0
+offset_top = -26.0
+offset_right = -8.0
+offset_bottom = -8.0
+color = Color(0.02, 0.85, 0.91, 0.85)
+
+[node name="SpeakerBadge" type="PanelContainer" parent="RootControl/DialogueArea/DialogueFrame"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 32.0
+offset_top = -16.0
+offset_right = 240.0
+offset_bottom = 14.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_speaker")
+
+[node name="Margin" type="MarginContainer" parent="RootControl/DialogueArea/DialogueFrame/SpeakerBadge"]
+layout_mode = 2
 theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 4
+theme_override_constants/margin_top = 3
 theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 4
+theme_override_constants/margin_bottom = 3
 
 [node name="SpeakerLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/SpeakerBadge/Margin"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.7, 0.1, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
 theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_font_sizes/font_size = 14
-text = "SAKAS"
+theme_override_font_sizes/font_size = 12
+text = "SAKA'S"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="ContentMargin" type="MarginContainer" parent="RootControl/DialogueArea/DialogueFrame"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 18
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 8
 
 [node name="VBox" type="VBoxContainer" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
-[node name="DialogueLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox"]
-unique_name_in_owner = true
+[node name="HeaderHBox" type="HBoxContainer" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox"]
+layout_mode = 2
+
+[node name="HeaderTransmission" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/HeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.35, 0.65, 1)
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 11
+text = "▶ TRANSMISSÃO NARRATIVA..."
+
+[node name="HeaderSpacer" type="Control" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeaderStatus" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/HeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.02, 0.85, 0.91, 1)
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 11
+text = "STATUS: ONLINE"
+
+[node name="HeaderDivider" type="HSeparator" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TextMargin" type="MarginContainer" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.96, 0.94, 0.91, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.95)
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 4
+
+[node name="DialogueLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/TextMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.95, 0.96, 0.98, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_constants/line_spacing = 6
 theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="FooterHBox" type="HBoxContainer" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox"]
 layout_mode = 2
-alignment = 1
+theme_override_constants/separation = 12
+alignment = 2
 
 [node name="SceneCounterLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.58, 0.64, 0.72, 0.85)
+theme_override_colors/font_color = Color(0.55, 0.62, 0.72, 0.85)
 theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_font_sizes/font_size = 13
-text = "CENA 02 / 03"
+theme_override_font_sizes/font_size = 11
+text = "[SAKA'S // BEAT 'EM UP]"
 
 [node name="Spacer" type="Control" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="PromptLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
+[node name="AdvancePromptBox" type="HBoxContainer" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.88, 0.28, 1)
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="KeyBadge" type="TextureRect" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox/AdvancePromptBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 24)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("4_enter_key_badge_tex")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="KeyBadgeLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox/AdvancePromptBox/KeyBadge"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.98, 0.8, 0.08, 1)
 theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_font_sizes/font_size = 13
-text = "[ ESPAÇO ] AVANÇAR ❯"
+theme_override_font_sizes/font_size = 11
+text = "ENTER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PromptLabel" type="Label" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox/AdvancePromptBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.96, 0.98, 1)
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 12
+text = "PARA AVANÇAR ❯"
 
 [node name="BtnMobileAdvance" type="Button" parent="RootControl/DialogueArea/DialogueFrame/ContentMargin/VBox/FooterHBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 32)
+visible = false
+custom_minimum_size = Vector2(100, 30)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "AVANÇAR ❯"
 
 [node name="TopOverlay" type="MarginContainer" parent="RootControl"]

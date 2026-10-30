@@ -3,17 +3,19 @@
 [ext_resource type="Script" path="res://scripts/events/story_event.gd" id="1_1ngd7"]
 [ext_resource type="Script" path="res://scripts/events/story_sequence.gd" id="2_upi0n"]
 
-[sub_resource type="Resource" id="Resource_wfhp5"]
+[sub_resource type="Resource" id="Resource_cena01"]
 script = ExtResource("1_1ngd7")
 id = "title_card"
+event_type = "narration"
 texts = Array[String](["Saka's", "A ÚLTIMA FICHA"])
 duration_per_text = 2.0
 pause_after = 0.5
 sound_effect_name = "deep_intro_hum"
 
-[sub_resource type="Resource" id="Resource_thklw"]
+[sub_resource type="Resource" id="Resource_cena02"]
 script = ExtResource("1_1ngd7")
 id = "the_four"
+event_type = "narration"
 image_path = "res://assets/story/map_1/intro_group.webp"
 texts = Array[String](["Anos depois da adolescência, quatro velhos amigos ainda continuavam se encontrando.", "Guilherme, Gabriel, André e Juliana."])
 duration_per_text = 3.0
@@ -23,9 +25,10 @@ pause_after = 0.3
 zoom_end = 1.03
 sound_effect_name = "nostalgia_chime"
 
-[sub_resource type="Resource" id="Resource_aql4o"]
+[sub_resource type="Resource" id="Resource_cena03"]
 script = ExtResource("1_1ngd7")
 id = "the_missing"
+event_type = "narration"
 image_path = "res://assets/story/map_1/missing_friends.webp"
 texts = Array[String](["Mas dois deles já estavam desaparecidos havia algum tempo.", "Alessandro. Fernando."])
 duration_per_text = 3.2
@@ -34,7 +37,57 @@ pause_after = 0.5
 glitch_frames = 3
 sound_effect_name = "glitch_static"
 
+[sub_resource type="Resource" id="Resource_cena04"]
+script = ExtResource("1_1ngd7")
+id = "secret_room"
+event_type = "narration"
+image_path = "res://assets/story/map_1/secret_room.webp"
+texts = Array[String](["O antigo dono da locadora revelou uma sala que ninguém conhecia.", "Ali dentro, havia uma máquina que deveria ter permanecido desligada."])
+duration_per_text = 3.0
+entry_effect = "fade_in"
+exit_effect = "crossfade"
+pause_after = 0.4
+sound_effect_name = "deep_intro_hum"
+
+[sub_resource type="Resource" id="Resource_cena05"]
+script = ExtResource("1_1ngd7")
+id = "arcade_machine"
+event_type = "revelation"
+image_path = "res://assets/story/map_1/arcade_machine.webp"
+texts = Array[String](["INSERT COIN", "4 PLAYERS DETECTED", "CONTINUE?"])
+duration_per_text = 2.2
+entry_effect = "glitch"
+exit_effect = "crossfade"
+pause_after = 0.4
+glitch_frames = 2
+sound_effect_name = "glitch_static"
+
+[sub_resource type="Resource" id="Resource_cena06"]
+script = ExtResource("1_1ngd7")
+id = "past_present"
+event_type = "revelation"
+image_path = "res://assets/story/map_1/past_present.webp"
+texts = Array[String](["As telas mostraram lugares que eles conheciam.", "Mas não como eles eram.", "O passado e o presente estavam ocupando o mesmo espaço."])
+duration_per_text = 3.0
+entry_effect = "crossfade"
+exit_effect = "fade_out"
+pause_after = 0.5
+zoom_end = 1.02
+sound_effect_name = "nostalgia_chime"
+
+[sub_resource type="Resource" id="Resource_cena07"]
+script = ExtResource("1_1ngd7")
+id = "back_to_arcade"
+event_type = "narration"
+image_path = "res://assets/story/map_1/street_memory.webp"
+texts = Array[String](["Retornando à locadora, a realidade ao redor já não parecia mais a mesma.", "MAPA 1 — A LOCADORA"])
+duration_per_text = 2.8
+entry_effect = "fade_in"
+exit_effect = "fade_out"
+pause_after = 0.4
+sound_effect_name = "nostalgia_chime"
+
 [resource]
 script = ExtResource("2_upi0n")
 sequence_id = "story_intro_map1"
-events = Array[Resource]([SubResource("Resource_wfhp5"), SubResource("Resource_thklw"), SubResource("Resource_aql4o")])
+events = Array[Resource]([SubResource("Resource_cena01"), SubResource("Resource_cena02"), SubResource("Resource_cena03"), SubResource("Resource_cena04"), SubResource("Resource_cena05"), SubResource("Resource_cena06"), SubResource("Resource_cena07")])

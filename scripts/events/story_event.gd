@@ -7,6 +7,7 @@ extends Resource
 ## Em estrita conformidade com GAME_RULES.md.
 
 @export var id: String = ""
+@export var event_type: String = "narration" # "narration", "revelation", "dialogue"
 @export var image_path: String = ""
 @export var texts: Array[String] = []
 @export var speaker: String = ""
@@ -21,6 +22,7 @@ extends Resource
 @export var glitch_frames: int = 0
 @export var sound_effect_name: String = ""
 @export var safe_framing: bool = true
+@export var hide_panel_initially: bool = false
 
 
 static func create(

@@ -52,7 +52,7 @@ func _run_all_tests() -> void:
 	test_story_intro_scene_and_loading_transition()
 	test_safe_framing_and_aspect_ratio()
 	await test_manual_advance_and_no_timer_skips()
-	test_official_9patch_frame_and_typography()
+	test_official_dialogue_frame_and_typography()
 	await test_input_isolation_for_gameplay()
 
 	print("==================================================")
@@ -104,7 +104,7 @@ func test_story_intro_map1_tres() -> void:
 	assert_test(seq.get("sequence_id") == "story_intro_map1", "sequence_id é 'story_intro_map1'")
 
 	var events: Array = seq.get("events")
-	assert_test(events.size() == 3, "Sequência possui exatamente 3 cenas (CENA 01, 02, 03)")
+	assert_test(events.size() == 7, "Sequência possui as 7 cenas canônicas do Roteiro (CENAS 01 a 07)")
 
 	# CENA 01 — Título
 	var c1: Resource = events[0]
@@ -128,6 +128,36 @@ func test_story_intro_map1_tres() -> void:
 	assert_test(int(c3.get("glitch_frames")) >= 2, "CENA 03 configurada com 2 a 3 frames de glitch")
 	var t3: Array = c3.get("texts")
 	assert_test(t3.size() >= 2 and t3[1].contains("Alessandro. Fernando."), "CENA 03 referencia Alessandro e Fernando")
+
+	# CENA 04 — A Sala Secreta
+	var c4: Resource = events[3]
+	assert_test(c4.get("id") == "secret_room", "CENA 04 id é 'secret_room'")
+	assert_test(str(c4.get("image_path")).contains("secret_room"), "CENA 04 aponta para secret_room.webp")
+	var t4: Array = c4.get("texts")
+	assert_test(t4.size() >= 2 and t4[0].contains("sala que ninguém conhecia"), "CENA 04 narra descoberta da sala")
+
+	# CENA 05 — A Máquina (Revelação)
+	var c5: Resource = events[4]
+	assert_test(c5.get("id") == "arcade_machine", "CENA 05 id é 'arcade_machine'")
+	assert_test(c5.get("event_type") == "revelation", "CENA 05 classificada como evento de revelação")
+	assert_test(str(c5.get("image_path")).contains("arcade_machine"), "CENA 05 aponta para arcade_machine.webp")
+	var t5: Array = c5.get("texts")
+	assert_test(t5.has("INSERT COIN") and t5.has("4 PLAYERS DETECTED") and t5.has("CONTINUE?"), "CENA 05 exibe mensagens canônicas da máquina")
+
+	# CENA 06 — Passado e Presente (Revelação Central)
+	var c6: Resource = events[5]
+	assert_test(c6.get("id") == "past_present", "CENA 06 id é 'past_present'")
+	assert_test(c6.get("event_type") == "revelation", "CENA 06 classificada como evento de revelação")
+	assert_test(str(c6.get("image_path")).contains("past_present"), "CENA 06 aponta para past_present.webp")
+	var t6: Array = c6.get("texts")
+	assert_test(t6.size() >= 3 and t6[2].contains("mesmo espaço"), "CENA 06 narra sobreposição temporal")
+
+	# CENA 07 — Retorno à Locadora
+	var c7: Resource = events[6]
+	assert_test(c7.get("id") == "back_to_arcade", "CENA 07 id é 'back_to_arcade'")
+	assert_test(str(c7.get("image_path")).contains("street_memory"), "CENA 07 aponta para street_memory.webp")
+	var t7: Array = c7.get("texts")
+	assert_test(t7.size() >= 2 and t7[1].contains("MAPA 1 — A LOCADORA"), "CENA 07 exibe identificação 'MAPA 1 — A LOCADORA'")
 
 
 func test_story_assets_directory() -> void:
@@ -307,38 +337,42 @@ func test_manual_advance_and_no_timer_skips() -> void:
 	nar.free()
 
 
-func test_official_9patch_frame_and_typography() -> void:
-	print("\n--- 10. Validando Moldura Oficial 9-Patch e Tipografia Arcade ---")
-	var frame_tex_path := "res://assets/ui/hud/dialog_frame_9patch.png"
-	var badge_tex_path := "res://assets/ui/hud/speaker_badge_9patch.png"
+func test_official_dialogue_frame_and_typography() -> void:
+	print("\n--- 10. Validando Moldura Oficial e Tipografia Arcade ---")
+	var key_badge_tex_path := "res://assets/story/ui/enter_key_badge.png"
 	var font_path := "res://assets/fonts/arcade_bold.ttf"
 
-	assert_test(ResourceLoader.exists(frame_tex_path) or FileAccess.file_exists(ProjectSettings.globalize_path(frame_tex_path)), "Textura dialog_frame_9patch.png existe no repositório")
-	assert_test(ResourceLoader.exists(badge_tex_path) or FileAccess.file_exists(ProjectSettings.globalize_path(badge_tex_path)), "Textura speaker_badge_9patch.png existe no repositório")
+	assert_test(ResourceLoader.exists(key_badge_tex_path) or FileAccess.file_exists(ProjectSettings.globalize_path(key_badge_tex_path)), "Textura enter_key_badge.png existe no repositório")
 	assert_test(ResourceLoader.exists(font_path) or FileAccess.file_exists(ProjectSettings.globalize_path(font_path)), "Fonte arcade_bold.ttf existe no repositório")
 
 	var director_scene: PackedScene = load("res://scenes/ui/narrative_director.tscn")
 	var nar = director_scene.instantiate()
 	root.add_child(nar)
 
-	var frame: NinePatchRect = nar.get_node_or_null("%DialogueFrame")
-	assert_test(frame != null, "DialogueFrame é um nó NinePatchRect")
-	if frame != null:
-		assert_test(frame.patch_margin_left == 16 and frame.patch_margin_top == 16, "DialogueFrame possui margens 9-slice configuradas em 16px")
+	var frame: Control = nar.get_node_or_null("%DialogueFrame")
+	assert_test(frame != null, "DialogueFrame é um nó de moldura narrativa")
+	if frame is PanelContainer:
+		var style: StyleBox = frame.get_theme_stylebox("panel")
+		assert_test(style != null, "DialogueFrame possui StyleBoxFlat estilizado")
 
-	var speaker_badge: NinePatchRect = nar.get_node_or_null("%SpeakerBadge")
-	assert_test(speaker_badge != null, "SpeakerBadge existe fixado na moldura")
+	var speaker_badge: Control = nar.get_node_or_null("%SpeakerBadge")
+	assert_test(speaker_badge != null, "SpeakerBadge existe na estrutura da moldura")
 
 	var dial_lbl: Label = nar.get_node_or_null("%DialogueLabel")
 	assert_test(dial_lbl != null, "DialogueLabel existe")
 	if dial_lbl != null:
 		assert_test(dial_lbl.autowrap_mode != TextServer.AUTOWRAP_OFF, "DialogueLabel possui autowrap ativado")
+		assert_test(dial_lbl.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER, "DialogueLabel possui alinhamento centralizado de impacto beat 'em up")
+		assert_test(dial_lbl.get_theme_font_size("font_size") >= 22, "DialogueLabel possui tamanho de fonte destacado (>= 22px)")
 
-	var scene_counter: Label = nar.get_node_or_null("%SceneCounterLabel")
-	assert_test(scene_counter != null, "SceneCounterLabel existe no rodapé da moldura")
+	var key_badge: TextureRect = nar.get_node_or_null("%KeyBadge")
+	assert_test(key_badge != null, "KeyBadge (ícone da tecla ENTER) existe no painel")
+
+	var key_lbl: Label = nar.get_node_or_null("%KeyBadgeLabel")
+	assert_test(key_lbl != null and key_lbl.text == "ENTER", "KeyBadge exibe 'ENTER' com estilo arcade")
 
 	var prompt_lbl: Label = nar.get_node_or_null("%PromptLabel")
-	assert_test(prompt_lbl != null, "PromptLabel existe informando comando de avanço")
+	assert_test(prompt_lbl != null and prompt_lbl.text.contains("PARA AVANÇAR"), "PromptLabel informa 'PARA AVANÇAR ❯'")
 
 	root.remove_child(nar)
 	nar.free()

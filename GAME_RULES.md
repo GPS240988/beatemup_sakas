@@ -149,11 +149,11 @@ MapX (Node2D, script: base_level.gd)
 `STATUS: IMPLEMENTED`
 
 - **Diretórios e Arquivos**: Nomes estritamente em `snake_case` minúsculo.
-  - Cenas de fases: `scenes/levels/map_1.tscn`, `map_2.tscn`, `map_3.tscn`, `map_4.tscn`.
+  - Cenas de fases: `scenes/levels/map_1.tscn`, `map_2.tscn`, `map_3.tscn`, `map_4.tscn`, `scenes/levels/bonus_garage.tscn`.
   - Cenas de atores: `scenes/actors/player/player.tscn`, `scenes/actors/enemies/basic_enemy.tscn`, `scenes/actors/enemies/boss_alessandro.tscn`, `scenes/actors/npc.tscn`.
-  - Cenas de props: `scenes/props/destructible_prop.tscn`.
+  - Cenas de props: `scenes/props/destructible_prop.tscn`, `scenes/props/destructible_games_box.tscn`, `scenes/props/bonus_car_orange.tscn`, `scenes/props/bonus_car_blue.tscn`.
   - Cenas de UI: `scenes/ui/title_screen.tscn`, `main_menu.tscn`, `character_select.tscn`, `loading_screen.tscn`, `prototype_hud.tscn`.
-  - Recursos de navegação: `scenes/levels/map_1_navpoly.tres` a `map_4_navpoly.tres`.
+  - Recursos de navegação: `scenes/levels/map_1_navpoly.tres` a `map_4_navpoly.tres`, `scenes/levels/bonus_garage_navpoly.tres`.
   - Scripts: `scripts/<dominio>/<nome_componente>.gd`.
 - **Classes GDScript**: Declaração explícita de `class_name` apenas para tipos centrais ou tipagem estática (ex: `class_name DamageInfo`, `class_name BaseLevel`, `class_name BaseNPC`).
 
@@ -489,18 +489,23 @@ MapX (Node2D, script: base_level.gd)
 
 - **Sistema Declarativo de Narrativa Cinemática (`StoryEvent`, `StorySequence`, `NarrativeDirector`)**:
   - **Padrão Oficial de Apresentação Arcade (Neo-16-bit Urbano)**:
+    - *Referência Visual Obrigatória*: Baseado na composição canônica de `assets/backgrounds/referencia_introducao.webp`.
     - *Enquadramento e Área Segura*: O palco de arte (`ArtStage`) ocupa os 74% superiores da tela com modo `STRETCH_KEEP_ASPECT_CENTERED` e `TEXTURE_FILTER_NEAREST`. As imagens mantêm 100% da proporção original sem corte de personagens nas bordas. Camada de fundo ambiente (`AmbientBackground`) preenche aspectos de tela variáveis sem barras vazias. A moldura inferior nunca encobre rostos, mãos, pés ou silhuetas essenciais.
-    - *Moldura Oficial de Diálogo 9-Patch*: Textura dedicada `assets/ui/hud/dialog_frame_9patch.png` (fundo ameixa/azul escuro `#100D18`, contorno dourado arcade 3px `#EAB308` com cantos chanfrados e arrebites) e badge de orador `assets/ui/hud/speaker_badge_9patch.png`.
-    - *Tipografia Arcade Canônica*: Emprego de `assets/fonts/arcade_bold.ttf` com suporte a caracteres e acentos em português para título, orador (14-16px ouro), diálogo (18-20px marfim `#F4F0E8` com sombra escura), contador de cenas (`CENA 02 / 03`) e prompts arcade (`[ ESPAÇO ] AVANÇAR ❯`).
-    - *Avanço Estritamente Manual*: Nenhuma fala desaparece ou avança por temporizador automático. A fala permanece em tela até confirmação deliberada do jogador ([Espaço], [Enter], Gamepad A, toque no botão `AVANÇAR ❯` ou toque de tela).
+    - *Moldura Oficial Cyber-Brawler Glassmorphism*: Painel em azul-marinho profundo/violeta `#0C0C18` (94% opacidade) com borda neon rosa/magenta `#FF2A6D` (3px), cantoneiras metálicas em ciano `#05D9E8` e magenta, barra de status de transmissão, badge superior flutuante para o orador e sombra projetada neon.
+    - *Tipografia e Quebra de Linha Estrita*: Emprego de `assets/fonts/arcade_bold.ttf` com autowrap inteligente (`AUTOWRAP_WORD_SMART`), margens internas seguras (32px laterais, 16px no container de texto) e entrelinha formatada, garantindo que qualquer texto atual ou futuro quebre de linha antes de tocar ou ultrapassar os limites da moldura. Textos em 24px com sombra sólida preta e alto contraste.
+    - *Avanço Estritamente Manual*: Nenhuma fala desaparece ou avança por temporizador automático. A narrativa permanece em tela até confirmação deliberada do jogador ([Enter], [Espaço], Gamepad A, toque no botão `AVANÇAR ❯` ou toque de tela).
     - *Proteção e Isolamento de Input*: Transições sóbrias (~0.32s) com flag `_is_transitioning` impedem múltiplos saltos por repetição de tecla (`echo`). Ao concluir a sequência, ações pendentes (`jump`, `attack`, `attack_punch`, `ui_accept`) são liberadas via `Input.action_release()` antes da carga de `map_1.tscn`, eliminando sangramento de comandos para o primeiro frame de gameplay.
-  - **Recursos Declarativos**:
-    - `StoryEvent` (`scripts/events/story_event.gd`): Especifica `id`, `image_path`, blocos de `texts`, `speaker`, `entry_effect` (`fade_in`, `slow_zoom`, `crossfade`, `glitch`), `exit_effect`, `transition_duration` (0.32s), `safe_framing`, `zoom_start`, `zoom_end`, `glitch_frames` e identificador de áudio.
+  - **Recursos Declarativos e Modelo Narração vs. Revelação**:
+    - `StoryEvent` (`scripts/events/story_event.gd`): Especifica `id`, `event_type` (`narration`, `revelation`, `dialogue`), `image_path`, blocos de `texts`, `speaker`, `entry_effect` (`fade_in`, `slow_zoom`, `crossfade`, `glitch`), `exit_effect`, `transition_duration` (0.32s), `safe_framing`, `zoom_start`, `zoom_end`, `glitch_frames` e identificador de áudio.
     - `StorySequence` (`scripts/events/story_sequence.gd`): Agrupa eventos de forma sequencial desacoplada de código monolítico.
-    - `res://resources/story/story_intro_map1.tres`: Recurso oficial da Abertura Narrativa do Mapa 1 composto pelas 3 cenas obrigatórias:
-      1. *CENA 01 (Título)*: Fundo preto, silêncio inicial, texto central dourado "Saka's", subtítulo branco "A ÚLTIMA FICHA", avanço por confirmação ou transição suave.
+    - `res://resources/story/story_intro_map1.tres`: Recurso oficial da Abertura Narrativa do Mapa 1 composto pelas 7 cenas canônicas do roteiro:
+      1. *CENA 01 (Título)*: Fundo preto, silêncio inicial, texto central dourado "Saka's", subtítulo marfim "A ÚLTIMA FICHA", som de hum profundo.
       2. *CENA 02 (Os Quatro)*: Imagem `assets/story/map_1/intro_group.webp` em palco seguro com `slow_zoom` (100% para 103%), texto de apresentação dos 4 amigos (Guilherme, Gabriel, André e Juliana).
-      3. *CENA 03 (Os Que Não Estão)*: Imagem `assets/story/map_1/missing_friends.webp` com efeito analógico de `glitch` (2 a 3 frames) e revelação dos desaparecidos (Alessandro e Fernando).
+      3. *CENA 03 (Os Que Não Estão)*: Imagem `assets/story/map_1/missing_friends.webp` com efeito analógico de `glitch` (3 frames) e revelação dos desaparecidos (Alessandro e Fernando).
+      4. *CENA 04 (A Sala Secreta)*: Imagem `assets/story/map_1/secret_room.webp`, descoberta da sala secreta atrás da estante e da máquina de arcade.
+      5. *CENA 05 (A Máquina - Revelação)*: Imagem `assets/story/map_1/arcade_machine.webp`, close da máquina acendendo, revelação das mensagens de tela arcade ("INSERT COIN" → "4 PLAYERS DETECTED" → "CONTINUE?").
+      6. *CENA 06 (Passado e Presente - Revelação Central)*: Imagem `assets/story/map_1/past_present.webp`, telas mostrando lugares conhecidos com passado e presente ocupando o mesmo espaço físico.
+      7. *CENA 07 (Retorno à Locadora)*: Imagem `assets/story/map_1/street_memory.webp`, transição com a identificação "MAPA 1 — A LOCADORA" e entrada suave no gameplay de `map_1.tscn`.
   - **Diretor de Apresentação (`NarrativeDirector`)**:
     - Instanciado em `CanvasLayer` superior (layer = 120), preservando a cena de gameplay intacta ao fundo.
     - Suporte integral a Teclado, Gamepad, Mouse e Toque Mobile (`InputEventScreenTouch`).
