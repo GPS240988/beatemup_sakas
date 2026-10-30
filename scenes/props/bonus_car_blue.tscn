@@ -12,8 +12,34 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_solid"]
 size = Vector2(400, 52)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
-size = Vector2(460, 180)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt_center"]
+size = Vector2(380, 180)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt_front"]
+size = Vector2(100, 150)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt_rear"]
+size = Vector2(100, 150)
+
+[sub_resource type="Gradient" id="Gradient_smoke"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(0.85, 0.85, 0.88, 0.8, 0.55, 0.58, 0.6, 0.45, 0.35, 0.36, 0.4, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_smoke"]
+gradient = SubResource("Gradient_smoke")
+width = 32
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="Curve" id="Curve_smoke_scale"]
+_data = [Vector2(0, 0.8), 0.0, 1.5, 0, 0, Vector2(1, 2.6), 1.8, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_smoke_ramp"]
+offsets = PackedFloat32Array(0, 0.3, 0.75, 1)
+colors = PackedColorArray(0.9, 0.9, 0.92, 0.85, 0.7, 0.72, 0.75, 0.65, 0.5, 0.52, 0.55, 0.35, 0.35, 0.36, 0.38, 0)
 
 [node name="BonusCarBlue" type="StaticBody2D" groups=["damageable", "destructible_props", "destructibles", "props", "vehicles"]]
 y_sort_enabled = true
@@ -21,7 +47,7 @@ collision_layer = 2
 collision_mask = 1
 script = ExtResource("1_prop")
 prop_name = "Carro Sedan Azul (Escort)"
-max_health = 120.0
+max_health = 1350.0
 damage_stage_textures = Array[Texture2D]([ExtResource("3_escort1"), ExtResource("4_escort2"), ExtResource("5_escort3"), ExtResource("6_escort4"), ExtResource("7_escort5"), ExtResource("8_escort6")])
 
 [node name="Visual" type="Node2D" parent="."]
@@ -44,13 +70,21 @@ collision_layer = 4
 collision_mask = 0
 monitoring = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape2D_Center" type="CollisionShape2D" parent="Hurtbox"]
 position = Vector2(0, -90)
-shape = SubResource("RectangleShape2D_hurt")
+shape = SubResource("RectangleShape2D_hurt_center")
+
+[node name="CollisionShape2D_Front" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(220, -80)
+shape = SubResource("RectangleShape2D_hurt_front")
+
+[node name="CollisionShape2D_Rear" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(-220, -80)
+shape = SubResource("RectangleShape2D_hurt_rear")
 
 [node name="HealthComponent" type="Node" parent="."]
 script = ExtResource("2_health")
-max_health = 120.0
+max_health = 1350.0
 
 [node name="Effects" type="Node2D" parent="."]
 
@@ -58,9 +92,9 @@ max_health = 120.0
 position = Vector2(0, -60)
 emitting = false
 amount = 14
-lifetime = 0.4
+lifetime = 0.35
 one_shot = true
-explosiveness = 0.85
+explosiveness = 0.9
 spread = 180.0
 gravity = Vector2(0, 150)
 initial_velocity_min = 40.0
@@ -68,6 +102,50 @@ initial_velocity_max = 90.0
 scale_amount_min = 2.0
 scale_amount_max = 4.5
 color = Color(0.2, 0.5, 0.9, 1)
+
+[node name="BreakParticles" type="CPUParticles2D" parent="Effects"]
+position = Vector2(0, -90)
+emitting = false
+amount = 28
+lifetime = 1.0
+one_shot = true
+explosiveness = 0.9
+direction = Vector2(0, -1)
+spread = 80.0
+gravity = Vector2(0, 180)
+initial_velocity_min = 100.0
+initial_velocity_max = 240.0
+scale_amount_min = 2.5
+scale_amount_max = 5.0
+color = Color(0.35, 0.65, 0.95, 1)
+
+[node name="SmokeParticles" type="CPUParticles2D" parent="Effects"]
+position = Vector2(0, -90)
+emitting = false
+amount = 22
+lifetime = 2.8
+texture = SubResource("GradientTexture2D_smoke")
+emission_shape = 3
+emission_rect_extents = Vector2(110, 25)
+direction = Vector2(0, -1)
+spread = 28.0
+gravity = Vector2(0, -42)
+initial_velocity_min = 28.0
+initial_velocity_max = 58.0
+angular_velocity_min = -20.0
+angular_velocity_max = 20.0
+scale_amount_min = 1.0
+scale_amount_max = 2.4
+scale_amount_curve = SubResource("Curve_smoke_scale")
+color_ramp = SubResource("Gradient_smoke_ramp")
+
+[node name="ImpactSound" type="AudioStreamPlayer2D" parent="Effects"]
+max_distance = 2500.0
+bus = &"Master"
+
+[node name="BreakSound" type="AudioStreamPlayer2D" parent="Effects"]
+max_distance = 3000.0
+bus = &"Master"
 
 [node name="NavigationIntegration" type="NavigationObstacle2D" parent="."]
 radius = 120.0

@@ -277,6 +277,7 @@ func _on_reinforcement_timer_timeout() -> void:
 
 	for i in range(count_to_spawn):
 		var spawn_pos: Vector2 = get_offscreen_spawn_position(i, count_to_spawn)
+		spawn_pos = _snap_position_to_navmesh(spawn_pos)
 		var enemy: CharacterBody2D = null
 
 		if reinforcement_enemy_scene != null:
@@ -369,6 +370,32 @@ func get_offscreen_spawn_position(index: int = 0, total: int = 1) -> Vector2:
 	var spawn_y: float = clampf(target_base_y + y_offset, min_walkable_y, max_walkable_y)
 
 	return Vector2(spawn_x, spawn_y)
+
+
+## Valida uma posição de spawn contra a malha de navegação do mapa.
+## Se a posição estiver fora do navmesh, ajusta o eixo Y para o ponto navegável mais próximo
+## mantendo o eixo X original (para preservar o spawn fora da tela).
+## Funciona genericamente em qualquer mapa sem necessidade de configuração manual.
+func _snap_position_to_navmesh(pos: Vector2) -> Vector2:
+	var w2d := get_world_2d()
+	if w2d == null:
+		return pos
+	var map_rid: RID = w2d.navigation_map
+	if not map_rid.is_valid():
+		return pos
+
+	var closest: Vector2 = NavigationServer2D.map_get_closest_point(map_rid, pos)
+	var dist: float = closest.distance_to(pos)
+	if dist <= 12.0:
+		return pos
+
+	# Mantém o X original (fora da tela) e usa o Y do ponto navegável mais próximo
+	var adjusted := Vector2(pos.x, closest.y)
+	var re_check: Vector2 = NavigationServer2D.map_get_closest_point(map_rid, adjusted)
+	if re_check.distance_to(adjusted) <= 30.0:
+		return adjusted
+	# Se ainda estiver longe, usa o ponto navegável mais próximo diretamente
+	return closest
 
 
 ## Disparado pelo CombatDirector quando todos os inimigos forem derrotados

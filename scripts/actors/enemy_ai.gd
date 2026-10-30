@@ -314,6 +314,31 @@ func _initialize_navigation() -> void:
 		if map_id.is_valid():
 			while NavigationServer2D.map_get_iteration_id(map_id) == 0:
 				await get_tree().physics_frame
+			# Garante que o inimigo não spawnou fora da malha de navegação
+			_snap_to_navigable_position(map_id)
+
+
+## Garante que o inimigo esteja sobre a malha de navegação ao spawnar.
+## Se a posição atual estiver fora do navmesh, reposiciona para o ponto navegável mais próximo.
+## Funciona genericamente em qualquer mapa sem necessidade de configuração manual.
+func _snap_to_navigable_position(map_rid: RID = RID()) -> void:
+	if not is_inside_tree():
+		return
+	if not map_rid.is_valid():
+		if nav_agent != null and is_instance_valid(nav_agent):
+			map_rid = nav_agent.get_navigation_map()
+		if not map_rid.is_valid():
+			var w2d := get_world_2d()
+			if w2d != null:
+				map_rid = w2d.navigation_map
+		if not map_rid.is_valid():
+			return
+
+	var closest: Vector2 = NavigationServer2D.map_get_closest_point(map_rid, global_position)
+	var dist: float = closest.distance_to(global_position)
+	if dist > 12.0:
+		push_warning("EnemyAI [%s]: Posição de spawn %s está %.1fpx fora do navmesh. Reposicionando para %s." % [name, str(global_position), dist, str(closest)])
+		global_position = closest
 
 
 ## Verifica se há colisão/obstáculo sólido entre duas coordenadas do mapa

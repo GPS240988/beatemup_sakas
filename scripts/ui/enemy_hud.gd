@@ -10,6 +10,7 @@ extends Control
 
 @export var damage_buffer_delay: float = 0.35
 @export var damage_buffer_duration: float = 0.40
+@export var proximity_threshold: float = 480.0
 
 @onready var enemy_name_label: Label = %EnemyNameLabel
 @onready var hp_bar: SegmentedBar = %HpBar
@@ -22,6 +23,7 @@ var _buffer_hp_val: float = 100.0
 var _damage_buffer_tween: Tween = null
 var _fade_tween: Tween = null
 var _auto_hide_timer: float = 0.0
+var _recent_damage_timer: float = 0.0
 
 var _current_target: Node = null
 var _bound_health_component: Node = null
@@ -39,12 +41,51 @@ func _ready() -> void:
 	
 	set_enemy_name("JOGADOR DE MAGIC")
 	set_enemy_health(100.0, 100.0, true)
+	# Inicia oculto até que um inimigo esteja próximo, vivo ou sofrendo dano
+	visible = false
+	modulate.a = 0.0
 
 
 func _process(delta: float) -> void:
+	if _recent_damage_timer > 0.0:
+		_recent_damage_timer -= delta
+
 	if _auto_hide_timer > 0.0:
 		_auto_hide_timer -= delta
 		if _auto_hide_timer <= 0.0 and current_hp <= 0.0:
+			fade_out()
+
+	_check_visibility_rules()
+
+
+func _check_visibility_rules() -> void:
+	# Se o alvo morreu ou não existe
+	if _current_target == null or not is_instance_valid(_current_target):
+		if visible and (_fade_tween == null or not _fade_tween.is_valid()) and _auto_hide_timer <= 0.0:
+			fade_out()
+		return
+
+	if not is_current_target_alive():
+		# Se acabou de morrer, auto_hide_timer já cuida do fade out
+		return
+
+	# Inimigo vivo: verificar se está tomando dano recente OU se está próximo do jogador
+	if _recent_damage_timer > 0.0:
+		if not visible or modulate.a < 1.0:
+			fade_in()
+		return
+
+	var player = get_tree().get_first_node_in_group("player") if get_tree() != null else null
+	if player != null and is_instance_valid(player) and _current_target is Node2D and player is Node2D:
+		var dist: float = (player as Node2D).global_position.distance_to((_current_target as Node2D).global_position)
+		if dist <= proximity_threshold:
+			if not visible or modulate.a < 1.0:
+				fade_in()
+		else:
+			if visible and modulate.a > 0.0:
+				fade_out()
+	else:
+		if visible and modulate.a > 0.0:
 			fade_out()
 
 
@@ -102,10 +143,12 @@ func set_enemy_health(new_current: float, new_max: float, immediate: bool = fals
 		hp_bar.buffer_value = current_hp
 	
 	# Exibe com animação de fade caso estivesse oculto
+	if is_damage:
+		_recent_damage_timer = 2.5
 	fade_in()
 	
 	if current_hp <= 0.0:
-		_auto_hide_timer = 2.0
+		_auto_hide_timer = 1.5
 
 
 func is_current_target_alive() -> bool:

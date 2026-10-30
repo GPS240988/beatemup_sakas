@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/siga_indicator.gd" id="1_siga_script"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/vamos.webp" id="2_vamos_texture"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/siga.webp" id="3_siga_texture"]
 
 [node name="SigaIndicator" type="Control"]
 layout_mode = 3
@@ -43,9 +42,4 @@ texture = ExtResource("2_vamos_texture")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ExitSignSprite" type="Sprite2D" parent="."]
-unique_name_in_owner = true
-visible = false
-z_index = 80
-texture = ExtResource("3_siga_texture")
-scale = Vector2(0.75, 0.75)
+

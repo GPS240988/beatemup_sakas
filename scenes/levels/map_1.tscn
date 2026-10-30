@@ -176,7 +176,7 @@ z_index = 10
 [node name="SpawnPoints" type="Node2D" parent="." unique_id=1664799113]
 
 [node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" unique_id=1951499350 groups=["spawn_points"]]
-position = Vector2(100, 520)
+position = Vector2(160, 670)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_left"
 
@@ -186,12 +186,12 @@ script = ExtResource("9_spawn_point")
 point_id = "spawn_mid"
 
 [node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" unique_id=2112291677 groups=["spawn_points"]]
-position = Vector2(1800, 520)
+position = Vector2(1800, 680)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_right"
 
 [node name="SpawnPoint_Reinforce" type="Marker2D" parent="SpawnPoints" unique_id=1928129386 groups=["spawn_points"]]
-position = Vector2(1880, 580)
+position = Vector2(1880, 680)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_reinforce"
 spawn_type = 2

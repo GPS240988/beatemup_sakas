@@ -243,6 +243,15 @@ static func resolve_impact_on_target(
 	if iz != null and is_instance_valid(iz):
 		return iz.resolve_impact(attack_hitbox_global_pos, hitbox_size, preferred_regions, attacker_facing, impact_profile)
 
+	# Se o alvo fornecer cálculo espacial próprio de ponto de contato (ex: DestructibleProp / Veículos)
+	if target.has_method("get_impact_point"):
+		var custom_pos: Vector2 = target.call("get_impact_point", attack_hitbox_global_pos, attacker_facing)
+		return {
+			"region": "body",
+			"position": custom_pos,
+			"zone_node": null
+		}
+
 	# Fallback universal para entidades sem ImpactZones (ex: Props destrutíveis ou testes dinâmicos)
 	var target_node2d := target as Node2D
 	var base_pos: Vector2 = target_node2d.global_position if target_node2d != null else attack_hitbox_global_pos

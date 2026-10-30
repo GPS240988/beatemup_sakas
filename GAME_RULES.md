@@ -183,10 +183,30 @@ MapX (Node2D, script: base_level.gd)
   ├── Visual (Node2D, Y < 0 — suporta nós Intact e Broken)
   ├── CollisionShape2D (Base de colisão sólida no solo, Layer 2)
   ├── Hurtbox (Area2D receptora de dano: Layer 3 [bitmask 4], Mask 0, monitorable = true)
+  │   ├── CollisionShape2D_Center (região central)
+  │   ├── CollisionShape2D_Front (região frontal, opcional para veículos/props volumosos)
+  │   └── CollisionShape2D_Rear (região traseira, opcional para veículos/props volumosos)
   ├── HealthComponent (Node desacoplado para HP e sinais de dano)
   ├── Effects (Node2D contendo nós CPUParticles2D e AudioStreamPlayer2D)
+  │   ├── ImpactParticles (CPUParticles2D para faíscas/lascas no ponto atingido)
+  │   ├── BreakParticles (CPUParticles2D para explosão/estilhaços iniciais)
+  │   ├── SmokeParticles (CPUParticles2D procedural com GradientTexture2D radial)
+  │   ├── ImpactSound (AudioStreamPlayer2D com pitch aleatório 0.92..1.08)
+  │   └── BreakSound (AudioStreamPlayer2D para explosão/quebra arcade)
   └── NavigationIntegration (NavigationObstacle2D para desvio dinâmico sem rebake)
   ```
+- **Localização de Impacto Espacial (Veículos e Props Grandes)**:
+  - Implementa `get_impact_point(hitbox_global_pos: Vector2, attacker_facing: float) -> Vector2`.
+  - Calcula a coordenada de contato na superfície exterior da forma geométrica mais próxima atingida (frente, traseira, teto ou saia lateral).
+  - `DestructibleProp._play_impact_effect(impact_pos)` reposiciona dinamicamente `ImpactParticles` e `ImpactSound` nas coordenadas locais exatas do golpe.
+  - O sistema de combate (`CombatFeedback.spawn_hit_spark`) instancia a faísca animada em pixel art HD e faíscas direcionais no mesmo ponto exato.
+- **Sequência Canônica de Destruição e Fumaça**:
+  - Disparada no evento em que a vida do prop atinge 0.
+  - O visual comuta para a última textura de avaria (`damage_stage_textures[last]`).
+  - Colisão sólida (`CollisionShape2D`) e formas de detecção (`Hurtbox`) são desativadas imediatamente e em modo deferred, liberando trânsito de atores.
+  - Áudio de quebra/explosão (`BreakSound`) e estouro inicial (`BreakParticles`) são executados exatamente uma vez.
+  - A fumaça procedural ascendente (`SmokeParticles`) é ativada continuamente sobre a carcaça.
+  - A carcaça permanece visível no cenário indefinidamente, recusando novos golpes e novos sons.
 - **Isolamento de Entidades**: Atores (`Player`, `Enemies`, `NPCs`) NUNCA podem ser instanciados dentro de contêineres de `Props`.
 
 ---

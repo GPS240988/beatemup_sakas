@@ -11,7 +11,6 @@ extends Control
 
 @onready var vamos_control: Control = get_node_or_null("%VamosControl") as Control
 @onready var vamos_rect: TextureRect = get_node_or_null("%VamosRect") as TextureRect
-@onready var exit_sign_sprite: Sprite2D = get_node_or_null("%ExitSignSprite") as Sprite2D
 
 var _is_active: bool = false
 var _impact_tween: Tween = null
@@ -23,10 +22,6 @@ func _ready() -> void:
 	if vamos_control != null:
 		vamos_control.visible = false
 		vamos_control.modulate.a = 0.0
-	# A placa de saída permanece oculta permanentemente
-	if exit_sign_sprite != null:
-		exit_sign_sprite.visible = false
-		exit_sign_sprite.modulate.a = 0.0
 
 
 ## Ativa a sequência oficial: VAMOS, MALACOS! no topo com pulso arcade
@@ -88,9 +83,6 @@ func deactivate() -> void:
 	if vamos_control != null:
 		vamos_control.visible = false
 		vamos_control.modulate.a = 0.0
-	if exit_sign_sprite != null:
-		exit_sign_sprite.visible = false
-		exit_sign_sprite.modulate.a = 0.0
 
 	visible = false
 

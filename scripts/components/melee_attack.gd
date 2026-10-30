@@ -355,7 +355,11 @@ func _try_hit_target(node: Node) -> void:
 	var target_node2d := target_actor as Node2D
 	if target_node2d == null:
 		return
+	
+	# Para props/veículos volumosos, utiliza o ponto de contato mais próximo na base física/hurtbox
 	var target_pos: Vector2 = target_node2d.global_position
+	if target_actor.has_method("get_closest_contact_point"):
+		target_pos = target_actor.call("get_closest_contact_point", attacker_pos)
 
 	# Regra 2 & 4: Alcance horizontal e à frente do atacante
 	var diff_x: float = target_pos.x - attacker_pos.x
