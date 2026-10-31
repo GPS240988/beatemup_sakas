@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://cxvd6h0452i8y"]
 
-[ext_resource type="Script" path="res://scripts/actors/enemy_ai.gd" id="1_enemy_script"]
-[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health_script"]
-[ext_resource type="Script" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
+[ext_resource type="Script" uid="uid://ciniinqibr36x" path="res://scripts/actors/enemy_ai.gd" id="1_enemy_script"]
+[ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="2_health_script"]
+[ext_resource type="Script" uid="uid://dgggt62axoi4n" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
 [ext_resource type="SpriteFrames" path="res://scenes/actors/enemies/jogador_de_magic_frames.tres" id="4_magic_frames"]
-[ext_resource type="Script" path="res://scripts/combat/impact_zones.gd" id="5_impact_zones"]
+[ext_resource type="Script" uid="uid://0wujaotehbtx" path="res://scripts/combat/impact_zones.gd" id="5_impact_zones"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
 radius = 12.0
@@ -16,77 +16,75 @@ size = Vector2(75, 70)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hurtbox"]
 size = Vector2(50, 160)
 
-[node name="BasicEnemy" type="CharacterBody2D" groups=["actors", "damageable", "enemies"]]
+[node name="BasicEnemy" type="CharacterBody2D" unique_id=67412678 groups=["actors", "damageable", "enemies"]]
 y_sort_enabled = true
-collision_layer = 1
 collision_mask = 2
 motion_mode = 1
 script = ExtResource("1_enemy_script")
-display_name = "JOGADOR DE MAGIC"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=417166961]
 position = Vector2(0, -9)
 rotation = 1.5707963
 shape = SubResource("CapsuleShape2D_feet")
 
-[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=1032816060]
 path_desired_distance = 15.0
 target_desired_distance = 25.0
-path_max_distance = 100.0
 avoidance_enabled = true
 radius = 12.0
 neighbor_distance = 150.0
 max_neighbors = 8
 
-[node name="HealthComponent" type="Node" parent="."]
+[node name="HealthComponent" type="Node" parent="." unique_id=1378225783]
 script = ExtResource("2_health_script")
 max_health = 80.0
 
-[node name="MeleeAttack" type="Node2D" parent="."]
+[node name="MeleeAttack" type="Node2D" parent="." unique_id=1303617567]
 script = ExtResource("3_melee_script")
 damage = 15.0
 horizontal_range = 85.0
 depth_tolerance = 30.0
 active_duration = 0.16
-attack_cooldown = 0.50
+attack_cooldown = 0.5
 target_group = "player"
 
-[node name="HitboxArea" type="Area2D" parent="MeleeAttack"]
+[node name="HitboxArea" type="Area2D" parent="MeleeAttack" unique_id=1497393336]
 position = Vector2(48, -85)
 collision_layer = 8
 collision_mask = 4
 monitoring = false
 monitorable = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeAttack/HitboxArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeAttack/HitboxArea" unique_id=1749456871]
 shape = SubResource("RectangleShape2D_hitbox")
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1019249861]
 position = Vector2(0, -85)
 collision_layer = 4
 collision_mask = 0
 monitoring = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=464905457]
 shape = SubResource("RectangleShape2D_hurtbox")
 
-[node name="ImpactZones" type="Node2D" parent="."]
+[node name="ImpactZones" type="Node2D" parent="." unique_id=1069319447]
 script = ExtResource("5_impact_zones")
 profile = 1
 
-[node name="Head" type="Marker2D" parent="ImpactZones"]
+[node name="Head" type="Marker2D" parent="ImpactZones" unique_id=1189362505]
 position = Vector2(0, -148)
 
-[node name="UpperTorso" type="Marker2D" parent="ImpactZones"]
+[node name="UpperTorso" type="Marker2D" parent="ImpactZones" unique_id=294967912]
 position = Vector2(0, -105)
 
-[node name="LowerTorso" type="Marker2D" parent="ImpactZones"]
+[node name="LowerTorso" type="Marker2D" parent="ImpactZones" unique_id=1235652729]
 position = Vector2(0, -68)
 
-[node name="Legs" type="Marker2D" parent="ImpactZones"]
+[node name="Legs" type="Marker2D" parent="ImpactZones" unique_id=1519268071]
 position = Vector2(0, -22)
 
-[node name="FloatingHealthBar" type="ProgressBar" parent="."]
+[node name="FloatingHealthBar" type="ProgressBar" parent="." unique_id=194524039]
+visible = false
 offset_left = -32.0
 offset_top = -188.0
 offset_right = 32.0
@@ -94,18 +92,20 @@ offset_bottom = -181.0
 value = 100.0
 show_percentage = false
 
-[node name="Visual" type="Node2D" parent="."]
+[node name="Visual" type="Node2D" parent="." unique_id=592100723]
 
-[node name="Shadow" type="Polygon2D" parent="Visual"]
+[node name="Shadow" type="Polygon2D" parent="Visual" unique_id=1980591974]
 color = Color(0.08, 0.08, 0.12, 0.45)
 polygon = PackedVector2Array(-36, 0, -25, -8, 0, -11, 25, -8, 36, 0, 25, 8, 0, 11, -25, 8)
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual"]
-position = Vector2(0, -96)
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual" unique_id=1855236551]
+position = Vector2(0, -91)
 scale = Vector2(0.42, 0.42)
 sprite_frames = ExtResource("4_magic_frames")
-animation = &"idle"
+animation = &"hurt"
 autoplay = "idle"
+frame = 1
+frame_progress = 1.0
 
-[node name="PunchVisual" type="Node2D" parent="Visual"]
+[node name="PunchVisual" type="Node2D" parent="Visual" unique_id=1137486120]
 visible = false

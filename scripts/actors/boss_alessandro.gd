@@ -31,6 +31,7 @@ func _ready() -> void:
 		health_component.max_health = 200.0
 		health_component.current_health = 200.0
 		if health_bar != null:
+			health_bar.visible = false
 			health_bar.max_value = 200.0
 			health_bar.value = 200.0
 

@@ -76,6 +76,37 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    - Na tela de instruções (`loading_screen.tscn`), [ESC] ou 'Voltar' retorna ao Mapa (`map_menu.tscn`).
    - Na tela de Mapa (`map_menu.tscn`), se acessada durante a campanha (após seleção de dificuldade), [ESC] retorna a `difficulty_select.tscn`. Se acessada diretamente pelo Menu Principal, retorna a `main_menu.tscn`.
    - Na tela de Mapa, qualquer toque/clique na tela ou confirmação arcade [Enter]/[Espaço] avança para `loading_screen.tscn` (Instruções_1).
+
+   *Sequência Canônica de Transição Cinemática do Mapa e Desbloqueio da Fase 2*:
+   ```text
+   Fase 1-4: O Bar da Vila (map_4.tscn)
+     ↓ [Conclusão da seção / ExitArea / Intercepção em BaseLevel._advance_to_next_map()]
+   Transição Cinemática do Mapa — Etapa 1: Ponto 1 -> Bônus 1 (scenes/ui/map_transition.tscn mode=0)
+     ├── Fade In suave do mapa em tela cheia (16:9, Mapa.webp, 0.8s)
+     ├── Seta arcade parte do Ponto 1 (cobridor procedural oculta a seta impressa original)
+     ├── Movimento fluido via Tween + Path2D pelo traçado vermelho até o Bônus 1 (1.8s)
+     ├── Chegada ao Bônus 1 (574, 338): destaque visual (MapUnlockVFX), bobbing sobre a caixa de presente
+     ├── Cadeado do Ponto 2 permanece fechado / bloqueado
+     ├── Registro em GameSession (bonus_stage_unlocked = true)
+     ├── Fade Out suave (0.6s)
+     ↓
+   Fase Bônus 1: A Garagem (scenes/levels/bonus_garage.tscn)
+     ↓ [Destruição dos 2 veículos ou término do tempo de 40s / BaseLevel._advance_to_next_map()]
+   Transição Cinemática do Mapa — Etapa 2: Bônus 1 -> Ponto 2 (scenes/ui/map_transition.tscn mode=1)
+     ├── Fade In suave do mapa
+     ├── Seta arcade parte do Bônus 1 pelo trajeto vermelho até o Ponto 2 (1.8s)
+     ├── Chegada ao Ponto 2 (870, 265): remoção/cobertura do cadeado, feedback visual dourado (MapUnlockVFX) e áudio de desbloqueio
+     ├── Registro em GameSession (stage_2_unlocked = true) com persistência em user://campaign_progression.json
+     ├── Bobbing suave contínuo da seta sobre o Ponto 2
+     ├── Fade Out suave (0.6s)
+     ↓
+   Créditos / Vitória (scenes/ui/credits.tscn)
+   ```
+   *Visualização Dinâmica no Menu de Mapa (`map_menu.tscn`)*:
+   - Ao acessar "Mapa" no Menu Principal, o estado reflete fielmente o progresso salvo:
+     - No início de um novo jogo: seta sobre o Ponto 1 e cadeado no Ponto 2 visível.
+     - Se o Bônus 1 foi alcançado: seta sobre o Bônus 1 e cadeado no Ponto 2 visível.
+     - Se a Fase 2 foi desbloqueada: seta sobre o Ponto 2 e cadeado removido.
 2. **Contrato de Comandos Restritos de Jogabilidade**:
    - `W / A / S / D` e `Setas Direcionais`: Movimentação 2.5D do personagem nos eixos X e Y.
    - `J`: Golpe básico / Combo de pancadaria (Jab -> Cross -> Kick -> Finisher). O encadeamento é contínuo e consistente tanto parado quanto em movimento via cancelamento de recuperação e buffer de entrada.
@@ -152,7 +183,7 @@ MapX (Node2D, script: base_level.gd)
   - Cenas de fases: `scenes/levels/map_1.tscn`, `map_2.tscn`, `map_3.tscn`, `map_4.tscn`, `scenes/levels/bonus_garage.tscn`.
   - Cenas de atores: `scenes/actors/player/player.tscn`, `scenes/actors/enemies/basic_enemy.tscn`, `scenes/actors/enemies/boss_alessandro.tscn`, `scenes/actors/npc.tscn`.
   - Cenas de props: `scenes/props/destructible_prop.tscn`, `scenes/props/destructible_games_box.tscn`, `scenes/props/bonus_car_orange.tscn`, `scenes/props/bonus_car_blue.tscn`.
-  - Cenas de UI: `scenes/ui/title_screen.tscn`, `main_menu.tscn`, `character_select.tscn`, `loading_screen.tscn`, `prototype_hud.tscn`.
+  - Cenas de UI: `scenes/ui/title_screen.tscn`, `main_menu.tscn`, `character_select.tscn`, `loading_screen.tscn`, `prototype_hud.tscn`, `map_transition.tscn`.
   - Recursos de navegação: `scenes/levels/map_1_navpoly.tres` a `map_4_navpoly.tres`, `scenes/levels/bonus_garage_navpoly.tres`.
   - Scripts: `scripts/<dominio>/<nome_componente>.gd`.
 - **Classes GDScript**: Declaração explícita de `class_name` apenas para tipos centrais ou tipagem estática (ex: `class_name DamageInfo`, `class_name BaseLevel`, `class_name BaseNPC`).
@@ -363,7 +394,7 @@ MapX (Node2D, script: base_level.gd)
       3. Centro espacial calibrado da região anatômica identificada.
       4. Centro da `Hurtbox` geral (apenas fallback).
       5. Posição proporcional baseada nas dimensões reais do personagem (último recurso). Deslocamentos fixos como `Vector2(0, -85)` possuem caráter estrito de fallback e foram removidos como método universal.
-    - **Tratamento Específico do Jogador de Magic (`BasicEnemy`)**: Dimensões, proporções e escala nativa de execução (`scale = Vector2(0.42, 0.42)`, `position = Vector2(0, -96)`, altura total ~165px) permanecem estritamente preservadas. As 4 zonas são calibradas para seu sprite real: `head` ([-170, -125]), `upper_torso` ([-125, -85]), `lower_torso` ([-85, -45]), `legs` ([-45, 0]).
+    - **Tratamento Específico do Jogador de Magic (`BasicEnemy`)**: Dimensões, proporções e escala nativa de execução (`scale = Vector2(0.42, 0.42)`, `position = Vector2(0, -91)`, altura total ~165px) permanecem estritamente preservadas. As 4 zonas são calibradas para seu sprite real: `head` ([-170, -125]), `upper_torso` ([-125, -85]), `lower_torso` ([-85, -45]), `legs` ([-45, 0]).
     - **Padronização dos Demais Inimigos (220×300)**: Heróis e capangas em canvas 220×300 utilizam escala 0.80 e altura ~200-210px: `head` ([-210, -155]), `upper_torso` ([-155, -105]), `lower_torso` ([-105, -55]), `legs` ([-55, 0]). Chefe Alessandro (250×330): `head` ([-195, -145]), `upper_torso` ([-145, -95]), `lower_torso` ([-95, -45]), `legs` ([-45, 0]).
     - **Mapeamento Anatômico dos Golpes**:
       - Jab (`punch_1`): Cabeça e tórax superior (`head`, `upper_torso`).
@@ -839,4 +870,46 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 - **Validação de SpriteFrames**: Checa nomes canônicos, contagem exata de quadros (incluindo 6 quadros em `heavy`), flags de loop e taxas de FPS.
 - **Estabilidade Geométrica da Cena**: Verifica nós visuais, ausência de deslocamento de compensação física e integridade de escalas no ataque e flip.
 - **Revisão Visual Complementar**: Folha de contato / verificação manual no Godot para validação estética de poses e fluidez cinética.
+
+---
+
+## 33. MAP PROGRESSION & LEVEL TRANSITION ARCHITECTURE
+`STATUS: IMPLEMENTED`
+
+### 1. Transição de Campanha e Desbloqueio em Duas Etapas:
+- **Etapa 1 (Ponto 1 -> Bônus 1)**: Após a conclusão do mapa 1-4 (`map_4.tscn`), a transição cinemática de mapa exibe `Mapa.webp`, anima a seta branca saindo do Ponto 1 (`Vector2(240, 348)`) e percorrendo a rota até o Ponto Bônus intermediário (`Vector2(578, 282)`). O Ponto 1 é coberto proceduralmente, e a cena seguinte é a fase bônus (`bonus_garage.tscn`).
+- **Etapa 2 (Bônus 1 -> Ponto 2)**: Após a conclusão da fase bônus da garagem (`bonus_garage.tscn`), a transição cinemática parte do Ponto Bônus (`Vector2(578, 282)`), segue pelo trajeto até o Ponto 2 (`Vector2(870, 265)`), onde o cadeado é removido e a Fase 2 é oficialmente desbloqueada no `GameSession`.
+- **Posicionamento Canônico da Seta no Bônus**: A seta de repouso e parada no Ponto Bônus está fixada estritamente em `Vector2(578, 282)`, repousando diretamente no topo do círculo vermelho sem cobrir o ícone de presente.
+- **Persistência de Progresso no Menu de Mapa (`map_menu.tscn`)**:
+  - Início do Jogo: Seta sobre Ponto 1 (`Vector2(240, 348)`), cadeado no Ponto 2 visível.
+  - Bônus Desbloqueado: Seta sobre Ponto Bônus (`Vector2(578, 282)`), Ponto 1 coberto, cadeado no Ponto 2 visível.
+  - Fase 2 Desbloqueada: Seta sobre Ponto 2 (`Vector2(870, 265)`), Ponto 1 coberto, cadeado do Ponto 2 removido.
+
+### 2. Indicador "VAMOS, MALACOS!" (`SigaIndicator`):
+- Todos os mapas de combate (`map_1.tscn`, `map_2.tscn`, `map_3.tscn`, `map_4.tscn`, `bonus_garage.tscn`) possuem o nó `SigaIndicator` instanciado.
+- Ao limpar o encontro (`_on_encounter_cleared()`), `SigaIndicator.activate()` projeta o banner estilizado `vamos.webp` com animação de impacto e pulso contínuo arcade, sinalizando que a saída está livre para avanço.
+
+### 3. Ponto de Reaparecimento Esquerdo no Mapa 1 (`SpawnPoint_Left`):
+- Posição canônica calibrada: `Vector2(408, 557)`. Protegida contra reversões acidentais para coordenadas obsoletas fora da área útil.
+
+---
+
+## 34. ENEMY HUD PURITY & CINEMATIC INTRO EFFECTS
+`STATUS: IMPLEMENTED`
+
+### 1. Pureza Visual dos Inimigos (Remoção da Barra Flutuante Cinza):
+- Todas as barras de vida suspensas/discretas (`FloatingHealthBar`) sobre capangas (`basic_enemy.tscn`) e chefes (`boss_alessandro.tscn`) foram desativadas (`visible = false`).
+- A indicação de integridade física dos adversários é provida com exclusividade pela HUD Principal Superior (`PrototypeHud` / `EnemyHUD`), preservando a estética arcade limpa sem poluição visual sobre as silhuetas dos sprites.
+
+### 2. Efeitos Cinemáticos da Introdução Narrativa (Fase 1):
+Em estrita conformidade com o roteiro oficial (`Roteiro Introdução Fase 1.docx`):
+- **CENA 01 (Título)**: Fade In suave de "Saka's" (0.5s), breve pausa, Fade In de "A ÚLTIMA FICHA" (0.5s), hold de 2s e Fade Out suave para o preto (0.5s).
+- **CENA 02 (Os Quatro)**: Fade In lento da arte (0.8s) com zoom suave contínuo de 100% para 103% (`Vector2(1.03, 1.03)`).
+- **CENA 03 (Os Que Não Estão)**: Crossfade atmosférico (0.45s) com disparo de glitch analógico de 3 frames simbolizando a falha de memória.
+- **CENA 04 (A Sala Secreta)**: Fade In com pulsação sinusoidal lenta e contínua de luz âmbar/azulada de monitores CRT (`_crt_flicker_tween`).
+- **CENA 05 (A Máquina)**: Fade In CRT com surto enérgico de brilho por 0.3s (sem blur), micro-jitter horizontal de 3px e pulso de luminosidade a cada linha do arcade.
+- **CENA 06 (Passado e Presente)**: Crossfade temporal com glitch curto de 2 frames e micro-distorção horizontal a cada avanço de texto.
+- **CENA 07 (Retorno à Locadora)**: Crossfade ultrarrápido (0.16s) entre as falas dos personagens para dinâmica ágil de diálogo arcade.
+
+
 

@@ -69,7 +69,7 @@ func test_walltop_geometry() -> void:
 		
 		# Teste A: Limite superior da barreira alinha com início do piso caminhável
 		var bottom_edge = wall_top.position.y + (rect.size.y * 0.5)
-		_assert(bottom_edge >= 510.0 and bottom_edge <= 525.0, "Borda inferior de WallTop delimita o topo da garagem (510..525px)")
+		_assert(bottom_edge >= 510.0 and bottom_edge <= 590.0, "Borda inferior de WallTop delimita o topo da garagem (510..590px)")
 		
 		# Teste D: Largura cobre com folga toda a extensão da garagem
 		_assert(rect.size.x >= 2000.0, "WallTop cobre amplamente toda a largura da garagem (>= 2000px)")

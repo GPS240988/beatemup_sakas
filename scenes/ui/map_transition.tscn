@@ -1,0 +1,112 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/map_transition.gd" id="1_map_transition_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/Mapa.webp" id="2_mapa_bg"]
+[ext_resource type="Script" path="res://scripts/ui/map_arrow_renderer.gd" id="3_arrow_renderer_script"]
+[ext_resource type="Script" path="res://scripts/ui/map_unlock_vfx.gd" id="4_unlock_vfx_script"]
+
+[node name="MapTransition" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_map_transition_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.015, 0.015, 0.035, 1)
+
+[node name="MapContainer" type="Control" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(1920, 1080)
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="BackgroundTexture" type="TextureRect" parent="MapContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+texture = ExtResource("2_mapa_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Point1Cover" type="TextureRect" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 223.0
+offset_top = 334.0
+offset_right = 257.0
+offset_bottom = 365.0
+expand_mode = 1
+
+[node name="Point2Cover" type="TextureRect" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 856.0
+offset_top = 255.0
+offset_right = 885.0
+offset_bottom = 299.0
+expand_mode = 1
+
+[node name="UnlockVFX" type="Node2D" parent="MapContainer"]
+unique_name_in_owner = true
+position = Vector2(870, 290)
+script = ExtResource("4_unlock_vfx_script")
+
+[node name="TrailPath" type="Path2D" parent="MapContainer"]
+unique_name_in_owner = true
+
+[node name="PathFollow" type="PathFollow2D" parent="MapContainer/TrailPath"]
+unique_name_in_owner = true
+rotates = false
+loop = false
+
+[node name="MovingArrow" type="Node2D" parent="MapContainer/TrailPath/PathFollow"]
+unique_name_in_owner = true
+visible = false
+script = ExtResource("3_arrow_renderer_script")
+
+[node name="RestingArrowP1" type="Node2D" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+position = Vector2(240, 348)
+script = ExtResource("3_arrow_renderer_script")
+
+[node name="RestingArrowBonus" type="Node2D" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+position = Vector2(578, 282)
+script = ExtResource("3_arrow_renderer_script")
+
+[node name="RestingArrowP2" type="Node2D" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+position = Vector2(870, 265)
+script = ExtResource("3_arrow_renderer_script")
+
+[node name="FadeOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+

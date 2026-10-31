@@ -112,8 +112,13 @@ func _ready() -> void:
 		if not exit_area.body_entered.is_connected(_on_exit_body_entered):
 			exit_area.body_entered.connect(_on_exit_body_entered)
 
-	# O indicador SIGA → inicia oculto e inativo
-	if siga_indicator != null:
+	# O indicador SIGA → inicia oculto e inativo (com fallback seguro caso não instanciado no mapa)
+	if siga_indicator == null:
+		siga_indicator = SigaIndicatorClass.new()
+		siga_indicator.name = "SigaIndicator"
+		siga_indicator.visible = false
+		add_child(siga_indicator)
+	else:
 		siga_indicator.deactivate()
 
 	# Configura conexões do Diretor de Combate e Perfil Canônico do Mapa
@@ -277,7 +282,6 @@ func _on_reinforcement_timer_timeout() -> void:
 
 	for i in range(count_to_spawn):
 		var spawn_pos: Vector2 = get_offscreen_spawn_position(i, count_to_spawn)
-		spawn_pos = _snap_position_to_navmesh(spawn_pos)
 		var enemy: CharacterBody2D = null
 
 		if reinforcement_enemy_scene != null:
@@ -372,32 +376,6 @@ func get_offscreen_spawn_position(index: int = 0, total: int = 1) -> Vector2:
 	return Vector2(spawn_x, spawn_y)
 
 
-## Valida uma posição de spawn contra a malha de navegação do mapa.
-## Se a posição estiver fora do navmesh, ajusta o eixo Y para o ponto navegável mais próximo
-## mantendo o eixo X original (para preservar o spawn fora da tela).
-## Funciona genericamente em qualquer mapa sem necessidade de configuração manual.
-func _snap_position_to_navmesh(pos: Vector2) -> Vector2:
-	var w2d := get_world_2d()
-	if w2d == null:
-		return pos
-	var map_rid: RID = w2d.navigation_map
-	if not map_rid.is_valid():
-		return pos
-
-	var closest: Vector2 = NavigationServer2D.map_get_closest_point(map_rid, pos)
-	var dist: float = closest.distance_to(pos)
-	if dist <= 12.0:
-		return pos
-
-	# Mantém o X original (fora da tela) e usa o Y do ponto navegável mais próximo
-	var adjusted := Vector2(pos.x, closest.y)
-	var re_check: Vector2 = NavigationServer2D.map_get_closest_point(map_rid, adjusted)
-	if re_check.distance_to(adjusted) <= 30.0:
-		return adjusted
-	# Se ainda estiver longe, usa o ponto navegável mais próximo diretamente
-	return closest
-
-
 ## Disparado pelo CombatDirector quando todos os inimigos forem derrotados
 func _on_encounter_cleared() -> void:
 	# Blindagem absoluta: jamais abre saída se houver chefe configurado que ainda não deu spawn
@@ -488,6 +466,15 @@ func _advance_to_next_map() -> void:
 			session.clear_player_progression()
 
 	if is_final_map or next_map_scene_path.is_empty():
+		# Se for a fase bônus da garagem, dispara a transição cinemática do Bônus 1 ao Ponto 2 (desbloqueando a Fase 2)
+		if map_group == "bonus1" or section_number == 5:
+			if session != null:
+				session.has_seen_stage_2_transition = true
+				session.pending_map_transition_mode = 1 # BONUS_TO_POINT2
+				session.pending_transition_target = victory_scene_path if not victory_scene_path.is_empty() else "res://scenes/ui/credits.tscn"
+			_safe_change_scene("res://scenes/ui/map_transition.tscn")
+			return
+
 		# Fim do Mapa 4 (Clímax da Fase 1) -> Vitória!
 		if hud != null and hud.banner_panel != null and hud.banner_label != null:
 			hud.banner_panel.visible = true
@@ -497,8 +484,15 @@ func _advance_to_next_map() -> void:
 		await get_tree().create_timer(2.0).timeout
 		_safe_change_scene(victory_scene_path)
 	else:
-		# Transição para o próximo mapa da sequência
-		_safe_change_scene(next_map_scene_path)
+		# Transição para o próximo mapa da sequência (com suporte à transição cinemática do mapa após 1-4)
+		if (map_group == "fase1" and map_index == 4) or (stage_number == 1 and section_number == 4):
+			if session != null:
+				session.has_seen_bonus_transition = true
+				session.pending_map_transition_mode = 0 # POINT1_TO_BONUS
+				session.pending_transition_target = next_map_scene_path if not next_map_scene_path.is_empty() else "res://scenes/levels/bonus_garage.tscn"
+			_safe_change_scene("res://scenes/ui/map_transition.tscn")
+		else:
+			_safe_change_scene(next_map_scene_path)
 
 
 func _safe_change_scene(scene_path: String) -> void:

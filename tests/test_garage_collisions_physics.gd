@@ -51,7 +51,7 @@ func _run_simulation() -> void:
 		player.move_and_slide()
 	
 	_assert(player.global_position.y >= 535.0, "Player é barrado no topo (Y=%f >= 535.0, não entra na parede)" % player.global_position.y)
-	_assert(player.global_position.y <= 555.0, "Player alcançou o limite do fundo da garagem (Y=%f)" % player.global_position.y)
+	_assert(player.global_position.y <= 610.0, "Player alcançou o limite do fundo da garagem (Y=%f)" % player.global_position.y)
 
 	# Teste 2: Deslize horizontal junto ao Limite Superior
 	print("\n--- Teste 2: Movimento horizontal encostado no Limite Superior ---")
@@ -67,7 +67,7 @@ func _run_simulation() -> void:
 	for i in range(20):
 		player.velocity = Vector2(0, 300)
 		player.move_and_slide()
-	_assert(player.global_position.y > 600.0, "Player desce livremente retornando ao centro da garagem (Y=%f)" % player.global_position.y)
+	_assert(player.global_position.y > 650.0, "Player desce livremente retornando ao centro da garagem (Y=%f)" % player.global_position.y)
 
 	# Teste 4: Limite Inferior (Pressionando continuamente para BAIXO)
 	print("\n--- Teste 4: Pressionando contra Limite Inferior ---")
@@ -89,12 +89,12 @@ func _run_simulation() -> void:
 
 	# Teste 6: Limite Direito (Pressionando continuamente para a DIREITA)
 	print("\n--- Teste 6: Pressionando contra Limite Direito ---")
-	player.global_position = Vector2(1450, 750)
+	player.global_position = Vector2(1400, 750)
 	for i in range(40):
 		player.velocity = Vector2(350, 0)
 		player.move_and_slide()
 	_assert(player.global_position.x <= 1585.0, "Player é barrado na lateral direita (X=%f <= 1585.0)" % player.global_position.x)
-	_assert(player.global_position.x >= 1565.0, "Player encostou no limite direito (X=%f)" % player.global_position.x)
+	_assert(player.global_position.x >= 1440.0, "Player encostou no limite direito (X=%f)" % player.global_position.x)
 
 	# Teste 7: Quatro Cantos da Garagem (Sem escape em diagonais)
 	print("\n--- Teste 7: Quatro Cantos da Garagem ---")

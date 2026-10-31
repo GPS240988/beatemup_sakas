@@ -8,12 +8,24 @@ signal character_selected(character_id: String)
 signal skin_selected(skin_id: String)
 signal difficulty_selected(difficulty_id: String)
 signal game_started(character_id: String, skin_id: String, difficulty_id: String)
+signal stage_unlocked(stage_num: int)
+signal bonus_unlocked_signal()
 
 ## Identificadores de estado da sessão
 var selected_character_id: String = "guilherme"
 var selected_skin_id: String = "palmeirense"
 var difficulty_id: String = ""
 var has_played_intro: bool = false
+
+## Progresso da campanha e fases desbloqueadas
+var bonus_stage_unlocked: bool = false
+var stage_2_unlocked: bool = false
+var max_unlocked_stage: int = 1
+var has_seen_bonus_transition: bool = false
+var has_seen_stage_2_transition: bool = false
+var pending_transition_target: String = ""
+var pending_map_transition_mode: int = 0 # 0: POINT1_TO_BONUS, 1: BONUS_TO_POINT2, 2: FULL_PREVIEW
+const CAMPAIGN_SAVE_PATH: String = "user://campaign_progression.json"
 
 ## Caminho oficial da Fase 1 (Mapa 1: A Locadora)
 const FIRST_LEVEL_PATH: String = "res://scenes/levels/map_1.tscn"
@@ -108,8 +120,9 @@ const DIFFICULTIES: Dictionary = {
 
 
 func _ready() -> void:
-	# Inicialização padrão da sessão
+	# Inicialização padrão da sessão e restauração da progressão persistente da campanha
 	reset_session()
+	_load_campaign_progression()
 
 
 ## Estado de progressão do jogador entre seções do mesmo mapa (ex: Fase 1)
@@ -119,14 +132,86 @@ var preserved_special: float = -1.0
 var current_continues: int = 1
 
 
-## Redefine os dados da sessão para os padrões iniciais
+## Redefine os dados da sessão para os padrões iniciais (mantendo desbloqueios de campanha)
 func reset_session() -> void:
 	selected_character_id = "guilherme"
 	selected_skin_id = "palmeirense"
 	difficulty_id = ""
 	has_played_intro = false
 	current_continues = 1
+	pending_transition_target = ""
+	pending_map_transition_mode = 0
 	clear_player_progression()
+
+
+## Verifica se a Fase Bônus foi desbloqueada
+func is_bonus_unlocked() -> bool:
+	return bonus_stage_unlocked
+
+
+## Desbloqueia a Fase Bônus e persiste a evolução
+func unlock_bonus_stage() -> void:
+	if not bonus_stage_unlocked:
+		bonus_stage_unlocked = true
+		_save_campaign_progression()
+		bonus_unlocked_signal.emit()
+
+
+## Verifica se a Fase 2 foi desbloqueada
+func is_stage_2_unlocked() -> bool:
+	return stage_2_unlocked
+
+
+## Desbloqueia a Fase 2 e persiste a evolução
+func unlock_stage_2() -> void:
+	unlock_stage(2)
+
+
+## Desbloqueia fase numérica especificada e persiste a evolução
+func unlock_stage(stage_num: int) -> void:
+	var was_unlocked := stage_2_unlocked
+	if stage_num >= 2:
+		stage_2_unlocked = true
+	if stage_num > max_unlocked_stage:
+		max_unlocked_stage = stage_num
+	_save_campaign_progression()
+	if not was_unlocked and stage_2_unlocked:
+		stage_unlocked.emit(2)
+
+
+## Grava dados de progressão da campanha (independente de slot de partida)
+func _save_campaign_progression() -> void:
+	var data: Dictionary = {
+		"bonus_stage_unlocked": bonus_stage_unlocked,
+		"stage_2_unlocked": stage_2_unlocked,
+		"max_unlocked_stage": max_unlocked_stage,
+		"has_seen_bonus_transition": has_seen_bonus_transition,
+		"has_seen_stage_2_transition": has_seen_stage_2_transition
+	}
+	var file := FileAccess.open(CAMPAIGN_SAVE_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(data, "\t"))
+		file.close()
+
+
+## Restaura dados de progressão da campanha
+func _load_campaign_progression() -> void:
+	if not FileAccess.file_exists(CAMPAIGN_SAVE_PATH):
+		return
+	var file := FileAccess.open(CAMPAIGN_SAVE_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var text: String = file.get_as_text()
+	file.close()
+	var json := JSON.new()
+	if json.parse(text) == OK and json.data is Dictionary:
+		var d: Dictionary = json.data as Dictionary
+		bonus_stage_unlocked = bool(d.get("bonus_stage_unlocked", false))
+		stage_2_unlocked = bool(d.get("stage_2_unlocked", false))
+		max_unlocked_stage = int(d.get("max_unlocked_stage", 1))
+		has_seen_bonus_transition = bool(d.get("has_seen_bonus_transition", false))
+		has_seen_stage_2_transition = bool(d.get("has_seen_stage_2_transition", false))
+
 
 
 ## Salva a vida e especial atuais do jogador para o grupo de mapa corrente
@@ -302,7 +387,10 @@ func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, p
 		"difficulty_id": difficulty_id if difficulty_id != "" else "normal",
 		"health": hp_to_save,
 		"special": sp_to_save,
-		"continues": current_continues
+		"continues": current_continues,
+		"bonus_stage_unlocked": bonus_stage_unlocked,
+		"stage_2_unlocked": stage_2_unlocked,
+		"max_unlocked_stage": max_unlocked_stage
 	}
 
 	var json_text: String = JSON.stringify(save_data, "\t")
@@ -327,6 +415,10 @@ func load_game_from_slot(slot: int) -> bool:
 	difficulty_id = str(data.get("difficulty_id", "normal"))
 	current_continues = int(data.get("continues", 1))
 	has_played_intro = true
+	bonus_stage_unlocked = bool(data.get("bonus_stage_unlocked", bonus_stage_unlocked))
+	stage_2_unlocked = bool(data.get("stage_2_unlocked", stage_2_unlocked))
+	max_unlocked_stage = int(data.get("max_unlocked_stage", max_unlocked_stage))
+	_save_campaign_progression()
 
 	var hp: float = float(data.get("health", 100.0))
 	var sp: float = float(data.get("special", 0.0))

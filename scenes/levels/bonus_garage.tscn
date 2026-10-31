@@ -12,7 +12,7 @@
 [ext_resource type="Script" uid="uid://ccnmgyix6kprc" path="res://scripts/levels/bonus_stage_manager.gd" id="10_bonus_manager"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_top"]
-size = Vector2(3000, 600)
+size = Vector2(3000, 661)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_bottom"]
 size = Vector2(3000, 600)
@@ -27,7 +27,7 @@ size = Vector2(600, 2000)
 size = Vector2(342.5, 216.25)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_juu6w"]
-size = Vector2(110, 324)
+size = Vector2(110, 327)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
 size = Vector2(60, 320)
@@ -67,7 +67,7 @@ navigation_polygon = ExtResource("7_navpoly")
 collision_layer = 2
 
 [node name="WallTop" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=2099672517]
-position = Vector2(835, 220)
+position = Vector2(835, 250.5)
 shape = SubResource("RectangleShape2D_wall_top")
 
 [node name="WallBottom" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1535348852]
@@ -85,12 +85,10 @@ shape = SubResource("RectangleShape2D_wall_right")
 [node name="CollisionShape2D Left" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=614088732]
 position = Vector2(172.75, 566.875)
 shape = SubResource("RectangleShape2D_xm1cj")
-disabled = true
 
 [node name="CollisionShape2D Right" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1209138131]
-position = Vector2(1533, 599)
+position = Vector2(1533, 600.5)
 shape = SubResource("RectangleShape2D_juu6w")
-disabled = true
 
 [node name="World" type="Node2D" parent="." unique_id=276009566]
 y_sort_enabled = true

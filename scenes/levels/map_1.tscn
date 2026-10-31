@@ -139,8 +139,7 @@ shape = SubResource("RectangleShape2D_glass_counter")
 y_sort_enabled = true
 
 [node name="GamesBox" parent="World/Props/Destructibles" unique_id=267727255 instance=ExtResource("12_games_box")]
-position = Vector2(401, 710)
-scale = Vector2(1.4, 1.4)
+position = Vector2(1024, 575)
 max_health = 70.0
 
 [node name="Actors" type="Node2D" parent="World" unique_id=1333470381]
@@ -176,7 +175,7 @@ z_index = 10
 [node name="SpawnPoints" type="Node2D" parent="." unique_id=1664799113]
 
 [node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" unique_id=1951499350 groups=["spawn_points"]]
-position = Vector2(160, 670)
+position = Vector2(408, 557)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_left"
 
@@ -186,12 +185,12 @@ script = ExtResource("9_spawn_point")
 point_id = "spawn_mid"
 
 [node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" unique_id=2112291677 groups=["spawn_points"]]
-position = Vector2(1800, 680)
+position = Vector2(1800, 520)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_right"
 
 [node name="SpawnPoint_Reinforce" type="Marker2D" parent="SpawnPoints" unique_id=1928129386 groups=["spawn_points"]]
-position = Vector2(1880, 680)
+position = Vector2(1880, 580)
 script = ExtResource("9_spawn_point")
 point_id = "spawn_reinforce"
 spawn_type = 2

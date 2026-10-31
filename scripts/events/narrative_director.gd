@@ -38,6 +38,8 @@ var _is_transitioning: bool = false
 var _active_tween: Tween = null
 var _pulse_tween: Tween = null
 var _zoom_tween: Tween = null
+var _crt_flicker_tween: Tween = null
+var _jitter_tween: Tween = null
 
 # Nós visuais internos
 var _root_control: Control
@@ -272,16 +274,21 @@ func _display_title_card(ev: Resource) -> void:
 	_kill_tweens()
 	_active_tween = create_tween()
 
-	# 1. Fade In "Saka's" (0.35s)
-	_active_tween.tween_property(_title_container, "modulate:a", 1.0, 0.35).set_trans(Tween.TRANS_SINE)
-	_active_tween.tween_interval(0.20)
-	# 2. Fade In "A ÚLTIMA FICHA" (0.40s)
+	# 1. Fade In "Saka's" (0.50s)
+	_active_tween.tween_property(_title_container, "modulate:a", 1.0, 0.20)
+	if _title_header_label != null:
+		_title_header_label.modulate.a = 0.0
+		_active_tween.tween_property(_title_header_label, "modulate:a", 1.0, 0.50).set_trans(Tween.TRANS_SINE)
+	_active_tween.tween_interval(0.25)
+	# 2. Fade In "A ÚLTIMA FICHA" (0.50s)
 	if _title_sub_label != null:
-		_active_tween.tween_property(_title_sub_label, "modulate:a", 1.0, 0.40).set_trans(Tween.TRANS_SINE)
+		_title_sub_label.modulate.a = 0.0
+		_active_tween.tween_property(_title_sub_label, "modulate:a", 1.0, 0.50).set_trans(Tween.TRANS_SINE)
 	# 3. Hold confortável (2.0s)
 	_active_tween.tween_interval(2.0)
-	# 4. Fade Out suave para o próximo evento
-	_active_tween.tween_property(_title_container, "modulate:a", 0.0, 0.35).set_trans(Tween.TRANS_SINE)
+	# 4. Fade Out suave para o próximo evento (0.50s)
+	_active_tween.tween_property(_title_container, "modulate:a", 0.0, 0.50).set_trans(Tween.TRANS_SINE)
+	_active_tween.tween_interval(0.20)
 	_active_tween.tween_callback(func():
 		_advance_to_next_event()
 	)
@@ -307,27 +314,69 @@ func _display_image_event(
 		_image_rect.visible = true
 		_image_rect.pivot_offset = _image_rect.size * 0.5
 		_image_rect.scale = Vector2.ONE * zoom_start
+		_image_rect.position = Vector2.ZERO
+		_image_rect.modulate = Color.WHITE
 
 	_is_transitioning = true
 	_kill_tweens()
 	_active_tween = create_tween()
 
-	var trans_dur: float = float(ev.get("transition_duration")) if ev.get("transition_duration") != null else 0.32
+	var trans_dur: float = float(ev.get("transition_duration")) if ev.get("transition_duration") != null else 0.35
 	if trans_dur <= 0.0:
-		trans_dur = 0.32
+		trans_dur = 0.35
 
-	if entry_eff == "slow_zoom":
+	var ev_id: String = str(ev.get("id"))
+
+	# CENA 02 — OS QUATRO: Fade In lento + leve zoom de 100% para 103%
+	if ev_id == "the_four" or entry_eff == "slow_zoom":
 		if _image_rect != null:
 			_image_rect.modulate.a = 0.0
-			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, trans_dur).set_trans(Tween.TRANS_SINE)
+			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, 0.80).set_trans(Tween.TRANS_SINE)
 			if zoom_end != zoom_start:
 				_zoom_tween = create_tween()
-				_zoom_tween.tween_property(_image_rect, "scale", Vector2.ONE * zoom_end, 7.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+				_zoom_tween.tween_property(_image_rect, "scale", Vector2.ONE * zoom_end, 8.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	# CENA 03 — OS QUE NÃO ESTÃO: Crossfade + breve glitch de 2 ou 3 frames
+	elif ev_id == "the_missing" or entry_eff == "crossfade_glitch" or entry_eff == "glitch":
+		if _image_rect != null:
+			_image_rect.modulate.a = 0.0
+			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, 0.45).set_trans(Tween.TRANS_SINE)
+			_active_tween.tween_callback(func():
+				_trigger_glitch_effect(maxi(2, glitch_frames))
+			)
+
+	# CENA 04 — A SALA SECRETA: Fade In + luzes dos CRTs piscando lentamente
+	elif ev_id == "secret_room" or entry_eff == "crt_flicker":
+		if _image_rect != null:
+			_image_rect.modulate.a = 0.0
+			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, 0.50).set_trans(Tween.TRANS_SINE)
+			_crt_flicker_tween = create_tween().set_loops()
+			_crt_flicker_tween.tween_property(_image_rect, "modulate", Color(0.92, 0.93, 0.97, 1.0), 0.75).set_trans(Tween.TRANS_SINE)
+			_crt_flicker_tween.tween_property(_image_rect, "modulate", Color(1.06, 1.05, 1.01, 1.0), 0.85).set_trans(Tween.TRANS_SINE)
+
+	# CENA 05 — A MÁQUINA: Fade In CRT + oscilação horizontal/glitch + brilho da tela aumentando por 0.3s
+	elif ev_id == "arcade_machine" or entry_eff == "arcade_power_on":
+		if _image_rect != null:
+			_image_rect.modulate = Color(1.4, 1.4, 1.4, 0.0)
+			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
+			_active_tween.tween_property(_image_rect, "modulate", Color.WHITE, 0.30).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			_trigger_glitch_effect(2)
+			_trigger_horizontal_jitter(3.0, 0.20)
+
+	# CENA 06 — PASSADO E PRESENTE: Crossfade + glitch curto
+	elif ev_id == "past_present" or entry_eff == "past_present_crossfade":
+		if _image_rect != null:
+			_image_rect.modulate.a = 0.0
+			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, 0.50).set_trans(Tween.TRANS_SINE)
+			_trigger_glitch_effect(2)
+			_trigger_horizontal_jitter(2.0, 0.15)
+
 	elif entry_eff == "glitch":
 		if _image_rect != null:
 			_image_rect.modulate.a = 1.0
 		_trigger_glitch_effect(glitch_frames)
 		_active_tween.tween_interval(0.12)
+
 	else: # crossfade / fade_in oficial
 		if _image_rect != null:
 			_image_rect.modulate.a = 0.0
@@ -438,9 +487,61 @@ func advance_or_skip_text() -> void:
 	# Avança para o próximo bloco de diálogo da mesma cena
 	if current_text_index + 1 < texts.size():
 		current_text_index += 1
-		_show_current_text_block(ev)
+		_on_text_block_advanced(ev)
 	else:
 		_advance_to_next_event()
+
+
+## Executa efeitos cinematográficos específicos na transição interna de falas/textos
+func _on_text_block_advanced(ev: Resource) -> void:
+	var ev_id: String = str(ev.get("id"))
+
+	# CENA 06 — PASSADO E PRESENTE: Glitch curto entre cada mudança + pequena distorção de posição
+	if ev_id == "past_present":
+		_trigger_glitch_effect(2)
+		_trigger_horizontal_jitter(2.5, 0.12)
+		_show_current_text_block(ev)
+
+	# CENA 05 — A MÁQUINA: Pequeno pulso CRT ao exibir novas linhas da tela (INSERT COIN -> 4 PLAYERS DETECTED -> CONTINUE?)
+	elif ev_id == "arcade_machine":
+		_trigger_crt_pulse(0.18)
+		_show_current_text_block(ev)
+
+	# CENA 07 — SAINDO DA SALA: Fade/crossfade muito curto entre as falas
+	elif ev_id == "back_to_arcade" or str(ev.get("entry_effect")) == "quick_dialogue_crossfade":
+		if _dialogue_area != null:
+			var text_fade := create_tween()
+			text_fade.tween_property(_dialogue_area, "modulate:a", 0.0, 0.07).set_trans(Tween.TRANS_SINE)
+			text_fade.tween_callback(func():
+				_show_current_text_block(ev)
+			)
+			text_fade.tween_property(_dialogue_area, "modulate:a", 1.0, 0.10).set_trans(Tween.TRANS_SINE)
+		else:
+			_show_current_text_block(ev)
+
+	else:
+		_show_current_text_block(ev)
+
+
+func _trigger_horizontal_jitter(offset_px: float = 3.0, duration: float = 0.2) -> void:
+	if _image_rect == null:
+		return
+	if _jitter_tween != null and _jitter_tween.is_valid():
+		_jitter_tween.kill()
+	var orig_x: float = 0.0
+	_jitter_tween = create_tween()
+	_jitter_tween.tween_property(_image_rect, "position:x", orig_x + offset_px, duration * 0.25)
+	_jitter_tween.tween_property(_image_rect, "position:x", orig_x - offset_px, duration * 0.25)
+	_jitter_tween.tween_property(_image_rect, "position:x", orig_x + (offset_px * 0.5), duration * 0.25)
+	_jitter_tween.tween_property(_image_rect, "position:x", orig_x, duration * 0.25)
+
+
+func _trigger_crt_pulse(duration: float = 0.2) -> void:
+	if _image_rect == null:
+		return
+	var pulse_t := create_tween()
+	pulse_t.tween_property(_image_rect, "modulate", Color(1.3, 1.3, 1.3, 1.0), duration * 0.4).set_trans(Tween.TRANS_QUAD)
+	pulse_t.tween_property(_image_rect, "modulate", Color.WHITE, duration * 0.6).set_trans(Tween.TRANS_QUAD)
 
 
 func _advance_to_next_event() -> void:
@@ -607,6 +708,15 @@ func _kill_tweens() -> void:
 	if _zoom_tween != null and _zoom_tween.is_valid():
 		_zoom_tween.kill()
 		_zoom_tween = null
+	if _crt_flicker_tween != null and _crt_flicker_tween.is_valid():
+		_crt_flicker_tween.kill()
+		_crt_flicker_tween = null
+	if _jitter_tween != null and _jitter_tween.is_valid():
+		_jitter_tween.kill()
+		_jitter_tween = null
+	if _image_rect != null:
+		_image_rect.position.x = 0.0
+		_image_rect.modulate = Color.WHITE
 
 
 func _play_audio_by_name(sound_name: String) -> void:
