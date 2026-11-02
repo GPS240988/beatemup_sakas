@@ -68,9 +68,10 @@ func _setup_scaling() -> void:
 	var scale_factor: float
 	# Encaixe uniforme em todas as orientações: o mapa inteiro permanece visível.
 	scale_factor = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
-	var dark_base := get_node_or_null("DarkBase") as ColorRect
-	if dark_base != null:
-		dark_base.color = Color(0.035, 0.05, 0.09, 1.0)
+	if MobileScreenAction.is_mobile_runtime():
+		var dark_base := get_node_or_null("DarkBase") as ColorRect
+		if dark_base != null:
+			dark_base.color = Color(0.035, 0.05, 0.09, 1.0)
 
 	if scale_factor <= 0.0:
 		scale_factor = 1.0
