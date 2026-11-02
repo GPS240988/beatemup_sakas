@@ -281,6 +281,7 @@ func test_story_intro_scene_and_loading_transition() -> void:
 	assert_test("STORY_INTRO_SCENE" in loading_script and loading_script.STORY_INTRO_SCENE == intro_scene_path, "LoadingScreen possui constante STORY_INTRO_SCENE apontando para story_intro.tscn")
 
 
+
 func test_safe_framing_and_aspect_ratio() -> void:
 	print("\n--- 8. Validando Sistema de Enquadramento e Área Segura ---")
 	var director_scene: PackedScene = load("res://scenes/ui/narrative_director.tscn")
@@ -289,17 +290,43 @@ func test_safe_framing_and_aspect_ratio() -> void:
 
 	var art_stage: Control = nar.get_node_or_null("%ArtStage")
 	assert_test(art_stage != null, "ArtStage (palco dedicado de arte) existe na cena")
+
 	if art_stage != null:
-		assert_test(art_stage.anchor_bottom <= 0.76, "ArtStage termina acima de 76% da tela (garante que caixa inferior não encobre a arte)")
+		var viewport_size: Vector2 = nar.get_viewport().get_visible_rect().size
+		var mobile_landscape: bool = (
+			bool(nar.call("_is_mobile_runtime"))
+			and viewport_size.x >= viewport_size.y
+		)
+
+		if mobile_landscape:
+			assert_test(
+				is_equal_approx(art_stage.anchor_bottom, 1.0),
+				"Mobile landscape utiliza palco de arte em tela completa"
+			)
+		else:
+			assert_test(
+				art_stage.anchor_bottom <= 0.76,
+				"ArtStage respeita área segura acima de 76% da tela"
+			)
 
 	var img_disp: TextureRect = nar.get_node_or_null("%ImageDisplay")
 	assert_test(img_disp != null, "ImageDisplay existe no palco")
+
 	if img_disp != null:
-		assert_test(img_disp.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED, "ImageDisplay utiliza STRETCH_KEEP_ASPECT_CENTERED (sem corte de bordas)")
-		assert_test(img_disp.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "ImageDisplay preserva nitidez de pixel art com filtro NEAREST")
+		assert_test(
+			img_disp.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED,
+			"ImageDisplay utiliza STRETCH_KEEP_ASPECT_CENTERED (sem corte de bordas)"
+		)
+		assert_test(
+			img_disp.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
+			"ImageDisplay preserva nitidez de pixel art com filtro NEAREST"
+		)
 
 	var amb_bg: TextureRect = nar.get_node_or_null("%AmbientBackground")
-	assert_test(amb_bg != null, "AmbientBackground existe para preenchimento de aspectos fora de 16:9")
+	assert_test(
+		amb_bg != null,
+		"AmbientBackground existe para preenchimento de aspectos fora de 16:9"
+	)
 
 	root.remove_child(nar)
 	nar.free()
