@@ -116,8 +116,11 @@ func _setup_hitboxes() -> void:
 		var b = _buttons[idx]
 		if b == null:
 			continue
-		b.flat = true
+		b.flat = not _is_mobile_runtime()
 		b.text = ""
+		if _is_mobile_runtime():
+			b.anchor_left = 0.26
+			b.anchor_right = 0.74
 		b.focus_mode = Control.FOCUS_NONE
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		b.mouse_entered.connect(_on_button_hovered.bind(idx))
@@ -175,6 +178,14 @@ func _on_button_clicked(index: int) -> void:
 func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 	_current_index = clampi(new_idx, 0, 5)
 	_update_selector_positions(animate)
+	if _is_mobile_runtime():
+		for i in range(_buttons.size()):
+			var menu_button: Button = _buttons[i]
+			if menu_button != null:
+				var selected := i == _current_index
+				menu_button.add_theme_stylebox_override("normal", _make_mobile_selector_style(selected))
+				menu_button.add_theme_stylebox_override("hover", _make_mobile_selector_style(selected))
+				menu_button.add_theme_stylebox_override("pressed", _make_mobile_selector_style(selected))
 	if _mobile_action_button != null and _current_index >= 0 and _current_index < MOBILE_LABELS.size():
 		var lbl: String = MOBILE_LABELS[_current_index]
 		var is_disabled: bool = (_current_index == 4)
@@ -182,6 +193,11 @@ func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 
 
 func _update_selector_positions(animate: bool = false) -> void:
+	if _is_mobile_runtime():
+		if brush_highlight != null: brush_highlight.visible = false
+		if left_chevron != null: left_chevron.visible = false
+		if right_chevron != null: right_chevron.visible = false
+		return
 	if aspect_wrapper == null or left_chevron == null or right_chevron == null or brush_highlight == null:
 		return
 
@@ -232,6 +248,19 @@ func _update_selector_positions(animate: bool = false) -> void:
 		right_chevron.size = Vector2(chev_w, chev_h)
 		brush_highlight.position = b_pos
 		brush_highlight.size = b_size
+
+
+func _make_mobile_selector_style(selected: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.045, 0.065, 0.105, 0.94) if selected else Color(0.015, 0.025, 0.045, 0.16)
+	style.border_color = Color(1.0, 0.70, 0.20, 1.0) if selected else Color(0.42, 0.52, 0.68, 0.18)
+	style.set_border_width_all(3 if selected else 0)
+	style.set_corner_radius_all(12)
+	style.shadow_color = Color(1.0, 0.55, 0.12, 0.28) if selected else Color.TRANSPARENT
+	style.shadow_size = 10 if selected else 0
+	style.content_margin_left = 18.0
+	style.content_margin_right = 18.0
+	return style
 
 
 func _start_idle_pulse() -> void:
