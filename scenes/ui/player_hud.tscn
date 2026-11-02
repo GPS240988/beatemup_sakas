@@ -1,0 +1,281 @@
+[gd_scene load_steps=10 format=3 uid="uid://blvw32weja2m3"]
+
+[ext_resource type="Script" path="res://scripts/ui/player_hud.gd" id="1_hud_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/portraits/portrait_guilherme.png" id="2_portrait_tex"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_portrait_frame_arcade.png" id="3_portrait_frame"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_electric_aura.png" id="4_electric_aura"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_name_frame_guilherme.png" id="5_name_frame"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_dice_icon.png" id="6_dice_icon"]
+[ext_resource type="Script" path="res://scripts/ui/segmented_bar.gd" id="7_segmented_bar"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hud_combo_plate_arcade.png" id="8_combo_plate"]
+[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="9_arcade_font"]
+
+[node name="PlayerHUD" type="Control"]
+custom_minimum_size = Vector2(340, 78)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 340.0
+offset_bottom = 78.0
+mouse_filter = 2
+script = ExtResource("1_hud_script")
+
+[node name="MainRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="PortraitBox" type="Control" parent="MainRow"]
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+
+[node name="PortraitTexture" type="TextureRect" parent="MainRow/PortraitBox"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_portrait_tex")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="PortraitFrame" type="TextureRect" parent="MainRow/PortraitBox"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_portrait_frame")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ElectricAura" type="TextureRect" parent="MainRow/PortraitBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_electric_aura")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="BarsColumn" type="VBoxContainer" parent="MainRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="HeaderRow" type="HBoxContainer" parent="MainRow/BarsColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NameContainer" type="Control" parent="MainRow/BarsColumn/HeaderRow"]
+custom_minimum_size = Vector2(130, 20)
+layout_mode = 2
+
+[node name="NameFrame" type="TextureRect" parent="MainRow/BarsColumn/HeaderRow/NameContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("5_name_frame")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="MainRow/BarsColumn/HeaderRow/NameContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("9_arcade_font")
+theme_override_font_sizes/font_size = 15
+text = "GUILHERME"
+vertical_alignment = 1
+
+[node name="ContinueContainer" type="HBoxContainer" parent="MainRow/BarsColumn/HeaderRow"]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="DiceIcon" type="TextureRect" parent="MainRow/BarsColumn/HeaderRow/ContinueContainer"]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("6_dice_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ContinuePlate" type="TextureRect" parent="MainRow/BarsColumn/HeaderRow/ContinueContainer"]
+visible = false
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ContinueLabel" type="Label" parent="MainRow/BarsColumn/HeaderRow/ContinueContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0.1, 0.05, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("9_arcade_font")
+theme_override_font_sizes/font_size = 11
+text = "CONTINUE ×1"
+vertical_alignment = 1
+
+[node name="HPContainer" type="Control" parent="MainRow/BarsColumn"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+
+[node name="HpBar" type="Control" parent="MainRow/BarsColumn/HPContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_segmented_bar")
+filled_color = Color(1, 0.72, 0.05, 1)
+filled_highlight = Color(1, 0.9, 0.5, 0.9)
+filled_shadow = Color(0.7, 0.45, 0, 0.8)
+buffer_color = Color(1, 0.72, 0.15, 1)
+frame_color = Color(0, 0.65, 1, 1)
+slant_offset = 6.0
+padding_left = 6.0
+padding_right = 10.0
+padding_top = 4.0
+padding_bottom = 4.0
+segment_gap = 3.0
+
+[node name="HpLabel" type="Label" parent="MainRow/BarsColumn/HPContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 235.0
+offset_top = 2.0
+offset_right = 320.0
+offset_bottom = 20.0
+theme_override_colors/font_color = Color(1, 0.95, 0.95, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("9_arcade_font")
+theme_override_font_sizes/font_size = 12
+text = "100 / 100"
+vertical_alignment = 1
+
+[node name="SpecialContainer" type="Control" parent="MainRow/BarsColumn"]
+custom_minimum_size = Vector2(150, 10)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="SpecialBar" type="Control" parent="MainRow/BarsColumn/SpecialContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 10)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_segmented_bar")
+filled_segments = 0
+buffer_segments = 0
+value = 0.0
+buffer_value = 0.0
+filled_color = Color(0, 0.85, 1, 1)
+filled_highlight = Color(0.6, 0.95, 1, 0.9)
+filled_shadow = Color(0, 0.45, 0.75, 0.8)
+frame_color = Color(0, 0.65, 1, 1)
+slant_offset = 4.0
+padding_left = 5.0
+padding_right = 8.0
+padding_top = 2.0
+padding_bottom = 2.0
+segment_gap = 3.0
+
+[node name="SpecialLabel" type="Label" parent="MainRow/BarsColumn/SpecialContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 235.0
+offset_top = 1.0
+offset_right = 320.0
+offset_bottom = 15.0
+theme_override_colors/font_color = Color(0.7, 0.9, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("9_arcade_font")
+theme_override_font_sizes/font_size = 12
+text = "0 / 100"
+vertical_alignment = 1
+
+[node name="ComboContainer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 8.0
+offset_top = 84.0
+offset_right = 168.0
+offset_bottom = 132.0
+pivot_offset = Vector2(80, 24)
+
+[node name="ComboPlate" type="TextureRect" parent="ComboContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("8_combo_plate")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ComboHitsLabel" type="Label" parent="ComboContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_right = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.15, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_colors/font_outline_color = Color(0.4, 0.05, 0.05, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("9_arcade_font")
+theme_override_font_sizes/font_size = 20
+text = "12 HITS"
+horizontal_alignment = 1
+vertical_alignment = 1

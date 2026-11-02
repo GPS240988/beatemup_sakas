@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "pixellab": {
+      "command": "npx",
+      "args": [
+        "mcp-remote@latest",
+        "https://api.pixellab.ai/mcp",
+        "--header",
+        "Authorization: Bearer 5168c7c0-0898-4625-9c4d-45354dc439cb"
+      ]
+    }
+  }
+}

@@ -1,0 +1,167 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/death.png" id="1_a02tr"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/fall_03.png" id="2_ht55v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/fall_01.png" id="3_fb5nw"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/fall_02.png" id="4_cfj5m"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/getup_01.png" id="5_45uvc"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/getup_02.png" id="6_bc3ry"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/guard.png" id="7_c8jqo"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/heavy_01.png" id="8_8bgjv"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/heavy_02.png" id="9_ylbqy"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/heavy_03.png" id="10_hiol5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/hurt_01.png" id="11_2ba24"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/hurt_02.png" id="12_g4ucg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/walk1.png" id="13_grhse"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/jump_atk_01.png" id="14_h2lvd"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/jump_atk_02.png" id="15_tc48d"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/kick_01.png" id="16_ylv40"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/kick_02.png" id="17_vd2bt"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/kick_03.png" id="18_3122b"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/punch_01.png" id="19_ua0af"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/punch_02.png" id="20_b6xyr"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/punch_03.png" id="21_dpqs6"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/walk2.png" id="22_suilv"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/walk3.png" id="23_qx6j5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/jogador de magic/walk4.png" id="24_8likf"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_a02tr")
+}],
+"loop": 0,
+"name": &"death",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_ht55v")
+}],
+"loop": 0,
+"name": &"downed",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_fb5nw")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_cfj5m")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_ht55v")
+}],
+"loop": 0,
+"name": &"fall",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_45uvc")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_bc3ry")
+}],
+"loop": 0,
+"name": &"getup",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_c8jqo")
+}],
+"loop": 0,
+"name": &"guard",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("8_8bgjv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_ylbqy")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_hiol5")
+}],
+"loop": 0,
+"name": &"heavy",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("11_2ba24")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_g4ucg")
+}],
+"loop": 0,
+"name": &"hurt",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("13_grhse")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("14_h2lvd")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_tc48d")
+}],
+"loop": 0,
+"name": &"jump_atk",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("16_ylv40")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_vd2bt")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_3122b")
+}],
+"loop": 0,
+"name": &"kick",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("19_ua0af")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_b6xyr")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21_dpqs6")
+}],
+"loop": 0,
+"name": &"punch",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("13_grhse")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_suilv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_qx6j5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_8likf")
+}],
+"loop": 1,
+"name": &"walk",
+"speed": 8.0
+}]

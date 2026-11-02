@@ -1,0 +1,85 @@
+[gd_scene format=3 uid="uid://c85moa1s18w10"]
+
+[ext_resource type="Script" uid="uid://fo7rsbl5o4d4" path="res://scripts/props/destructible_prop.gd" id="1_prop"]
+[ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="2_health"]
+[ext_resource type="Texture2D" uid="uid://d4ghfuictr50q" path="res://assets/ui/hud/Destruct/games1.webp" id="3_games1"]
+[ext_resource type="Texture2D" uid="uid://dal0v6f7rno7d" path="res://assets/ui/hud/Destruct/games2.webp" id="4_games2"]
+[ext_resource type="Texture2D" uid="uid://duphswjiwkhfo" path="res://assets/ui/hud/Destruct/games3.webp" id="5_games3"]
+[ext_resource type="Texture2D" uid="uid://6svlerk6x23v" path="res://assets/ui/hud/Destruct/games4.webp" id="6_games4"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_solid"]
+size = Vector2(52, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(64, 62)
+
+[node name="DestructibleGamesBox" type="StaticBody2D" unique_id=959192401 groups=["damageable", "destructible_props", "destructibles", "props"]]
+y_sort_enabled = true
+collision_layer = 2
+script = ExtResource("1_prop")
+prop_name = "Caixa de Fitas e Jogos"
+max_health = 30.0
+damage_stage_textures = Array[Texture2D]([ExtResource("3_games1"), ExtResource("4_games2"), ExtResource("5_games3"), ExtResource("6_games4")])
+
+[node name="Visual" type="Node2D" parent="." unique_id=1786952365]
+
+[node name="Shadow" type="Polygon2D" parent="Visual" unique_id=384451465]
+color = Color(0.08, 0.08, 0.12, 0.45)
+polygon = PackedVector2Array(-34, 0, -24, -8, 0, -11, 24, -8, 34, 0, 24, 8, 0, 11, -24, 8)
+
+[node name="Sprite2D" type="Sprite2D" parent="Visual" unique_id=452983659]
+position = Vector2(0, -39)
+scale = Vector2(0.35, 0.35)
+texture = ExtResource("3_games1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=512101316]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_solid")
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=408495281]
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=745776024]
+position = Vector2(0, -31)
+shape = SubResource("RectangleShape2D_hurt")
+
+[node name="HealthComponent" type="Node" parent="." unique_id=979039460]
+script = ExtResource("2_health")
+max_health = 30.0
+
+[node name="Effects" type="Node2D" parent="." unique_id=1249909841]
+
+[node name="ImpactParticles" type="CPUParticles2D" parent="Effects" unique_id=1300367715]
+position = Vector2(0, -20)
+emitting = false
+amount = 10
+lifetime = 0.35
+one_shot = true
+explosiveness = 0.85
+spread = 180.0
+gravity = Vector2(0, 120)
+initial_velocity_min = 25.0
+initial_velocity_max = 60.0
+scale_amount_min = 2.0
+scale_amount_max = 4.0
+color = Color(0.85, 0.65, 0.4, 1)
+
+[node name="BreakParticles" type="CPUParticles2D" parent="Effects" unique_id=1909344113]
+position = Vector2(0, -20)
+emitting = false
+amount = 22
+lifetime = 0.65
+one_shot = true
+explosiveness = 0.95
+spread = 180.0
+gravity = Vector2(0, 200)
+initial_velocity_min = 50.0
+initial_velocity_max = 120.0
+scale_amount_min = 2.5
+scale_amount_max = 5.0
+color = Color(0.75, 0.55, 0.35, 1)
+
+[node name="NavigationIntegration" type="NavigationObstacle2D" parent="." unique_id=830012666]
+radius = 26.0

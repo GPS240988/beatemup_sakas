@@ -1,0 +1,54 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/npc.gd" id="1_npc"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
+radius = 8.0
+height = 24.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_hurt"]
+radius = 12.0
+height = 48.0
+
+[node name="BaseNPC" type="CharacterBody2D" groups=["actors", "damageable", "npcs"]]
+y_sort_enabled = true
+collision_layer = 1
+collision_mask = 2
+script = ExtResource("1_npc")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -4)
+rotation = 1.5707963
+shape = SubResource("CapsuleShape2D_feet")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Shadow" type="Polygon2D" parent="Visual"]
+color = Color(0.08, 0.08, 0.12, 0.45)
+polygon = PackedVector2Array(-16, 0, -10, -4, 0, -6, 10, -4, 16, 0, 10, 4, 0, 6, -10, 4)
+
+[node name="Body" type="Polygon2D" parent="Visual"]
+color = Color(0.2, 0.45, 0.6, 1)
+polygon = PackedVector2Array(-8, -4, 8, -4, 8, -36, -8, -36)
+
+[node name="Head" type="Polygon2D" parent="Visual"]
+color = Color(0.85, 0.72, 0.55, 1)
+polygon = PackedVector2Array(-6, -36, 6, -36, 6, -50, -6, -50)
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -26)
+shape = SubResource("CapsuleShape2D_hurt")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 20.0
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_desired_distance = 12.0
+target_desired_distance = 12.0

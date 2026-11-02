@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://7nwbc888574g"]
+
+[ext_resource type="Script" uid="uid://ch4r15a076cqo" path="res://scripts/items/coca_pickup.gd" id="1_coca_script"]
+
+[node name="CocaPickup" type="Node2D" unique_id=1863978165 groups=["health_pickups"]]
+y_sort_enabled = true
+scale = Vector2(0.5, 0.5)
+script = ExtResource("1_coca_script")
+
+[node name="Shadow" type="Polygon2D" parent="." unique_id=1724947681]
+color = Color(0.05, 0.05, 0.08, 0.38)
+polygon = PackedVector2Array(-15, -1, -9, -5, 0, -7, 9, -5, 15, -1, 9, 3, 0, 5, -9, 3)
+
+[node name="Visual" type="Node2D" parent="." unique_id=1277545455]
+
+[node name="Sprite" type="Sprite2D" parent="Visual" unique_id=1595993963]
+texture_filter = 1
+position = Vector2(0, -50)
+
+[node name="Fallback" type="Node2D" parent="Visual" unique_id=454045025]
+
+[node name="CanBody" type="Polygon2D" parent="Visual/Fallback" unique_id=2060113932]
+color = Color(0.78, 0.035, 0.055, 1)
+polygon = PackedVector2Array(-8, -36, 8, -36, 10, -32, 10, -5, 7, -1, -7, -1, -10, -5, -10, -32)
+
+[node name="CanTop" type="Polygon2D" parent="Visual/Fallback" unique_id=1316813314]
+color = Color(0.66, 0.69, 0.72, 1)
+polygon = PackedVector2Array(-8, -36, -5, -39, 5, -39, 8, -36, 5, -33, -5, -33)
+
+[node name="CanBottom" type="Polygon2D" parent="Visual/Fallback" unique_id=1264762904]
+color = Color(0.58, 0.025, 0.04, 1)
+polygon = PackedVector2Array(-10, -5, -7, -2, 7, -2, 10, -5, 7, -1, -7, -1)
+
+[node name="LabelBand" type="Polygon2D" parent="Visual/Fallback" unique_id=950134912]
+color = Color(0.96, 0.92, 0.88, 1)
+polygon = PackedVector2Array(-10, -25, 10, -25, 10, -12, -10, -12)
+
+[node name="CanLabel" type="Label" parent="Visual/Fallback" unique_id=475673245]
+offset_left = -12.0
+offset_top = -24.0
+offset_right = 12.0
+offset_bottom = -12.0
+theme_override_colors/font_color = Color(0.72, 0.02, 0.04, 1)
+theme_override_font_sizes/font_size = 7
+text = "COCA"
+horizontal_alignment = 1
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true

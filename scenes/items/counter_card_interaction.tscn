@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://b3f31kdieeuh5"]
+
+[ext_resource type="Script" uid="uid://by4v0xli314dy" path="res://scripts/items/counter_card_interaction.gd" id="1_card_script"]
+[ext_resource type="Texture2D" uid="uid://cpj46qda3q85" path="res://assets/sprites/Itens/lotus_branco.png" id="2_lclu0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_interaction"]
+size = Vector2(220, 110)
+
+[node name="CounterCardInteraction" type="Area2D" unique_id=2079398919]
+collision_layer = 0
+monitorable = false
+script = ExtResource("1_card_script")
+
+[node name="CardSprite" type="Sprite2D" parent="." unique_id=1752792958]
+position = Vector2(0, -4)
+rotation = -0.20944
+scale = Vector2(0.42, 0.42)
+texture = ExtResource("2_lclu0")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1650408926]
+shape = SubResource("RectangleShape2D_interaction")

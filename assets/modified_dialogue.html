@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beat 'Em Up Dialogue Frame Overlay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+</head>
+<body class="bg-slate-950 flex flex-col justify-between items-center h-screen overflow-hidden">
+<div id="root"></div>
+<script>
+const scriptData = [
+    ["SAKA'S","TITLE CARD","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","Saka's","from-red-600 to-pink-600","fa-skull"],
+    ["A ULTIMA FICHA","SUBTITLE","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","A ULTIMA FICHA","from-red-600 to-pink-600","fa-skull"],
+    ["GUILHERME, GABRIEL, ANDRÉ E JULIANA","NARRATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=MarcusHero&backgroundColor=c0aede","Anos depois da adolescência, quatro velhos amigos ainda continuavam se encontrando.","from-cyan-600 to-blue-600","fa-fist-raised"],
+    ["ALESSANDRO. FERNANDO","NARRATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","Mas dois deles já estavam desaparecidos há algum tempo.","from-red-600 to-pink-600","fa-skull"],
+    ["O ANTIGO DONO DA LOCADORA","NARRATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","O antigo dono da locadora revelou uma sala que ninguém conhecia.","from-red-600 to-pink-600","fa-skull"],
+    ["ALI DENTRO, HÁ UMA MÁQUINA","NARRATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","Ali dentro, havia uma máquina que deveria ter permanecido desligada.","from-red-600 to-pink-600","fa-skull"],
+    ["INSERT COIN","REVELATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","INSERT COIN","from-cyan-600 to-blue-600","fa-fist-raised"],
+    ["4 PLAYERS DETECTED","REVELATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","4 PLAYERS DETECTED","from-cyan-600 to-blue-600","fa-fist-raised"],
+    ["CONTINUE?","REVELATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","CONTINUE?","from-cyan-600 to-blue-600","fa-fist-raised"],
+    ["AS TELAS MOSTRARAM LUGARES","REVELATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","As telas mostraram lugares que eles conheciam.","from-red-600 to-pink-600","fa-skull"],
+    ["MAS NÃO COMO ELES ERAM","REVELATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","Mas não como eles eram.","from-red-600 to-pink-600","fa-skull"],
+    ["O PASTE E PRESENTE ESTAVAM OCUPANDO O MESMO ESPAÇO","REVELATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","O passado e o presente estavam ocupando o mesmo espaço.","from-red-600 to-pink-600","fa-skull"],
+    ["RETORNANDO À LOCARA","NARRATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","Retornando à locadora, a realidade ao redor já não parecia mais a mesma.","from-red-600 to-pink-600","fa-skull"],
+    ["MAPA 1 — A LOCADORA","NARRATION","https://api.dicebear.com/7.x/pixel-art/svg?seed=AxelBrawler&backgroundColor=b6e3f4","MAPA 1 — A LOCADORA","from-red-600 to-pink-600","fa-skull"]
+];
+        let currentLine = 0, charIndex = 0, isTyping = false, typingTimer = null, soundEnabled = true;
+        let synth = null;
+        function initAudio() { if (!synth) { synth = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.05, sustain: 0, release: 0.05 } }).toDestination(); synth.volume.value = -18; } }
+        function playRetroClick() { if (!soundEnabled) return; try { if (!synth) initAudio(); const notes = ['C5','E5','G5','B5']; const randomNote = notes[Math.floor(Math.random()*notes.length)]; synth.triggerAttackRelease(randomNote,'32n'); } catch(e) {} }
+        function typeLine() { const db = document.getElementById('dialogue-box'); const txt = scriptData[currentLine][3]; if (charIndex < txt.length) { db.innerHTML += txt.charAt(charIndex); charIndex++; if (charIndex % 2 === 0) playRetroClick(); typingTimer = setTimeout(typeLine,28); } else { isTyping = false; } }
+        function renderDialogue() { clearTimeout(typingTimer); const d = scriptData[currentLine]; const ne = document.getElementById('speaker-name'); const re = document.getElementById('speaker-role'); const ae = document.getElementById('speaker-avatar'); const db = document.getElementById('dialogue-box'); const be = document.getElementById('speaker-tag'); ne.innerText = d[0]; re.innerText = d[1]; ae.src = d[2]; be.className = 'speaker-badge text-white px-8 py-2 text-base md:text-lg font-bold tracking-wider shadow-lg flex items-center gap-3 bg-gradient-to-r '+d[4]; db.innerHTML = ''; charIndex = 0; isTyping = true; typeLine(); }
+        function nextDialogue() { if (isTyping) { clearTimeout(typingTimer); document.getElementById('dialogue-box').innerText = scriptData[currentLine][3]; isTyping = false; } else { currentLine = (currentLine + 1) % scriptData.length; renderDialogue(); } }
+        function toggleMockBg() { const mb = document.getElementById('mock-bg'); const btn = document.getElementById('toggle-bg-btn'); if (mb.style.opacity === '0') { mb.style.opacity = '0.35'; btn.classList.remove('bg-pink-900/60','border-pink-500'); } else { mb.style.opacity = '0'; btn.classList.add('bg-pink-900/60','border-pink-500'); } }
+        function toggleAudio() { soundEnabled = !soundEnabled; document.getElementById('audio-status').innerText = soundEnabled ? 'ON' : 'OFF'; document.getElementById('audio-icon').className = soundEnabled ? 'fa-solid fa-volume-high mr-1' : 'fa-solid fa-volume-xmark mr-1'; if (soundEnabled) { Tone.start(); initAudio(); } }
+        function resizeGameFrame() { const fr = document.getElementById('game-frame'); const cn = document.getElementById('viewport-container'); const cw = cn.clientWidth; const ch = cn.clientHeight; const sw = 1920; const sh = 1080; const sx = cw/sw; const sy = ch/sh; const scale = Math.min(sx,sy) * 0.96; fr.style.transform = 'scale('+scale+')'; }
+        window.addEventListener('resize',resizeGameFrame);
+        document.addEventListener('keydown',(e)=>{ if (e.code==='Space'||e.code==='Enter'){ e.preventDefault(); nextDialogue(); } else if (e.code==='Escape'){ currentLine = scriptData.length-1; renderDialogue(); } });
+        document.getElementById('game-frame').addEventListener('click',(e)=>{ if (!e.target.closest('button')) nextDialogue(); });
+        window.onload = function(){ resizeGameFrame(); renderDialogue(); };
+    </script>
+</div>
+</body>
+</html>

@@ -1,0 +1,155 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/props/destructible_prop.gd" id="1_prop"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/Destruct/lixeira_moderna_01.png" id="3_stage"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/Destruct/lixeira_moderna_02.png" id="4_stage"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/Destruct/lixeira_moderna_03.png" id="5_stage"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/Destruct/lixeira_moderna_04.png" id="6_stage"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_solid"]
+size = Vector2(46, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(82, 112)
+
+[sub_resource type="Gradient" id="Gradient_fire_texture"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(1, 1, 1, 0.95, 1, 1, 1, 0.72, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_fire"]
+gradient = SubResource("Gradient_fire_texture")
+width = 20
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.65)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="Gradient" id="Gradient_fire_ramp"]
+offsets = PackedFloat32Array(0, 0.18, 0.55, 1)
+colors = PackedColorArray(0.85, 0.08, 0.015, 0, 1, 0.18, 0.015, 0.92, 1, 0.58, 0.08, 0.9, 1, 0.9, 0.34, 0)
+
+[sub_resource type="Gradient" id="Gradient_smoke_texture"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 1, 1, 0.85, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_smoke"]
+gradient = SubResource("Gradient_smoke_texture")
+width = 32
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="Gradient" id="Gradient_smoke_ramp"]
+offsets = PackedFloat32Array(0, 0.35, 0.75, 1)
+colors = PackedColorArray(0.42, 0.43, 0.45, 0.55, 0.42, 0.43, 0.45, 0.45, 0.36, 0.37, 0.39, 0.28, 0.32, 0.33, 0.35, 0)
+
+[node name="DestructibleTrashBinModern" type="StaticBody2D" groups=["damageable", "destructible_props", "destructibles", "props"]]
+y_sort_enabled = true
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_prop")
+prop_name = "Lixeira Moderna em Chamas"
+max_health = 60.0
+damage_stage_textures = Array[Texture2D]([ExtResource("3_stage"), ExtResource("4_stage"), ExtResource("5_stage"), ExtResource("6_stage")])
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Shadow" type="Polygon2D" parent="Visual"]
+color = Color(0.04, 0.035, 0.03, 0.48)
+polygon = PackedVector2Array(-28, 0, -20, -7, 0, -9, 20, -7, 28, 0, 20, 7, 0, 9, -20, 7)
+
+[node name="Sprite2D" type="Sprite2D" parent="Visual"]
+position = Vector2(0, -69)
+scale = Vector2(0.38, 0.38)
+texture = ExtResource("3_stage")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -7)
+shape = SubResource("RectangleShape2D_solid")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -57)
+shape = SubResource("RectangleShape2D_hurt")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 60.0
+
+[node name="Effects" type="Node2D" parent="."]
+
+[node name="ImpactParticles" type="CPUParticles2D" parent="Effects"]
+position = Vector2(0, -35)
+emitting = false
+amount = 10
+lifetime = 0.35
+one_shot = true
+explosiveness = 0.9
+spread = 180.0
+gravity = Vector2(0, 150)
+initial_velocity_min = 25.0
+initial_velocity_max = 65.0
+scale_amount_min = 2.0
+scale_amount_max = 3.5
+color = Color(0.95, 0.48, 0.12, 1)
+
+[node name="BreakParticles" type="CPUParticles2D" parent="Effects"]
+position = Vector2(0, -20)
+emitting = false
+amount = 20
+lifetime = 0.7
+one_shot = true
+explosiveness = 0.95
+spread = 180.0
+gravity = Vector2(0, 190)
+initial_velocity_min = 45.0
+initial_velocity_max = 95.0
+scale_amount_min = 2.0
+scale_amount_max = 4.0
+color = Color(0.6, 0.48, 0.34, 1)
+
+[node name="FireParticles" type="CPUParticles2D" parent="Effects"]
+position = Vector2(0, -112)
+emitting = true
+amount = 18
+lifetime = 0.55
+texture = SubResource("GradientTexture2D_fire")
+emission_shape = 3
+emission_rect_extents = Vector2(22, 12)
+direction = Vector2(0, -1)
+spread = 22.0
+gravity = Vector2(0, -22)
+initial_velocity_min = 24.0
+initial_velocity_max = 48.0
+scale_amount_min = 0.85
+scale_amount_max = 1.55
+color_ramp = SubResource("Gradient_fire_ramp")
+
+[node name="SmokeParticles" type="CPUParticles2D" parent="Effects"]
+position = Vector2(0, -18)
+emitting = false
+amount = 18
+lifetime = 2.7
+texture = SubResource("GradientTexture2D_smoke")
+emission_shape = 3
+emission_rect_extents = Vector2(11, 4)
+direction = Vector2(0, -1)
+spread = 22.0
+gravity = Vector2(0, -28)
+initial_velocity_min = 12.0
+initial_velocity_max = 28.0
+angular_velocity_min = -16.0
+angular_velocity_max = 16.0
+scale_amount_min = 0.8
+scale_amount_max = 1.7
+color_ramp = SubResource("Gradient_smoke_ramp")
+
+[node name="NavigationIntegration" type="NavigationObstacle2D" parent="."]
+radius = 34.0
+avoidance_enabled = true

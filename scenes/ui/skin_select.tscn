@@ -1,0 +1,226 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/skin_select.gd" id="1_skin_select_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="2_guilherme_preview"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header_bar"]
+bg_color = Color(0.22, 1, 0.08, 1)
+shadow_color = Color(0.22, 1, 0.08, 0.6)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_base"]
+bg_color = Color(0.04, 0.05, 0.09, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.15, 0.45, 0.6, 0.5)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="SkinSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_skin_select_script")
+
+[node name="DarkBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.07, 1)
+
+[node name="LedTop" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 4.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header_bar")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 100
+theme_override_constants/margin_bottom = 35
+
+[node name="VBoxMain" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderContainer" type="VBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SubTitle" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 1, 0.08, 1)
+theme_override_font_sizes/font_size = 13
+text = "// PERSONALIZAÇÃO VISUAL // GUILHERME"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxMain/HeaderContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.96, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.22, 1, 0.08, 0.6)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 0
+theme_override_constants/shadow_outline_size = 8
+theme_override_font_sizes/font_size = 32
+text = "ESCOLHA SUA SKIN"
+horizontal_alignment = 1
+
+[node name="HBoxCards" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="Card_palmeirense" type="Button" parent="MarginContainer/VBoxMain/HBoxCards"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/HBoxCards/Card_palmeirense"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+theme_override_constants/separation = 10
+
+[node name="PreviewContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/HBoxCards/Card_palmeirense/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PreviewImg" type="TextureRect" parent="MarginContainer/VBoxMain/HBoxCards/Card_palmeirense/VBox/PreviewContainer"]
+custom_minimum_size = Vector2(160, 240)
+layout_mode = 2
+texture = ExtResource("2_guilherme_preview")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_palmeirense/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 1, 0.08, 1)
+theme_override_font_sizes/font_size = 20
+text = "PALMEIRENSE (PADRÃO)"
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_palmeirense/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+text = "Visual clássico com as cores sagradas"
+horizontal_alignment = 1
+
+[node name="SelectTag_palmeirense" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_palmeirense/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 1, 0.08, 1)
+theme_override_font_sizes/font_size = 12
+text = "◀ ATIVA / DESBLOQUEADA ▶"
+horizontal_alignment = 1
+
+[node name="Card_pelado" type="Button" parent="MarginContainer/VBoxMain/HBoxCards"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_card_base")
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxMain/HBoxCards/Card_pelado"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+theme_override_constants/separation = 10
+
+[node name="SilhouetteContainer" type="CenterContainer" parent="MarginContainer/VBoxMain/HBoxCards/Card_pelado/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Silhouette" type="ColorRect" parent="MarginContainer/VBoxMain/HBoxCards/Card_pelado/VBox/SilhouetteContainer"]
+custom_minimum_size = Vector2(120, 200)
+layout_mode = 2
+color = Color(0.08, 0.09, 0.15, 0.8)
+
+[node name="LockIcon" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_pelado/VBox/SilhouetteContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "🔒"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_pelado/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 20
+text = "PELADO"
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_pelado/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.3, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+text = "Skin bloqueada nesta versão"
+horizontal_alignment = 1
+
+[node name="SelectTag_pelado" type="Label" parent="MarginContainer/VBoxMain/HBoxCards/Card_pelado/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = " "
+horizontal_alignment = 1
+
+[node name="StatusNoticeLabel" type="Label" parent="MarginContainer/VBoxMain"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
+theme_override_font_sizes/font_size = 13
+text = "Pressione Confirmar Skin para avançar para a seleção de dificuldade"
+horizontal_alignment = 1
+
+[node name="BottomButtons" type="HBoxContainer" parent="MarginContainer/VBoxMain"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="BtnBack" type="Button" parent="MarginContainer/VBoxMain/BottomButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "◀ VOLTAR AOS HERÓIS"
+
+[node name="BtnConfirm" type="Button" parent="MarginContainer/VBoxMain/BottomButtons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "CONFIRMAR SKIN ▶"

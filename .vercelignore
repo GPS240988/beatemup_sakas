@@ -1,0 +1,18 @@
+# Ignorar tudo que não é do jogo web
+pyproject.toml
+uv.lock
+src/
+plugin/
+test_project/
+migration_bridge/
+.venv/
+.claude/
+.github/
+script/
+tests/
+tools/
+CHANGELOG.md
+LICENSE
+AGENTS.md
+*.py
+*.spec
