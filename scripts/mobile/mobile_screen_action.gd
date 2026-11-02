@@ -141,7 +141,6 @@ static func add_secondary_action(
 	button.offset_top = -BUTTON_HEIGHT
 	button.offset_bottom = 0.0
 
-	button.add_theme_font_override("font", ARCADE_FONT)
 	button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	button.add_theme_color_override("font_color", COLOR_CYAN_TEXT)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
@@ -164,7 +163,7 @@ static func set_action_state(button: Button, label: String, disabled: bool = fal
 	if button == null or not is_instance_valid(button):
 		return
 	button.text = _clean_label(label)
-	var button_width := clampf(float(button.text.length()) * 12.0 + 44.0, 150.0, 210.0)
+	var button_width := clampf(button.get_viewport_rect().size.x * 0.22, 160.0, 240.0)
 	button.custom_minimum_size.x = button_width
 	button.offset_left = -button_width
 	button.offset_right = 0.0
@@ -200,8 +199,7 @@ static func add_inline_primary_action(
 	button.offset_right = 0.0
 	button.offset_bottom = 0.0
 	button.custom_minimum_size = Vector2(144.0, BUTTON_HEIGHT)
-	button.add_theme_font_override("font", ARCADE_FONT)
-	button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
+		button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	button.add_theme_color_override("font_color", COLOR_GOLD_TEXT)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.85, 0.4, 1.0))
