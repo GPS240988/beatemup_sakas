@@ -69,18 +69,6 @@ func _load_background_image() -> void:
 
 	if tex != null:
 		background_texture.texture = tex
-		if _ambient_backdrop == null:
-			_ambient_backdrop = TextureRect.new()
-			_ambient_backdrop.name = "LoadingAmbientBackdrop"
-			_ambient_backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			_ambient_backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			_ambient_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			_ambient_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_ambient_backdrop.modulate = Color(0.18, 0.20, 0.28, 0.70)
-			add_child(_ambient_backdrop)
-			move_child(_ambient_backdrop, 1)
-		_ambient_backdrop.texture = tex
-
 
 func _update_hero_info() -> void:
 	var char_id: String = "guilherme"
