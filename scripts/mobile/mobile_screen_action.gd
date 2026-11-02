@@ -198,7 +198,8 @@ static func add_inline_primary_action(
 	button.offset_right = 0.0
 	button.offset_bottom = 0.0
 	button.custom_minimum_size = Vector2(144.0, BUTTON_HEIGHT)
-		button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
+	button.add_theme_font_override("font", ARCADE_FONT)
+	button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	button.add_theme_color_override("font_color", COLOR_GOLD_TEXT)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.85, 0.4, 1.0))
