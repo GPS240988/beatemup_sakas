@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/items/counter_card_interaction.gd" id="1_drop_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Itens/lotus_branco.png" id="2_placeholder_texture"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_drop_interaction"]
+size = Vector2(54, 68)
+
+[node name="DroppedMagazineInteraction" type="Area2D"]
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+script = ExtResource("1_drop_script")
+
+[node name="CardSprite" type="Sprite2D" parent="."]
+position = Vector2(0, -4)
+rotation = -0.20944
+scale = Vector2(0.42, 0.42)
+texture = ExtResource("2_placeholder_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_drop_interaction")

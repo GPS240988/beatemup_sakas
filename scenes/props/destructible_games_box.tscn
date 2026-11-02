@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://dal0v6f7rno7d" path="res://assets/ui/hud/Destruct/games2.webp" id="4_games2"]
 [ext_resource type="Texture2D" uid="uid://duphswjiwkhfo" path="res://assets/ui/hud/Destruct/games3.webp" id="5_games3"]
 [ext_resource type="Texture2D" uid="uid://6svlerk6x23v" path="res://assets/ui/hud/Destruct/games4.webp" id="6_games4"]
+[ext_resource type="Script" path="res://scripts/props/games_box_drop_controller.gd" id="7_drop_controller"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_solid"]
 size = Vector2(52, 16)
@@ -83,3 +84,6 @@ color = Color(0.75, 0.55, 0.35, 1)
 
 [node name="NavigationIntegration" type="NavigationObstacle2D" parent="." unique_id=830012666]
 radius = 26.0
+
+[node name="GamesBoxDropController" type="Node" parent="."]
+script = ExtResource("7_drop_controller")

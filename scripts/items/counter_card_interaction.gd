@@ -1,8 +1,8 @@
 extends Area2D
 
-## Interação única da carta caída no chão, logo abaixo do balcão do mapa 1.
-## A ação de ataque do jogador continua interagindo por meio do PlayerController;
-## o botão PEGAR também aceita toque/clique para dispositivos sem teclado.
+## Interação da carta no chão e de itens coletáveis dropados.
+## A carta original mantém o comportamento existente; configure_item() permite
+## reutilizar a mesma interação PEGAR/inspeção para outros itens do cenário.
 
 const CARD_TEXTURE: Texture2D = preload("res://assets/sprites/Itens/lotus_branco.png")
 const LOTUS_TEXTURE: Texture2D = preload("res://assets/sprites/Itens/lotus_branco_gg.webp")
@@ -15,6 +15,15 @@ const DIALOGUE_TEXT: String = "Essa carta não deve valer R$0,05."
 const BLINK_SPEED: float = 4.8
 
 @onready var _card_sprite: Sprite2D = get_node_or_null("CardSprite") as Sprite2D
+@onready var _interaction_shape: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
+
+var _world_texture: Texture2D = CARD_TEXTURE
+var _inspect_texture: Texture2D = LOTUS_TEXTURE
+var _display_name: String = "GABRIEL"
+var _dialogue_message: String = DIALOGUE_TEXT
+var _world_sprite_scale: Vector2 = Vector2(0.42, 0.42)
+var _interaction_shape_size: Vector2 = Vector2(220.0, 110.0)
+var _configured_as_drop_item: bool = false
 
 var _blink_clock: float = 0.0
 var _player_in_range: bool = false
@@ -28,8 +37,55 @@ var _overlay_layer: CanvasLayer
 var _expanded_card: TextureRect
 
 
+## Configura uma instância como item dropado antes de adicioná-la à árvore.
+## A inspeção, botão PEGAR, pausa e suporte mobile são os mesmos da carta da fase.
+func configure_item(
+	world_texture_path: String,
+	inspect_texture_path: String,
+	item_display_name: String,
+	dialogue_message: String = ""
+) -> void:
+	_configured_as_drop_item = true
+	_display_name = item_display_name if not item_display_name.is_empty() else "ITEM"
+	_dialogue_message = dialogue_message if not dialogue_message.is_empty() else "Você encontrou: %s." % _display_name
+	_world_texture = _load_item_texture(world_texture_path, CARD_TEXTURE, _display_name)
+	_inspect_texture = _load_item_texture(inspect_texture_path, LOTUS_TEXTURE, _display_name)
+
+	# Mantém o thumbnail pequeno, sem distorcer a proporção da arte original.
+	var source_size: Vector2 = _world_texture.get_size() if _world_texture != null else Vector2.ZERO
+	var max_dimension: float = maxf(source_size.x, source_size.y)
+	var fitted_scale: float = 0.20
+	if max_dimension > 0.0:
+		fitted_scale = minf(0.42, 64.0 / max_dimension)
+	_world_sprite_scale = Vector2.ONE * fitted_scale
+	_interaction_shape_size = Vector2(54.0, 68.0)
+
+
+func _load_item_texture(resource_path: String, fallback: Texture2D, item_name: String) -> Texture2D:
+	if resource_path.is_empty():
+		push_warning("Textura de inspeção/thumbnail vazia para '%s'; usando fallback." % item_name)
+		return fallback
+	if not ResourceLoader.exists(resource_path):
+		push_error("Textura do item '%s' não encontrada: %s" % [item_name, resource_path])
+		return fallback
+	var loaded_texture := load(resource_path) as Texture2D
+	if loaded_texture == null:
+		push_error("Não foi possível carregar a textura do item '%s': %s" % [item_name, resource_path])
+		return fallback
+	return loaded_texture
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if _configured_as_drop_item:
+		add_to_group("dropped_items")
+	if _card_sprite != null:
+		_card_sprite.texture = _world_texture
+		_card_sprite.scale = _world_sprite_scale
+	if _configured_as_drop_item and _interaction_shape != null and _interaction_shape.shape is RectangleShape2D:
+		var unique_shape := (_interaction_shape.shape as RectangleShape2D).duplicate() as RectangleShape2D
+		unique_shape.size = _interaction_shape_size
+		_interaction_shape.shape = unique_shape
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	_build_interaction_hint()
@@ -191,6 +247,7 @@ func _on_pickup_hint_pressed() -> void:
 		return
 	interact(_nearby_player)
 
+
 func _build_dialogue_overlay() -> void:
 	_overlay_layer = CanvasLayer.new()
 	_overlay_layer.name = "CardInspectionOverlay"
@@ -214,7 +271,7 @@ func _build_dialogue_overlay() -> void:
 
 	_expanded_card = TextureRect.new()
 	_expanded_card.name = "EnlargedCard"
-	_expanded_card.texture = LOTUS_TEXTURE
+	_expanded_card.texture = _inspect_texture
 	_expanded_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_expanded_card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_expanded_card.anchor_left = 0.5
@@ -254,7 +311,7 @@ func _build_dialogue_overlay() -> void:
 
 	var speaker_label: Label = Label.new()
 	speaker_label.name = "SpeakerName"
-	speaker_label.text = "GABRIEL"
+	speaker_label.text = _display_name
 	speaker_label.anchor_left = 0.205
 	speaker_label.anchor_top = 0.72
 	speaker_label.anchor_right = 0.91
@@ -270,7 +327,7 @@ func _build_dialogue_overlay() -> void:
 
 	var dialogue_label: Label = Label.new()
 	dialogue_label.name = "DialogueText"
-	dialogue_label.text = DIALOGUE_TEXT
+	dialogue_label.text = _dialogue_message
 	dialogue_label.anchor_left = 0.205
 	dialogue_label.anchor_top = 0.785
 	dialogue_label.anchor_right = 0.91 if not MobileScreenAction.is_mobile_runtime() else 0.74
@@ -311,26 +368,23 @@ func _build_dialogue_overlay() -> void:
 
 
 func _layout_expanded_card() -> void:
-	if _expanded_card == null or LOTUS_TEXTURE == null:
+	if _expanded_card == null or _inspect_texture == null:
 		return
 
 	var viewport_size: Vector2 = get_viewport_rect().size
-	var lotus_size: Vector2 = LOTUS_TEXTURE.get_size()
-	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0 or lotus_size.x <= 0.0 or lotus_size.y <= 0.0:
+	var item_size: Vector2 = _inspect_texture.get_size()
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0 or item_size.x <= 0.0 or item_size.y <= 0.0:
 		return
 
-	# Mantém a carta inteiramente na área superior, sem invadir o diálogo.
-	# A caixa de diálogo começa em 70% da altura da tela.
+	# Mantém a carta/arte inteiramente na área superior, sem invadir o diálogo.
 	var top_margin: float = viewport_size.y * 0.035
 	var dialogue_top: float = viewport_size.y * 0.70
 	var dialogue_gap: float = maxf(12.0, viewport_size.y * 0.025)
 	var available_height: float = maxf(1.0, dialogue_top - top_margin - dialogue_gap)
 	var max_display_size: Vector2 = Vector2(viewport_size.x * 0.42, available_height)
-	var fit_scale: float = minf(max_display_size.x / lotus_size.x, max_display_size.y / lotus_size.y)
-	var display_size: Vector2 = lotus_size * fit_scale
+	var fit_scale: float = minf(max_display_size.x / item_size.x, max_display_size.y / item_size.y)
+	var display_size: Vector2 = item_size * fit_scale
 
-	# O TextureRect usa âncoras centrais; o offset vertical reposiciona o centro
-	# no meio da área livre acima da caixa de diálogo.
 	var display_center_y: float = top_margin + available_height * 0.5
 	var center_offset_y: float = display_center_y - viewport_size.y * 0.5
 	_expanded_card.offset_left = -display_size.x * 0.5
