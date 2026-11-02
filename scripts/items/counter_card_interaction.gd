@@ -9,6 +9,7 @@ const LOTUS_TEXTURE: Texture2D = preload("res://assets/sprites/Itens/lotus_branc
 const GABRIEL_PORTRAIT: Texture2D = preload("res://assets/ui/hud/portraits/portrait_gabriel.png")
 const DIALOGUE_FRAME: Texture2D = preload("res://assets/ui/hud/dialog_frame_9patch.png")
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
+const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
 
 const DIALOGUE_TEXT: String = "Essa carta não deve valer R$0,05."
 const BLINK_SPEED: float = 4.8
@@ -272,8 +273,8 @@ func _build_dialogue_overlay() -> void:
 	dialogue_label.text = DIALOGUE_TEXT
 	dialogue_label.anchor_left = 0.205
 	dialogue_label.anchor_top = 0.785
-	dialogue_label.anchor_right = 0.91
-	dialogue_label.anchor_bottom = 0.905
+	dialogue_label.anchor_right = 0.91 if not MobileScreenAction.is_mobile_runtime() else 0.74
+	dialogue_label.anchor_bottom = 0.905 if not MobileScreenAction.is_mobile_runtime() else 0.875
 	dialogue_label.add_theme_font_override("font", ARCADE_FONT)
 	dialogue_label.add_theme_font_size_override("font_size", 22)
 	dialogue_label.add_theme_color_override("font_color", Color(0.96, 0.95, 0.90, 1.0))
@@ -298,6 +299,15 @@ func _build_dialogue_overlay() -> void:
 	continue_label.add_theme_color_override("font_color", Color(0.78, 0.81, 0.87, 1.0))
 	continue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(continue_label)
+	if MobileScreenAction.is_mobile_runtime():
+		continue_label.visible = false
+		MobileScreenAction.add_inline_primary_action(
+			root,
+			"AVANÇAR",
+			Callable(self, "_close_dialogue"),
+			Color(0.96, 0.73, 0.22, 1.0),
+			0.77, 0.87, 0.95, 0.97
+		)
 
 
 func _layout_expanded_card() -> void:

@@ -105,21 +105,20 @@ func _ready() -> void:
 	MobileScreenAction.add_secondary_action(
 		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
 	)
+	MobileScreenAction.add_navigation_pair(
+		self,
+		Callable(self, "_move_selection").bind(-1),
+		Callable(self, "_move_selection").bind(1)
+	)
 	_update_mobile_action()
 
 
 func _apply_mobile_fullscreen_layout() -> void:
-	if background_slot != null and background_slot.texture != null:
-		_mobile_fullscreen_bg = TextureRect.new()
-		_mobile_fullscreen_bg.name = "MobileFullscreenBackground"
-		_mobile_fullscreen_bg.texture = background_slot.texture
-		_mobile_fullscreen_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_mobile_fullscreen_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		_mobile_fullscreen_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		_mobile_fullscreen_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_mobile_fullscreen_bg.modulate = Color(0.18, 0.20, 0.28, 0.70)
-		add_child(_mobile_fullscreen_bg)
-		move_child(_mobile_fullscreen_bg, 1)
+	# Mantém a arte principal inteira e centralizada; o matte preenche as sobras.
+	# Não repete nem amplia a ilustração nas bordas do aparelho.
+	var dark_base := get_node_or_null("DarkBase") as ColorRect
+	if dark_base != null:
+		dark_base.color = Color(0.035, 0.045, 0.075, 1.0)
 
 
 func _setup_touch_hitboxes() -> void:
@@ -380,7 +379,11 @@ func _update_mobile_action() -> void:
 	if _mobile_action_button == null or btn_confirm == null:
 		return
 	var mobile_label: String = "CONFIRMAR GUILHERME" if current_hover_id == "guilherme" else "PERSONAGEM BLOQUEADO"
-	MobileScreenAction.set_action_state(_mobile_action_button, mobile_label, false)
+	MobileScreenAction.set_action_state(
+		_mobile_action_button,
+		mobile_label,
+		current_hover_id != "guilherme"
+	)
 
 
 func _generate_bar_string(val: int) -> String:

@@ -32,7 +32,7 @@ const OPTION_CONFIGS: Array[Dictionary] = [
 const MOBILE_LABELS: Array[String] = [
 	"INICIAR JOGO",
 	"CONTINUAR",
-	"DESABILITADO",
+	"SELECIONAR HERÓI",
 	"ABRIR MAPA",
 	"EM BREVE",
 	"SAIR DO JOGO"
@@ -87,6 +87,15 @@ func _ready() -> void:
 		_mobile_action_button = MobileScreenAction.add_primary_action(
 			self, "INICIAR JOGO", Callable(self, "_on_mobile_action_pressed"), Color(0.95, 0.73, 0.22, 1.0)
 		)
+		MobileScreenAction.add_navigation_pair(
+			self,
+			Callable(self, "_move_selection").bind(-1),
+			Callable(self, "_move_selection").bind(1)
+		)
+		if left_chevron != null:
+			left_chevron.visible = false
+		if right_chevron != null:
+			right_chevron.visible = false
 
 	# Aguarda frame para o sistema de layout do Godot resolver os tamanhos e posições reais
 	await get_tree().process_frame
@@ -115,7 +124,7 @@ func _setup_hitboxes() -> void:
 		b.pressed.connect(_on_button_clicked.bind(idx))
 
 	if btn_char_select != null:
-		btn_char_select.disabled = true
+		btn_char_select.disabled = false
 
 	if btn_settings != null:
 		btn_settings.disabled = true
@@ -168,7 +177,7 @@ func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 	_update_selector_positions(animate)
 	if _mobile_action_button != null and _current_index >= 0 and _current_index < MOBILE_LABELS.size():
 		var lbl: String = MOBILE_LABELS[_current_index]
-		var is_disabled: bool = (_current_index == 2 or _current_index == 4)
+		var is_disabled: bool = (_current_index == 4)
 		MobileScreenAction.set_action_state(_mobile_action_button, lbl, is_disabled)
 
 
@@ -247,8 +256,9 @@ func _activate_option(index: int) -> void:
 			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CONTINUE_SCENE)
 
-		2: # SELECIONAR PERSONAGENS (Desabilitado)
-			_deny_action("Seleção de Personagens desabilitada nesta versão.")
+		2: # SELECIONAR PERSONAGENS
+			_play_sound(_sfx_confirm)
+			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
 		3: # MAPA
 			_play_sound(_sfx_confirm)

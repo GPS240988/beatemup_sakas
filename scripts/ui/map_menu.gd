@@ -35,7 +35,6 @@ var _sfx_confirm: AudioStreamWAV
 var _sfx_cancel: AudioStreamWAV
 var _bob_tween: Tween
 var _mobile_action_button: Button
-var _ambient_backdrop: TextureRect
 
 
 func _ready() -> void:
@@ -67,11 +66,11 @@ func _setup_scaling() -> void:
 		vp_size = Vector2(1280.0, 720.0)
 
 	var scale_factor: float
-	if MobileScreenAction.is_mobile_runtime():
-		# No mobile: preenche a altura total da viewport sem cortar os pontos vitais do mapa
-		scale_factor = vp_size.y / 1080.0
-	else:
-		scale_factor = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
+	# Encaixe uniforme em todas as orientações: o mapa inteiro permanece visível.
+	scale_factor = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
+	var dark_base := get_node_or_null("DarkBase") as ColorRect
+	if dark_base != null:
+		dark_base.color = Color(0.035, 0.05, 0.09, 1.0)
 
 	if scale_factor <= 0.0:
 		scale_factor = 1.0
@@ -113,17 +112,6 @@ func _load_background_image() -> void:
 
 	if tex != null:
 		background_texture.texture = tex
-		if _ambient_backdrop == null:
-			_ambient_backdrop = TextureRect.new()
-			_ambient_backdrop.name = "MapAmbientBackdrop"
-			_ambient_backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			_ambient_backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			_ambient_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			_ambient_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_ambient_backdrop.modulate = Color(0.18, 0.20, 0.28, 0.70)
-			add_child(_ambient_backdrop)
-			move_child(_ambient_backdrop, 1)
-		_ambient_backdrop.texture = tex
 
 	if map_img != null:
 		if point1_cover != null:

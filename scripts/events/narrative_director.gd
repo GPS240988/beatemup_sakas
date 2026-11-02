@@ -1,6 +1,8 @@
 class_name NarrativeDirector
 extends CanvasLayer
 
+const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
+
 ## Diretor e Apresentador Narrativo Cinemático para Beat 'em Up 2.5D (Saka's: A Última Ficha).
 ## Implementa o Padrão Oficial de Apresentação Arcade:
 ## - Imagem principal preservada em proporção original, sem distorção ou cortes.
@@ -94,6 +96,7 @@ var _btn_skip: Button
 var _top_overlay: MarginContainer
 var _fade_overlay: ColorRect
 var _audio_player: AudioStreamPlayer
+var _mobile_revelation_button: Button
 var _crt_overlay: Control
 var _crt_msg_1: Label
 var _crt_msg_2: Label
@@ -370,6 +373,9 @@ func _display_image_event(
 		_title_container.visible = false
 
 	_load_texture_to_rect(img_path)
+	var mobile_safe_framing: bool = _is_mobile_runtime()
+	if _mobile_revelation_button != null:
+		_mobile_revelation_button.visible = false
 
 	# Letterbox/pillarbox profissional: não repetimos a ilustração nas laterais.
 	# As áreas externas ficam em matte quase preto para evitar duplicação visual.
@@ -381,7 +387,9 @@ func _display_image_event(
 	if _image_rect != null:
 		_image_rect.visible = true
 		_image_rect.pivot_offset = _image_rect.size * 0.5
-		_image_rect.scale = Vector2.ONE * zoom_start
+		# Em mobile, mantém a escala neutra para não cortar bordas da arte.
+		# Fade/glitch continuam como animações de entrada.
+		_image_rect.scale = Vector2.ONE * (1.0 if mobile_safe_framing else zoom_start)
 		_image_rect.position = Vector2.ZERO
 		_image_rect.modulate = Color.WHITE
 
@@ -408,8 +416,9 @@ func _display_image_event(
 			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, 0.70).set_trans(Tween.TRANS_SINE)
 			if _zoom_tween != null and _zoom_tween.is_valid():
 				_zoom_tween.kill()
-			_zoom_tween = create_tween()
-			_zoom_tween.tween_property(_image_rect, "scale", Vector2.ONE * 1.03, 10.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			if not mobile_safe_framing:
+				_zoom_tween = create_tween()
+				_zoom_tween.tween_property(_image_rect, "scale", Vector2.ONE * 1.03, 10.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 	# CENA 03 — OS QUE NÃO ESTÃO: Fade In suave
 	elif ev_id == "the_missing" or entry_eff == "crossfade_glitch" or entry_eff == "glitch":
@@ -458,8 +467,9 @@ func _display_image_event(
 
 			if _zoom_tween != null and _zoom_tween.is_valid():
 				_zoom_tween.kill()
-			_zoom_tween = create_tween()
-			_zoom_tween.tween_property(_image_rect, "scale", Vector2.ONE * 1.18, 1.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			if not mobile_safe_framing:
+				_zoom_tween = create_tween()
+				_zoom_tween.tween_property(_image_rect, "scale", Vector2.ONE * 1.18, 1.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 		if _crt_overlay != null:
 			_crt_overlay.visible = true
@@ -526,6 +536,8 @@ func _show_current_text_block(ev: Resource) -> void:
 	if ev_id == "arcade_machine":
 		if _dialogue_area != null:
 			_dialogue_area.visible = false
+		if _mobile_revelation_button != null:
+			_mobile_revelation_button.visible = _is_mobile_runtime()
 		_start_prompt_pulse()
 		event_started.emit(ev_id, current_text_index)
 		return
@@ -790,6 +802,8 @@ func _trigger_crt_pulse(duration: float = 0.2) -> void:
 
 
 func _advance_to_next_event() -> void:
+	if _mobile_revelation_button != null:
+		_mobile_revelation_button.visible = false
 	var events: Array = current_sequence.get("events") if current_sequence != null else []
 	if current_event_index < events.size():
 		var prev_ev: Resource = events[current_event_index]
@@ -815,6 +829,8 @@ func _finish_sequence() -> void:
 	if not is_playing:
 		return
 
+	if _mobile_revelation_button != null:
+		_mobile_revelation_button.visible = false
 	is_playing = false
 	_is_transitioning = true
 	_kill_tweens()
@@ -990,6 +1006,16 @@ func _configure_visual_layout() -> void:
 			_root_control.resized.connect(_on_narrative_layout_resized)
 
 	_apply_responsive_layout()
+	if _root_control != null and _is_mobile_runtime() and _mobile_revelation_button == null:
+		_mobile_revelation_button = MobileScreenAction.add_inline_primary_action(
+			_root_control,
+			"AVANÇAR",
+			Callable(self, "advance_or_skip_text"),
+			Color(0.96, 0.73, 0.22, 1.0),
+			0.77, 0.86, 0.95, 0.96
+		)
+		if _mobile_revelation_button != null:
+			_mobile_revelation_button.visible = false
 	call_deferred("_align_dialogue_area_to_image")
 
 
@@ -1017,7 +1043,12 @@ func _apply_responsive_layout() -> void:
 	var art_bottom: float
 	var dialogue_top: float
 
-	if is_portrait:
+	if _is_mobile_runtime() and not is_portrait:
+		# Mobile landscape: a ilustração ocupa todo o viewport; o painel é
+		# sobreposto na faixa inferior, sem reduzir o palco ou cortar a imagem.
+		art_bottom = 1.0
+		dialogue_top = 0.72
+	elif is_portrait:
 		# Celular vertical: arte no topo e painel amplo na metade inferior.
 		art_bottom = 0.38
 		dialogue_top = 0.40
@@ -1106,8 +1137,8 @@ func _apply_dialogue_density() -> void:
 	if _btn_mobile_advance != null:
 		if is_mobile:
 			# Botão arcade de rodapé de alta visibilidade e proporção tátil ideal
-			_btn_mobile_advance.custom_minimum_size = Vector2(140.0, 42.0)
-			_btn_mobile_advance.add_theme_font_size_override("font_size", 13)
+			_btn_mobile_advance.custom_minimum_size = Vector2(190.0, 52.0)
+			_btn_mobile_advance.add_theme_font_size_override("font_size", 14)
 			_btn_mobile_advance.text = "AVANÇAR"
 			_style_mobile_advance_button()
 		else:
@@ -1138,7 +1169,7 @@ func _style_mobile_advance_button() -> void:
 	if _btn_mobile_advance == null:
 		return
 	_btn_mobile_advance.add_theme_font_override("font", ARCADE_FONT)
-	_btn_mobile_advance.add_theme_font_size_override("font_size", 13)
+	_btn_mobile_advance.add_theme_font_size_override("font_size", 14)
 	_btn_mobile_advance.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82, 1.0))
 	_btn_mobile_advance.add_theme_color_override("font_hover_color", Color.WHITE)
 	_btn_mobile_advance.add_theme_color_override("font_pressed_color", Color(1.0, 0.85, 0.4, 1.0))
