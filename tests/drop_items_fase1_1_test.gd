@@ -73,6 +73,34 @@ func _run_tests() -> void:
 			_assert_test(emmanuele_dialogue != null and emmanuele_dialogue.get_node_or_null("EnlargedCard") != null, "Painel de inspeção EMMANUELE construído")
 			_assert_test(playboy_dialogue != null and playboy_dialogue.get_node_or_null("EnlargedCard") != null, "Painel de inspeção PLAYBOY construído")
 
+			var emmanuele_speaker: Label = emmanuele_dialogue.get_node_or_null("SpeakerName") as Label if emmanuele_dialogue != null else null
+			var playboy_speaker: Label = playboy_dialogue.get_node_or_null("SpeakerName") as Label if playboy_dialogue != null else null
+			var emmanuele_text: Label = emmanuele_dialogue.get_node_or_null("DialogueText") as Label if emmanuele_dialogue != null else null
+			var playboy_text: Label = playboy_dialogue.get_node_or_null("DialogueText") as Label if playboy_dialogue != null else null
+			_assert_test(emmanuele_speaker != null and emmanuele_speaker.text == "GABRIEL", "Emmanuele usa Gabriel como interlocutor")
+			_assert_test(playboy_speaker != null and playboy_speaker.text == "GABRIEL", "Playboy usa Gabriel como interlocutor")
+			_assert_test(emmanuele_text != null and emmanuele_text.text == "Sei todas as falas, faltava esse pra minha coleção.", "Fala de Gabriel para Emmanuele confere")
+			_assert_test(playboy_text != null and playboy_text.text == "Japonês safado, larga essas coisas aqui.", "Fala de Gabriel para Playboy confere")
+
+			# Simula o jogador dentro das duas áreas ao mesmo tempo. Só o drop
+			# mais próximo pode exibir PEGAR e registrar a interação.
+			var test_player := CharacterBody2D.new()
+			test_player.name = "DropHintTestPlayer"
+			test_player.add_to_group("player")
+			drop_parent.add_child(test_player)
+			test_player.global_position = (emmanuele.global_position + playboy.global_position) * 0.5
+			emmanuele.call("_on_body_entered", test_player)
+			playboy.call("_on_body_entered", test_player)
+			await process_frame
+			var emmanuele_hint := emmanuele.get_node_or_null("PickUpHint") as Button
+			var playboy_hint := playboy.get_node_or_null("PickUpHint") as Button
+			_assert_test(emmanuele_hint != null and playboy_hint != null and (emmanuele_hint.visible != playboy_hint.visible), "Apenas um botão PEGAR fica visível entre os dois itens")
+
+			test_player.global_position = emmanuele.global_position
+			await process_frame
+			_assert_test(emmanuele_hint != null and emmanuele_hint.visible and playboy_hint != null and not playboy_hint.visible, "PEGAR prioriza o item mais próximo do jogador")
+			test_player.queue_free()
+
 	print("=== RESULTADO: %d/%d aprovados; %d falhas ===" % [passed_tests, total_tests, failed_tests])
 	box.queue_free()
 	quit(0 if failed_tests == 0 else 1)

@@ -11,14 +11,14 @@ const DROP_ITEMS: Array[Dictionary] = [
 		"name": "EMMANUELE",
 		"world_texture": "res://assets/sprites/Itens/emmanuele.jpg",
 		"inspect_texture": "res://assets/sprites/Itens/emmanuele_gg.jpg",
-		"dialogue": "Você encontrou: EMMANUELE.",
+		"dialogue": "Sei todas as falas, faltava esse pra minha coleção.",
 		"offset": Vector2(-40.0, 0.0)
 	},
 	{
 		"name": "PLAYBOY",
 		"world_texture": "res://assets/sprites/Itens/playboy.jpg",
 		"inspect_texture": "res://assets/sprites/Itens/playboy_gg.jpg",
-		"dialogue": "Você encontrou: PLAYBOY.",
+		"dialogue": "Japonês safado, larga essas coisas aqui.",
 		"offset": Vector2(40.0, 0.0)
 	}
 ]

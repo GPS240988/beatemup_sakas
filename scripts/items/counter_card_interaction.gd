@@ -30,6 +30,7 @@ var _player_in_range: bool = false
 var _already_read: bool = false
 var _dialogue_open: bool = false
 var _interacting_player: Node = null
+var _registered_player: Node = null
 
 var _hint_button: Button
 var _nearby_player: Node = null
@@ -93,6 +94,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Para os itens dropados, todos disputam um único PEGAR: vence o item
+	# elegível mais próximo do jogador. A carta original permanece inalterada.
+	if _configured_as_drop_item:
+		_refresh_drop_interaction_priority()
+
 	if _already_read or _card_sprite == null:
 		return
 
@@ -100,7 +106,7 @@ func _process(delta: float) -> void:
 	var pulse: float = (sin(_blink_clock * BLINK_SPEED) + 1.0) * 0.5
 	_card_sprite.modulate.a = lerpf(0.48, 1.0, pulse)
 
-	if _hint_button != null and _player_in_range:
+	if _hint_button != null and _hint_button.visible:
 		_hint_button.modulate.a = lerpf(0.72, 1.0, pulse)
 
 
@@ -138,6 +144,9 @@ func interact(actor: Node) -> bool:
 		(actor as CharacterBody2D).velocity = Vector2.ZERO
 
 	_dialogue_open = true
+	if _configured_as_drop_item:
+		_set_registered_player(null)
+		_refresh_drop_group()
 	if _hint_button != null:
 		_hint_button.visible = false
 	if _overlay_layer != null:
@@ -156,6 +165,10 @@ func _on_body_entered(body: Node2D) -> void:
 
 	_player_in_range = true
 	_nearby_player = body
+	if _configured_as_drop_item:
+		_refresh_drop_group()
+		return
+
 	if _hint_button != null:
 		_hint_button.visible = true
 	if body.has_method("register_interactable"):
@@ -166,6 +179,15 @@ func _on_body_exited(body: Node2D) -> void:
 	if not body.is_in_group("player"):
 		return
 
+	if _configured_as_drop_item:
+		if _nearby_player == body:
+			_player_in_range = false
+			_nearby_player = null
+		if _registered_player == body:
+			_set_registered_player(null)
+		_refresh_drop_group()
+		return
+
 	_player_in_range = false
 	if _nearby_player == body:
 		_nearby_player = null
@@ -173,6 +195,84 @@ func _on_body_exited(body: Node2D) -> void:
 		_hint_button.visible = false
 	if body.has_method("unregister_interactable"):
 		body.call("unregister_interactable", self)
+
+
+## Retorna true apenas enquanto este item pode receber a interação PEGAR do player.
+func can_offer_hint_to(player: Node) -> bool:
+	return (
+		_configured_as_drop_item
+		and not _already_read
+		and not _dialogue_open
+		and _player_in_range
+		and _nearby_player == player
+	)
+
+
+func is_dialogue_open_for_player(player: Node) -> bool:
+	return _dialogue_open and _interacting_player == player
+
+
+## Seleciona apenas um item próximo: menor distância; desempate pelo instance_id.
+func _get_preferred_drop_for_player(player: Node) -> Area2D:
+	if player == null or not is_instance_valid(player):
+		return null
+
+	var drop_nodes: Array[Node] = get_tree().get_nodes_in_group("dropped_items")
+	for candidate: Node in drop_nodes:
+		if candidate.has_method("is_dialogue_open_for_player") and candidate.call("is_dialogue_open_for_player", player):
+			return null
+
+	var preferred: Area2D = null
+	var best_distance: float = INF
+	for candidate: Node in drop_nodes:
+		var candidate_item := candidate as Area2D
+		if candidate_item == null or not candidate_item.has_method("can_offer_hint_to"):
+			continue
+		if not bool(candidate_item.call("can_offer_hint_to", player)):
+			continue
+
+		var distance_sq: float = candidate_item.global_position.distance_squared_to(player.global_position)
+		if distance_sq < best_distance or (
+			is_equal_approx(distance_sq, best_distance)
+			and (preferred == null or candidate_item.get_instance_id() < preferred.get_instance_id())
+		):
+			best_distance = distance_sq
+			preferred = candidate_item
+	return preferred
+
+
+func _refresh_drop_interaction_priority() -> void:
+	if not _configured_as_drop_item:
+		return
+
+	var preferred: Area2D = _get_preferred_drop_for_player(_nearby_player)
+	var owns_hint: bool = preferred == self and _nearby_player != null
+	if _hint_button != null:
+		_hint_button.visible = owns_hint
+	_set_registered_player(_nearby_player if owns_hint else null)
+
+
+## Recalcula os dois itens juntos para não deixar um botão antigo visível por um frame.
+func _refresh_drop_group() -> void:
+	if get_tree() == null:
+		return
+	for candidate: Node in get_tree().get_nodes_in_group("dropped_items"):
+		if candidate.has_method("_refresh_drop_interaction_priority"):
+			candidate.call("_refresh_drop_interaction_priority")
+
+
+func _set_registered_player(player: Node) -> void:
+	if _registered_player == player:
+		return
+	if _registered_player != null and is_instance_valid(_registered_player):
+		if _registered_player.has_method("unregister_interactable"):
+			_registered_player.call("unregister_interactable", self)
+	_registered_player = null
+
+	if player != null and is_instance_valid(player):
+		_registered_player = player
+		if _registered_player.has_method("register_interactable"):
+			_registered_player.call("register_interactable", self)
 
 
 func _close_dialogue() -> void:
@@ -192,6 +292,8 @@ func _close_dialogue() -> void:
 	monitoring = false
 	_player_in_range = false
 
+	if _configured_as_drop_item:
+		_set_registered_player(null)
 	if _interacting_player != null and is_instance_valid(_interacting_player):
 		if _interacting_player.has_method("unregister_interactable"):
 			_interacting_player.call("unregister_interactable", self)
@@ -200,6 +302,8 @@ func _close_dialogue() -> void:
 	var tree: SceneTree = get_tree()
 	if tree != null:
 		tree.paused = false
+	if _configured_as_drop_item:
+		_refresh_drop_group()
 
 
 func _build_interaction_hint() -> void:
@@ -311,7 +415,7 @@ func _build_dialogue_overlay() -> void:
 
 	var speaker_label: Label = Label.new()
 	speaker_label.name = "SpeakerName"
-	speaker_label.text = _display_name
+	speaker_label.text = "GABRIEL"
 	speaker_label.anchor_left = 0.205
 	speaker_label.anchor_top = 0.72
 	speaker_label.anchor_right = 0.91
@@ -405,6 +509,10 @@ func _animate_card_reveal() -> void:
 
 
 func _exit_tree() -> void:
+	if _registered_player != null and is_instance_valid(_registered_player):
+		if _registered_player.has_method("unregister_interactable"):
+			_registered_player.call("unregister_interactable", self)
+	_registered_player = null
 	if _dialogue_open:
 		var tree: SceneTree = get_tree()
 		if tree != null:

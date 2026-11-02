@@ -9,7 +9,7 @@ extends SceneTree
 ## 5. Regras de Sessão: Novo Jogo reproduz prólogo; Continuar NÃO reproduz prólogo automaticamente.
 ## 6. Integração do LevelEventDirector com eventos de narrativa.
 ## 7. Validação da cena story_intro.tscn e transição segura pós-instruções.
-## 8. Sistema de Enquadramento: proporção preservada (STRETCH_KEEP_ASPECT_CENTERED), filtro nearest e palco seguro.
+## 8. Sistema de Enquadramento: desktop COVERED, mobile CENTERED, filtro nearest e palco seguro.
 ## 9. Avanço Manual Estrito: ausência de temporizadores automáticos de avanço de texto.
 ## 10. Moldura Oficial 9-Patch e Tipografia Arcade: textura oficial e arcade_bold.ttf presentes.
 ## 11. Proteção e Isolamento de Input para Gameplay: descarte de ações para evitar pulo/golpe acidental.
@@ -281,7 +281,6 @@ func test_story_intro_scene_and_loading_transition() -> void:
 	assert_test("STORY_INTRO_SCENE" in loading_script and loading_script.STORY_INTRO_SCENE == intro_scene_path, "LoadingScreen possui constante STORY_INTRO_SCENE apontando para story_intro.tscn")
 
 
-
 func test_safe_framing_and_aspect_ratio() -> void:
 	print("\n--- 8. Validando Sistema de Enquadramento e Área Segura ---")
 	var director_scene: PackedScene = load("res://scenes/ui/narrative_director.tscn")
@@ -289,38 +288,70 @@ func test_safe_framing_and_aspect_ratio() -> void:
 	root.add_child(nar)
 
 	var art_stage: Control = nar.get_node_or_null("%ArtStage")
-	assert_test(art_stage != null, "ArtStage (palco dedicado de arte) existe na cena")
+	assert_test(art_stage != null, "ArtStage (palco dedicado de arte) existe")
 
+	var is_mobile_runtime: bool = bool(nar.call("_is_mobile_runtime"))
+	var viewport_size: Vector2 = nar.get_viewport().get_visible_rect().size
 	if art_stage != null:
-		var viewport_size: Vector2 = nar.get_viewport().get_visible_rect().size
-		var mobile_landscape: bool = (
-			bool(nar.call("_is_mobile_runtime"))
-			and viewport_size.x >= viewport_size.y
-		)
-
+		var mobile_landscape: bool = is_mobile_runtime and viewport_size.x >= viewport_size.y
 		if mobile_landscape:
 			assert_test(
 				is_equal_approx(art_stage.anchor_bottom, 1.0),
-				"Mobile landscape utiliza palco de arte em tela completa"
+				"Mobile landscape mantém arte em tela completa"
 			)
-		else:
+		elif is_mobile_runtime:
 			assert_test(
 				art_stage.anchor_bottom <= 0.76,
-				"ArtStage respeita área segura acima de 76% da tela"
+				"Mobile portrait preserva palco de arte compacto"
+			)
+		else:
+			var expected_art_bottom: float = 0.72
+			if viewport_size.y < 420.0:
+				expected_art_bottom = 0.66
+			elif viewport_size.y < 520.0:
+				expected_art_bottom = 0.69
+			assert_test(
+				is_equal_approx(art_stage.anchor_bottom, expected_art_bottom),
+				"Desktop reserva área superior exclusiva para a imagem"
 			)
 
 	var img_disp: TextureRect = nar.get_node_or_null("%ImageDisplay")
 	assert_test(img_disp != null, "ImageDisplay existe no palco")
 
 	if img_disp != null:
+		var expected_stretch_mode: int = TextureRect.STRETCH_KEEP_ASPECT_CENTERED if is_mobile_runtime else TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		assert_test(
-			img_disp.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED,
-			"ImageDisplay utiliza STRETCH_KEEP_ASPECT_CENTERED (sem corte de bordas)"
+			img_disp.stretch_mode == expected_stretch_mode,
+			"Desktop usa COVERED sem barras laterais; mobile preserva CENTERED"
 		)
 		assert_test(
 			img_disp.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
 			"ImageDisplay preserva nitidez de pixel art com filtro NEAREST"
 		)
+
+	var dialogue_area: Control = nar.get_node_or_null("%DialogueArea")
+	if not is_mobile_runtime and dialogue_area != null and art_stage != null:
+		assert_test(
+			is_equal_approx(dialogue_area.anchor_top, art_stage.anchor_bottom)
+			and is_equal_approx(dialogue_area.anchor_bottom, 1.0),
+			"Desktop posiciona diálogos abaixo da imagem, sem sobreposição"
+		)
+		assert_test(
+			is_equal_approx(dialogue_area.anchor_left, 0.0)
+			and is_equal_approx(dialogue_area.anchor_right, 1.0),
+			"Faixa inferior ocupa toda a largura do viewport"
+		)
+
+	# A revelação do fliperama desativa a faixa inferior e amplia o palco.
+	nar.set("_arcade_fullscreen_mode", true)
+	nar.call("_apply_responsive_layout")
+	assert_test(
+		is_equal_approx(art_stage.anchor_bottom, 1.0)
+		and dialogue_area != null and not dialogue_area.visible,
+		"Revelação do fliperama usa tela completa sem faixa preta inferior"
+	)
+	nar.set("_arcade_fullscreen_mode", false)
+	nar.call("_apply_responsive_layout")
 
 	var amb_bg: TextureRect = nar.get_node_or_null("%AmbientBackground")
 	assert_test(
@@ -342,9 +373,24 @@ func test_manual_advance_and_no_timer_skips() -> void:
 	# Aguarda conclusão do fade inicial (~0.35s)
 	await create_timer(0.40).timeout
 
-	# Avança CENA 01 (Title Card) para CENA 02 (The Four)
+	# Avança o cartão de abertura para a primeira imagem narrativa.
 	nar.advance_or_skip_text()
-	# Aguarda transição da imagem da CENA 02 (~0.35s)
+	var early_dialogue_area: Control = nar.get_node_or_null("%DialogueArea")
+	var early_dialogue_label: Label = nar.get_node_or_null("%DialogueLabel")
+	assert_test(
+		early_dialogue_area != null and early_dialogue_area.visible,
+		"Moldura de diálogo aparece no mesmo início de carregamento da imagem"
+	)
+	assert_test(
+		early_dialogue_label != null and not early_dialogue_label.text.is_empty(),
+		"Texto inicial já está preparado enquanto a imagem entra"
+	)
+	var early_counter: Label = nar.get_node_or_null("%SceneCounterLabel")
+	assert_test(
+		early_counter != null and early_counter.text == "02" and not early_counter.text.contains("CENA"),
+		"Moldura apresenta somente o número do evento, sem o termo CENA"
+	)
+	# Aguarda a transição da imagem da primeira cena narrativa.
 	await create_timer(0.40).timeout
 
 	var initial_text_index = nar.current_text_index
@@ -400,7 +446,17 @@ func test_official_dialogue_frame_and_typography() -> void:
 	assert_test(key_lbl != null and key_lbl.text == "ENTER", "KeyBadge exibe 'ENTER' com estilo arcade")
 
 	var prompt_lbl: Label = nar.get_node_or_null("%PromptLabel")
-	assert_test(prompt_lbl != null and prompt_lbl.text.contains("PARA AVANÇAR"), "PromptLabel informa 'PARA AVANÇAR ❯'")
+	assert_test(
+		prompt_lbl != null
+		and prompt_lbl.text == "ENTER PARA AVANÇAR"
+		and prompt_lbl.get_theme_font_size("font_size") >= 16,
+		"Prompt de ENTER tem tamanho padronizado e não depende de glifo decorativo"
+	)
+
+	var counter_lbl: Label = nar.get_node_or_null("%SceneCounterLabel")
+	if counter_lbl != null:
+		counter_lbl.text = "02"
+		assert_test(not counter_lbl.text.contains("CENA"), "Moldura não exibe o termo CENA no contador")
 
 	root.remove_child(nar)
 	nar.free()
