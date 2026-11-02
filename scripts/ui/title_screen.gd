@@ -69,13 +69,14 @@ func _on_touch_activated() -> void:
 
 
 func _handle_activation() -> void:
-	# Se pressionar durante o carregamento/fade-in, completa imediatamente
-	if not _is_loaded and _fade_tween != null and _fade_tween.is_valid():
-		_fade_tween.kill()
-		if background_image != null:
-			background_image.modulate.a = 1.0
-		_is_loaded = true
+	if _is_transitioning:
 		return
+
+	if _fade_tween != null and _fade_tween.is_valid():
+		_fade_tween.kill()
+	if background_image != null:
+		background_image.modulate.a = 1.0
+	_is_loaded = true
 
 	_start_game()
 

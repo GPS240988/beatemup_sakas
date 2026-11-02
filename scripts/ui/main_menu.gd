@@ -69,6 +69,7 @@ var _move_tween: Tween
 var _pulse_tween: Tween
 var _shake_tween: Tween
 var _mobile_action_button: Button
+var _is_transitioning: bool = false
 
 var _sfx_move: AudioStreamWAV
 var _sfx_confirm: AudioStreamWAV
@@ -252,11 +253,11 @@ func _update_selector_positions(animate: bool = false) -> void:
 
 func _make_mobile_selector_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.045, 0.065, 0.105, 0.94) if selected else Color(0.015, 0.025, 0.045, 0.16)
-	style.border_color = Color(1.0, 0.70, 0.20, 1.0) if selected else Color(0.42, 0.52, 0.68, 0.18)
-	style.set_border_width_all(3 if selected else 0)
+	style.bg_color = Color(1.0, 0.72, 0.20, 0.18) if selected else Color(0.02, 0.03, 0.06, 0.10)
+	style.border_color = Color(1.0, 0.75, 0.20, 1.0) if selected else Color(0.42, 0.52, 0.68, 0.18)
+	style.set_border_width_all(2 if selected else 0)
 	style.set_corner_radius_all(12)
-	style.shadow_color = Color(1.0, 0.55, 0.12, 0.28) if selected else Color.TRANSPARENT
+	style.shadow_color = Color(1.0, 0.55, 0.12, 0.35) if selected else Color.TRANSPARENT
 	style.shadow_size = 10 if selected else 0
 	style.content_margin_left = 18.0
 	style.content_margin_right = 18.0
@@ -273,8 +274,12 @@ func _start_idle_pulse() -> void:
 
 
 func _activate_option(index: int) -> void:
+	if _is_transitioning:
+		return
+
 	match index:
 		0: # NOVO JOGO
+			_is_transitioning = true
 			_play_sound(_sfx_confirm)
 			var session = get_node_or_null("/root/GameSession")
 			if session != null and session.has_method("reset_session"):
@@ -282,14 +287,17 @@ func _activate_option(index: int) -> void:
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
 		1: # CONTINUAR
+			_is_transitioning = true
 			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CONTINUE_SCENE)
 
 		2: # SELECIONAR PERSONAGENS
+			_is_transitioning = true
 			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
 		3: # MAPA
+			_is_transitioning = true
 			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(MAP_MENU_SCENE)
 
