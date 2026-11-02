@@ -10,6 +10,7 @@ func _ready() -> void:
 	# Em paisagem ultrawide, mantém a altura lógica do jogo e amplia a área
 	# horizontal visível. Isso remove as barras laterais sem esticar sprites,
 	# alterar a resolução-base ou redimensionar recursos.
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
 	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP_HEIGHT
 
 
