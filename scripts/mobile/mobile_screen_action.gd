@@ -25,7 +25,6 @@ static func is_mobile_runtime() -> bool:
 		OS.has_feature("mobile")
 		or OS.has_feature("web_android")
 		or OS.has_feature("web_ios")
-		or DisplayServer.is_touchscreen_available()
 	)
 
 
