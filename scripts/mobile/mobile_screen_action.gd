@@ -15,9 +15,9 @@ const COLOR_CYAN_ACCENT := Color(0.0, 0.82, 0.88, 1.0)
 const COLOR_CYAN_BG := Color(0.05, 0.08, 0.14, 0.94)
 const COLOR_CYAN_TEXT := Color(0.88, 0.96, 1.0, 1.0)
 
-const BUTTON_HEIGHT: float = 52.0
+const BUTTON_HEIGHT: float = 64.0
 const BUTTON_CORNER_RADIUS: int = 10
-const BUTTON_FONT_SIZE: int = 14
+const BUTTON_FONT_SIZE: int = 18
 
 
 static func is_mobile_runtime() -> bool:
@@ -63,7 +63,7 @@ static func add_primary_action(
 	button.process_mode = Node.PROCESS_MODE_ALWAYS
 	button.z_index = 10
 
-	var width := clampf(float(button.text.length()) * 11.0 + 48.0, 180.0, 230.0)
+	var width := clampf(owner.get_viewport().get_visible_rect().size.x * 0.23, 168.0, 260.0)
 	button.custom_minimum_size = Vector2(width, BUTTON_HEIGHT)
 	button.anchor_left = 0.95
 	button.anchor_right = 0.95
@@ -74,7 +74,6 @@ static func add_primary_action(
 	button.offset_top = -BUTTON_HEIGHT
 	button.offset_bottom = 0.0
 
-	button.add_theme_font_override("font", ARCADE_FONT)
 	button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 	button.add_theme_color_override("font_color", COLOR_GOLD_TEXT)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
@@ -131,7 +130,7 @@ static func add_secondary_action(
 	button.process_mode = Node.PROCESS_MODE_ALWAYS
 	button.z_index = 10
 
-	var width := 180.0
+	var width := clampf(owner.get_viewport().get_visible_rect().size.x * 0.20, 150.0, 230.0)
 	button.custom_minimum_size = Vector2(width, BUTTON_HEIGHT)
 	button.anchor_left = 0.05
 	button.anchor_right = 0.05
