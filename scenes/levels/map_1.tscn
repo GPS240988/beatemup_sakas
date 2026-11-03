@@ -42,6 +42,7 @@ size = Vector2(60, 80)
 script = ExtResource("1_map1_transition")
 map_name = "Fase 1 - Seção 1: Entrada da Rua"
 map_index = 1
+mobile_camera_fill_overscan = 1.02
 map_group = "fase1"
 next_map_scene_path = "res://scenes/levels/map_2.tscn"
 reinforcement_waves_enabled = true

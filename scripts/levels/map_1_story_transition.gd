@@ -1,4 +1,4 @@
-extends "res://scripts/levels/base_level.gd"
+extends "res://scripts/levels/mobile_base_level.gd"
 
 ## Intercepta somente a passagem do primeiro mapa da Fase 1 para map_2.
 ## A lógica original de BaseLevel continua salvando a progressão e limpando
@@ -101,7 +101,7 @@ func get_offscreen_spawn_position(index: int = 0, total: int = 1) -> Vector2:
 				for previous_position: Vector2 in _mobile_reinforcement_spawn_positions:
 					if candidate.distance_to(previous_position) < minimum_separation:
 						separated = false
-						break
+					break
 				if not separated:
 					continue
 

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://igj2to84hmep"]
 
-[ext_resource type="Script" uid="uid://ge8vtyt1ugdm" path="res://scripts/levels/base_level.gd" id="1_base_level"]
+[ext_resource type="Script" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base"]
 [ext_resource type="Texture2D" uid="uid://o78q2ivl8thb" path="res://assets/backgrounds/maps/fase1/Fase1_2.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="PackedScene" uid="uid://cxvd6h0452i8y" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
@@ -39,10 +39,11 @@ size = Vector2(106.75, 221)
 size = Vector2(101, 84)
 
 [node name="Map2" type="Node2D" unique_id=1948904586]
-script = ExtResource("1_base_level")
+script = ExtResource("1_mobile_base")
 section_number = 2
 map_name = "Fase 1 - Seção 2: Balcão da Locadora"
 map_index = 2
+mobile_camera_fill_overscan = 1.02
 next_map_scene_path = "res://scenes/levels/map_3.tscn"
 reinforcement_waves_enabled = true
 reinforcement_count = 3

@@ -206,8 +206,11 @@ func test_map_menu_dynamic_progression() -> void:
 	var u_arrow_p1 = menu_unlocked.get_node_or_null("%ArrowP1")
 	var u_arrow_p2 = menu_unlocked.get_node_or_null("%ArrowP2")
 	var u_p2_cover = menu_unlocked.get_node_or_null("%Point2Cover")
-	assert_test(u_arrow_p1 != null and not u_arrow_p1.visible, "Após desbloqueio: seta do Ponto 1 fica oculta")
-	assert_test(u_arrow_p2 != null and u_arrow_p2.visible, "Após desbloqueio: seta é exibida sobre o Ponto 2")
+	assert_test(u_arrow_p1 != null and u_arrow_p1.visible, "O ponteiro está sempre no 1 ao abrir o mapa")
+	assert_test(u_arrow_p2 != null and not u_arrow_p2.visible, "Ao abrir o mapa: seta do Ponto 2 está oculta")
+	menu_unlocked.select_point(2)
+	assert_test(u_arrow_p2 != null and u_arrow_p2.visible, "Ao selecionar Ponto 2 na trilha: seta é exibida sobre o Ponto 2")
+	assert_test(u_arrow_p1 != null and not u_arrow_p1.visible, "Ao selecionar Ponto 2: seta do Ponto 1 fica oculta")
 	assert_test(u_p2_cover != null and u_p2_cover.visible, "Após desbloqueio: cadeado do Ponto 2 é removido/coberto")
 	menu_unlocked.queue_free()
 

@@ -95,6 +95,42 @@ func _ready() -> void:
 		_start_idle_pulse()
 
 
+func _input(event: InputEvent) -> void:
+	# O toque nativo é tratado antes da conversão opcional para mouse do Godot.
+	# Um único toque na opção executa a ação, sem exigir um segundo toque no dock.
+	if not _is_mobile_runtime() or _is_transitioning:
+		return
+	if not (event is InputEventScreenTouch and event.pressed and event.index == 0):
+		return
+
+	var touch_position: Vector2 = event.position
+	if _is_mobile_dock_touch(touch_position):
+		return
+
+	for idx in range(_buttons.size()):
+		var menu_button: Button = _buttons[idx]
+		if menu_button == null or not menu_button.is_visible_in_tree():
+			continue
+		if menu_button.get_global_rect().has_point(touch_position):
+			_safe_handle_input()
+			_set_selected_index(idx, true)
+			_activate_option(idx)
+			return
+
+
+func _is_mobile_dock_touch(screen_position: Vector2) -> bool:
+	var navigation_layer: CanvasLayer = get_node_or_null("MobileNavigationLayer") as CanvasLayer
+	if navigation_layer == null:
+		return false
+
+	for candidate in navigation_layer.find_children("*", "Button", true, false):
+		var action_button: Button = candidate as Button
+		if action_button != null and action_button.is_visible_in_tree():
+			if action_button.get_global_rect().has_point(screen_position):
+				return true
+	return false
+
+
 func _on_mobile_action_pressed() -> void:
 	_activate_option(_current_index)
 
@@ -164,9 +200,9 @@ func _on_button_hovered(index: int) -> void:
 
 func _on_button_clicked(index: int) -> void:
 	_set_selected_index(index, true)
-	# No mobile, o toque seleciona; a ação só acontece ao tocar em INICIAR.
-	if not _is_mobile_runtime():
-		_activate_option(index)
+	# Também confirma diretamente pelo Button quando o sistema mobile entrega
+	# o toque como mouse emulado, sem depender do caminho InputEventScreenTouch.
+	_activate_option(index)
 
 
 func _set_selected_index(new_idx: int, animate: bool = false) -> void:

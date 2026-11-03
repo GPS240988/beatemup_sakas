@@ -49,6 +49,17 @@ func _start_cinematic_fadein() -> void:
 	)
 
 
+func _input(event: InputEvent) -> void:
+	# Captura o toque antes dos controles filhos. Assim, qualquer ponto da arte
+	# inicial avança para o menu, mesmo quando o dispositivo não emula mouse.
+	if not MobileScreenAction.is_mobile_runtime() or _is_transitioning:
+		return
+	if event is InputEventScreenTouch and event.pressed and event.index == 0:
+		_handle_activation()
+		if get_viewport() != null:
+			get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_transitioning:
 		return

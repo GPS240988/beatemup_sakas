@@ -58,6 +58,16 @@ offset_right = 885.0
 offset_bottom = 299.0
 expand_mode = 1
 
+[node name="Point3Cover" type="TextureRect" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 1248.0
+offset_top = 298.0
+offset_right = 1277.0
+offset_bottom = 342.0
+expand_mode = 1
+
 [node name="ArrowP1" type="Node2D" parent="MapContainer"]
 unique_name_in_owner = true
 visible = false
@@ -74,6 +84,12 @@ script = ExtResource("3_arrow_renderer_script")
 unique_name_in_owner = true
 visible = false
 position = Vector2(870, 265)
+script = ExtResource("3_arrow_renderer_script")
+
+[node name="ArrowP3" type="Node2D" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+position = Vector2(1262, 335)
 script = ExtResource("3_arrow_renderer_script")
 
 [node name="ClickZones" type="Control" parent="MapContainer"]

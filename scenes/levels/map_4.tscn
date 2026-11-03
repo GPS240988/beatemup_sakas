@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bo1haot30m3b0"]
 
-[ext_resource type="Script" uid="uid://ge8vtyt1ugdm" path="res://scripts/levels/base_level.gd" id="1_base_level"]
+[ext_resource type="Script" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base"]
 [ext_resource type="Texture2D" uid="uid://di68bvkiwwr58" path="res://assets/backgrounds/maps/fase1/Fase1_4.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
@@ -69,11 +69,12 @@ animations = [{
 }]
 
 [node name="Map4" type="Node2D" unique_id=20037952]
-script = ExtResource("1_base_level")
+script = ExtResource("1_mobile_base")
 stage_number = 1
 section_number = 4
 map_name = "Fase 1 - Seção 4: O Beco Final"
 map_index = 4
+mobile_camera_fill_overscan = 1.02
 next_map_scene_path = "res://scenes/levels/bonus_garage.tscn"
 is_final_map = false
 boss_scene = ExtResource("9_boss_alessandro")

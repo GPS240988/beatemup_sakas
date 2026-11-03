@@ -1,6 +1,6 @@
 [gd_scene load_steps=17 format=3]
 
-[ext_resource type="Script" path="res://scripts/levels/base_level.gd" id="1_base_level"]
+[ext_resource type="Script" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase1/Fase1_3.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
@@ -26,11 +26,12 @@ size = Vector2(40, 150)
 size = Vector2(60, 80)
 
 [node name="Map3" type="Node2D"]
-script = ExtResource("1_base_level")
+script = ExtResource("1_mobile_base")
 stage_number = 1
 section_number = 3
 map_name = "Fase 1 - Seção 3: Travessa da Locadora"
 map_index = 3
+mobile_camera_fill_overscan = 1.02
 next_map_scene_path = "res://scenes/levels/map_4.tscn"
 reinforcement_waves_enabled = true
 reinforcement_trigger_enemy_count = 1
