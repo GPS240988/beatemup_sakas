@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Testes focados do consumível Coca-Cola e do drop da GameBox no map_2.
+## Testes focados do consumível Coca-Cola, feedback flutuante e drop do map_2.
 
 const HealthComponentClass = preload("res://scripts/components/health_component.gd")
 const PlayerScene: PackedScene = preload("res://scenes/actors/player/player.tscn")
@@ -83,13 +83,21 @@ func _test_pickup_behavior() -> void:
 	pickup.global_position = Vector2(330.0, 312.0)
 	await process_frame
 
-	assert_test(pickup.is_in_group("health_pickups"), "CocaPickup registra-se no grupo de coletáveis")
+	var tree_was_paused: bool = paused
+	assert_test(not tree_was_paused, "árvore de cena inicia sem pausa antes da coleta")
 	player.call("_on_attack_button_pressed")
 	var melee_attack: MeleeAttack = player.get_node("MeleeAttack") as MeleeAttack
 	assert_test(is_equal_approx(health.current_health, 75.0), "J consome a Coca e recupera 25% da vida máxima")
 	assert_test(melee_attack != null and not melee_attack.is_attacking, "coleta tem prioridade e não inicia o ataque")
+	assert_test(not paused, "coletar a Coca não pausa o jogo")
 	assert_test(not bool(pickup.call("try_consume", player)), "mesmo item não pode ser consumido duas vezes")
 	assert_test(not pickup.is_in_group("health_pickups"), "item consumido sai imediatamente do grupo de coleta")
+
+	var feedback: Label2D = player.get_node_or_null("HealPickupFeedback") as Label2D
+	assert_test(feedback != null, "coleta cria texto flutuante sobre o personagem")
+	if feedback != null:
+		assert_test(feedback.text == "+25% Vida", "texto de cura mostra exatamente '+25% Vida'")
+		assert_test(feedback.process_mode == Node.PROCESS_MODE_ALWAYS, "texto flutuante não depende de pausa da árvore")
 	await create_timer(0.8).timeout
 	assert_test(not is_instance_valid(pickup), "item pisca, encolhe e desaparece do chão")
 

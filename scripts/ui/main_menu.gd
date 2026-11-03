@@ -30,9 +30,9 @@ const OPTION_CONFIGS: Array[Dictionary] = [
 ]
 
 const MOBILE_LABELS: Array[String] = [
-	"INICIAR JOGO",
-	"CONTINUAR",
-	"SELECIONAR HERÓI",
+	"INICIAR NOVO JOGO",
+	"CONTINUAR JOGO",
+	"SELECIONAR PERSONAGEM",
 	"ABRIR MAPA",
 	"EM BREVE",
 	"SAIR DO JOGO"
@@ -86,12 +86,7 @@ func _ready() -> void:
 
 	if _is_mobile_runtime():
 		_mobile_action_button = MobileScreenAction.add_primary_action(
-			self, "INICIAR JOGO", Callable(self, "_on_mobile_action_pressed"), Color(0.95, 0.73, 0.22, 1.0)
-		)
-		MobileScreenAction.add_navigation_pair(
-			self,
-			Callable(self, "_move_selection").bind(-1),
-			Callable(self, "_move_selection").bind(1)
+			self, "INICIAR NOVO JOGO", Callable(self, "_on_mobile_action_pressed"), Color(0.0, 0.82, 0.88, 1.0)
 		)
 		if left_chevron != null:
 			left_chevron.visible = false
@@ -101,7 +96,8 @@ func _ready() -> void:
 	# Aguarda frame para o sistema de layout do Godot resolver os tamanhos e posições reais
 	await get_tree().process_frame
 	_set_selected_index(0, false)
-	_start_idle_pulse()
+	if not _is_mobile_runtime():
+		_start_idle_pulse()
 
 
 func _on_mobile_action_pressed() -> void:
@@ -173,7 +169,9 @@ func _on_button_hovered(index: int) -> void:
 
 func _on_button_clicked(index: int) -> void:
 	_set_selected_index(index, true)
-	_activate_option(index)
+	# No mobile, o toque seleciona; a ação só acontece ao tocar em INICIAR.
+	if not _is_mobile_runtime():
+		_activate_option(index)
 
 
 func _set_selected_index(new_idx: int, animate: bool = false) -> void:
@@ -253,12 +251,14 @@ func _update_selector_positions(animate: bool = false) -> void:
 
 func _make_mobile_selector_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(1.0, 0.72, 0.20, 0.18) if selected else Color(0.02, 0.03, 0.06, 0.10)
-	style.border_color = Color(1.0, 0.75, 0.20, 1.0) if selected else Color(0.42, 0.52, 0.68, 0.18)
-	style.set_border_width_all(2 if selected else 0)
-	style.set_corner_radius_all(12)
-	style.shadow_color = Color(1.0, 0.55, 0.12, 0.35) if selected else Color.TRANSPARENT
-	style.shadow_size = 10 if selected else 0
+	# Seleção sutil em ciano: sem a faixa amarela antiga e sem glow que
+	# compete com a arte. O item ativo continua claramente identificável.
+	style.bg_color = Color(0.0, 0.82, 0.88, 0.12) if selected else Color(0.02, 0.03, 0.06, 0.0)
+	style.border_color = Color(0.0, 0.82, 0.88, 0.92) if selected else Color(0.42, 0.52, 0.68, 0.0)
+	style.set_border_width_all(1 if selected else 0)
+	style.set_corner_radius_all(8)
+	style.shadow_color = Color.TRANSPARENT
+	style.shadow_size = 0
 	style.content_margin_left = 18.0
 	style.content_margin_right = 18.0
 	return style

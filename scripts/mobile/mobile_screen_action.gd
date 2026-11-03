@@ -29,7 +29,7 @@ static func is_mobile_runtime() -> bool:
 	)
 
 
-## Ação principal: dourada, sempre no lado direito da barra.
+## Ação principal: confirmação contextual; centralizada quando aparece sozinha.
 static func add_primary_action(
 	owner: Node,
 	label: String,
@@ -44,7 +44,7 @@ static func add_primary_action(
 	return _add_dock_button(owner, "primary", label, callback, accent)
 
 
-## Ação secundária: ciano, usada para voltar.
+## Ação secundária: ciano, usada para voltar e agrupada à confirmação.
 static func add_secondary_action(
 	owner: Node,
 	label: String,
@@ -214,15 +214,17 @@ static func _get_or_create_dock(owner: Node) -> CanvasLayer:
 	panel.anchor_right = 1.0
 	panel.anchor_top = 1.0
 	panel.anchor_bottom = 1.0
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	# A faixa que contém os controles é transparente: só os botões recebem foco.
+	# Isso remove a antiga barra dourada e não cria uma superfície opaca sobre a arte.
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.z_index = 10
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.018, 0.028, 0.048, 0.96)
-	panel_style.border_color = Color(0.70, 0.54, 0.29, 0.82)
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
-	panel_style.shadow_size = 8
+	panel_style.bg_color = Color(0.018, 0.028, 0.048, 0.0)
+	panel_style.border_color = Color.TRANSPARENT
+	panel_style.set_border_width_all(0)
+	panel_style.set_corner_radius_all(0)
+	panel_style.shadow_color = Color.TRANSPARENT
+	panel_style.shadow_size = 0
 	panel_style.content_margin_left = 0.0
 	panel_style.content_margin_right = 0.0
 	panel_style.content_margin_top = 0.0
@@ -243,18 +245,21 @@ static func _get_or_create_dock(owner: Node) -> CanvasLayer:
 	var wide_row := HBoxContainer.new()
 	wide_row.name = "WideRow"
 	wide_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wide_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	wide_row.add_theme_constant_override("separation", 8)
 	rows.add_child(wide_row)
 
 	var navigation_row := HBoxContainer.new()
 	navigation_row.name = "NavigationRow"
 	navigation_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	navigation_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	navigation_row.add_theme_constant_override("separation", 8)
 	rows.add_child(navigation_row)
 
 	var action_row := HBoxContainer.new()
 	action_row.name = "ActionRow"
 	action_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	action_row.add_theme_constant_override("separation", 8)
 	rows.add_child(action_row)
 
@@ -313,24 +318,30 @@ static func _layout_dock(owner: Node, dock: CanvasLayer) -> void:
 	elif viewport_size.x < 1100.0:
 		font_size = 14
 
-	var button_height := clampf(viewport_size.y * 0.085, 52.0, 64.0)
-	var side_margin := clampf(viewport_size.x * DOCK_SIDE_MARGIN_RATIO, 10.0, 22.0)
-	var bottom_safe := clampf(viewport_size.y * 0.025, 10.0, 22.0)
-	var top_margin := 8.0
+	# A altura acompanha a altura útil do telefone, sem forçar 52px em telas baixas.
+	# Isso mantém a faixa de ação na moldura inferior em vez de atravessar a arte.
+	var button_height := clampf(viewport_size.y * 0.11, 38.0, 52.0)
+	var side_margin := clampf(viewport_size.x * DOCK_SIDE_MARGIN_RATIO, 10.0, 18.0)
+	var bottom_safe := clampf(viewport_size.y * 0.02, 8.0, 14.0)
+	var top_margin := 2.0
 	var vertical_rows := 2 if split_rows else 1
-	var row_gap := 6.0 if split_rows else 0.0
-	var panel_height := (button_height * vertical_rows) + row_gap + top_margin + 8.0
+	var row_gap := 4.0 if split_rows else 0.0
+	var panel_height := (button_height * vertical_rows) + row_gap + top_margin + 4.0
+	var available_width := maxf(160.0, viewport_size.x - (side_margin * 2.0))
+	var action_only := has_primary and not has_back and not has_navigation
+	var action_pair := has_primary and has_back and not has_navigation
 
 	margin.add_theme_constant_override("margin_left", int(side_margin))
 	margin.add_theme_constant_override("margin_right", int(side_margin))
 	margin.add_theme_constant_override("margin_top", int(top_margin))
-	margin.add_theme_constant_override("margin_bottom", 8)
-	panel.anchor_left = DOCK_SIDE_MARGIN_RATIO
-	panel.anchor_right = 1.0 - DOCK_SIDE_MARGIN_RATIO
+	margin.add_theme_constant_override("margin_bottom", 4)
+	panel.anchor_left = 0.0
+	panel.anchor_right = 1.0
 	panel.offset_left = 0.0
 	panel.offset_right = 0.0
 	panel.offset_top = -panel_height - bottom_safe
 	panel.offset_bottom = -bottom_safe
+	_reserve_mobile_content_area(owner, panel_height + bottom_safe)
 
 	# Ordem de leitura fixa: voltar, anterior, próxima, confirmar.
 	for slot in ["back", "previous", "next", "primary"]:
@@ -353,10 +364,46 @@ static func _layout_dock(owner: Node, dock: CanvasLayer) -> void:
 		else:
 			target_row.move_child(button, target_row.get_child_count() - 1)
 
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, button_height)
+		if action_only:
+			# Confirmação isolada (menu principal): largura limitada e centralizada.
+			button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			button.custom_minimum_size = Vector2(minf(360.0, maxf(160.0, available_width * 0.58)), button_height)
+		elif action_pair:
+			# Voltar + confirmar formam um grupo central; não ficam presos às bordas.
+			button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			var back_width := minf(168.0, maxf(96.0, available_width * 0.30))
+			var primary_width := minf(360.0, maxf(148.0, available_width - back_width - 8.0))
+			button.custom_minimum_size = Vector2(back_width if slot == "back" else primary_width, button_height)
+		else:
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			button.custom_minimum_size = Vector2(0.0, button_height)
 		button.add_theme_font_size_override("font_size", font_size)
+
+
+static func _reserve_mobile_content_area(owner: Node, reserve_height: float) -> void:
+	if owner == null:
+		return
+
+	# Cenas com AspectWrapper mantêm a arte 16:9 e deixam uma faixa escura
+	# real para as ações, em vez de desenhar controles por cima do conteúdo.
+	var aspect_wrapper := owner.get_node_or_null("AspectWrapper") as Control
+	if aspect_wrapper != null:
+		aspect_wrapper.offset_bottom = -reserve_height
+		return
+
+	# A tela de dificuldade usa fundos diretos e ClickZones, sem AspectWrapper.
+	# Reduzimos a área visual e as hitboxes juntas, preservando o matte inferior.
+	var resized_background := false
+	for node_name in ["BackgroundNormal", "BackgroundDificil"]:
+		var background := owner.get_node_or_null(node_name) as Control
+		if background != null:
+			background.offset_bottom = -reserve_height
+			resized_background = true
+	if resized_background:
+		var click_zones := owner.get_node_or_null("ClickZones") as Control
+		if click_zones != null:
+			click_zones.offset_bottom = -reserve_height
 
 
 static func _clean_label(raw: String) -> String:

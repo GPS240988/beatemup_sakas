@@ -100,15 +100,10 @@ func _ready() -> void:
 
 	_select_character_by_index(0, false, 0)
 	_mobile_action_button = MobileScreenAction.add_primary_action(
-		self, "ESCOLHER GUILHERME", Callable(self, "_on_confirm_pressed"), Color(0.94, 0.64, 0.24, 1.0), btn_confirm
+		self, "ESCOLHER GUILHERME", Callable(self, "_on_confirm_pressed"), Color(0.0, 0.82, 0.88, 1.0), btn_confirm
 	)
 	MobileScreenAction.add_secondary_action(
 		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
-	)
-	MobileScreenAction.add_navigation_pair(
-		self,
-		Callable(self, "_move_selection").bind(-1),
-		Callable(self, "_move_selection").bind(1)
 	)
 	_update_mobile_action()
 
@@ -378,7 +373,8 @@ func _update_stats_display(char_id: String) -> void:
 func _update_mobile_action() -> void:
 	if _mobile_action_button == null or btn_confirm == null:
 		return
-	var mobile_label: String = "CONFIRMAR GUILHERME" if current_hover_id == "guilherme" else "PERSONAGEM BLOQUEADO"
+	var hero_name := current_hover_id.to_upper()
+	var mobile_label := "CONFIRMAR " + hero_name if current_hover_id == "guilherme" else "BLOQUEADO: " + hero_name
 	MobileScreenAction.set_action_state(
 		_mobile_action_button,
 		mobile_label,

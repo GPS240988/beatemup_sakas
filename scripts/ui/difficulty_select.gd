@@ -65,7 +65,7 @@ func _ready() -> void:
 	# Inicia no modo Normal: borda vermelha em evidência
 	_select_difficulty("normal", false)
 	_mobile_action_button = MobileScreenAction.add_primary_action(
-		self, "INICIAR NO NORMAL", Callable(self, "_on_start_pressed"), Color(0.90, 0.30, 0.22, 1.0), btn_start_game
+		self, "INICIAR NO NORMAL", Callable(self, "_on_start_pressed"), Color(0.0, 0.82, 0.88, 1.0), btn_start_game
 	)
 	MobileScreenAction.add_secondary_action(
 		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
@@ -94,7 +94,7 @@ func _select_difficulty(diff_id: String, play_sfx: bool = true) -> void:
 func _update_mobile_action() -> void:
 	if _mobile_action_button == null:
 		return
-	var label := "INICIAR NO DIFÍCIL" if current_difficulty == "dificil" else "INICIAR NO NORMAL"
+	var label := "CONFIRMAR DIFÍCIL" if current_difficulty == "dificil" else "CONFIRMAR NORMAL"
 	MobileScreenAction.set_action_state(_mobile_action_button, label, current_difficulty == "")
 
 

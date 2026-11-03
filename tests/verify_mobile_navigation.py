@@ -16,13 +16,13 @@ map_script = read("scripts/ui/map_menu.gd")
 narrative = read("scripts/events/narrative_director.gd")
 card = read("scripts/items/counter_card_interaction.gd")
 checks = {
-    "mobile action buttons have 52px height": "const BUTTON_HEIGHT: float = 52.0" in helper,
+    "mobile action height adapts to short landscape screens": "clampf(viewport_size.y * 0.11, 38.0, 52.0)" in helper,
     "inline mobile action reuses arcade styling": "static func add_inline_primary_action(" in helper,
-    "mobile navigation has previous and next": 'parent, "ANTERIOR"' in helper and 'parent, "PRÓXIMA"' in helper,
-    "main menu exposes touch navigation": "MobileScreenAction.add_navigation_pair(" in menu,
+    "shared helper retains optional previous/next support": "static func add_navigation_pair(" in helper and '"previous"' in helper and '"next"' in helper,
+    "main menu uses one confirmation action, not previous/next": "MobileScreenAction.add_primary_action(" in menu and "MobileScreenAction.add_navigation_pair(" not in menu,
     "misaligned decorative chevrons are hidden on mobile": "left_chevron.visible = false" in menu and "right_chevron.visible = false" in menu,
     "character selection is enabled in menu": "btn_char_select.disabled = false" in menu and "disabled = true" not in menu_scene.split('[node name="BtnCharSelect"')[1].split("[node", 1)[0],
-    "character selector has touch previous and next": "MobileScreenAction.add_navigation_pair(" in characters,
+    "character selector uses tap-to-select and contextual confirm": "MobileScreenAction.add_navigation_pair(" not in characters and "var mobile_label :=" in characters and "hero_name" in characters,
     "character art is no longer duplicated as cropped backdrop": "STRETCH_KEEP_ASPECT_COVERED" not in characters,
     "map fits the full artwork without cropping": "scale_factor = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)" in map_script,
     "map does not create enlarged duplicate backdrop": "MapAmbientBackdrop" not in map_script,
