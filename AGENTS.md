@@ -56,7 +56,7 @@ Considere este o **Modo IDE Local** quando o agente tiver acesso ao sistema de a
 - Quando o usuário pedir um ZIP do projeto atualizado, use os arquivos da pasta local, incluindo as alterações locais ainda não enviadas ao GitHub.
 - Preserve a estrutura de diretórios e inclua os assets-fonte do jogo que já estão presentes localmente (`assets/`, `resources/`, `scenes/` etc.) e que são necessários para abrir o projeto na Godot.
 - Exclua normalmente metadados e caches locais como `.git/`, `.godot/`, `.venv/`, `venv/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/` e arquivos temporários.
-- Exclua os artefatos de exportação Web `public/index.pck` e `public/index.wasm` por padrão quando o pedido for um ZIP do **projeto-fonte**. Inclua-os somente se o usuário pedir expressamente uma exportação Web pronta ou um pacote de distribuição que os exija.
+- Exclua os artefatos de exportação Web `public/index.pck` e `public/index.wasm`
 - Antes de concluir, confira se assets necessários não estão ausentes ou representados por ponteiros LFS. Não entregue um ZIP aparentemente completo se estiver faltando conteúdo necessário; informe exatamente o que falta.
 - Nunca inclua segredos, tokens, chaves privadas, arquivos `.env` ou credenciais no ZIP.
 

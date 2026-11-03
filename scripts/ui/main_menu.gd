@@ -306,7 +306,18 @@ func _activate_option(index: int) -> void:
 
 		5: # SAIR
 			_play_sound(_sfx_confirm)
-			get_tree().quit()
+			if _is_mobile_runtime():
+				_quit_mobile_game()
+			else:
+				get_tree().quit()
+
+
+## Encerra o app nativo. No Web mobile, o shell tenta fechar a janela e
+## apresenta uma tela de encerramento caso o navegador bloqueie window.close().
+func _quit_mobile_game() -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("if (typeof window.sakasQuitGame === 'function') { window.sakasQuitGame(); }")
+	get_tree().quit()
 
 
 func _deny_action(_reason: String) -> void:

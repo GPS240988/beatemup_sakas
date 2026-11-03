@@ -23,9 +23,8 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_presentation()
-	MobileScreenAction.add_primary_action(
-		self, "AVANÇAR", Callable(self, "_transition_to_map_2")
-	)
+	# Esta interlúdio é uma imagem única com avanço automático; não há botão
+	# inferior no mobile. O toque na arte continua permitindo pular a espera.
 	call_deferred("_play_presentation")
 
 

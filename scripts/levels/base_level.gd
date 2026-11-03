@@ -13,6 +13,17 @@ const SpawnPointClass = preload("res://scripts/spawning/spawn_point.gd")
 const PauseMenuScene: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const NarrativeDirectorClass = preload("res://scripts/events/narrative_director.gd")
 
+# Spawn seguro da onda de reforços do Mapa 1. A faixa Y 650..715 corresponde
+# ao corredor inferior contínuo da map_1_navpoly.tres.
+const MAP1_MOBILE_SPAWN_MIN_X: float = 300.0
+const MAP1_MOBILE_SPAWN_MAX_X: float = 1840.0
+const MAP1_MOBILE_SPAWN_MIN_Y: float = 660.0
+const MAP1_MOBILE_SPAWN_MAX_Y: float = 700.0
+const MAP1_MOBILE_SPAWN_EDGE_MARGIN: float = 88.0
+const MAP1_MOBILE_SPAWN_FALLBACK_DISTANCE: float = 300.0
+const MAP1_MOBILE_SPAWN_SPACING_X: float = 56.0
+const MAP1_MOBILE_SPAWN_SPACING_Y: float = 12.0
+
 @export_group("Configuração do Mapa")
 @export var stage_number: int = 1
 @export var section_number: int = 1
@@ -334,7 +345,8 @@ func _trigger_reinforcement_wave() -> void:
 		_reinforcement_timer.timeout.connect(_on_reinforcement_timer_timeout)
 
 
-## Instancia os reforços programados fora do retângulo visível da câmera (P5)
+## Instancia os reforços programados. No Mapa 1 mobile, a posição é validada
+## no corredor inferior do navmesh para não cair no clamp extremo (x=160, y<650).
 func _on_reinforcement_timer_timeout() -> void:
 	if not is_inside_tree() or _transitioning:
 		return
@@ -348,11 +360,17 @@ func _on_reinforcement_timer_timeout() -> void:
 	_pending_reinforcements_to_spawn = 0
 
 	var actors_container: Node2D = get_actors_container()
+	var mobile_map1_positions: Array[Vector2] = []
 
 	for i in range(count_to_spawn):
-		var spawn_pos: Vector2 = get_offscreen_spawn_position(i, count_to_spawn)
-		var enemy: CharacterBody2D = null
+		var spawn_pos: Vector2
+		if _is_mobile_runtime() and map_index == 1:
+			spawn_pos = _get_map1_mobile_reinforcement_spawn_position(i, count_to_spawn, mobile_map1_positions)
+		else:
+			# Desktop e os demais mapas mantêm o cálculo original.
+			spawn_pos = get_offscreen_spawn_position(i, count_to_spawn)
 
+		var enemy: CharacterBody2D = null
 		if reinforcement_enemy_scene != null:
 			var instance = reinforcement_enemy_scene.instantiate()
 			if instance is CharacterBody2D:
@@ -374,7 +392,113 @@ func _on_reinforcement_timer_timeout() -> void:
 				combat_director.notify_spawn_completed(null)
 
 
-## Calcula uma coordenada no mundo exterior ao retângulo visível da Camera2D dentro dos limites caminháveis (P5)
+func _get_map1_mobile_reinforcement_spawn_position(
+	index: int,
+	total: int,
+	used_positions: Array[Vector2]
+) -> Vector2:
+	var active_player: Node2D = get_player() as Node2D
+	if active_player == null or not is_instance_valid(active_player):
+		return Vector2(991.5, 680.0 + float(index) * MAP1_MOBILE_SPAWN_SPACING_Y)
+
+	var player_position: Vector2 = active_player.global_position
+	var camera_x: float = camera.global_position.x if camera != null else player_position.x
+	var zoom_x: float = absf(camera.zoom.x) if camera != null else 1.0
+	zoom_x = maxf(zoom_x, 0.001)
+	var viewport_width: float = get_viewport_rect().size.x
+	var half_visible_width: float = viewport_width * 0.5 / zoom_x
+
+	# Reforços entram pelo lado oposto ao jogador, na borda da câmera quando
+	# houver espaço; se o celular mostrar praticamente todo o mapa, entram
+	# perto do combate em vez de serem clampados para o canto x=160.
+	var direction: float = 1.0 if player_position.x <= camera_x else -1.0
+	var visible_edge_x: float = camera_x + direction * half_visible_width
+	var requested_x: float = visible_edge_x + direction * MAP1_MOBILE_SPAWN_EDGE_MARGIN
+	if requested_x < MAP1_MOBILE_SPAWN_MIN_X or requested_x > MAP1_MOBILE_SPAWN_MAX_X:
+		requested_x = player_position.x + direction * MAP1_MOBILE_SPAWN_FALLBACK_DISTANCE
+
+	var centered_index: float = float(index) - (float(maxi(total, 1) - 1) * 0.5)
+	var requested_y: float = clampf(
+		player_position.y + 28.0 + centered_index * MAP1_MOBILE_SPAWN_SPACING_Y,
+		MAP1_MOBILE_SPAWN_MIN_Y,
+		MAP1_MOBILE_SPAWN_MAX_Y
+	)
+
+	var nav_map: RID = get_world_2d().navigation_map if get_world_2d() != null else RID()
+	var player_nav_position: Vector2 = player_position
+	var navigation_ready: bool = nav_map.is_valid() and NavigationServer2D.map_get_iteration_id(nav_map) > 0
+	if navigation_ready:
+		player_nav_position = NavigationServer2D.map_get_closest_point(nav_map, player_position)
+
+	var x_adjustments: Array[float] = [0.0, 48.0, -48.0, 96.0, -96.0, 144.0, -144.0]
+	var y_adjustments: Array[float] = [0.0, -12.0, 12.0, -24.0, 24.0]
+	var best_position: Vector2 = Vector2.ZERO
+	var best_score: float = INF
+
+	for x_adjustment: float in x_adjustments:
+		var sample_x: float = clampf(
+			requested_x + direction * x_adjustment,
+			MAP1_MOBILE_SPAWN_MIN_X,
+			MAP1_MOBILE_SPAWN_MAX_X
+		)
+		for y_adjustment: float in y_adjustments:
+			var sample_position := Vector2(
+				sample_x,
+				clampf(requested_y + y_adjustment, MAP1_MOBILE_SPAWN_MIN_Y, MAP1_MOBILE_SPAWN_MAX_Y)
+			)
+			var candidate: Vector2 = sample_position
+			if navigation_ready:
+				candidate = NavigationServer2D.map_get_closest_point(nav_map, sample_position)
+				if candidate == Vector2.ZERO:
+					continue
+				if sample_position.distance_to(candidate) > 42.0:
+					continue
+				var path: PackedVector2Array = NavigationServer2D.map_get_path(
+					nav_map, player_nav_position, candidate, true, 1
+				)
+				if path.is_empty():
+					continue
+
+			var separated: bool = true
+			for previous_position: Vector2 in used_positions:
+				if candidate.distance_to(previous_position) < 48.0:
+					separated = false
+					break
+			if not separated:
+				continue
+
+			var score: float = sample_position.distance_to(candidate) * 3.0
+			score += absf(candidate.x - requested_x) * 0.35
+			score += absf(candidate.y - requested_y) * 0.5
+			if score < best_score:
+				best_score = score
+				best_position = candidate
+
+	if best_position != Vector2.ZERO:
+		used_positions.append(best_position)
+		return best_position
+
+	# Fallback seguro exclusivo do Mapa 1 mobile: permanece dentro da faixa
+	# inferior caminhável e nunca retorna ao clamp da borda esquerda (x=160).
+	var fallback_x: float = clampf(
+		player_position.x + direction * (MAP1_MOBILE_SPAWN_FALLBACK_DISTANCE + index * MAP1_MOBILE_SPAWN_SPACING_X),
+		MAP1_MOBILE_SPAWN_MIN_X,
+		MAP1_MOBILE_SPAWN_MAX_X
+	)
+	var fallback_position := Vector2(fallback_x, requested_y)
+	if navigation_ready:
+		var snapped_fallback: Vector2 = NavigationServer2D.map_get_closest_point(nav_map, fallback_position)
+		if snapped_fallback != Vector2.ZERO:
+			var fallback_path: PackedVector2Array = NavigationServer2D.map_get_path(
+				nav_map, player_nav_position, snapped_fallback, true, 1
+			)
+			if not fallback_path.is_empty():
+				fallback_position = snapped_fallback
+	used_positions.append(fallback_position)
+	return fallback_position
+
+
+## Calcula uma coordenada em coordenadas de mundo fora do retângulo visível da Camera2D dentro dos limites caminháveis (P5)
 func get_offscreen_spawn_position(index: int = 0, total: int = 1) -> Vector2:
 	var viewport_size: Vector2 = Vector2(1280, 720)
 	if get_viewport() != null:
@@ -609,8 +733,7 @@ func _get_stage_restart_scene_path() -> String:
 	# Para a Fase 1 (mapas 1 a 4), o reinício sempre volta para o map_1
 	if stage_number == 1:
 		return "res://scenes/levels/map_1.tscn"
-	# Fases futuras: retorna para o primeiro mapa daquela fase
-	# Por enquanto fallback para o próprio scene_file_path
+	# Fases futuras: fallback para o próprio scene_file_path
 	return scene_file_path if not scene_file_path.is_empty() else "res://scenes/levels/map_1.tscn"
 
 

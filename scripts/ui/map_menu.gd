@@ -3,9 +3,7 @@ extends Control
 
 ## Tela de Menu de Mapa com arte oficial 16:9 HD (assets/backgrounds/Mapa.webp).
 ## Exibe a rota e o cadeado desbloqueado conforme a progressão salva no GameSession.
-## Integração com fluxo de campanha (DifficultySelect -> MapMenu -> LoadingScreen/Instruções -> Fase 1)
-## e acesso direto via Menu Principal com suporte a mouse, teclado e touch mobile.
-## Em estrita conformidade com GAME_RULES.md.
+## Integração com fluxo de campanha e acesso direto via Menu Principal.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
 const DIFFICULTY_SELECT_SCENE: String = "res://scenes/ui/difficulty_select.tscn"
@@ -35,6 +33,7 @@ var _sfx_confirm: AudioStreamWAV
 var _sfx_cancel: AudioStreamWAV
 var _bob_tween: Tween
 var _mobile_action_button: Button
+var _is_campaign_entry: bool = true
 
 
 func _ready() -> void:
@@ -43,14 +42,22 @@ func _ready() -> void:
 	_load_background_image()
 	_setup_progression_display()
 	_setup_buttons()
-	_mobile_action_button = MobileScreenAction.add_primary_action(
-		self, "INICIAR FASE", Callable(self, "_on_confirm_pressed"), Color(0.90, 0.67, 0.25, 1.0), btn_confirm
-	)
-	MobileScreenAction.add_secondary_action(
-		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
-	)
+	var session = get_node_or_null("/root/GameSession")
+	_is_campaign_entry = session == null or str(session.get_meta("map_entry_context", "campaign")) != "main_menu"
+	if MobileScreenAction.is_mobile_runtime():
+		if _is_campaign_entry:
+			_mobile_action_button = MobileScreenAction.add_primary_action(
+				self, "AVANÇAR", Callable(self, "_on_confirm_pressed"), Color(0.90, 0.67, 0.25, 1.0), btn_confirm
+			)
+			if btn_back != null:
+				btn_back.visible = false
+		else:
+			if btn_confirm != null:
+				btn_confirm.visible = false
+			MobileScreenAction.add_secondary_action(
+				self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
+			)
 
-	# Oculta aviso em tempo de execução para manter a arte do mapa limpa e imersiva
 	if notice_label != null:
 		notice_label.visible = false
 
@@ -65,9 +72,7 @@ func _setup_scaling() -> void:
 	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
 		vp_size = Vector2(1280.0, 720.0)
 
-	var scale_factor: float
-	# Encaixe uniforme em todas as orientações: o mapa inteiro permanece visível.
-	scale_factor = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
+	var scale_factor: float = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
 	if MobileScreenAction.is_mobile_runtime():
 		var dark_base := get_node_or_null("DarkBase") as ColorRect
 		if dark_base != null:
@@ -152,7 +157,6 @@ func _setup_progression_display() -> void:
 			is_bonus = session.is_bonus_unlocked()
 
 	if is_stage_2:
-		# Fase 2 desbloqueada: seta sobre Ponto 2 e cadeado removido
 		if point1_cover != null:
 			point1_cover.visible = true
 		if point2_cover != null:
@@ -165,7 +169,6 @@ func _setup_progression_display() -> void:
 			arrow_p2.visible = true
 			_start_arrow_bobbing(arrow_p2)
 	elif is_bonus:
-		# Fase Bônus desbloqueada: seta sobre Bônus 1 e cadeado do Ponto 2 visível
 		if point1_cover != null:
 			point1_cover.visible = true
 		if point2_cover != null:
@@ -178,7 +181,6 @@ func _setup_progression_display() -> void:
 		if arrow_p2 != null:
 			arrow_p2.visible = false
 	else:
-		# Início do jogo: estado inicial (seta sobre Ponto 1 e cadeado no Ponto 2)
 		if point1_cover != null:
 			point1_cover.visible = false
 		if point2_cover != null:
@@ -238,10 +240,7 @@ func _on_back_pressed() -> void:
 	_play_sound(_sfx_cancel)
 	_safe_handle_input()
 
-	var session = get_node_or_null("/root/GameSession")
-	var is_in_game_flow: bool = (session != null and "difficulty_id" in session and session.difficulty_id != "")
-	var target_scene := DIFFICULTY_SELECT_SCENE if is_in_game_flow else MAIN_MENU_SCENE
-
+	var target_scene := DIFFICULTY_SELECT_SCENE if _is_campaign_entry else MAIN_MENU_SCENE
 	var err := get_tree().change_scene_to_file(target_scene)
 	if err != OK:
 		err = get_tree().change_scene_to_file(MAIN_MENU_SCENE)

@@ -3,10 +3,7 @@ extends Control
 
 ## Tela de Seleção de Dificuldade do Projeto Sakas.
 ## Apresenta as artes oficiais em alta definição sem hitboxes sobrepostas.
-## Estado inicial: Modo Normal (borda vermelha em evidência, azul apagada).
-## Ao alternar para Difícil: a borda azul fica em evidência e a vermelha apagada e pra trás.
-## Ao confirmar, armazena a dificuldade no GameSession e avança para a tela de instruções (loading_screen.tscn).
-## Ao retornar, volta para a Seleção de Personagens (character_select.tscn).
+## Estado inicial: Modo Normal; ao alternar, a arte Difícil ganha destaque.
 
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const MAP_MENU_SCENE: String = "res://scenes/ui/map_menu.tscn"
@@ -62,7 +59,6 @@ func _ready() -> void:
 				_select_difficulty("dificil", true)
 		)
 
-	# Inicia no modo Normal: borda vermelha em evidência
 	_select_difficulty("normal", false)
 	_mobile_action_button = MobileScreenAction.add_primary_action(
 		self, "INICIAR NO NORMAL", Callable(self, "_on_start_pressed"), Color(0.0, 0.82, 0.88, 1.0), btn_start_game
@@ -71,6 +67,22 @@ func _ready() -> void:
 		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
 	)
 	_update_mobile_action()
+
+
+func _input(event: InputEvent) -> void:
+	# Alguns navegadores mobile entregam ScreenTouch sem produzir mouse_entered.
+	# Trate o toque diretamente nas áreas das duas cartas.
+	if not MobileScreenAction.is_mobile_runtime() or _is_transitioning:
+		return
+	if not (event is InputEventScreenTouch) or not event.pressed or event.index != 0:
+		return
+	var touch_position: Vector2 = event.position
+	if card_normal != null and card_normal.get_global_rect().has_point(touch_position):
+		_select_difficulty("normal", true)
+		_safe_handle_input()
+	elif card_dificil != null and card_dificil.get_global_rect().has_point(touch_position):
+		_select_difficulty("dificil", true)
+		_safe_handle_input()
 
 
 func _select_difficulty(diff_id: String, play_sfx: bool = true) -> void:
@@ -117,6 +129,7 @@ func _on_start_pressed() -> void:
 
 	var game_session = get_node_or_null("/root/GameSession")
 	if game_session != null:
+		game_session.set_meta("map_entry_context", "campaign")
 		game_session.difficulty_id = current_difficulty
 		game_session.difficulty_selected.emit(current_difficulty)
 

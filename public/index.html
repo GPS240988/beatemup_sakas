@@ -39,25 +39,6 @@
 		@supports (height: 100dvh) {
 			html, body, #canvas { height: 100dvh; }
 		}
-		#rotate-overlay {
-			display: none;
-			position: fixed;
-			inset: 0;
-			z-index: 9999;
-			align-items: center;
-			justify-content: center;
-			flex-direction: column;
-			gap: 0.8rem;
-			padding: 2rem;
-			box-sizing: border-box;
-			background: #080b12;
-			color: #f2e6c8;
-			font-family: Arial, sans-serif;
-			text-align: center;
-		}
-		#rotate-overlay .icon { font-size: clamp(3rem, 14vw, 5rem); line-height: 1; }
-		#rotate-overlay strong { font-size: clamp(1.1rem, 5vw, 1.5rem); letter-spacing: 0.08em; }
-		#rotate-overlay span:last-child { max-width: 24rem; color: #b8c0ce; font-size: 0.95rem; line-height: 1.5; }
 		#load-error {
 			display: none;
 			position: fixed;
@@ -70,10 +51,6 @@
 			color: #fff;
 			font: 14px/1.4 Arial, sans-serif;
 			white-space: pre-wrap;
-		}
-		@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
-			#canvas { visibility: hidden; }
-			#rotate-overlay { display: flex; }
 		}
 
 		/* Tela de Carregamento Inicial (Dark Arcade Sakas) */
@@ -157,38 +134,64 @@
 		<div id="loading-status" class="loading-status">CARREGANDO... 0%</div>
 		<div class="loading-tip">Insira sua ficha e prepare-se para a luta!</div>
 	</div>
-	<div id="rotate-overlay" role="status" aria-live="polite">
-		<span class="icon" aria-hidden="true">↻</span>
-		<strong>GIRE O CELULAR</strong>
-		<span>O Sakas foi feito para jogar com a tela na horizontal. Vire o aparelho para continuar.</span>
-	</div>
 	<div id="load-error" role="alert"></div>
 	<script src="index.js"></script>
 	<script>
-		const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":92686156,"index.wasm":37902138},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"});
+		const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":92699836,"index.wasm":37902138},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"});
 
 		const loadingScreen = document.getElementById('loading-screen');
 		const progressBar = document.getElementById('progress-bar');
 		const loadingStatus = document.getElementById('loading-status');
+		const mobileDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
-		// Navegadores só permitem pedir tela cheia/bloqueio de orientação após gesto do usuário.
-		async function requestLandscape() {
-			try {
-				if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+		// O manifesto do PWA já declara orientation=landscape. Em navegadores
+		// comuns, o bloqueio é solicitado no primeiro gesto permitido pelo browser.
+		async function requestLandscape(fromUserGesture = false) {
+			if (!mobileDevice) return;
+
+			if (fromUserGesture && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+				try {
 					await document.documentElement.requestFullscreen();
+				} catch (_error) {
+					// Alguns navegadores não permitem fullscreen; tentamos o lock mesmo assim.
 				}
-			} catch (_error) {
-				// Tela cheia é opcional; a camada de orientação continua protegendo o jogo.
 			}
+
 			try {
 				if (screen.orientation && typeof screen.orientation.lock === 'function') {
 					await screen.orientation.lock('landscape');
 				}
 			} catch (_error) {
-				// O navegador pode negar o bloqueio; o jogador ainda pode girar o aparelho.
+				// A política do navegador pode exigir instalação PWA ou gesto do usuário.
 			}
 		}
-		document.addEventListener('pointerdown', requestLandscape, { once: true, passive: true });
+
+		// Em PWA instalado, o lock do manifesto atua na abertura. Esta tentativa
+		// adicional cobre navegadores que já permitam a API sem gesto.
+		if (mobileDevice) {
+			void requestLandscape(false);
+			document.addEventListener('pointerdown', () => requestLandscape(true), { once: true, passive: true });
+		}
+
+		// Tenta fechar a janela no browser. Se window.close() for bloqueado pela
+		// política do navegador, mostra uma tela final em vez de deixar o jogo parado.
+		window.sakasQuitGame = function () {
+			try {
+				window.close();
+			} catch (_error) {
+				// Continua para a tela de encerramento abaixo.
+			}
+			if (!window.closed) {
+				document.body.innerHTML = `
+					<main style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;box-sizing:border-box;background:radial-gradient(circle at center,#141b2d 0%,#080b12 75%,#030408 100%);color:#f2e6c8;font-family:Arial,sans-serif;text-align:center">
+						<strong style="font-size:clamp(28px,8vw,44px);letter-spacing:.16em;color:#fff;text-shadow:0 0 16px rgba(255,60,90,.55)">SAKA'S</strong>
+						<span style="font-size:clamp(16px,4vw,22px);font-weight:700;letter-spacing:.12em;color:#e5b958">JOGO ENCERRADO</span>
+						<span style="max-width:28rem;color:#b8c0ce;font-size:15px;line-height:1.5">A sessão foi encerrada. Você já pode fechar esta aba ou janela.</span>
+					</main>`;
+				document.body.style.cssText = 'margin:0;overflow:hidden;background:#030408';
+			}
+			return true;
+		};
 
 		engine.startGame({
 			onProgress: function(current, total) {
