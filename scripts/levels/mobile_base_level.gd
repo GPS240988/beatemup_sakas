@@ -1,6 +1,6 @@
 extends "res://scripts/levels/base_level.gd"
 
-## Camada mobile compartilhada pelos quatro mapas da Fase 1.
+## Camada mobile compartilhada pelos mapas 1–4 e pela fase bônus (bonus1).
 ## Desktop delega integralmente à implementação de BaseLevel.
 ## Mobile ajusta o zoom a partir do retângulo real do background e restringe
 ## reforços à NavigationPolygon ativa, com caminho válido até o jogador.

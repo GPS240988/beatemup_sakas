@@ -9,6 +9,7 @@ const AMBIENT_FILL_TINT: Color = Color(0.28, 0.30, 0.36, 1.0)
 
 var _tracked_background_sources: Array[TextureRect] = []
 var _tracked_background_fills: Array[TextureRect] = []
+var _scene_with_mobile_fills: Node = null
 
 
 func _ready() -> void:
@@ -66,10 +67,14 @@ func _apply_current_scene() -> void:
 
 
 func _on_scene_changed(scene_root: Node) -> void:
-	_tracked_background_sources.clear()
-	_tracked_background_fills.clear()
 	if not _is_mobile_runtime() or scene_root == null:
 		return
+	if _scene_with_mobile_fills == scene_root:
+		return
+
+	_scene_with_mobile_fills = scene_root
+	_tracked_background_sources.clear()
+	_tracked_background_fills.clear()
 	call_deferred("_apply_mobile_aspect_fill", scene_root)
 
 
@@ -81,6 +86,8 @@ func _apply_mobile_aspect_fill(scene_root: Node) -> void:
 	if not _is_mobile_runtime():
 		return
 	if not is_instance_valid(scene_root) or get_tree().current_scene != scene_root:
+		return
+	if not (scene_root is Control):
 		return
 
 	var sources: Array[TextureRect] = _find_background_sources(scene_root)
@@ -152,9 +159,9 @@ func _find_background_sources(root: Node) -> Array[TextureRect]:
 		if current is TextureRect:
 			var candidate: TextureRect = current as TextureRect
 			if _background_candidate_score(candidate.name) > 0:
-				var is_dynamic_narrative_image: bool = String(candidate.name).to_lower() == "imagedisplay"
-				if candidate.is_visible_in_tree() or is_dynamic_narrative_image:
-					sources.append(candidate)
+				# Inclui camadas inicialmente ocultas (ex.: imagem difícil ou
+				# IncomingSlot). O _process acompanha visibilidade e crossfade.
+				sources.append(candidate)
 
 		for child in current.get_children():
 			pending.append(child)

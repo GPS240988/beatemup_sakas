@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bxoe510r3os7m"]
 
-[ext_resource type="Script" uid="uid://ge8vtyt1ugdm" path="res://scripts/levels/base_level.gd" id="1_base_level"]
+[ext_resource type="Script" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base_level"]
 [ext_resource type="Texture2D" uid="uid://h3vu764fsu7x" path="res://assets/backgrounds/maps/bonus1/garagem.webp" id="2_garage_bg"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="4_combat_director"]
@@ -33,7 +33,8 @@ size = Vector2(110, 327)
 size = Vector2(60, 320)
 
 [node name="BonusGarage" type="Node2D" unique_id=2072641490]
-script = ExtResource("1_base_level")
+script = ExtResource("1_mobile_base_level")
+mobile_camera_fill_overscan = 1.02
 section_number = 5
 map_name = "Fase 1 - Fase Bônus: Garagem"
 map_index = 5
