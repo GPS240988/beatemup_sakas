@@ -55,10 +55,10 @@ mouse_filter = 2
 unique_name_in_owner = true
 material = SubResource("CanvasItemMaterial_add")
 layout_mode = 0
-offset_left = 690.0
-offset_top = 503.0
-offset_right = 1090.0
-offset_bottom = 578.0
+offset_left = 668.0
+offset_top = 489.0
+offset_right = 1252.0
+offset_bottom = 549.0
 mouse_filter = 2
 texture = ExtResource("3_brush_highlight")
 expand_mode = 1
@@ -66,10 +66,10 @@ expand_mode = 1
 [node name="LeftChevron" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 715.0
-offset_top = 490.0
-offset_right = 805.0
-offset_bottom = 560.0
+offset_left = 615.0
+offset_top = 492.0
+offset_right = 671.0
+offset_bottom = 546.0
 mouse_filter = 2
 texture = ExtResource("4_chev_left")
 expand_mode = 1
@@ -77,10 +77,10 @@ expand_mode = 1
 [node name="RightChevron" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 1015.0
-offset_top = 494.0
-offset_right = 1105.0
-offset_bottom = 564.0
+offset_left = 1256.0
+offset_top = 492.0
+offset_right = 1312.0
+offset_bottom = 546.0
 mouse_filter = 2
 texture = ExtResource("5_chev_right")
 expand_mode = 1
@@ -93,50 +93,50 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.364
-anchor_top = 0.460
-anchor_right = 0.636
-anchor_bottom = 0.535
+anchor_left = 0.345
+anchor_top = 0.444
+anchor_right = 0.655
+anchor_bottom = 0.518
 flat = true
 
 [node name="BtnContinue" type="Button" parent="AspectWrapper/MenuHitboxes"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.364
-anchor_top = 0.535
-anchor_right = 0.636
-anchor_bottom = 0.605
+anchor_left = 0.345
+anchor_top = 0.528
+anchor_right = 0.655
+anchor_bottom = 0.602
 flat = true
 
 [node name="BtnCharSelect" type="Button" parent="AspectWrapper/MenuHitboxes"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.364
-anchor_top = 0.605
-anchor_right = 0.636
-anchor_bottom = 0.675
+anchor_left = 0.345
+anchor_top = 0.606
+anchor_right = 0.655
+anchor_bottom = 0.680
 flat = true
 
 [node name="BtnMap" type="Button" parent="AspectWrapper/MenuHitboxes"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.364
-anchor_top = 0.675
-anchor_right = 0.636
-anchor_bottom = 0.740
+anchor_left = 0.345
+anchor_top = 0.685
+anchor_right = 0.655
+anchor_bottom = 0.758
 flat = true
 
 [node name="BtnSettings" type="Button" parent="AspectWrapper/MenuHitboxes"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.364
-anchor_top = 0.740
-anchor_right = 0.636
-anchor_bottom = 0.810
+anchor_left = 0.345
+anchor_top = 0.762
+anchor_right = 0.655
+anchor_bottom = 0.832
 disabled = true
 flat = true
 
@@ -144,10 +144,10 @@ flat = true
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.364
-anchor_top = 0.810
-anchor_right = 0.636
-anchor_bottom = 0.880
+anchor_left = 0.345
+anchor_top = 0.836
+anchor_right = 0.655
+anchor_bottom = 0.906
 flat = true
 
 [node name="BtnCredits" type="Button" parent="AspectWrapper/MenuHitboxes"]

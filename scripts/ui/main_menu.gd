@@ -21,30 +21,25 @@ const BASE_HEIGHT: float = 1080.0
 ## bx: coordenada X inicial da pincelada de realce
 ## bw: largura da pincelada de realce
 const OPTION_CONFIGS: Array[Dictionary] = [
-	{ "cy": 540.5, "lx": 710.0, "rx": 1010.0, "bx": 725.0, "bw": 335.0 }, # 0: NOVO JOGO
-	{ "cy": 617.5, "lx": 705.0, "rx": 980.0,  "bx": 720.0, "bw": 305.0 }, # 1: CONTINUAR
-	{ "cy": 689.0, "lx": 705.0, "rx": 1170.0, "bx": 720.0, "bw": 490.0 }, # 2: SELECIONAR PERSONAGENS
-	{ "cy": 762.0, "lx": 710.0, "rx": 880.0,  "bx": 725.0, "bw": 205.0 }, # 3: MAPA
-	{ "cy": 832.5, "lx": 710.0, "rx": 1050.0, "bx": 725.0, "bw": 375.0 }, # 4: CONFIGURAÇÕES
-	{ "cy": 908.0, "lx": 710.0, "rx": 865.0,  "bx": 725.0, "bw": 190.0 }  # 5: SAIR
+	{ "cy": 519.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }, # 0: NOVO JOGO
+	{ "cy": 609.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }, # 1: CONTINUAR
+	{ "cy": 693.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }, # 2: PERSONAGENS
+	{ "cy": 777.5, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }, # 3: MAPA
+	{ "cy": 860.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }, # 4: CONFIGURAÇÕES
+	{ "cy": 941.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }  # 5: SAIR
 ]
 
 const MOBILE_LABELS: Array[String] = [
 	"INICIAR NOVO JOGO",
 	"CONTINUAR JOGO",
-	"SELECIONAR PERSONAGEM",
+	"PERSONAGENS",
 	"ABRIR MAPA",
 	"EM BREVE",
 	"SAIR DO JOGO"
 ]
 
-## Offsets visuais individuais para cada chevron:
-## Na imagem 70px de altura:
-## - O bico do chevron esquerdo '<' está na linha Y=50.6 (15.6px abaixo do centro de 35px)
-## - O bico do chevron direito '>' está na linha Y=46.6 (11.6px abaixo do centro de 35px)
-## Compensamos individualmente puxando os chevrons para cima para o bico ficar exatamente no centro do texto.
-const CHEV_LEFT_OFFSET_Y: float = -15.5
-const CHEV_RIGHT_OFFSET_Y: float = -11.5
+const CHEV_LEFT_OFFSET_Y: float = 0.0
+const CHEV_RIGHT_OFFSET_Y: float = 0.0
 
 @onready var background_slot: TextureRect = %BackgroundSlot
 @onready var aspect_wrapper: AspectRatioContainer = %AspectWrapper
@@ -116,8 +111,8 @@ func _setup_hitboxes() -> void:
 		b.flat = not _is_mobile_runtime()
 		b.text = ""
 		if _is_mobile_runtime():
-			b.anchor_left = 0.26
-			b.anchor_right = 0.74
+			b.anchor_left = 0.25
+			b.anchor_right = 0.75
 		b.focus_mode = Control.FOCUS_NONE
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		b.mouse_entered.connect(_on_button_hovered.bind(idx))
@@ -141,7 +136,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ui_up") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_W or event.keycode == KEY_UP)):
 		_move_selection(-1)
 		_safe_handle_input()
-	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)):
+	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE)):
 		_safe_handle_input()
 		_activate_option(_current_index)
 	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
@@ -217,9 +212,9 @@ func _update_selector_positions(animate: bool = false) -> void:
 	var target_bx: float = float(cfg["bx"]) * sx
 	var target_bw: float = float(cfg["bw"]) * sx
 
-	var chev_h: float = 70.0 * sy
-	var chev_w: float = 90.0 * sx
-	var brush_h: float = 75.0 * sy
+	var chev_h: float = 54.0 * sy
+	var chev_w: float = 56.0 * sx
+	var brush_h: float = 60.0 * sy
 
 	# Alinhamento vertical: centraliza na linha do texto + compensação individual do bico da seta
 	var l_offset_y: float = CHEV_LEFT_OFFSET_Y * sy
@@ -236,7 +231,9 @@ func _update_selector_positions(animate: bool = false) -> void:
 		_move_tween = create_tween().set_parallel(true)
 		_move_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		_move_tween.tween_property(left_chevron, "position", l_pos, 0.12)
+		_move_tween.tween_property(left_chevron, "size", Vector2(chev_w, chev_h), 0.12)
 		_move_tween.tween_property(right_chevron, "position", r_pos, 0.12)
+		_move_tween.tween_property(right_chevron, "size", Vector2(chev_w, chev_h), 0.12)
 		_move_tween.tween_property(brush_highlight, "position", b_pos, 0.12)
 		_move_tween.tween_property(brush_highlight, "size", b_size, 0.12)
 		_play_sound(_sfx_move)
@@ -251,12 +248,10 @@ func _update_selector_positions(animate: bool = false) -> void:
 
 func _make_mobile_selector_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	# Seleção sutil em ciano: sem a faixa amarela antiga e sem glow que
-	# compete com a arte. O item ativo continua claramente identificável.
-	style.bg_color = Color(0.0, 0.82, 0.88, 0.12) if selected else Color(0.02, 0.03, 0.06, 0.0)
-	style.border_color = Color(0.0, 0.82, 0.88, 0.92) if selected else Color(0.42, 0.52, 0.68, 0.0)
-	style.set_border_width_all(1 if selected else 0)
-	style.set_corner_radius_all(8)
+	style.bg_color = Color(0.95, 0.22, 0.12, 0.20) if selected else Color(0.02, 0.03, 0.06, 0.0)
+	style.border_color = Color(1.0, 0.82, 0.20, 0.95) if selected else Color(0.42, 0.52, 0.68, 0.0)
+	style.set_border_width_all(2 if selected else 0)
+	style.set_corner_radius_all(10)
 	style.shadow_color = Color.TRANSPARENT
 	style.shadow_size = 0
 	style.content_margin_left = 18.0
@@ -291,7 +286,7 @@ func _activate_option(index: int) -> void:
 			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CONTINUE_SCENE)
 
-		2: # SELECIONAR PERSONAGENS
+		2: # PERSONAGENS
 			_is_transitioning = true
 			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)

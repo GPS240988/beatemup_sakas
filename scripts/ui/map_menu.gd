@@ -72,7 +72,8 @@ func _setup_scaling() -> void:
 	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
 		vp_size = Vector2(1280.0, 720.0)
 
-	var scale_factor: float = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
+	var scale_factor: float
+	scale_factor = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
 	if MobileScreenAction.is_mobile_runtime():
 		var dark_base := get_node_or_null("DarkBase") as ColorRect
 		if dark_base != null:
