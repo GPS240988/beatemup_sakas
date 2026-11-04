@@ -202,16 +202,23 @@ func _ready() -> void:
 		if hud != null and hud.has_method("bind_player"):
 			hud.bind_player(player)
 
-		var saved_prog = session.get_preserved_player_progression(map_group)
-		if not saved_prog.is_empty():
-			if player.health_component != null and saved_prog.has("health") and saved_prog["health"] > 0.0:
-				player.health_component.current_health = saved_prog["health"]
-				if hud != null:
-					hud.update_player_health(player.health_component.current_health, player.health_component.max_health)
-			if saved_prog.has("special") and "current_special" in player:
-				player.current_special = saved_prog["special"]
-				if player.has_signal("special_changed"):
-					player.special_changed.emit(player.current_special, player.max_special)
+		# Restauração do snapshot de mundo salvo (Save Slot → Continue)
+		# Deve ocorrer ANTES de qualquer processamento de gameplay para evitar
+		# que inimigos se movam ou o jogador sofra dano antes da restauração.
+		if "pending_save_snapshot" in session and session.pending_save_snapshot is Dictionary and not session.pending_save_snapshot.is_empty():
+			restore_world_snapshot(session.pending_save_snapshot)
+			session.pending_save_snapshot = {}
+		else:
+			var saved_prog = session.get_preserved_player_progression(map_group)
+			if not saved_prog.is_empty():
+				if player.health_component != null and saved_prog.has("health") and saved_prog["health"] > 0.0:
+					player.health_component.current_health = saved_prog["health"]
+					if hud != null:
+						hud.update_player_health(player.health_component.current_health, player.health_component.max_health)
+				if saved_prog.has("special") and "current_special" in player:
+					player.current_special = saved_prog["special"]
+					if player.has_signal("special_changed"):
+						player.special_changed.emit(player.current_special, player.max_special)
 
 	if hud != null:
 		if hud.has_method("set_level"):
@@ -721,6 +728,261 @@ func _clear_pending_reinforcements() -> void:
 		if combat_director != null:
 			combat_director.pending_spawns_count = maxi(0, combat_director.pending_spawns_count - _pending_reinforcements_to_spawn)
 		_pending_reinforcements_to_spawn = 0
+
+
+# ============================================================
+# SISTEMA DE SNAPSHOT DO MUNDO (Save/Continue fiel)
+# ============================================================
+
+## Captura um snapshot serializado e completo do estado atual do mundo.
+## Retorna um Dictionary puro (sem referências a Nodes), pronto para JSON.
+func capture_world_snapshot() -> Dictionary:
+	var snapshot: Dictionary = {}
+
+	# --- JOGADOR ---
+	var p: PlayerController = get_player()
+	if p != null and is_instance_valid(p):
+		var player_data: Dictionary = {
+			"pos_x": p.global_position.x,
+			"pos_y": p.global_position.y,
+			"facing": p.facing_direction,
+		}
+		if p.health_component != null:
+			player_data["hp"] = p.health_component.current_health
+			player_data["max_hp"] = p.health_component.max_health
+		if "current_special" in p:
+			player_data["sp"] = p.current_special
+		if "max_special" in p:
+			player_data["max_sp"] = p.max_special
+		if "combat_state" in p:
+			player_data["combat_state"] = int(p.combat_state)
+		if "current_continues" in p:
+			player_data["continues"] = p.current_continues
+		snapshot["player"] = player_data
+
+	# --- INIMIGOS VIVOS ---
+	var enemies_alive: Array = []
+	var defeated_ids: Array = []
+	var actors_container: Node2D = get_actors_container()
+	var all_enemies: Array[Node] = get_tree().get_nodes_in_group("enemies") if get_tree() != null else []
+
+	for enemy_node in all_enemies:
+		if enemy_node == null or not is_instance_valid(enemy_node):
+			continue
+		if not (enemy_node is CharacterBody2D):
+			continue
+		var enemy: CharacterBody2D = enemy_node as CharacterBody2D
+
+		# Gera um ID estável baseado no nome do nó + posição inicial
+		var enemy_id: String = enemy.name
+
+		# Verifica se o inimigo está morto
+		var is_dead: bool = false
+		if "current_state" in enemy and int(enemy.current_state) == 12: # State.DEAD
+			is_dead = true
+		if "health_component" in enemy and enemy.health_component != null:
+			if enemy.health_component.is_dead:
+				is_dead = true
+
+		if is_dead:
+			defeated_ids.append(enemy_id)
+			continue
+
+		# Serializa inimigo vivo
+		var enemy_data: Dictionary = {
+			"id": enemy_id,
+			"scene_path": enemy.scene_file_path if not enemy.scene_file_path.is_empty() else "res://scenes/actors/enemies/basic_enemy.tscn",
+			"pos_x": enemy.global_position.x,
+			"pos_y": enemy.global_position.y,
+			"facing": enemy.facing_direction if "facing_direction" in enemy else -1.0,
+		}
+
+		if "health_component" in enemy and enemy.health_component != null:
+			enemy_data["hp"] = enemy.health_component.current_health
+			enemy_data["max_hp"] = enemy.health_component.max_health
+		if "current_state" in enemy:
+			enemy_data["state"] = int(enemy.current_state)
+		if "archetype" in enemy:
+			enemy_data["archetype"] = int(enemy.archetype)
+		if "palette_variant" in enemy:
+			enemy_data["palette"] = int(enemy.palette_variant)
+		if "display_name" in enemy:
+			enemy_data["display_name"] = str(enemy.display_name)
+
+		enemies_alive.append(enemy_data)
+
+	snapshot["enemies_alive"] = enemies_alive
+	snapshot["defeated_enemies"] = defeated_ids
+
+	# --- ESTADO DE COMBATE E ONDAS ---
+	snapshot["reinforcement_wave_triggered"] = _reinforcement_wave_triggered
+	snapshot["boss_spawned"] = _boss_spawned
+
+	if combat_director != null:
+		snapshot["combat_is_cleared"] = combat_director.is_cleared
+		snapshot["combat_pending_spawns"] = combat_director.pending_spawns_count
+
+	return snapshot
+
+
+## Restaura o estado do mundo a partir de um snapshot previamente capturado.
+## Reposiciona o jogador, reconcilia inimigos (remove derrotados, atualiza vivos,
+## reinstancia ausentes) e restaura flags de progressão da fase.
+func restore_world_snapshot(snapshot: Dictionary) -> void:
+	if snapshot.is_empty():
+		return
+
+	var p: PlayerController = get_player()
+
+	# --- RESTAURA JOGADOR ---
+	if snapshot.has("player") and p != null and is_instance_valid(p):
+		var pd: Dictionary = snapshot["player"] as Dictionary
+		var restore_x: float = float(pd.get("pos_x", p.global_position.x))
+		var restore_y: float = float(pd.get("pos_y", p.global_position.y))
+		p.global_position = Vector2(restore_x, restore_y)
+
+		var restore_facing: float = float(pd.get("facing", p.facing_direction))
+		p.facing_direction = restore_facing
+		if p.visual_root != null:
+			p.visual_root.scale.x = absf(p.visual_root.scale.x) * signf(restore_facing) if restore_facing != 0.0 else absf(p.visual_root.scale.x)
+
+		if p.health_component != null and pd.has("hp"):
+			p.health_component.current_health = float(pd["hp"])
+			if hud != null:
+				hud.update_player_health(p.health_component.current_health, p.health_component.max_health)
+
+		if "current_special" in p and pd.has("sp"):
+			p.current_special = float(pd["sp"])
+			if p.has_signal("special_changed") and "max_special" in p:
+				p.special_changed.emit(p.current_special, p.max_special)
+
+		if "current_continues" in p and pd.has("continues"):
+			p.current_continues = int(pd["continues"])
+			var session = get_node_or_null("/root/GameSession")
+			if session != null and "current_continues" in session:
+				session.current_continues = p.current_continues
+
+		# Atualiza câmera imediatamente para a posição restaurada do jogador
+		if camera != null:
+			var cam_x: float = clampf(restore_x, camera_min_x, camera_max_x)
+			camera.global_position = Vector2(cam_x, camera_fixed_y)
+			camera.position = Vector2(cam_x, camera_fixed_y)
+
+	# --- RECONCILIA INIMIGOS ---
+	var defeated_ids: Array = snapshot.get("defeated_enemies", []) as Array
+	var saved_enemies: Array = snapshot.get("enemies_alive", []) as Array
+
+	# Mapa de inimigos existentes na cena pelo nome do nó
+	var existing_enemies: Dictionary = {} # { String: CharacterBody2D }
+	var all_enemy_nodes: Array[Node] = get_tree().get_nodes_in_group("enemies") if get_tree() != null else []
+	for en in all_enemy_nodes:
+		if en != null and is_instance_valid(en) and en is CharacterBody2D:
+			existing_enemies[en.name] = en
+
+	# 1. Remove inimigos que já foram derrotados antes do save
+	for defeated_id in defeated_ids:
+		var def_str: String = str(defeated_id)
+		if existing_enemies.has(def_str):
+			var dead_enemy: CharacterBody2D = existing_enemies[def_str]
+			if combat_director != null and combat_director.has_method("unregister_enemy"):
+				combat_director.unregister_enemy(dead_enemy)
+			dead_enemy.queue_free()
+			existing_enemies.erase(def_str)
+
+	# 2. Atualiza inimigos vivos com posição, HP, facing e estado salvos
+	var restored_ids: Dictionary = {} # Rastreia quais IDs do save foram restaurados
+	for enemy_data in saved_enemies:
+		var ed: Dictionary = enemy_data as Dictionary
+		var enemy_id: String = str(ed.get("id", ""))
+		if enemy_id.is_empty():
+			continue
+
+		if existing_enemies.has(enemy_id):
+			# Inimigo existe na cena: atualiza estado
+			var enemy: CharacterBody2D = existing_enemies[enemy_id]
+			enemy.global_position = Vector2(float(ed.get("pos_x", enemy.global_position.x)), float(ed.get("pos_y", enemy.global_position.y)))
+
+			if "facing_direction" in enemy:
+				enemy.facing_direction = float(ed.get("facing", enemy.facing_direction))
+				if "visual_root" in enemy and enemy.visual_root != null:
+					var fdir: float = enemy.facing_direction
+					enemy.visual_root.scale.x = absf(enemy.visual_root.scale.x) * signf(fdir) if fdir != 0.0 else absf(enemy.visual_root.scale.x)
+
+			if "health_component" in enemy and enemy.health_component != null and ed.has("hp"):
+				enemy.health_component.current_health = float(ed["hp"])
+
+			if "current_state" in enemy and ed.has("state"):
+				var saved_state: int = int(ed["state"])
+				# Não restaura estados transitórios (HURT, FALL, GETUP); coloca em FLANKING para retomar IA
+				if saved_state in [8, 9, 10, 11]: # HURT, FALL, DOWNED, GETUP
+					enemy.current_state = 2 # FLANKING
+				else:
+					enemy.current_state = saved_state
+
+			restored_ids[enemy_id] = true
+		else:
+			# Inimigo não existe na cena (spawn dinâmico): reinstancia
+			var scene_path: String = str(ed.get("scene_path", "res://scenes/actors/enemies/basic_enemy.tscn"))
+			if not ResourceLoader.exists(scene_path):
+				continue
+			var enemy_scene: PackedScene = load(scene_path) as PackedScene
+			if enemy_scene == null:
+				continue
+
+			var new_enemy: CharacterBody2D = enemy_scene.instantiate() as CharacterBody2D
+			if new_enemy == null:
+				continue
+
+			new_enemy.name = enemy_id
+			new_enemy.global_position = Vector2(float(ed.get("pos_x", 800.0)), float(ed.get("pos_y", 640.0)))
+
+			if "archetype" in new_enemy and ed.has("archetype"):
+				new_enemy.set("archetype", int(ed["archetype"]))
+			if "palette_variant" in new_enemy and ed.has("palette"):
+				new_enemy.set("palette_variant", int(ed["palette"]))
+			if "display_name" in new_enemy and ed.has("display_name"):
+				new_enemy.set("display_name", str(ed["display_name"]))
+			if "facing_direction" in new_enemy:
+				new_enemy.facing_direction = float(ed.get("facing", -1.0))
+			if "current_state" in new_enemy:
+				new_enemy.current_state = 2 # FLANKING (estado seguro para retomada)
+
+			var actors_container: Node2D = get_actors_container()
+			actors_container.add_child(new_enemy)
+
+			# Restaura HP após add_child (health_component é @onready)
+			if "health_component" in new_enemy and new_enemy.health_component != null and ed.has("hp"):
+				new_enemy.health_component.current_health = float(ed["hp"])
+
+			if combat_director != null:
+				combat_director.register_enemy(new_enemy)
+
+			restored_ids[enemy_id] = true
+
+	# 3. Remove inimigos extras que não estão no save (evita duplicação)
+	for existing_id in existing_enemies.keys():
+		if not restored_ids.has(existing_id) and not defeated_ids.has(existing_id):
+			# Inimigo que existia na cena pré-montada mas não estava no save
+			# (provavelmente um spawn que não deveria existir nesta posição de progresso)
+			# Mantém por segurança — não remove inimigos pré-posicionados do editor
+			pass
+
+	# --- RESTAURA FLAGS DE PROGRESSÃO ---
+	_reinforcement_wave_triggered = bool(snapshot.get("reinforcement_wave_triggered", false))
+	_boss_spawned = bool(snapshot.get("boss_spawned", false))
+
+	if combat_director != null:
+		if snapshot.has("combat_is_cleared"):
+			combat_director.is_cleared = bool(snapshot["combat_is_cleared"])
+		if snapshot.has("combat_pending_spawns"):
+			combat_director.pending_spawns_count = int(snapshot["combat_pending_spawns"])
+
+	# Se o encounter já estava limpo, reabilita saída e indicador SIGA
+	if combat_director != null and combat_director.is_cleared:
+		if exit_area != null:
+			exit_area.monitoring = true
+		if siga_indicator != null:
+			siga_indicator.activate()
 
 
 func _exit_tree() -> void:

@@ -2,6 +2,7 @@ class_name NarrativeDirector
 extends CanvasLayer
 
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
+const StandardDialogueBox = preload("res://scripts/ui/standard_dialogue_box.gd")
 
 ## Diretor e Apresentador Narrativo Cinemático para Beat 'em Up 2.5D (Saka's: A Última Ficha).
 ## Implementa o Padrão Oficial de Apresentação Arcade:
@@ -107,6 +108,8 @@ var _cena4_crt_overlay: Control
 var _crt_mon_1: ColorRect
 var _crt_mon_2: ColorRect
 var _crt_mon_3: ColorRect
+var _is_typing: bool = false
+var _typewriter_tween: Tween = null
 # WebView removed to prevent black screen issue during intro-to-gameplay transition
 
 # Efeitos sonoros procedurais integrados
@@ -180,6 +183,16 @@ func _bind_scene_nodes() -> void:
 		_btn_skip.visible = false
 	if _key_badge != null:
 		_key_badge.visible = false
+	if _dialogue_frame != null:
+		_dialogue_frame.add_theme_stylebox_override("panel", StandardDialogueBox.create_dialogue_stylebox())
+	if _speaker_label != null:
+		_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(_is_mobile_runtime())
+		_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if _dialogue_label != null:
+		_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(_is_mobile_runtime())
+		_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if _speaker_portrait != null:
+		_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	if _root_control != null and not _root_control.gui_input.is_connected(_on_root_gui_input):
 		_root_control.gui_input.connect(_on_root_gui_input)
@@ -647,6 +660,7 @@ func _show_current_text_block(ev: Resource) -> void:
 		_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_dialogue_label.add_theme_font_size_override("font_size", dialogue_font_size)
 		_dialogue_label.add_theme_color_override("font_color", DIALOGUE_TEXT_COLOR)
+		_start_typewriter()
 
 	# Atualiza Tecla e Indicador de Avanço (Oculta moldura duplicada ENTER)
 	if _key_badge != null:
@@ -715,6 +729,10 @@ func _resolve_speaker_portrait(speaker_name: String, ev: Resource) -> Texture2D:
 ## Avanço Manual de Fala: acionado por [Espaço], [Enter], Gamepad (A) ou Toque Mobile
 func advance_or_skip_text() -> void:
 	if not is_playing or current_sequence == null:
+		return
+
+	if _is_typing:
+		_skip_typewriter()
 		return
 
 	var events: Array = current_sequence.get("events")
@@ -1310,6 +1328,10 @@ func _start_prompt_pulse() -> void:
 
 
 func _kill_tweens() -> void:
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+		_typewriter_tween = null
+	_is_typing = false
 	if _active_tween != null and _active_tween.is_valid():
 		_active_tween.kill()
 		_active_tween = null
@@ -1372,3 +1394,31 @@ func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:
 
 func _create_noise_wav(duration: float, volume: float) -> AudioStreamWAV:
 	return NarrativeAudioSynthClass.create_noise_wav(duration, volume)
+
+
+func _start_typewriter() -> void:
+	if _dialogue_label == null:
+		return
+	var text_len: int = _dialogue_label.text.length()
+	if text_len == 0:
+		_is_typing = false
+		return
+	_dialogue_label.visible_characters = 0
+	_is_typing = true
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	_typewriter_tween = create_tween()
+	_typewriter_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var duration: float = float(text_len) / StandardDialogueBox.TYPEWRITER_SPEED_CPS
+	_typewriter_tween.tween_property(_dialogue_label, "visible_characters", text_len, duration)
+	_typewriter_tween.tween_callback(func():
+		_is_typing = false
+	)
+
+
+func _skip_typewriter() -> void:
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	if _dialogue_label != null:
+		_dialogue_label.visible_characters = -1
+	_is_typing = false

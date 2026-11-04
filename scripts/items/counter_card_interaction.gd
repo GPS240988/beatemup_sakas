@@ -10,6 +10,7 @@ const GABRIEL_PORTRAIT: Texture2D = preload("res://assets/ui/hud/portraits/portr
 const DIALOGUE_FRAME: Texture2D = preload("res://assets/ui/hud/dialog_frame_9patch.png")
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
+const StandardDialogueBox = preload("res://scripts/ui/standard_dialogue_box.gd")
 
 const DIALOGUE_TEXT: String = "Essa carta não deve valer R$0,05."
 const BLINK_SPEED: float = 4.8
@@ -36,6 +37,11 @@ var _hint_button: Button
 var _nearby_player: Node = null
 var _overlay_layer: CanvasLayer
 var _expanded_card: TextureRect
+var _speaker_label: Label = null
+var _dialogue_label: Label = null
+var _portrait_rect: TextureRect = null
+var _is_typing: bool = false
+var _typewriter_tween: Tween = null
 
 
 ## Configura uma instância como item dropado antes de adicioná-la à árvore.
@@ -60,6 +66,13 @@ func configure_item(
 		fitted_scale = minf(0.42, 64.0 / max_dimension)
 	_world_sprite_scale = Vector2.ONE * fitted_scale
 	_interaction_shape_size = Vector2(54.0, 68.0)
+
+	if _speaker_label != null:
+		_speaker_label.text = _display_name
+	if _dialogue_label != null:
+		_dialogue_label.text = _dialogue_message
+	if _expanded_card != null:
+		_expanded_card.texture = _inspect_texture
 
 
 func _load_item_texture(resource_path: String, fallback: Texture2D, item_name: String) -> Texture2D:
@@ -129,6 +142,9 @@ func _input(event: InputEvent) -> void:
 	if continue_pressed or event.is_action_pressed("ui_accept"):
 		if get_viewport() != null:
 			get_viewport().set_input_as_handled()
+		if _is_typing:
+			_skip_typewriter()
+			return
 		_close_dialogue()
 
 
@@ -152,6 +168,7 @@ func interact(actor: Node) -> bool:
 	if _overlay_layer != null:
 		_overlay_layer.visible = true
 	_animate_card_reveal()
+	_start_typewriter()
 
 	var tree: SceneTree = get_tree()
 	if tree != null:
@@ -279,6 +296,9 @@ func _close_dialogue() -> void:
 	if not _dialogue_open:
 		return
 
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	_is_typing = false
 	_dialogue_open = false
 	_already_read = true
 
@@ -306,12 +326,49 @@ func _close_dialogue() -> void:
 		_refresh_drop_group()
 
 
+func _start_typewriter() -> void:
+	if _dialogue_label == null:
+		return
+	var text_len: int = _dialogue_label.text.length()
+	if text_len == 0:
+		_is_typing = false
+		return
+	_dialogue_label.visible_characters = 0
+	_is_typing = true
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	_typewriter_tween = create_tween()
+	_typewriter_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var duration: float = float(text_len) / StandardDialogueBox.TYPEWRITER_SPEED_CPS
+	_typewriter_tween.tween_property(_dialogue_label, "visible_characters", text_len, duration)
+	_typewriter_tween.tween_callback(func():
+		_is_typing = false
+	)
+
+
+func _skip_typewriter() -> void:
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	if _dialogue_label != null:
+		_dialogue_label.visible_characters = -1
+	_is_typing = false
+
+
+func _on_mobile_advance_pressed() -> void:
+	if _is_typing:
+		_skip_typewriter()
+		return
+	_close_dialogue()
+
+
 func _build_interaction_hint() -> void:
 	_hint_button = Button.new()
 	_hint_button.name = "PickUpHint"
 	_hint_button.text = "PEGAR"
 	_hint_button.position = Vector2(-76.0, -68.0)
 	_hint_button.size = Vector2(152.0, 40.0)
+	_hint_button.z_index = 100
+	_hint_button.z_as_relative = false
 	_hint_button.focus_mode = Control.FOCUS_NONE
 	_hint_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_hint_button.add_theme_font_override("font", ARCADE_FONT)
@@ -369,7 +426,7 @@ func _build_dialogue_overlay() -> void:
 	var dim: ColorRect = ColorRect.new()
 	dim.name = "DimBackground"
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color(0.012, 0.015, 0.028, 0.86)
+	dim.color = StandardDialogueBox.DIM_BACKGROUND_COLOR
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(dim)
 
@@ -378,6 +435,7 @@ func _build_dialogue_overlay() -> void:
 	_expanded_card.texture = _inspect_texture
 	_expanded_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_expanded_card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_expanded_card.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_expanded_card.anchor_left = 0.5
 	_expanded_card.anchor_top = 0.5
 	_expanded_card.anchor_right = 0.5
@@ -387,97 +445,22 @@ func _build_dialogue_overlay() -> void:
 	_layout_expanded_card()
 	get_viewport().size_changed.connect(_layout_expanded_card)
 
-	var dialogue_frame: NinePatchRect = NinePatchRect.new()
-	dialogue_frame.name = "GabrielDialogueFrame"
-	dialogue_frame.texture = DIALOGUE_FRAME
-	dialogue_frame.patch_margin_left = 14
-	dialogue_frame.patch_margin_top = 14
-	dialogue_frame.patch_margin_right = 14
-	dialogue_frame.patch_margin_bottom = 14
-	dialogue_frame.anchor_left = 0.05
-	dialogue_frame.anchor_top = 0.67
-	dialogue_frame.anchor_right = 0.95
-	dialogue_frame.anchor_bottom = 0.98
-	dialogue_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(dialogue_frame)
-
-	var portrait: TextureRect = TextureRect.new()
-	portrait.name = "GabrielPortrait"
-	portrait.texture = GABRIEL_PORTRAIT
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.anchor_left = 0.065
-	portrait.anchor_top = 0.69
-	portrait.anchor_right = 0.18
-	portrait.anchor_bottom = 0.96
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(portrait)
-
 	var is_mobile: bool = MobileScreenAction.is_mobile_runtime()
+	var ui_nodes: Dictionary = StandardDialogueBox.build_dialogue_ui(root, is_mobile)
+	_portrait_rect = ui_nodes["portrait"] as TextureRect
+	_speaker_label = ui_nodes["speaker_label"] as Label
+	_dialogue_label = ui_nodes["dialogue_label"] as Label
 
-	var speaker_label: Label = Label.new()
-	speaker_label.name = "SpeakerName"
-	speaker_label.text = "GABRIEL"
-	speaker_label.anchor_left = 0.20
-	speaker_label.anchor_top = 0.69
-	speaker_label.anchor_right = 0.92
-	speaker_label.anchor_bottom = 0.765
-	speaker_label.add_theme_font_override("font", ARCADE_FONT)
-	speaker_label.add_theme_font_size_override("font_size", 28 if is_mobile else 32)
-	speaker_label.add_theme_color_override("font_color", Color(0.94, 0.75, 0.39, 1.0))
-	speaker_label.add_theme_color_override("font_outline_color", Color(0.04, 0.035, 0.045, 1.0))
-	speaker_label.add_theme_constant_override("outline_size", 4)
-	speaker_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.95))
-	speaker_label.add_theme_constant_override("shadow_offset_x", 2)
-	speaker_label.add_theme_constant_override("shadow_offset_y", 2)
-	speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	speaker_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(speaker_label)
+	_speaker_label.text = _display_name
+	_dialogue_label.text = _dialogue_message
 
-	var dialogue_label: Label = Label.new()
-	dialogue_label.name = "DialogueText"
-	dialogue_label.text = _dialogue_message
-	dialogue_label.anchor_left = 0.20
-	dialogue_label.anchor_top = 0.765
-	dialogue_label.anchor_right = 0.92 if not is_mobile else 0.74
-	dialogue_label.anchor_bottom = 0.915 if not is_mobile else 0.885
-	dialogue_label.add_theme_font_override("font", ARCADE_FONT)
-	dialogue_label.add_theme_font_size_override("font_size", 26 if is_mobile else 30)
-	dialogue_label.add_theme_color_override("font_color", Color(0.96, 0.95, 0.90, 1.0))
-	dialogue_label.add_theme_color_override("font_outline_color", Color(0.035, 0.035, 0.045, 1.0))
-	dialogue_label.add_theme_constant_override("outline_size", 3)
-	dialogue_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.95))
-	dialogue_label.add_theme_constant_override("shadow_offset_x", 2)
-	dialogue_label.add_theme_constant_override("shadow_offset_y", 2)
-	dialogue_label.add_theme_constant_override("line_spacing", 8)
-	dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialogue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(dialogue_label)
-
-	var continue_label: Label = Label.new()
-	continue_label.name = "ContinuePrompt"
-	continue_label.text = "TOQUE OU PRESSIONE ENTER PARA CONTINUAR"
-	continue_label.anchor_left = 0.20
-	continue_label.anchor_top = 0.915
-	continue_label.anchor_right = 0.92
-	continue_label.anchor_bottom = 0.97
-	continue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	continue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	continue_label.add_theme_font_override("font", ARCADE_FONT)
-	continue_label.add_theme_font_size_override("font_size", 14 if is_mobile else 16)
-	continue_label.add_theme_color_override("font_color", Color(0.78, 0.81, 0.87, 1.0))
-	continue_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.90))
-	continue_label.add_theme_constant_override("shadow_offset_x", 1)
-	continue_label.add_theme_constant_override("shadow_offset_y", 1)
-	continue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(continue_label)
-	if MobileScreenAction.is_mobile_runtime():
-		continue_label.visible = false
+	var continue_prompt := ui_nodes["continue_label"] as Label
+	if is_mobile:
+		continue_prompt.visible = false
 		MobileScreenAction.add_inline_primary_action(
 			root,
 			"AVANÇAR",
-			Callable(self, "_close_dialogue"),
+			Callable(self, "_on_mobile_advance_pressed"),
 			Color(0.96, 0.73, 0.22, 1.0),
 			0.77, 0.87, 0.95, 0.97
 		)

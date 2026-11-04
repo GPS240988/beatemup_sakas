@@ -6,6 +6,7 @@ extends RefCounted
 
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 const ENTER_KEY_BADGE_TEXTURE: Texture2D = preload("res://assets/story/ui/enter_key_badge.png")
+const StandardDialogueBox = preload("res://scripts/ui/standard_dialogue_box.gd")
 
 const CINEMATIC_MATTE_COLOR: Color = Color(0.012, 0.013, 0.018, 1.0)
 const DIALOGUE_GOLD: Color = Color(0.92, 0.72, 0.36, 1.0)
@@ -221,20 +222,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 
 	var dialogue_frame := PanelContainer.new()
 	dialogue_frame.name = "DialogueFrame"
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.035, 0.035, 0.055, 0.96)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.border_color = DIALOGUE_GOLD
-	panel_style.corner_radius_top_left = 8
-	panel_style.corner_radius_top_right = 8
-	panel_style.corner_radius_bottom_right = 8
-	panel_style.corner_radius_bottom_left = 8
-	panel_style.shadow_color = Color(0.92, 0.72, 0.36, 0.20)
-	panel_style.shadow_size = 12
-	dialogue_frame.add_theme_stylebox_override("panel", panel_style)
+	dialogue_frame.add_theme_stylebox_override("panel", StandardDialogueBox.create_dialogue_stylebox())
 	dialogue_frame.mouse_filter = Control.MOUSE_FILTER_PASS
 	dialogue_area.add_child(dialogue_frame)
 	director._dialogue_frame = dialogue_frame
@@ -288,14 +276,8 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	speaker_label.name = "SpeakerLabel"
 	speaker_label.custom_minimum_size = Vector2(0, 68)
 	speaker_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	speaker_label.add_theme_font_override("font", ARCADE_FONT)
-	speaker_label.add_theme_font_size_override("font_size", 32)
-	speaker_label.add_theme_color_override("font_color", SPEAKER_NAME_COLOR)
-	speaker_label.add_theme_color_override("font_outline_color", SPEAKER_NAME_OUTLINE_COLOR)
-	speaker_label.add_theme_constant_override("outline_size", 2)
-	speaker_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	speaker_label.add_theme_constant_override("shadow_offset_x", 2)
-	speaker_label.add_theme_constant_override("shadow_offset_y", 2)
+	speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(is_mobile)
+	speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	speaker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	speaker_label.text = ""
@@ -325,13 +307,8 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 
 	var dialogue_label := Label.new()
 	dialogue_label.name = "DialogueLabel"
-	dialogue_label.add_theme_font_override("font", ARCADE_FONT)
-	dialogue_label.add_theme_font_size_override("font_size", 28)
-	dialogue_label.add_theme_color_override("font_color", DIALOGUE_TEXT_COLOR)
-	dialogue_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1.0))
-	dialogue_label.add_theme_constant_override("shadow_offset_x", 2)
-	dialogue_label.add_theme_constant_override("shadow_offset_y", 2)
-	dialogue_label.add_theme_constant_override("line_spacing", 8)
+	dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(is_mobile)
+	dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

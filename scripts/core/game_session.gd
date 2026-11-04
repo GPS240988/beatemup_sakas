@@ -131,6 +131,11 @@ var preserved_health: float = -1.0
 var preserved_special: float = -1.0
 var current_continues: int = 1
 
+## Snapshot de mundo pendente para restauração ao carregar um save slot
+## Populado por load_game_from_slot() e consumido por BaseLevel._ready()
+var pending_save_snapshot: Dictionary = {}
+var active_save_slot: int = 1
+
 
 ## Redefine os dados da sessão para os padrões iniciais (mantendo desbloqueios de campanha)
 func reset_session() -> void:
@@ -141,6 +146,8 @@ func reset_session() -> void:
 	current_continues = 1
 	pending_transition_target = ""
 	pending_map_transition_mode = 0
+	pending_save_snapshot = {}
+	active_save_slot = 1
 	clear_player_progression()
 
 
@@ -341,12 +348,36 @@ func has_save_in_slot(slot: int) -> bool:
 	return FileAccess.file_exists(path)
 
 
-## Retorna os metadados do save no slot ou dicionário vazio se inexistente
+## Retorna os metadados do save no slot ou dicionário vazio se inexistente.
+## Se o arquivo principal estiver corrompido, tenta recuperar do .bak automaticamente.
 func get_save_info(slot: int) -> Dictionary:
 	if not has_save_in_slot(slot):
+		# Tenta recuperação pelo backup antes de desistir
+		var bak_path: String = (SAVE_PATH_TEMPLATE % slot) + ".bak"
+		if FileAccess.file_exists(bak_path):
+			var recovered := _parse_save_file(bak_path)
+			if not recovered.is_empty():
+				# Restaura o backup como arquivo principal
+				var path: String = SAVE_PATH_TEMPLATE % slot
+				DirAccess.rename_absolute(bak_path, path)
+				return recovered
 		return {}
 	var path: String = SAVE_PATH_TEMPLATE % slot
-	var file := FileAccess.open(path, FileAccess.READ)
+	var result := _parse_save_file(path)
+	if result.is_empty():
+		# Arquivo principal corrompido; tenta backup
+		var bak_path: String = path + ".bak"
+		if FileAccess.file_exists(bak_path):
+			var recovered := _parse_save_file(bak_path)
+			if not recovered.is_empty():
+				DirAccess.rename_absolute(bak_path, path)
+				return recovered
+	return result
+
+
+## Lê e parseia um arquivo JSON de save, retornando Dictionary ou vazio
+func _parse_save_file(file_path: String) -> Dictionary:
+	var file := FileAccess.open(file_path, FileAccess.READ)
 	if file == null:
 		return {}
 	var json_str: String = file.get_as_text()
@@ -358,8 +389,11 @@ func get_save_info(slot: int) -> Dictionary:
 	return json.data as Dictionary
 
 
-## Salva os dados completos da sessão e fase atual no slot escolhido
-func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, player_sp: float = -1.0) -> bool:
+## Salva os dados completos da sessão e fase atual no slot escolhido.
+## Se world_snapshot for fornecido (via BaseLevel.capture_world_snapshot()), armazena
+## a posição exata do jogador, inimigos e estado da fase para restauração fiel.
+## A gravação é atômica: escreve em .tmp, valida, e então substitui o .json real.
+func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, player_sp: float = -1.0, world_snapshot: Dictionary = {}) -> bool:
 	if slot < 1 or slot > 4:
 		slot = 1
 
@@ -376,6 +410,12 @@ func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, p
 		time_dict.get("minute", 0)
 	]
 
+	# Se o snapshot não foi fornecido explicitamente, tenta capturar do nível atual
+	if world_snapshot.is_empty():
+		var current_level: Node = get_tree().current_scene if get_tree() != null else null
+		if current_level != null and current_level.has_method("capture_world_snapshot"):
+			world_snapshot = current_level.capture_world_snapshot()
+
 	var save_data: Dictionary = {
 		"slot": slot,
 		"timestamp": Time.get_unix_time_from_system(),
@@ -390,21 +430,58 @@ func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, p
 		"continues": current_continues,
 		"bonus_stage_unlocked": bonus_stage_unlocked,
 		"stage_2_unlocked": stage_2_unlocked,
-		"max_unlocked_stage": max_unlocked_stage
+		"max_unlocked_stage": max_unlocked_stage,
+		"world_snapshot": world_snapshot
 	}
 
 	var json_text: String = JSON.stringify(save_data, "\t")
 	var path: String = SAVE_PATH_TEMPLATE % slot
-	var file := FileAccess.open(path, FileAccess.WRITE)
+	var tmp_path: String = path + ".tmp"
+	var bak_path: String = path + ".bak"
+
+	# 1. Escreve no arquivo temporário
+	var file := FileAccess.open(tmp_path, FileAccess.WRITE)
 	if file == null:
-		printerr("Erro ao abrir arquivo para salvar slot %d: %d" % [slot, FileAccess.get_open_error()])
+		printerr("Erro ao abrir arquivo temporário para salvar slot %d: %d" % [slot, FileAccess.get_open_error()])
 		return false
 	file.store_string(json_text)
 	file.close()
+
+	# 2. Valida que o JSON temporário é legível e íntegro
+	var verify_file := FileAccess.open(tmp_path, FileAccess.READ)
+	if verify_file == null:
+		printerr("Erro ao verificar arquivo temporário do slot %d" % slot)
+		return false
+	var verify_text: String = verify_file.get_as_text()
+	verify_file.close()
+	var verify_json := JSON.new()
+	if verify_json.parse(verify_text) != OK or not (verify_json.data is Dictionary):
+		printerr("Arquivo temporário do slot %d corrompido, abortando" % slot)
+		DirAccess.remove_absolute(tmp_path)
+		return false
+
+	# 3. Backup do save anterior (se existir)
+	if FileAccess.file_exists(path):
+		if FileAccess.file_exists(bak_path):
+			DirAccess.remove_absolute(bak_path)
+		DirAccess.rename_absolute(path, bak_path)
+
+	# 4. Promove o temporário para o save definitivo
+	var rename_err := DirAccess.rename_absolute(tmp_path, path)
+	if rename_err != OK:
+		printerr("Erro ao promover save temporário do slot %d: %d" % [slot, rename_err])
+		# Tenta restaurar o backup
+		if FileAccess.file_exists(bak_path):
+			DirAccess.rename_absolute(bak_path, path)
+		return false
+
+	active_save_slot = slot
 	return true
 
 
-## Carrega os dados de um slot salvo e realiza a transição de fase correspondente
+## Carrega os dados de um slot salvo e realiza a transição de fase correspondente.
+## Extrai o world_snapshot para pending_save_snapshot, que BaseLevel._ready() consumirá
+## para restaurar posição do jogador, inimigos e progresso da fase.
 func load_game_from_slot(slot: int) -> bool:
 	var data := get_save_info(slot)
 	if data.is_empty():
@@ -425,6 +502,11 @@ func load_game_from_slot(slot: int) -> bool:
 	var lvl_path: String = str(data.get("level_path", FIRST_LEVEL_PATH))
 
 	save_player_progression("fase1", hp, sp)
+
+	# Extrai e armazena o snapshot do mundo para restauração ao carregar o nível
+	var snapshot: Dictionary = data.get("world_snapshot", {}) as Dictionary
+	pending_save_snapshot = snapshot if snapshot is Dictionary else {}
+	active_save_slot = slot
 
 	character_selected.emit(selected_character_id)
 	skin_selected.emit(selected_skin_id)

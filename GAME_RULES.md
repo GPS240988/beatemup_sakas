@@ -538,6 +538,21 @@ MapX (Node2D, script: base_level.gd)
   - Suporta avanço automático por timer ou avanço manual pelo jogador (`advance_message()`).
   - Totalmente desacoplado do combate: anúncios, falas de chefes ou avisos narrativos não interrompem o loop de física do jogo.
 
+- **Padrão Canônico de Caixa de Diálogo e Inspeção de Itens (`StandardDialogueBox`)**:
+  `STATUS: IMPLEMENTED`
+  - *Arquitetura de Containers e Moldura Oficial*: Toda caixa de diálogo in-game, balão de fala ou janela de inspeção de itens coletados do chão DEVE utilizar a estrutura `MarginContainer` e `PanelContainer` com `StyleBoxTexture` baseado na textura oficial `res://assets/ui/hud/dialog_frame_9patch.png`, com margens 9-patch de 14px em todos os quatro cantos (`texture_margin_left/top/right/bottom = 14`).
+  - *Avatar em Pixel Art HD*: Exibição de face do orador (`portrait_gabriel.png` ou ícone do item) através de `TextureRect` com `texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST` e `stretch_mode = STRETCH_KEEP_ASPECT_CENTERED`, preservando rigorosamente a nitidez e a resolução nativa do Pixel Art HD sem anti-aliasing borrado.
+  - *Tipografia e LabelSettings Unificados*: Proibido criar formatação avulsa em Labels. Todas as caixas devem instanciar `LabelSettings` canônicos com a fonte `res://assets/fonts/arcade_bold.ttf`:
+    - **Orador (Speaker)**: 32px no desktop / 28px no mobile, cor Ouro Arcade `Color(0.94, 0.75, 0.39, 1.0)`, contorno de 4px `Color(0.04, 0.035, 0.045, 1.0)`, sombra projetada preta com offset `Vector2(2, 2)`.
+    - **Fala / Conteúdo (Dialogue)**: 30px no desktop / 26px no mobile, cor Creme `Color(0.96, 0.95, 0.90, 1.0)`, contorno de 3px `Color(0.035, 0.035, 0.045, 1.0)`, sombra preta com offset `Vector2(2, 2)`, entrelinha fixa de 8px e quebra automática de linha inteligente (`AUTOWRAP_WORD_SMART`).
+    - **Avisos / Rodapé (Prompt)**: 16px no desktop / 14px no mobile, cor prateada/azulada `Color(0.78, 0.81, 0.87, 1.0)`. No mobile, utiliza botão de ação primária inline ("AVANÇAR").
+  - *Efeito Máquina de Escrever (Typewriter Effect)*: Toda fala deve exibir o texto progressivamente a uma velocidade uniforme de 40 caracteres por segundo (`StandardDialogueBox.TYPEWRITER_SPEED_CPS`).
+    - *Skip Imediato*: Se o jogador pressionar qualquer tecla de confirmação ([Enter], [Espaço], [A] do Gamepad) ou tocar na tela durante a digitação, o efeito é cancelado instantaneamente (`visible_characters = -1`), revelando a frase inteira de uma só vez.
+    - *Avanço / Fechamento*: O próximo comando de confirmação após o término da digitação fecha o diálogo ou avança para o próximo bloco de texto.
+  - *Camada Z-Index e CanvasLayer*: As interfaces de diálogo e inspeção devem residir em `CanvasLayer` com `layer = 125` (ou z-index 100+ no mundo), garantindo prioridade visual absoluta sobre o Y-sort e todos os atores/props 2.5D do cenário de Vila Prudente.
+  - *Inspeção Sem Tela Preta (Dimming Translúcido)*: Coleta de cartas mágicas ou itens dropados de caixas destroçadas congelam a partida com `get_tree().paused = true`, utilizam fundo translúcido `Color(0.012, 0.015, 0.028, 0.86)` mantendo o cenário e iluminação visíveis ao fundo, e exibem a arte ampliada central com pop-in fluído (`scale` de 0.08 a 1.0 via `TRANS_BACK`). Proibido fade para tela preta durante inspeção in-game.
+  - *Diretriz de Geração de Imagens*: É terminantemente proibido ficar gerando imagens avulsas por IA desnecessariamente. Deve-se reaproveitar rigorosamente a biblioteca oficial de assets Pixel Art HD existente em `assets/sprites/` e `assets/ui/`.
+
 - **Sistema Declarativo de Narrativa Cinemática (`StoryEvent`, `StorySequence`, `NarrativeDirector`)**:
   - **Padrão Oficial de Apresentação Arcade (Neo-16-bit Urbano)**:
     - *Referência Visual Obrigatória*: Baseado na composição canônica de `assets/backgrounds/referencia_introducao.webp`.

@@ -5,12 +5,13 @@ extends Area2D
 ## Usa o NarrativeDirector oficial do jogo para imagem, revelação, retrato,
 ## diálogo do Gabriel, moldura, transições e avanço manual por teclado/toque.
 
-const NARRATIVE_DIRECTOR_SCENE: PackedScene = preload("res://scenes/ui/narrative_director.tscn")
-const ITEM_NARRATIVE_DIRECTOR_SCRIPT: Script = preload("res://scripts/events/narrative_director_item.gd")
 const STORY_EVENT_SCRIPT: Script = preload("res://scripts/events/story_event.gd")
 const STORY_SEQUENCE_SCRIPT: Script = preload("res://scripts/events/story_sequence.gd")
 const FALLBACK_TEXTURE: Texture2D = preload("res://assets/sprites/Itens/lotus_branco.png")
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
+const GABRIEL_PORTRAIT: Texture2D = preload("res://assets/ui/hud/portraits/portrait_gabriel.png")
+const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
+const StandardDialogueBox = preload("res://scripts/ui/standard_dialogue_box.gd")
 const BLINK_SPEED: float = 4.8
 const DROPPED_ITEMS_GROUP: StringName = &"dropped_magazine_items"
 
@@ -30,10 +31,15 @@ var _consumed: bool = false
 var _nearby_player: Node = null
 var _registered_player: Node = null
 var _interacting_player: Node = null
-var _active_narrative_director: Node = null
-var _session_flag_captured: bool = false
-var _session_had_played_intro: bool = false
 var _hint_button: Button
+
+var _overlay_layer: CanvasLayer = null
+var _expanded_card: TextureRect = null
+var _speaker_label: Label = null
+var _dialogue_label: Label = null
+var _portrait_rect: TextureRect = null
+var _is_typing: bool = false
+var _typewriter_tween: Tween = null
 
 
 ## Chamado pelo GamesBoxDropController antes de a instância entrar na árvore.
@@ -91,7 +97,9 @@ func _process(delta: float) -> void:
 
 
 func _load_texture(resource_path: String, resource_label: String) -> Texture2D:
-	if resource_path.is_empty() or not ResourceLoader.exists(resource_path):
+	if resource_path.is_empty():
+		return FALLBACK_TEXTURE
+	if not ResourceLoader.exists(resource_path):
 		push_error("Textura do drop '%s' não encontrada: %s" % [resource_label, resource_path])
 		return FALLBACK_TEXTURE
 	var texture := load(resource_path) as Texture2D
@@ -245,6 +253,31 @@ func _set_registered_player(player: Node) -> void:
 			_registered_player.call("register_interactable", self)
 
 
+func _input(event: InputEvent) -> void:
+	if not _dialogue_open:
+		return
+
+	var continue_pressed: bool = false
+	if event is InputEventKey:
+		var key_event: InputEventKey = event as InputEventKey
+		continue_pressed = key_event.pressed and not key_event.echo and (
+			key_event.keycode == KEY_ENTER or key_event.keycode == KEY_KP_ENTER
+		)
+	elif event is InputEventScreenTouch:
+		continue_pressed = (event as InputEventScreenTouch).pressed
+	elif event is InputEventMouseButton:
+		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+		continue_pressed = mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT
+
+	if continue_pressed or event.is_action_pressed("ui_accept"):
+		if get_viewport() != null:
+			get_viewport().set_input_as_handled()
+		if _is_typing:
+			_skip_typewriter()
+			return
+		_close_dialogue()
+
+
 func interact(actor: Node) -> bool:
 	if _consumed or _dialogue_open or actor == null or not actor.is_in_group("player"):
 		return false
@@ -258,7 +291,8 @@ func interact(actor: Node) -> bool:
 	_set_registered_player(null)
 	_refresh_group_for_player(actor)
 
-	return _start_story_dialogue()
+	_show_inspection_overlay()
+	return true
 
 
 func _on_pickup_hint_pressed() -> void:
@@ -267,14 +301,191 @@ func _on_pickup_hint_pressed() -> void:
 	interact(_nearby_player)
 
 
+func _show_inspection_overlay() -> void:
+	if _overlay_layer == null:
+		_build_dialogue_overlay()
+	_overlay_layer.visible = true
+	_animate_card_reveal()
+	_start_typewriter()
+
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = true
+
+
+func _build_dialogue_overlay() -> void:
+	_overlay_layer = CanvasLayer.new()
+	_overlay_layer.name = "DroppedItemInspectionOverlay"
+	_overlay_layer.layer = 125
+	_overlay_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	_overlay_layer.visible = false
+	add_child(_overlay_layer)
+
+	var root: Control = Control.new()
+	root.name = "OverlayRoot"
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	_overlay_layer.add_child(root)
+
+	var dim: ColorRect = ColorRect.new()
+	dim.name = "DimBackground"
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = StandardDialogueBox.DIM_BACKGROUND_COLOR
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(dim)
+
+	_expanded_card = TextureRect.new()
+	_expanded_card.name = "EnlargedItem"
+	_expanded_card.texture = _inspect_texture
+	_expanded_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_expanded_card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_expanded_card.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_expanded_card.anchor_left = 0.5
+	_expanded_card.anchor_top = 0.5
+	_expanded_card.anchor_right = 0.5
+	_expanded_card.anchor_bottom = 0.5
+	_expanded_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_expanded_card)
+	_layout_expanded_card()
+	get_viewport().size_changed.connect(_layout_expanded_card)
+
+	var is_mobile: bool = MobileScreenAction.is_mobile_runtime()
+	var ui_nodes: Dictionary = StandardDialogueBox.build_dialogue_ui(root, is_mobile)
+	_portrait_rect = ui_nodes["portrait"] as TextureRect
+	_speaker_label = ui_nodes["speaker_label"] as Label
+	_dialogue_label = ui_nodes["dialogue_label"] as Label
+
+	_speaker_label.text = "GABRIEL"
+	_dialogue_label.text = _dialogue_message
+
+	var continue_prompt := ui_nodes["continue_label"] as Label
+	if is_mobile:
+		continue_prompt.visible = false
+		MobileScreenAction.add_inline_primary_action(
+			root,
+			"AVANÇAR",
+			Callable(self, "_on_mobile_advance_pressed"),
+			Color(0.96, 0.73, 0.22, 1.0),
+			0.77, 0.87, 0.95, 0.97
+		)
+
+
+func _layout_expanded_card() -> void:
+	if _expanded_card == null or _inspect_texture == null:
+		return
+
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var item_size: Vector2 = _inspect_texture.get_size()
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0 or item_size.x <= 0.0 or item_size.y <= 0.0:
+		return
+
+	var top_margin: float = viewport_size.y * 0.035
+	var dialogue_top: float = viewport_size.y * 0.70
+	var dialogue_gap: float = maxf(12.0, viewport_size.y * 0.025)
+	var available_height: float = maxf(1.0, dialogue_top - top_margin - dialogue_gap)
+	var max_display_size: Vector2 = Vector2(viewport_size.x * 0.42, available_height)
+	var fit_scale: float = minf(max_display_size.x / item_size.x, max_display_size.y / item_size.y)
+	var display_size: Vector2 = item_size * fit_scale
+
+	var display_center_y: float = top_margin + available_height * 0.5
+	var center_offset_y: float = display_center_y - viewport_size.y * 0.5
+	_expanded_card.offset_left = -display_size.x * 0.5
+	_expanded_card.offset_top = center_offset_y - display_size.y * 0.5
+	_expanded_card.offset_right = display_size.x * 0.5
+	_expanded_card.offset_bottom = center_offset_y + display_size.y * 0.5
+	_expanded_card.pivot_offset = display_size * 0.5
+
+
+func _animate_card_reveal() -> void:
+	if _expanded_card == null:
+		return
+
+	_expanded_card.scale = Vector2(0.08, 0.08)
+	var reveal_tween: Tween = create_tween()
+	reveal_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	reveal_tween.tween_property(_expanded_card, "scale", Vector2.ONE, 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _start_typewriter() -> void:
+	if _dialogue_label == null:
+		return
+	var text_len: int = _dialogue_label.text.length()
+	if text_len == 0:
+		_is_typing = false
+		return
+	_dialogue_label.visible_characters = 0
+	_is_typing = true
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	_typewriter_tween = create_tween()
+	_typewriter_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var duration: float = float(text_len) / StandardDialogueBox.TYPEWRITER_SPEED_CPS
+	_typewriter_tween.tween_property(_dialogue_label, "visible_characters", text_len, duration)
+	_typewriter_tween.tween_callback(func():
+		_is_typing = false
+	)
+
+
+func _skip_typewriter() -> void:
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	if _dialogue_label != null:
+		_dialogue_label.visible_characters = -1
+	_is_typing = false
+
+
+func _on_mobile_advance_pressed() -> void:
+	if _is_typing:
+		_skip_typewriter()
+		return
+	_close_dialogue()
+
+
+func _close_dialogue() -> void:
+	if not _dialogue_open:
+		return
+
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	_is_typing = false
+	_dialogue_open = false
+	_consumed = true
+
+	if _overlay_layer != null:
+		_overlay_layer.visible = false
+	if _card_sprite != null:
+		_card_sprite.visible = false
+	if _hint_button != null:
+		_hint_button.visible = false
+
+	monitoring = false
+	_player_in_range = false
+
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = false
+
+	_set_hint_visible(false)
+	_set_registered_player(null)
+	remove_from_group(DROPPED_ITEMS_GROUP)
+
+	var player := _interacting_player
+	_interacting_player = null
+	if player != null and is_instance_valid(player):
+		if player.has_method("unregister_interactable"):
+			player.call("unregister_interactable", self)
+		_refresh_group_for_player(player)
+
+	queue_free()
+
+
 ## Constrói um evento declarativo compatível com o sistema oficial de história.
-## O NarrativeDirector cuida da revelação da arte, retrato, moldura e fala manual.
+## Mantido para interoperabilidade com o runner de testes e contratos existentes.
 func build_dialogue_sequence() -> Resource:
 	var dialogue_event: Resource = STORY_EVENT_SCRIPT.new()
 	dialogue_event.set("id", "drop_%s" % _display_name.to_lower())
 	dialogue_event.set("event_type", "dialogue")
 	dialogue_event.set("image_path", _inspect_texture_path)
-	# Use arrays tipados por declaração; evite construtores Array[String](...).
 	var event_texts: Array[String] = [_dialogue_message]
 	var event_speakers: Array[String] = ["GABRIEL"]
 	dialogue_event.set("texts", event_texts)
@@ -295,90 +506,11 @@ func build_dialogue_sequence() -> Resource:
 	return sequence
 
 
-func _start_story_dialogue() -> bool:
-	if NARRATIVE_DIRECTOR_SCENE == null:
-		push_error("Cena res://scenes/ui/narrative_director.tscn não encontrada.")
-		_dialogue_open = false
-		_interacting_player = null
-		_refresh_group_for_player(_nearby_player)
-		return false
-
-	var tree := get_tree()
-	if tree == null:
-		_dialogue_open = false
-		_interacting_player = null
-		return false
-
-	_capture_intro_session_flag()
-	_active_narrative_director = NARRATIVE_DIRECTOR_SCENE.instantiate()
-	if _active_narrative_director == null:
-		push_error("Não foi possível instanciar o NarrativeDirector.")
-		_dialogue_open = false
-		_interacting_player = null
-		_restore_intro_session_flag()
-		return false
-
-	# A apresentação de revistas usa o NarrativeDirector oficial, mas substitui
-	# somente o modo de enquadramento da arte: centralizado e sem crop/zoom.
-	_active_narrative_director.set_script(ITEM_NARRATIVE_DIRECTOR_SCRIPT)
-	_active_narrative_director.process_mode = Node.PROCESS_MODE_ALWAYS
-	_active_narrative_director.connect(
-		"sequence_completed", _on_narrative_sequence_finished, CONNECT_ONE_SHOT
-	)
-	tree.root.add_child(_active_narrative_director)
-	tree.paused = true
-	_active_narrative_director.call("play_sequence", build_dialogue_sequence())
-	return true
-
-
-func _capture_intro_session_flag() -> void:
-	_session_flag_captured = false
-	var session := get_node_or_null("/root/GameSession")
-	if session != null and "has_played_intro" in session:
-		_session_had_played_intro = bool(session.get("has_played_intro"))
-		_session_flag_captured = true
-
-
-func _restore_intro_session_flag() -> void:
-	if not _session_flag_captured:
-		return
-	var session := get_node_or_null("/root/GameSession")
-	if session != null and "has_played_intro" in session:
-		session.set("has_played_intro", _session_had_played_intro)
-	_session_flag_captured = false
-
-
-func _on_narrative_sequence_finished(_sequence_id: String) -> void:
-	_restore_intro_session_flag()
-	var tree := get_tree()
-	if tree != null:
-		tree.paused = false
-	_dialogue_open = false
-	_consumed = true
-	_set_hint_visible(false)
-	_set_registered_player(null)
-	remove_from_group(DROPPED_ITEMS_GROUP)
-	monitoring = false
-
-	if _active_narrative_director != null and is_instance_valid(_active_narrative_director):
-		_active_narrative_director.queue_free()
-	_active_narrative_director = null
-
-	var player := _interacting_player
-	_interacting_player = null
-	if player != null and is_instance_valid(player):
-		if player.has_method("unregister_interactable"):
-			player.call("unregister_interactable", self)
-		_refresh_group_for_player(player)
-	queue_free()
-
-
 func _exit_tree() -> void:
-	_restore_intro_session_flag()
 	_set_registered_player(null)
 	if _dialogue_open:
 		var tree := get_tree()
 		if tree != null:
 			tree.paused = false
-	if _active_narrative_director != null and is_instance_valid(_active_narrative_director):
-		_active_narrative_director.queue_free()
+	if _overlay_layer != null and is_instance_valid(_overlay_layer):
+		_overlay_layer.queue_free()

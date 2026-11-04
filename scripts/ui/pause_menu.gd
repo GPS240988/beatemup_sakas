@@ -604,9 +604,16 @@ func _save_to_slot(slot_idx: int) -> void:
 				cur_hp = player.health_component.current_health
 			if "current_special" in player:
 				cur_sp = player.current_special
+
+		# Captura o snapshot completo do mundo para salvamento fiel
+		var world_snapshot: Dictionary = {}
+		var level: Node = get_tree().current_scene
+		if level != null and level.has_method("capture_world_snapshot"):
+			world_snapshot = level.capture_world_snapshot()
+
 		# Notificação explícita do slot que está sendo gravado.
 		_show_status("GRAVANDO NO SLOT %d..." % slot_idx, Color(1.0, 0.85, 0.2, 1.0))
-		var ok: bool = session.save_game_to_slot(slot_idx, _current_level_path, cur_hp, cur_sp)
+		var ok: bool = session.save_game_to_slot(slot_idx, _current_level_path, cur_hp, cur_sp, world_snapshot)
 		if ok:
 			_show_status("✓ JOGO GRAVADO NO SLOT %d COM SUCESSO!" % slot_idx, Color(0.4, 1.0, 0.5, 1.0))
 			saved.emit(slot_idx)

@@ -1,9 +1,7 @@
 class_name MainMenu
 extends Control
-
 ## Menu Principal com arte neutra 16:9 HD (menu_state_vf.webp) e seletor dinâmico overlay.
 ## Em estrita conformidade com GAME_RULES.md (Persona Senior Front-End e Arquitetura UI).
-
 const TITLE_SCREEN_SCENE: String = "res://scenes/ui/title_screen.tscn"
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const CREDITS_SCENE: String = "res://scenes/ui/credits.tscn"
@@ -13,7 +11,6 @@ const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd
 
 const BASE_WIDTH: float = 1920.0
 const BASE_HEIGHT: float = 1080.0
-
 ## Coordenadas calibradas com precisão milimétrica no espaço 1920x1080 da arte menu_state_vf.webp:
 ## cy: centro vertical exato do texto
 ## lx: coordenada X do chevron esquerdo '<'
@@ -28,7 +25,6 @@ const OPTION_CONFIGS: Array[Dictionary] = [
 	{ "cy": 860.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }, # 4: CONFIGURAÇÕES
 	{ "cy": 941.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }  # 5: SAIR
 ]
-
 const CHEV_LEFT_OFFSET_Y: float = 0.0
 const CHEV_RIGHT_OFFSET_Y: float = 0.0
 
@@ -40,7 +36,6 @@ const CHEV_RIGHT_OFFSET_Y: float = 0.0
 @onready var brush_highlight: TextureRect = %BrushHighlight
 @onready var left_chevron: TextureRect = %LeftChevron
 @onready var right_chevron: TextureRect = %RightChevron
-
 @onready var btn_new_game: Button = %BtnNewGame
 @onready var btn_continue: Button = %BtnContinue
 @onready var btn_char_select: Button = %BtnCharSelect
@@ -55,7 +50,6 @@ var _move_tween: Tween
 var _pulse_tween: Tween
 var _shake_tween: Tween
 var _is_transitioning: bool = false
-
 var _sfx_move: AudioStreamWAV
 var _sfx_confirm: AudioStreamWAV
 var _sfx_denied: AudioStreamWAV
@@ -68,7 +62,6 @@ func _ready() -> void:
 
 	if aspect_wrapper != null:
 		aspect_wrapper.resized.connect(_on_aspect_wrapper_resized)
-
 	if _is_mobile_runtime():
 		_apply_mobile_fullscreen()
 		# No mobile, o menu é operado por toque direto nos itens da arte.
@@ -83,13 +76,11 @@ func _ready() -> void:
 			right_chevron.visible = false
 		if brush_highlight != null:
 			brush_highlight.visible = false
-
 	# Aguarda frame para o sistema de layout do Godot resolver os tamanhos e posições reais
 	await get_tree().process_frame
 	_set_selected_index(0, false)
 	if not _is_mobile_runtime():
 		_start_idle_pulse()
-
 
 func _input(event: InputEvent) -> void:
 	# O toque nativo é tratado antes da conversão opcional para mouse do Godot.
@@ -102,7 +93,6 @@ func _input(event: InputEvent) -> void:
 	var touch_position: Vector2 = event.position
 	if _is_mobile_dock_touch(touch_position):
 		return
-
 	for idx in range(_buttons.size()):
 		var menu_button: Button = _buttons[idx]
 		if menu_button == null or not menu_button.is_visible_in_tree():
@@ -112,7 +102,6 @@ func _input(event: InputEvent) -> void:
 			_set_selected_index(idx, true)
 			_activate_option(idx)
 			return
-
 
 func _is_mobile_dock_touch(screen_position: Vector2) -> bool:
 	var navigation_layer: CanvasLayer = get_node_or_null("MobileNavigationLayer") as CanvasLayer
@@ -126,10 +115,8 @@ func _is_mobile_dock_touch(screen_position: Vector2) -> bool:
 				return true
 	return false
 
-
 func _is_mobile_runtime() -> bool:
 	return MobileScreenAction.is_mobile_runtime()
-
 
 func _setup_hitboxes() -> void:
 	for idx in range(_buttons.size()):
@@ -145,7 +132,6 @@ func _setup_hitboxes() -> void:
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		b.mouse_entered.connect(_on_button_hovered.bind(idx))
 		b.pressed.connect(_on_button_clicked.bind(idx))
-
 	if btn_char_select != null:
 		btn_char_select.disabled = false
 
@@ -161,7 +147,6 @@ func _apply_mobile_fullscreen() -> void:
 	var dark_base := get_node_or_null("DarkBase") as ColorRect
 	if dark_base != null:
 		dark_base.color = Color(0.025, 0.035, 0.07, 1.0)
-
 	if aspect_wrapper != null and vp_size.y > 0.0:
 		aspect_wrapper.ratio = vp_size.x / vp_size.y
 		aspect_wrapper.stretch_mode = AspectRatioContainer.STRETCH_FIT
@@ -170,7 +155,6 @@ func _apply_mobile_fullscreen() -> void:
 		aspect_wrapper.offset_top = 0.0
 		aspect_wrapper.offset_right = 0.0
 		aspect_wrapper.offset_bottom = 0.0
-
 	if background_slot != null:
 		background_slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		background_slot.stretch_mode = TextureRect.STRETCH_SCALE
@@ -179,10 +163,8 @@ func _apply_mobile_fullscreen() -> void:
 		background_slot.offset_top = 0.0
 		background_slot.offset_right = 0.0
 		background_slot.offset_bottom = 0.0
-
 	if get_viewport() != null and not get_viewport().size_changed.is_connected(_apply_mobile_fullscreen):
 		get_viewport().size_changed.connect(_apply_mobile_fullscreen)
-
 
 func _on_aspect_wrapper_resized() -> void:
 	if _is_mobile_runtime() and aspect_wrapper != null:
@@ -192,7 +174,6 @@ func _on_aspect_wrapper_resized() -> void:
 			if absf(aspect_wrapper.ratio - target_ratio) > 0.001:
 				aspect_wrapper.ratio = target_ratio
 	_update_selector_positions(false)
-
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_S or event.keycode == KEY_DOWN)):
@@ -208,7 +189,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_safe_handle_input()
 		_play_sound(_sfx_denied)
 		get_tree().change_scene_to_file(TITLE_SCREEN_SCENE)
-
 
 func _safe_handle_input() -> void:
 	if get_viewport() != null:
@@ -226,13 +206,11 @@ func _on_button_hovered(index: int) -> void:
 	if _current_index != index:
 		_set_selected_index(index, true)
 
-
 func _on_button_clicked(index: int) -> void:
 	_set_selected_index(index, true)
 	# Também confirma diretamente pelo Button quando o sistema mobile entrega
 	# o toque como mouse emulado, sem depender do caminho InputEventScreenTouch.
 	_activate_option(index)
-
 
 func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 	_current_index = clampi(new_idx, 0, 5)
@@ -246,7 +224,6 @@ func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 				menu_button.add_theme_stylebox_override("hover", _make_mobile_selector_style(selected))
 				menu_button.add_theme_stylebox_override("pressed", _make_mobile_selector_style(selected))
 
-
 func _update_selector_positions(animate: bool = false) -> void:
 	if _is_mobile_runtime():
 		if brush_highlight != null: brush_highlight.visible = false
@@ -259,7 +236,6 @@ func _update_selector_positions(animate: bool = false) -> void:
 	var view_size: Vector2 = aspect_wrapper.size
 	if view_size.x <= 0.0 or view_size.y <= 0.0:
 		return
-
 	if _current_index < 0 or _current_index >= OPTION_CONFIGS.size():
 		return
 
@@ -272,11 +248,9 @@ func _update_selector_positions(animate: bool = false) -> void:
 	var target_rx: float = float(cfg["rx"]) * sx
 	var target_bx: float = float(cfg["bx"]) * sx
 	var target_bw: float = float(cfg["bw"]) * sx
-
 	var chev_h: float = 54.0 * sy
 	var chev_w: float = 56.0 * sx
 	var brush_h: float = 60.0 * sy
-
 	# Alinhamento vertical: centraliza na linha do texto + compensação individual do bico da seta
 	var l_offset_y: float = CHEV_LEFT_OFFSET_Y * sy
 	var r_offset_y: float = CHEV_RIGHT_OFFSET_Y * sy
@@ -284,10 +258,8 @@ func _update_selector_positions(animate: bool = false) -> void:
 	var r_pos = Vector2(target_rx, target_cy - (chev_h * 0.5) + r_offset_y)
 	var b_pos = Vector2(target_bx, target_cy - (brush_h * 0.5))
 	var b_size = Vector2(target_bw, brush_h)
-
 	if _move_tween != null and _move_tween.is_valid():
 		_move_tween.kill()
-
 	if animate:
 		_move_tween = create_tween().set_parallel(true)
 		_move_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -306,19 +278,18 @@ func _update_selector_positions(animate: bool = false) -> void:
 		brush_highlight.position = b_pos
 		brush_highlight.size = b_size
 
-
-func _make_mobile_selector_style(selected: bool) -> StyleBoxFlat:
+func _make_mobile_selector_style(_selected: bool) -> StyleBoxFlat:
+	# Os botões são hitboxes invisíveis no mobile; não desenhar moldura de seleção.
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.95, 0.22, 0.12, 0.20) if selected else Color(0.02, 0.03, 0.06, 0.0)
-	style.border_color = Color(1.0, 0.82, 0.20, 0.95) if selected else Color(0.42, 0.52, 0.68, 0.0)
-	style.set_border_width_all(2 if selected else 0)
-	style.set_corner_radius_all(10)
+	style.bg_color = Color.TRANSPARENT
+	style.border_color = Color.TRANSPARENT
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(0)
 	style.shadow_color = Color.TRANSPARENT
 	style.shadow_size = 0
 	style.content_margin_left = 18.0
 	style.content_margin_right = 18.0
 	return style
-
 
 func _start_idle_pulse() -> void:
 	if _pulse_tween != null and _pulse_tween.is_valid():
@@ -332,7 +303,6 @@ func _start_idle_pulse() -> void:
 func _activate_option(index: int) -> void:
 	if _is_transitioning:
 		return
-
 	match index:
 		0: # NOVO JOGO
 			_is_transitioning = true
@@ -346,7 +316,6 @@ func _activate_option(index: int) -> void:
 			_is_transitioning = true
 			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CONTINUE_SCENE)
-
 		2: # PERSONAGENS
 			_is_transitioning = true
 			_play_sound(_sfx_confirm)
@@ -366,15 +335,12 @@ func _activate_option(index: int) -> void:
 				_quit_mobile_game()
 			else:
 				get_tree().quit()
-
-
 ## Encerra o app nativo. No Web mobile, o shell tenta fechar a janela e
 ## apresenta uma tela de encerramento caso o navegador bloqueie window.close().
 func _quit_mobile_game() -> void:
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("if (typeof window.sakasQuitGame === 'function') { window.sakasQuitGame(); }")
 	get_tree().quit()
-
 
 func _deny_action(_reason: String) -> void:
 	_play_sound(_sfx_denied)
@@ -389,7 +355,6 @@ func _deny_action(_reason: String) -> void:
 		_shake_tween.tween_property(aspect_wrapper, "position:x", orig_pos.x - 4.0, 0.04)
 		_shake_tween.tween_property(aspect_wrapper, "position:x", orig_pos.x, 0.04)
 
-
 func _play_sound(stream: AudioStreamWAV) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
@@ -400,7 +365,6 @@ func _generate_audio_effects() -> void:
 	_sfx_move = _create_wav(720.0, 0.04, 0.3)
 	_sfx_confirm = _create_wav(1040.0, 0.12, 0.4)
 	_sfx_denied = _create_wav(160.0, 0.16, 0.5)
-
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:
 	var wav = AudioStreamWAV.new()
