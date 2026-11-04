@@ -69,7 +69,11 @@ func _load_background_image() -> void:
 
 	if tex != null:
 		background_texture.texture = tex
-		if not MobileScreenAction.is_mobile_runtime():
+		if MobileScreenAction.is_mobile_runtime():
+			background_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			background_texture.stretch_mode = TextureRect.STRETCH_SCALE
+			background_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		else:
 			if _ambient_backdrop == null:
 				_ambient_backdrop = TextureRect.new()
 				_ambient_backdrop.name = "LoadingAmbientBackdrop"

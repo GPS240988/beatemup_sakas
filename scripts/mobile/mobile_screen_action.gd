@@ -381,29 +381,12 @@ static func _layout_dock(owner: Node, dock: CanvasLayer) -> void:
 		button.add_theme_font_size_override("font_size", font_size)
 
 
-static func _reserve_mobile_content_area(owner: Node, reserve_height: float) -> void:
-	if owner == null:
-		return
-
-	# Cenas com AspectWrapper mantêm a arte 16:9 e deixam uma faixa escura
-	# real para as ações, em vez de desenhar controles por cima do conteúdo.
-	var aspect_wrapper := owner.get_node_or_null("AspectWrapper") as Control
-	if aspect_wrapper != null:
-		aspect_wrapper.offset_bottom = -reserve_height
-		return
-
-	# A tela de dificuldade usa fundos diretos e ClickZones, sem AspectWrapper.
-	# Reduzimos a área visual e as hitboxes juntas, preservando o matte inferior.
-	var resized_background := false
-	for node_name in ["BackgroundNormal", "BackgroundDificil"]:
-		var background := owner.get_node_or_null(node_name) as Control
-		if background != null:
-			background.offset_bottom = -reserve_height
-			resized_background = true
-	if resized_background:
-		var click_zones := owner.get_node_or_null("ClickZones") as Control
-		if click_zones != null:
-			click_zones.offset_bottom = -reserve_height
+static func _reserve_mobile_content_area(_owner: Node, _reserve_height: float) -> void:
+	# Com o novo sistema fullscreen (STRETCH_COVER / STRETCH_KEEP_ASPECT_COVERED),
+	# o background preenche toda a viewport nativamente. O dock de ações é
+	# transparente e fica sobre a arte, sem comprimir o conteúdo.
+	# Nenhuma reserva de espaço é necessária.
+	pass
 
 
 static func _clean_label(raw: String) -> String:

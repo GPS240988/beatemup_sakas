@@ -2,13 +2,9 @@ extends Node
 
 ## Configuração global de apresentação para dispositivos móveis.
 ## Desktop e notebooks com touchscreen não são classificados como mobile.
-## Mantém a altura lógica do jogo e amplia a largura disponível em cada proporção.
+## Mantém a altura lógica do jogo e preenche 100% da viewport em telas ultrawide (~20:9)
+## sem barras pretas laterais e sem cortar nenhuma parte da arte original.
 
-const AMBIENT_FILL_NAME: String = "MobileAspectFillBackdrop"
-const AMBIENT_FILL_TINT: Color = Color(0.28, 0.30, 0.36, 1.0)
-
-var _tracked_background_sources: Array[TextureRect] = []
-var _tracked_background_fills: Array[TextureRect] = []
 var _scene_with_mobile_fills: Node = null
 
 
@@ -16,48 +12,26 @@ func _ready() -> void:
 	if not _is_mobile_runtime():
 		return
 
-	# Orientação horizontal com altura lógica constante. A largura lógica passa
-	# a acompanhar o aspecto real do aparelho sem esticar os elementos da UI.
+	# Orientação horizontal com altura lógica constante.
 	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
 	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP_HEIGHT
 
 	if not get_tree().scene_changed.is_connected(_on_scene_changed):
 		get_tree().scene_changed.connect(_on_scene_changed)
 
-	# Também cobre a primeira cena, que pode já estar montada quando o AutoLoad
-	# termina seu _ready().
+	if get_viewport() != null and not get_viewport().size_changed.is_connected(_on_viewport_resized):
+		get_viewport().size_changed.connect(_on_viewport_resized)
+
+	# Também cobre a primeira cena
 	call_deferred("_apply_current_scene")
 
 
-func _process(_delta: float) -> void:
+func _on_viewport_resized() -> void:
 	if not _is_mobile_runtime():
 		return
-
-	for index in range(_tracked_background_sources.size() - 1, -1, -1):
-		var source: TextureRect = _tracked_background_sources[index]
-		var fill: TextureRect = _tracked_background_fills[index]
-		if not is_instance_valid(source) or not is_instance_valid(fill):
-			_tracked_background_sources.remove_at(index)
-			_tracked_background_fills.remove_at(index)
-			continue
-
-		# Algumas telas trocam a arte em runtime (seleção de personagem) ou fazem
-		# crossfade entre duas imagens (dificuldade). Cada preenchimento acompanha
-		# a textura e a opacidade da sua camada original.
-		var active_texture: Texture2D = source.texture
-		if fill.texture != active_texture:
-			fill.texture = active_texture
-		fill.modulate = Color(
-			AMBIENT_FILL_TINT.r,
-			AMBIENT_FILL_TINT.g,
-			AMBIENT_FILL_TINT.b,
-			AMBIENT_FILL_TINT.a * source.modulate.a
-		)
-		fill.visible = (
-			active_texture != null
-			and source.is_visible_in_tree()
-			and source.modulate.a > 0.001
-		)
+	var current_scene: Node = get_tree().current_scene
+	if current_scene != null:
+		_apply_mobile_fullscreen(current_scene)
 
 
 func _apply_current_scene() -> void:
@@ -73,13 +47,11 @@ func _on_scene_changed(scene_root: Node) -> void:
 		return
 
 	_scene_with_mobile_fills = scene_root
-	_tracked_background_sources.clear()
-	_tracked_background_fills.clear()
-	call_deferred("_apply_mobile_aspect_fill", scene_root)
+	call_deferred("_apply_mobile_fullscreen", scene_root)
 
 
-func _apply_mobile_aspect_fill(scene_root: Node) -> void:
-	# Aguarda o _ready() das telas e os primeiros cálculos de anchors/tamanhos.
+func _apply_mobile_fullscreen(scene_root: Node) -> void:
+	# Aguarda resolução de tamanhos e anchors
 	await get_tree().process_frame
 	await get_tree().process_frame
 
@@ -90,64 +62,50 @@ func _apply_mobile_aspect_fill(scene_root: Node) -> void:
 	if not (scene_root is Control):
 		return
 
-	var sources: Array[TextureRect] = _find_background_sources(scene_root)
-	if sources.is_empty():
+	var root_control: Control = scene_root as Control
+	var vp_size: Vector2 = root_control.get_viewport_rect().size
+	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
 		return
 
-	var root_control: Control = scene_root as Control
-	var root_insertion_index: int = _get_root_background_insertion_index(root_control)
+	# ── 1. DarkBase: cor escura limpa ──
+	var dark_base: ColorRect = root_control.get_node_or_null("DarkBase") as ColorRect
+	if dark_base != null:
+		dark_base.color = Color(0.025, 0.035, 0.07, 1.0)
 
-	for source: TextureRect in sources:
-		var fill_container: Control = null
-		var insertion_index: int = 0
-		if String(source.name).to_lower() == "imagedisplay":
-			# A narrativa vive em um CanvasLayer filho do mapa. O preenchimento
-			# pertence ao ArtStage para acompanhar a imagem sem cobrir o diálogo.
-			fill_container = source.get_parent() as Control
-			insertion_index = source.get_index()
-		else:
-			fill_container = root_control
-			insertion_index = root_insertion_index
-			root_insertion_index += 1
+	# ── 2. AspectRatioContainer → ratio acompanha viewport no mobile ──
+	# Ajusta o aspect ratio do container para preencher 100% da tela sem cortes
+	var aspect_wrapper: AspectRatioContainer = root_control.get_node_or_null("AspectWrapper") as AspectRatioContainer
+	if aspect_wrapper == null:
+		aspect_wrapper = root_control.get_node_or_null("%AspectWrapper") as AspectRatioContainer
+	if aspect_wrapper != null and vp_size.y > 0.0:
+		aspect_wrapper.ratio = vp_size.x / vp_size.y
+		aspect_wrapper.stretch_mode = AspectRatioContainer.STRETCH_FIT
+		aspect_wrapper.offset_left = 0.0
+		aspect_wrapper.offset_top = 0.0
+		aspect_wrapper.offset_right = 0.0
+		aspect_wrapper.offset_bottom = 0.0
 
-		if fill_container == null:
-			continue
+	# ── 3. MapContainer (map_menu e map_transition) → escala para viewport ──
+	var map_container: Control = root_control.get_node_or_null("MapContainer") as Control
+	if map_container == null:
+		map_container = root_control.get_node_or_null("%MapContainer") as Control
+	if map_container != null:
+		map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
+		map_container.size = Vector2(1920.0, 1080.0)
+		map_container.scale = Vector2(vp_size.x / 1920.0, vp_size.y / 1080.0)
+		map_container.position = Vector2.ZERO
 
-		var backdrop := TextureRect.new()
-		backdrop.name = AMBIENT_FILL_NAME + "_" + str(_tracked_background_fills.size())
-		backdrop.texture = source.texture
-		backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		backdrop.modulate = Color(
-			AMBIENT_FILL_TINT.r,
-			AMBIENT_FILL_TINT.g,
-			AMBIENT_FILL_TINT.b,
-			AMBIENT_FILL_TINT.a * source.modulate.a
-		)
-		backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		backdrop.focus_mode = Control.FOCUS_NONE
-		backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		backdrop.offset_left = 0.0
-		backdrop.offset_top = 0.0
-		backdrop.offset_right = 0.0
-		backdrop.offset_bottom = 0.0
-		backdrop.visible = source.texture != null and source.is_visible_in_tree() and source.modulate.a > 0.001
-
-		fill_container.add_child(backdrop)
-		fill_container.move_child(backdrop, insertion_index)
-		_tracked_background_sources.append(source)
-		_tracked_background_fills.append(backdrop)
-
-
-func _get_root_background_insertion_index(root_control: Control) -> int:
-	if root_control == null:
-		return 0
-	for base_name in ["DarkBase", "Background"]:
-		var base_node: Control = root_control.get_node_or_null(base_name) as Control
-		if base_node != null:
-			return base_node.get_index() + 1
-	return 0
+	# ── 4. TextureRects de Background → STRETCH_SCALE preenchendo full screen ──
+	# Preenche 100% da viewport ultrawide mantendo a arte inteira visível sem barras pretas
+	var direct_backgrounds: Array[TextureRect] = _find_background_sources(root_control)
+	for bg: TextureRect in direct_backgrounds:
+		bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bg.stretch_mode = TextureRect.STRETCH_SCALE
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		bg.offset_left = 0.0
+		bg.offset_top = 0.0
+		bg.offset_right = 0.0
+		bg.offset_bottom = 0.0
 
 
 func _find_background_sources(root: Node) -> Array[TextureRect]:
@@ -159,15 +117,11 @@ func _find_background_sources(root: Node) -> Array[TextureRect]:
 		if current is TextureRect:
 			var candidate: TextureRect = current as TextureRect
 			if _background_candidate_score(candidate.name) > 0:
-				# Inclui camadas inicialmente ocultas (ex.: imagem difícil ou
-				# IncomingSlot). O _process acompanha visibilidade e crossfade.
 				sources.append(candidate)
 
 		for child in current.get_children():
 			pending.append(child)
 
-	# A busca em largura mantém a ordem dos irmãos da cena. Os preenchimentos
-	# são inseridos na mesma ordem para respeitar crossfades e camadas visuais.
 	return sources
 
 
@@ -189,6 +143,8 @@ func _background_candidate_score(node_name: StringName) -> int:
 		return 105
 	if normalized == "backgrounddificil":
 		return 104
+	if normalized == "ambientbackground":
+		return 95
 	if normalized.begins_with("background"):
 		return 90
 	return 0

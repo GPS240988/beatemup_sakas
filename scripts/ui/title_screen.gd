@@ -19,6 +19,9 @@ var _mobile_action_button: Button
 
 
 func _ready() -> void:
+	if MobileScreenAction.is_mobile_runtime():
+		_apply_mobile_fullscreen()
+
 	if flash_rect != null:
 		flash_rect.visible = true
 		flash_rect.modulate.a = 0.0
@@ -28,9 +31,40 @@ func _ready() -> void:
 		touch_button.pressed.connect(_on_touch_activated)
 
 	_start_cinematic_fadein()
-	_mobile_action_button = MobileScreenAction.add_primary_action(
-		self, "TOQUE PARA AVANÇAR", Callable(self, "_handle_activation"), Color(0.95, 0.68, 0.25, 1.0)
-	)
+
+
+func _apply_mobile_fullscreen() -> void:
+	var vp_size: Vector2 = get_viewport_rect().size
+	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
+		vp_size = Vector2(1280.0, 720.0)
+
+	var dark_base := get_node_or_null("DarkBase") as ColorRect
+	if dark_base != null:
+		dark_base.color = Color(0.025, 0.035, 0.07, 1.0)
+
+	var aspect_wrapper: AspectRatioContainer = get_node_or_null("AspectWrapper") as AspectRatioContainer
+	if aspect_wrapper == null:
+		aspect_wrapper = get_node_or_null("%AspectWrapper") as AspectRatioContainer
+	if aspect_wrapper != null and vp_size.y > 0.0:
+		aspect_wrapper.ratio = vp_size.x / vp_size.y
+		aspect_wrapper.stretch_mode = AspectRatioContainer.STRETCH_FIT
+		aspect_wrapper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		aspect_wrapper.offset_left = 0.0
+		aspect_wrapper.offset_top = 0.0
+		aspect_wrapper.offset_right = 0.0
+		aspect_wrapper.offset_bottom = 0.0
+
+	if background_image != null:
+		background_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		background_image.stretch_mode = TextureRect.STRETCH_SCALE
+		background_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		background_image.offset_left = 0.0
+		background_image.offset_top = 0.0
+		background_image.offset_right = 0.0
+		background_image.offset_bottom = 0.0
+
+	if get_viewport() != null and not get_viewport().size_changed.is_connected(_apply_mobile_fullscreen):
+		get_viewport().size_changed.connect(_apply_mobile_fullscreen)
 
 
 func _start_cinematic_fadein() -> void:

@@ -29,15 +29,6 @@ const OPTION_CONFIGS: Array[Dictionary] = [
 	{ "cy": 941.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }  # 5: SAIR
 ]
 
-const MOBILE_LABELS: Array[String] = [
-	"INICIAR NOVO JOGO",
-	"CONTINUAR JOGO",
-	"PERSONAGENS",
-	"ABRIR MAPA",
-	"EM BREVE",
-	"SAIR DO JOGO"
-]
-
 const CHEV_LEFT_OFFSET_Y: float = 0.0
 const CHEV_RIGHT_OFFSET_Y: float = 0.0
 
@@ -63,7 +54,6 @@ var _current_index: int = 0
 var _move_tween: Tween
 var _pulse_tween: Tween
 var _shake_tween: Tween
-var _mobile_action_button: Button
 var _is_transitioning: bool = false
 
 var _sfx_move: AudioStreamWAV
@@ -80,13 +70,19 @@ func _ready() -> void:
 		aspect_wrapper.resized.connect(_on_aspect_wrapper_resized)
 
 	if _is_mobile_runtime():
-		_mobile_action_button = MobileScreenAction.add_primary_action(
-			self, "INICIAR NOVO JOGO", Callable(self, "_on_mobile_action_pressed"), Color(0.0, 0.82, 0.88, 1.0)
-		)
+		_apply_mobile_fullscreen()
+		# No mobile, o menu é operado por toque direto nos itens da arte.
+		# Não cria botão dock nem exibe chevrons/highlights — o toque nos
+		# botões invisíveis sobre os itens do menu já dispara a ação.
+		var nav_layer := get_node_or_null("MobileNavigationLayer") as CanvasLayer
+		if nav_layer != null:
+			nav_layer.visible = false
 		if left_chevron != null:
 			left_chevron.visible = false
 		if right_chevron != null:
 			right_chevron.visible = false
+		if brush_highlight != null:
+			brush_highlight.visible = false
 
 	# Aguarda frame para o sistema de layout do Godot resolver os tamanhos e posições reais
 	await get_tree().process_frame
@@ -131,10 +127,6 @@ func _is_mobile_dock_touch(screen_position: Vector2) -> bool:
 	return false
 
 
-func _on_mobile_action_pressed() -> void:
-	_activate_option(_current_index)
-
-
 func _is_mobile_runtime() -> bool:
 	return MobileScreenAction.is_mobile_runtime()
 
@@ -161,7 +153,44 @@ func _setup_hitboxes() -> void:
 		btn_settings.disabled = true
 
 
+func _apply_mobile_fullscreen() -> void:
+	var vp_size: Vector2 = get_viewport_rect().size
+	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
+		vp_size = Vector2(1280.0, 720.0)
+
+	var dark_base := get_node_or_null("DarkBase") as ColorRect
+	if dark_base != null:
+		dark_base.color = Color(0.025, 0.035, 0.07, 1.0)
+
+	if aspect_wrapper != null and vp_size.y > 0.0:
+		aspect_wrapper.ratio = vp_size.x / vp_size.y
+		aspect_wrapper.stretch_mode = AspectRatioContainer.STRETCH_FIT
+		aspect_wrapper.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		aspect_wrapper.offset_left = 0.0
+		aspect_wrapper.offset_top = 0.0
+		aspect_wrapper.offset_right = 0.0
+		aspect_wrapper.offset_bottom = 0.0
+
+	if background_slot != null:
+		background_slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		background_slot.stretch_mode = TextureRect.STRETCH_SCALE
+		background_slot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		background_slot.offset_left = 0.0
+		background_slot.offset_top = 0.0
+		background_slot.offset_right = 0.0
+		background_slot.offset_bottom = 0.0
+
+	if get_viewport() != null and not get_viewport().size_changed.is_connected(_apply_mobile_fullscreen):
+		get_viewport().size_changed.connect(_apply_mobile_fullscreen)
+
+
 func _on_aspect_wrapper_resized() -> void:
+	if _is_mobile_runtime() and aspect_wrapper != null:
+		var vp_size: Vector2 = get_viewport_rect().size
+		if vp_size.y > 0.0:
+			var target_ratio: float = vp_size.x / vp_size.y
+			if absf(aspect_wrapper.ratio - target_ratio) > 0.001:
+				aspect_wrapper.ratio = target_ratio
 	_update_selector_positions(false)
 
 
@@ -216,10 +245,6 @@ func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 				menu_button.add_theme_stylebox_override("normal", _make_mobile_selector_style(selected))
 				menu_button.add_theme_stylebox_override("hover", _make_mobile_selector_style(selected))
 				menu_button.add_theme_stylebox_override("pressed", _make_mobile_selector_style(selected))
-	if _mobile_action_button != null and _current_index >= 0 and _current_index < MOBILE_LABELS.size():
-		var lbl: String = MOBILE_LABELS[_current_index]
-		var is_disabled: bool = (_current_index == 4)
-		MobileScreenAction.set_action_state(_mobile_action_button, lbl, is_disabled)
 
 
 func _update_selector_positions(animate: bool = false) -> void:

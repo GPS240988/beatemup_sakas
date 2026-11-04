@@ -1,18 +1,18 @@
 [gd_scene format=3 uid="uid://igj2to84hmep"]
 
-[ext_resource type="Script" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base"]
+[ext_resource type="Script" uid="uid://bxe7s51a7y1j6" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base"]
 [ext_resource type="Texture2D" uid="uid://o78q2ivl8thb" path="res://assets/backgrounds/maps/fase1/Fase1_2.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="PackedScene" uid="uid://cxvd6h0452i8y" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
 [ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" uid="uid://bm5qsuqs2ao8t" path="res://scenes/actors/sergio_npc.tscn" id="6_bnoob"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
-[ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
+[ext_resource type="PackedScene" uid="uid://cx6etug1g8lhg" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_2_navpoly.tres" id="8_navpoly"]
 [ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
 [ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
 [ext_resource type="PackedScene" uid="uid://c85moa1s18w10" path="res://scenes/props/destructible_games_box.tscn" id="11_hiphc"]
-[ext_resource type="PackedScene" path="res://scenes/items/coca_pickup.tscn" id="12_coca_pickup"]
+[ext_resource type="PackedScene" uid="uid://7nwbc888574g" path="res://scenes/items/coca_pickup.tscn" id="12_coca_pickup"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
 size = Vector2(2200, 48)
@@ -33,17 +33,16 @@ size = Vector2(360, 160)
 size = Vector2(740, 120)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_right_glass"]
-size = Vector2(106.75, 221)
+size = Vector2(129.5, 246)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
-size = Vector2(101, 84)
+size = Vector2(93, 89)
 
 [node name="Map2" type="Node2D" unique_id=1948904586]
 script = ExtResource("1_mobile_base")
 section_number = 2
 map_name = "Fase 1 - Seção 2: Balcão da Locadora"
 map_index = 2
-mobile_camera_fill_overscan = 1.02
 next_map_scene_path = "res://scenes/levels/map_3.tscn"
 reinforcement_waves_enabled = true
 reinforcement_count = 3
@@ -119,11 +118,11 @@ position = Vector2(1815, 550)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/RightGlassWallProp" unique_id=205406239]
-position = Vector2(97.5, 0)
+position = Vector2(95.75, 0)
 shape = SubResource("RectangleShape2D_right_glass")
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="World/Props/StaticProps/RightGlassWallProp" unique_id=314589312]
-position = Vector2(-125.625, -100.5)
+position = Vector2(-13, -113)
 shape = SubResource("RectangleShape2D_right_glass")
 
 [node name="Destructibles" type="Node2D" parent="World/Props" unique_id=1626319199]
@@ -203,7 +202,7 @@ collision_layer = 0
 monitoring = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea" unique_id=1650797289]
-position = Vector2(-114.5, -100)
+position = Vector2(-118.5, -102.5)
 shape = SubResource("RectangleShape2D_exit_shape")
 
 [node name="SigaIndicator" parent="." unique_id=1263372433 instance=ExtResource("6_siga_scene")]

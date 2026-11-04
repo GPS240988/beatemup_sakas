@@ -109,6 +109,11 @@ func _setup_scaling() -> void:
 		var dark_base := get_node_or_null("DarkBase") as ColorRect
 		if dark_base != null:
 			dark_base.color = Color(0.035, 0.05, 0.09, 1.0)
+		map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
+		map_container.size = Vector2(1920.0, 1080.0)
+		map_container.scale = Vector2(vp_size.x / 1920.0, vp_size.y / 1080.0)
+		map_container.position = Vector2.ZERO
+		return
 
 	if scale_factor <= 0.0:
 		scale_factor = 1.0

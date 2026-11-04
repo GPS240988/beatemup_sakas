@@ -703,16 +703,36 @@ MapX (Node2D, script: base_level.gd)
 
 ---
 
-## 26. MOBILE CONSTRAINTS
+## 26. MOBILE CONSTRAINTS & MULTIPLATFORM SPEC
 `STATUS: IMPLEMENTED`
 
-1. **Suporte Touch Nativo Sob Demanda**:
-   - A HUD (`prototype_hud.tscn`) suporta alternância para controles virtuais na tela (`TouchControls`).
-   - Botões interativos possuem tamanho mínimo de toque de **48 × 48 dp**.
-2. **Safe Area Touch**:
-   - Elementos essenciais de controle e interface devem residir dentro dos 90% centrais da tela (5% de margem em cada borda), evitando interferência com notch, cantos arredondados ou barras de navegação do sistema operacional.
-3. **Orçamento e Otimização de Assets**:
-   - Viewport nativo 1280×720 (16:9 widescreen) com preenchimento letterbox/pillarbox via `DarkBase`.
+1. **Segregação Absoluta Desktop vs Mobile**:
+   - Controles touch virtuais (`TouchControls`, D-Pad analógico, botões de ataque/pulo/especial) são **exclusivos de runtime mobile** (`OS.has_feature("mobile")`, `web_android`, `web_ios`).
+   - No Desktop/PC, nenhum botão virtual ou dock touch aparece na tela. Atalhos de teclado (WASD, Setas, Enter, Espaço, ESC) e navegação com mouse permanecem 100% nativos e intocados.
+   - Botões de depuração como `TouchToggleBtn` são permanentemente ocultados no runtime final.
+   - O Menu Principal no mobile não exibe botão dock inferior — as opções do menu são tocáveis diretamente via hitboxes invisíveis sobre a arte.
+   - Hints de teclado (`ControlsLabel`, chevrons, brush_highlight) são ocultados no mobile.
+
+2. **Display, Orientação e Preenchimento Fullscreen Nativo (Sem Cortes)**:
+   - `project.godot`: `window/handheld/orientation=5` (`sensor_landscape`) garante abertura imediata em modo paisagem.
+   - `mobile_bootstrap.gd` (AutoLoad) aplica `CONTENT_SCALE_ASPECT_KEEP_HEIGHT` no runtime mobile e escuta redimensionamento de viewport.
+   - **Preenchimento total unificado sem barras pretas e sem ocultar partes da arte**:
+     - `AspectRatioContainer` (telas com wrapper: Título, Menu Principal, Seleção de Personagem) tem sua propriedade `ratio` ajustada dinamicamente para a proporção real da viewport mobile (`vp_size.x / vp_size.y`), mantendo `STRETCH_FIT`. A arte preenche 100% da tela ultrawide (~20:9) sem zoom excessivo e sem cortar elementos de topo ou rodapé.
+     - `MapContainer` (`map_menu.gd` e `map_transition.gd`) escala dinamicamente para `Vector2(vp_size.x / 1920.0, vp_size.y / 1080.0)`, eliminando margens pretas e mantendo o traçado e pontos perfeitamente alinhados à arte do mapa.
+     - Backgrounds diretos e de narrativa (`loading_screen.gd`/`Instruções_1`, `difficulty_select.gd`/`dificuldade`, `narrative_director.gd`/cenas `intro_xxx`, `continue_screen.gd`/`continuar`, `story_intro_fase1_2.gd`) são promovidos a `STRETCH_SCALE` com `PRESET_FULL_RECT` em mobile, exibindo 100% da ilustração sem cortes e sem letterbox.
+   - **Desktop preservado**: No desktop, a proporção 16:9 clássica (`ratio = 1.777778`, `STRETCH_KEEP_ASPECT_CENTERED`, `scale_factor = minf(...)`) é mantida estritamente inalterada.
+   - Nos mapas da Fase 1, `mobile_base_level.gd` realiza clamp dinâmico de câmera e cálculo de zoom adaptativo (`_apply_mobile_camera_bounds`), impedindo vazamento de margens cinzas além da arte do mapa em qualquer proporção de tela.
+
+3. **UX & Seleção de Dificuldade Evidente ("Dark Premium Medieval")**:
+   - As cartas de dificuldade possuem hitboxes responsivas calculadas em runtime via `_get_background_rendered_rect()`.
+   - Destaque visual evidente com frame animado (`DifficultySelectionFrame`):
+     - Modo Normal: Contorno dourado `#F5BA38`, brilho sutil e badge `[ MODO NORMAL ATIVO ]`.
+     - Modo Difícil: Contorno vermelho-neon flamejante `#FF3A3A`, glow rubi e badge `[ MODO DIFÍCIL ATIVO ]`.
+   - Atualização dinâmica dos botões de início (`INICIAR NO MODO NORMAL` vs `INICIAR NO MODO DIFÍCIL`), garantindo resposta visual e sonora imediata em cliques e toques.
+
+4. **Safe Area & Molduras de Diálogo**:
+   - Molduras de diálogo (`NarrativeDirector`, `counter_card_interaction.gd`) utilizam âncoras relativas proporcionais e `AUTOWRAP_WORD_SMART`, impedindo quebras ou sobreposições com retratos e botões em telas ultrawide.
+   - Botões interativos touch possuem tamanho mínimo de toque de **48 × 48 dp**.
    - Assets exportados em formato **WebP** transparente ou Q90 RGB, limitando o peso por tela a **< 1 MB**.
 
 ---

@@ -44,7 +44,10 @@ func _ready() -> void:
 	if label_level_name != null:
 		label_level_name.text = "FASE: TEST STREET (Beat 'em Up 2.5D)"
 	if label_controls != null:
-		label_controls.text = "PC: [WASD] Mover | [J] Soco | [K] Chute | [O] Especial | [Espaço] Voadora | [Esc] Pausa"
+		if _is_mobile_runtime():
+			label_controls.visible = false
+		else:
+			label_controls.text = "PC: [WASD] Mover | [J] Soco | [K] Chute | [O] Especial | [Espaço] Voadora | [Esc] Pausa"
 
 	if banner_panel != null:
 		banner_panel.visible = false
@@ -53,6 +56,7 @@ func _ready() -> void:
 	set_touch_controls_visible(_is_mobile_runtime())
 
 	if touch_toggle_btn != null:
+		touch_toggle_btn.visible = false
 		touch_toggle_btn.pressed.connect(_on_touch_toggle_pressed)
 		_update_toggle_btn_text()
 

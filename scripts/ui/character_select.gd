@@ -109,12 +109,19 @@ func _ready() -> void:
 
 
 func _apply_mobile_fullscreen_layout() -> void:
-	# Mantém a arte principal inteira e centralizada; o matte preenche as sobras.
-	# Não repete nem amplia a ilustração nas bordas do aparelho.
 	var dark_base := get_node_or_null("DarkBase") as ColorRect
 	if dark_base != null:
-		dark_base.color = Color(0.035, 0.045, 0.075, 1.0)
-
+		dark_base.color = Color(0.025, 0.035, 0.07, 1.0)
+	var vp_size: Vector2 = get_viewport_rect().size
+	if aspect_wrapper != null and vp_size.y > 0.0:
+		aspect_wrapper.ratio = vp_size.x / vp_size.y
+		aspect_wrapper.stretch_mode = AspectRatioContainer.STRETCH_FIT
+	if background_slot != null:
+		background_slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		background_slot.stretch_mode = TextureRect.STRETCH_SCALE
+	if incoming_slot != null:
+		incoming_slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		incoming_slot.stretch_mode = TextureRect.STRETCH_SCALE
 
 func _setup_touch_hitboxes() -> void:
 	var hitboxes: Array[Button] = [

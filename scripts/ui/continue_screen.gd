@@ -63,6 +63,12 @@ func _ready() -> void:
 
 	_refresh_all_slots()
 	_select_slot(1, false)
+	if MobileScreenAction.is_mobile_runtime():
+		var bg := get_node_or_null("BackgroundTexture") as TextureRect
+		if bg != null:
+			bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			bg.stretch_mode = TextureRect.STRETCH_SCALE
+			bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_mobile_action_button = MobileScreenAction.add_primary_action(
 		self, "CARREGAR SLOT 1", Callable(self, "_on_confirm_pressed"), Color(0.25, 0.79, 0.57, 1.0), btn_confirm
 	)

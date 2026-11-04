@@ -51,7 +51,7 @@ func _build_presentation() -> void:
 	artwork.name = "StoryArtwork"
 	artwork.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	artwork.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	artwork.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	artwork.stretch_mode = TextureRect.STRETCH_SCALE if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	artwork.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	artwork.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	artwork.texture = _load_story_texture()

@@ -19,7 +19,7 @@ checks = {
     "mobile action height adapts to short landscape screens": "clampf(viewport_size.y * 0.11, 38.0, 52.0)" in helper,
     "inline mobile action reuses arcade styling": "static func add_inline_primary_action(" in helper,
     "shared helper retains optional previous/next support": "static func add_navigation_pair(" in helper and '"previous"' in helper and '"next"' in helper,
-    "main menu uses one confirmation action, not previous/next": "MobileScreenAction.add_primary_action(" in menu and "MobileScreenAction.add_navigation_pair(" not in menu,
+    "main menu uses direct touch without dock action": "MobileScreenAction.add_primary_action(" not in menu and "MobileScreenAction.add_navigation_pair(" not in menu and "_on_button_clicked" in menu,
     "misaligned decorative chevrons are hidden on mobile": "left_chevron.visible = false" in menu and "right_chevron.visible = false" in menu,
     "character selection is enabled in menu": "btn_char_select.disabled = false" in menu and "disabled = true" not in menu_scene.split('[node name="BtnCharSelect"')[1].split("[node", 1)[0],
     "character selector uses tap-to-select and contextual confirm": "MobileScreenAction.add_navigation_pair(" not in characters and "var mobile_label :=" in characters and "hero_name" in characters,

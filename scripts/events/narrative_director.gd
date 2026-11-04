@@ -963,7 +963,7 @@ func _load_texture_to_rect(path: String) -> void:
 	if _image_rect != null:
 		_image_rect.texture = tex
 		_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_image_rect.stretch_mode = TextureRect.STRETCH_SCALE if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	# Não criamos uma segunda cópia da imagem.
@@ -997,7 +997,7 @@ func _configure_visual_layout() -> void:
 
 	if _image_rect != null:
 		_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_image_rect.stretch_mode = TextureRect.STRETCH_SCALE if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_image_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -1209,6 +1209,13 @@ func _align_dialogue_area_to_image() -> void:
 	if _dialogue_area == null or _root_control == null:
 		return
 
+	if _is_mobile_runtime():
+		_dialogue_area.anchor_left = 0.0
+		_dialogue_area.anchor_right = 1.0
+		_dialogue_area.offset_left = 12.0
+		_dialogue_area.offset_right = -12.0
+		return
+
 	if _art_stage == null or _image_rect == null or _image_rect.texture == null:
 		return
 
@@ -1391,7 +1398,7 @@ func _build_ui_nodes() -> void:
 	_image_rect.name = "ImageDisplay"
 	_image_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_image_rect.stretch_mode = TextureRect.STRETCH_SCALE if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_image_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_art_stage.add_child(_image_rect)
