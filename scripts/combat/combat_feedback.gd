@@ -5,6 +5,8 @@ extends RefCounted
 ## Responsável por Hitstop controlado, Screen Shake, Partículas de Impacto (CPUParticles2D),
 ## Flashes de impacto e Afterimages procedurais. Não aloca infinitamente nem trava a interface.
 
+const ObjectPoolClass = preload("res://scripts/core/object_pool.gd")
+
 const SPARK_LIFETIME: float = 0.22
 
 
@@ -85,19 +87,45 @@ static func play_impact_sound(_context_node: Node, _profile: String = "punch") -
 
 
 ## Gera partículas de impacto direcionais (CPUParticles2D) e efeitos visuais animados (Pixel Art HD)
+## Utiliza ObjectPool leve para eliminar picos de alocação/destruição durante combos intensos no mobile.
 static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, profile: String = "punch", region: String = "") -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
 
-	# 1. Faíscas animadas em Pixel Art HD dos Beat 'em Ups clássicos
+	var scene_root: Node = parent.get_tree().current_scene if parent.get_tree() != null else parent
+	if scene_root == null:
+		scene_root = parent
+
+	# 1. Faíscas animadas em Pixel Art HD dos Beat 'em Ups clássicos via ObjectPool
 	var vfx_frames: SpriteFrames = load("res://scenes/vfx/hit_effects_frames.tres") as SpriteFrames
 	if vfx_frames != null:
-		var effect_sprite := AnimatedSprite2D.new()
-		effect_sprite.name = "AnimatedHitSpark"
-		effect_sprite.top_level = true
-		effect_sprite.sprite_frames = vfx_frames
+		var spark_pool := ObjectPoolClass.get_or_create(
+			scene_root,
+			"_Pool_HitSparks",
+			null,
+			func():
+				var spr := AnimatedSprite2D.new()
+				spr.name = "AnimatedHitSpark"
+				spr.top_level = true
+				spr.sprite_frames = vfx_frames
+				spr.z_index = 50
+				return spr,
+			8
+		)
+
+		var effect_sprite: AnimatedSprite2D = null
+		if spark_pool != null and spark_pool.has_method("acquire"):
+			effect_sprite = spark_pool.call("acquire") as AnimatedSprite2D
+
+		if effect_sprite == null:
+			effect_sprite = AnimatedSprite2D.new()
+			effect_sprite.name = "AnimatedHitSpark"
+			effect_sprite.top_level = true
+			effect_sprite.sprite_frames = vfx_frames
+			effect_sprite.z_index = 50
+			parent.add_child(effect_sprite)
+
 		effect_sprite.global_position = pos
-		effect_sprite.z_index = 50
 		effect_sprite.set_meta("impact_region", region)
 		effect_sprite.set_meta("impact_position", pos)
 		effect_sprite.set_meta("impact_profile", profile)
@@ -134,28 +162,69 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 		effect_sprite.offset = visual_offset
 		effect_sprite.scale = Vector2(sprite_scale * facing_sign, sprite_scale)
 		effect_sprite.rotation = randf_range(-0.25, 0.25)
-		parent.add_child(effect_sprite)
-		effect_sprite.play(anim_name)
-		effect_sprite.animation_finished.connect(effect_sprite.queue_free)
+		if not effect_sprite.is_inside_tree():
+			parent.add_child(effect_sprite)
 
-		# Timer de segurança para remoção
+		effect_sprite.play(anim_name)
+
+		var on_spark_finished: Callable
+		on_spark_finished = func():
+			if is_instance_valid(effect_sprite):
+				if effect_sprite.animation_finished.is_connected(on_spark_finished):
+					effect_sprite.animation_finished.disconnect(on_spark_finished)
+				if spark_pool != null and spark_pool.has_method("release"):
+					spark_pool.call("release", effect_sprite)
+				else:
+					effect_sprite.queue_free()
+
+		effect_sprite.animation_finished.connect(on_spark_finished)
+
+		# Timer de segurança para reciclagem
 		var safety_timer: SceneTreeTimer = parent.get_tree().create_timer(0.4)
 		safety_timer.timeout.connect(func():
-			if is_instance_valid(effect_sprite):
-				effect_sprite.queue_free()
+			if is_instance_valid(effect_sprite) and effect_sprite.is_playing():
+				if effect_sprite.animation_finished.is_connected(on_spark_finished):
+					effect_sprite.animation_finished.disconnect(on_spark_finished)
+				if spark_pool != null and spark_pool.has_method("release"):
+					spark_pool.call("release", effect_sprite)
+				else:
+					effect_sprite.queue_free()
 		)
 
-	# 2. Partículas direcionais de alta velocidade (CPUParticles2D)
-	var particles := CPUParticles2D.new()
-	particles.name = "ImpactSpark"
-	particles.top_level = true
+	# 2. Partículas direcionais de alta velocidade via ObjectPool
+	var part_pool := ObjectPoolClass.get_or_create(
+		scene_root,
+		"_Pool_HitParticles",
+		null,
+		func():
+			var p := CPUParticles2D.new()
+			p.name = "ImpactSpark"
+			p.top_level = true
+			p.emitting = false
+			p.one_shot = true
+			p.lifetime = SPARK_LIFETIME
+			p.explosiveness = 0.95
+			return p,
+		6
+	)
+
+	var particles: CPUParticles2D = null
+	if part_pool != null and part_pool.has_method("acquire"):
+		particles = part_pool.call("acquire") as CPUParticles2D
+
+	if particles == null:
+		particles = CPUParticles2D.new()
+		particles.name = "ImpactSpark"
+		particles.top_level = true
+		particles.emitting = false
+		particles.one_shot = true
+		particles.lifetime = SPARK_LIFETIME
+		particles.explosiveness = 0.95
+		parent.add_child(particles)
+
 	particles.global_position = pos
 	particles.set_meta("impact_region", region)
 	particles.set_meta("impact_position", pos)
-	particles.emitting = false
-	particles.one_shot = true
-	particles.lifetime = SPARK_LIFETIME
-	particles.explosiveness = 0.95
 
 	# Configurações de física e dispersão das partículas
 	var dir_norm := direction.normalized()
@@ -202,14 +271,21 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 			particles.scale_amount_min = 2.0
 			particles.scale_amount_max = 3.5
 
-	parent.add_child(particles)
+	if not particles.is_inside_tree():
+		parent.add_child(particles)
+
+	particles.restart()
 	particles.emitting = true
 
-	# Auto-destruição limpa após emissão
+	# Reciclagem limpa no pool após emissão
 	var cleanup_timer: SceneTreeTimer = parent.get_tree().create_timer(SPARK_LIFETIME + 0.1)
 	cleanup_timer.timeout.connect(func():
 		if is_instance_valid(particles):
-			particles.queue_free()
+			particles.emitting = false
+			if part_pool != null and part_pool.has_method("release"):
+				part_pool.call("release", particles)
+			else:
+				particles.queue_free()
 	)
 
 

@@ -321,10 +321,12 @@ func _start_story_dialogue() -> bool:
 	# A apresentação de revistas usa o NarrativeDirector oficial, mas substitui
 	# somente o modo de enquadramento da arte: centralizado e sem crop/zoom.
 	_active_narrative_director.set_script(ITEM_NARRATIVE_DIRECTOR_SCRIPT)
+	_active_narrative_director.process_mode = Node.PROCESS_MODE_ALWAYS
 	_active_narrative_director.connect(
 		"sequence_completed", _on_narrative_sequence_finished, CONNECT_ONE_SHOT
 	)
 	tree.root.add_child(_active_narrative_director)
+	tree.paused = true
 	_active_narrative_director.call("play_sequence", build_dialogue_sequence())
 	return true
 
@@ -348,6 +350,9 @@ func _restore_intro_session_flag() -> void:
 
 func _on_narrative_sequence_finished(_sequence_id: String) -> void:
 	_restore_intro_session_flag()
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = false
 	_dialogue_open = false
 	_consumed = true
 	_set_hint_visible(false)
@@ -371,5 +376,9 @@ func _on_narrative_sequence_finished(_sequence_id: String) -> void:
 func _exit_tree() -> void:
 	_restore_intro_session_flag()
 	_set_registered_player(null)
+	if _dialogue_open:
+		var tree := get_tree()
+		if tree != null:
+			tree.paused = false
 	if _active_narrative_director != null and is_instance_valid(_active_narrative_director):
 		_active_narrative_director.queue_free()

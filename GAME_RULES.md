@@ -714,7 +714,7 @@ MapX (Node2D, script: base_level.gd)
    - Hints de teclado (`ControlsLabel`, chevrons, brush_highlight) são ocultados no mobile.
 
 2. **Display, Orientação e Preenchimento Fullscreen Nativo (Sem Cortes)**:
-   - `project.godot`: `window/handheld/orientation=5` (`sensor_landscape`) garante abertura imediata em modo paisagem.
+   - `project.godot`: `window/handheld/orientation=0` (`landscape`) garante abertura imediata em modo paisagem.
    - `mobile_bootstrap.gd` (AutoLoad) aplica `CONTENT_SCALE_ASPECT_KEEP_HEIGHT` no runtime mobile e escuta redimensionamento de viewport.
    - **Preenchimento total unificado sem barras pretas e sem ocultar partes da arte**:
      - `AspectRatioContainer` (telas com wrapper: Título, Menu Principal, Seleção de Personagem) tem sua propriedade `ratio` ajustada dinamicamente para a proporção real da viewport mobile (`vp_size.x / vp_size.y`), mantendo `STRETCH_FIT`. A arte preenche 100% da tela ultrawide (~20:9) sem zoom excessivo e sem cortar elementos de topo ou rodapé.
@@ -749,6 +749,7 @@ MapX (Node2D, script: base_level.gd)
 - ❌ **Vídeo na Tela de Abertura**: A tela de abertura utiliza exclusivamente imagem estática `main.webp` via `TextureRect`. Proibido o uso de `VideoStreamPlayer` ou formatos `.ogv`/`.gif`.
 - ❌ **Chamada Desprotegida de Viewport**: Proibido invocar `set_input_as_handled()` após mudança de cena sem verificar `if get_viewport() != null:`.
 - ❌ **Inimigos sem NavigationAgent2D**: Proibido instanciar inimigos sem navegação com RVO avoidance.
+- ❌ **Geração Desnecessária de Imagens/Assets**: Proibido gerar imagens, texturas, variações gráficas ou arquivos visuais desnecessariamente sem solicitação expressa do desenvolvedor. Reutilizar rigorosamente os assets existentes no repositório, preservando a identidade visual, peso do pacote e integridade dos ponteiros de recursos.
 
 ---
 

@@ -61,6 +61,7 @@ var _sfx_travel: AudioStreamWAV
 var _sfx_unlock: AudioStreamWAV
 var _is_animating: bool = false
 var _bob_tween: Tween
+var _threaded_load_started: bool = false
 
 
 func _ready() -> void:
@@ -69,6 +70,7 @@ func _ready() -> void:
 	set_process_unhandled_input(true)
 
 	_resolve_target_scene()
+	_request_threaded_load()
 	_setup_scaling()
 	_load_background_and_patches()
 	_setup_path()
@@ -124,6 +126,44 @@ func _resolve_target_scene() -> void:
 			target_scene_path = DEFAULT_BONUS_SCENE
 		else:
 			target_scene_path = DEFAULT_CREDITS_SCENE
+
+
+func _request_threaded_load() -> void:
+	if target_scene_path.is_empty():
+		return
+	if not ResourceLoader.exists(target_scene_path):
+		return
+	var err := ResourceLoader.load_threaded_request(target_scene_path, "PackedScene")
+	if err == OK:
+		_threaded_load_started = true
+	else:
+		push_warning("Falha ao iniciar load_threaded_request para: %s" % target_scene_path)
+		_threaded_load_started = false
+
+
+func _await_threaded_scene() -> PackedScene:
+	if not _threaded_load_started or target_scene_path.is_empty():
+		return null
+
+	var progress := []
+	var max_wait_cycles: int = 120
+	var cycles: int = 0
+
+	while cycles < max_wait_cycles:
+		var status := ResourceLoader.load_threaded_get_status(target_scene_path, progress)
+		match status:
+			ResourceLoader.THREAD_LOAD_LOADED:
+				return ResourceLoader.load_threaded_get(target_scene_path) as PackedScene
+			ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+				cycles += 1
+				await get_tree().process_frame
+			ResourceLoader.THREAD_LOAD_FAILED, ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+				push_warning("Threaded load falhou ou recurso inválido: %s" % target_scene_path)
+				return null
+			_:
+				return null
+
+	return ResourceLoader.load_threaded_get(target_scene_path) as PackedScene
 
 
 func _setup_scaling() -> void:
@@ -251,10 +291,19 @@ func _start_transition_sequence() -> void:
 	tween_out.tween_property(fade_overlay, "modulate:a", 1.0, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await tween_out.finished
 
-	# 5. Troca de cena para o próximo destino da campanha
+	# 5. Troca de cena para o próximo destino da campanha (usa recurso pré-carregado se pronto)
 	_is_animating = false
 	if _bob_tween != null and _bob_tween.is_valid():
 		_bob_tween.kill()
+
+	if _threaded_load_started:
+		var loaded_scene: PackedScene = await _await_threaded_scene()
+		if loaded_scene != null:
+			var err := get_tree().change_scene_to_packed(loaded_scene)
+			if err != OK:
+				printerr("Erro ao transicionar (packed) após animação do mapa para: ", target_scene_path)
+			return
+
 	var err := get_tree().change_scene_to_file(target_scene_path)
 	if err != OK:
 		printerr("Erro ao transicionar após animação do mapa para: ", target_scene_path)

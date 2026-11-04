@@ -14,6 +14,7 @@ extends Control
 
 var _remaining_seconds: float = 157.0
 var _is_running: bool = true
+var _last_displayed_sec: int = -1
 
 
 func _ready() -> void:
@@ -64,6 +65,9 @@ func _update_timer_display() -> void:
 		return
 	
 	var total_sec: int = int(_remaining_seconds)
+	if total_sec == _last_displayed_sec:
+		return
+	_last_displayed_sec = total_sec
 	var minutes: int = total_sec / 60
 	var seconds: int = total_sec % 60
 	timer_label.text = "%02d:%02d" % [minutes, seconds]

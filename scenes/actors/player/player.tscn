@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://c8v1u0b7va5bu"]
 
 [ext_resource type="Script" uid="uid://ddpvwavqv5tjn" path="res://scripts/actors/player_controller.gd" id="1_player_script"]
+[ext_resource type="Resource" path="res://resources/heroes/guilherme_data.tres" id="guilherme_data_res"]
 [ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="2_health_script"]
 [ext_resource type="Script" uid="uid://dgggt62axoi4n" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
 [ext_resource type="Script" path="res://scripts/combat/impact_zones.gd" id="28_impact_zones"]
@@ -207,6 +208,7 @@ y_sort_enabled = true
 collision_mask = 2
 motion_mode = 1
 script = ExtResource("1_player_script")
+hero_data = ExtResource("guilherme_data_res")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1970703634]
 position = Vector2(0, -9)

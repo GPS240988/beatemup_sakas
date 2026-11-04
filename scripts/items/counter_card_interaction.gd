@@ -394,10 +394,10 @@ func _build_dialogue_overlay() -> void:
 	dialogue_frame.patch_margin_top = 14
 	dialogue_frame.patch_margin_right = 14
 	dialogue_frame.patch_margin_bottom = 14
-	dialogue_frame.anchor_left = 0.055
-	dialogue_frame.anchor_top = 0.70
-	dialogue_frame.anchor_right = 0.945
-	dialogue_frame.anchor_bottom = 0.97
+	dialogue_frame.anchor_left = 0.05
+	dialogue_frame.anchor_top = 0.67
+	dialogue_frame.anchor_right = 0.95
+	dialogue_frame.anchor_bottom = 0.98
 	dialogue_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(dialogue_frame)
 
@@ -406,25 +406,30 @@ func _build_dialogue_overlay() -> void:
 	portrait.texture = GABRIEL_PORTRAIT
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.anchor_left = 0.075
-	portrait.anchor_top = 0.715
+	portrait.anchor_left = 0.065
+	portrait.anchor_top = 0.69
 	portrait.anchor_right = 0.18
-	portrait.anchor_bottom = 0.955
+	portrait.anchor_bottom = 0.96
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(portrait)
+
+	var is_mobile: bool = MobileScreenAction.is_mobile_runtime()
 
 	var speaker_label: Label = Label.new()
 	speaker_label.name = "SpeakerName"
 	speaker_label.text = "GABRIEL"
-	speaker_label.anchor_left = 0.205
-	speaker_label.anchor_top = 0.72
-	speaker_label.anchor_right = 0.91
-	speaker_label.anchor_bottom = 0.785
+	speaker_label.anchor_left = 0.20
+	speaker_label.anchor_top = 0.69
+	speaker_label.anchor_right = 0.92
+	speaker_label.anchor_bottom = 0.765
 	speaker_label.add_theme_font_override("font", ARCADE_FONT)
-	speaker_label.add_theme_font_size_override("font_size", 18)
+	speaker_label.add_theme_font_size_override("font_size", 28 if is_mobile else 32)
 	speaker_label.add_theme_color_override("font_color", Color(0.94, 0.75, 0.39, 1.0))
 	speaker_label.add_theme_color_override("font_outline_color", Color(0.04, 0.035, 0.045, 1.0))
 	speaker_label.add_theme_constant_override("outline_size", 4)
+	speaker_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.95))
+	speaker_label.add_theme_constant_override("shadow_offset_x", 2)
+	speaker_label.add_theme_constant_override("shadow_offset_y", 2)
 	speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	speaker_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(speaker_label)
@@ -432,15 +437,19 @@ func _build_dialogue_overlay() -> void:
 	var dialogue_label: Label = Label.new()
 	dialogue_label.name = "DialogueText"
 	dialogue_label.text = _dialogue_message
-	dialogue_label.anchor_left = 0.205
-	dialogue_label.anchor_top = 0.785
-	dialogue_label.anchor_right = 0.91 if not MobileScreenAction.is_mobile_runtime() else 0.74
-	dialogue_label.anchor_bottom = 0.905 if not MobileScreenAction.is_mobile_runtime() else 0.875
+	dialogue_label.anchor_left = 0.20
+	dialogue_label.anchor_top = 0.765
+	dialogue_label.anchor_right = 0.92 if not is_mobile else 0.74
+	dialogue_label.anchor_bottom = 0.915 if not is_mobile else 0.885
 	dialogue_label.add_theme_font_override("font", ARCADE_FONT)
-	dialogue_label.add_theme_font_size_override("font_size", 22)
+	dialogue_label.add_theme_font_size_override("font_size", 26 if is_mobile else 30)
 	dialogue_label.add_theme_color_override("font_color", Color(0.96, 0.95, 0.90, 1.0))
 	dialogue_label.add_theme_color_override("font_outline_color", Color(0.035, 0.035, 0.045, 1.0))
 	dialogue_label.add_theme_constant_override("outline_size", 3)
+	dialogue_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.95))
+	dialogue_label.add_theme_constant_override("shadow_offset_x", 2)
+	dialogue_label.add_theme_constant_override("shadow_offset_y", 2)
+	dialogue_label.add_theme_constant_override("line_spacing", 8)
 	dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dialogue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -449,15 +458,18 @@ func _build_dialogue_overlay() -> void:
 	var continue_label: Label = Label.new()
 	continue_label.name = "ContinuePrompt"
 	continue_label.text = "TOQUE OU PRESSIONE ENTER PARA CONTINUAR"
-	continue_label.anchor_left = 0.205
-	continue_label.anchor_top = 0.905
-	continue_label.anchor_right = 0.91
-	continue_label.anchor_bottom = 0.96
+	continue_label.anchor_left = 0.20
+	continue_label.anchor_top = 0.915
+	continue_label.anchor_right = 0.92
+	continue_label.anchor_bottom = 0.97
 	continue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	continue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	continue_label.add_theme_font_override("font", ARCADE_FONT)
-	continue_label.add_theme_font_size_override("font_size", 11)
+	continue_label.add_theme_font_size_override("font_size", 14 if is_mobile else 16)
 	continue_label.add_theme_color_override("font_color", Color(0.78, 0.81, 0.87, 1.0))
+	continue_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.90))
+	continue_label.add_theme_constant_override("shadow_offset_x", 1)
+	continue_label.add_theme_constant_override("shadow_offset_y", 1)
 	continue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(continue_label)
 	if MobileScreenAction.is_mobile_runtime():

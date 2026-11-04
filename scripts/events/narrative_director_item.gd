@@ -1,14 +1,98 @@
 extends "res://scripts/events/narrative_director_desktop.gd"
 
 ## Variante exclusiva para inspeção de itens coletados (Emmanuele / Playboy).
-## Mantém integralmente o fluxo oficial StoryEvent/StorySequence, diálogo,
-## retrato, moldura e controles, mas nunca usa COVERED na arte principal.
-## A textura inteira fica centralizada dentro do ArtStage, com escala limitada
-## automaticamente ao espaço disponível e proporção preservada.
+## Apresentação cinematográfica fluida e translúcida (sem tela preta),
+## idêntica à experiência de inspeção da carta mágica (counter_card_interaction.gd):
+## - Fundo translúcido com dim (0.86 de opacidade), mantendo a fase visível.
+## - Revelação da arte com animação ágil e fluida (pop-in com TRANS_BACK).
+## - Saída suave sem fade to black que corte a imersão do jogador.
+## - Caixa de diálogo padronizada e responsiva.
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	super._ready()
+	if _fade_overlay != null:
+		_fade_overlay.modulate.a = 0.0
+		_fade_overlay.visible = false
+	if _dark_base != null:
+		_dark_base.color = Color(0.012, 0.015, 0.028, 0.86)
+
+
+func _play_initial_fade_in() -> void:
+	_kill_tweens()
+	if _fade_overlay != null:
+		_fade_overlay.modulate.a = 0.0
+		_fade_overlay.visible = false
+	if _dark_base != null:
+		_dark_base.color = Color(0.012, 0.015, 0.028, 0.86)
+		_dark_base.modulate.a = 0.0
+	_active_tween = create_tween()
+	_active_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	if _dark_base != null:
+		_active_tween.tween_property(_dark_base, "modulate:a", 1.0, 0.20).set_trans(Tween.TRANS_SINE)
+	_active_tween.tween_callback(func():
+		_is_transitioning = false
+		_process_current_event()
+	)
+
+
+func _display_image_event(
+	ev: Resource,
+	img_path: String,
+	entry_eff: String,
+	zoom_start: float,
+	zoom_end: float,
+	glitch_frames: int
+) -> void:
+	super._display_image_event(ev, img_path, entry_eff, zoom_start, zoom_end, glitch_frames)
+	if _active_tween != null and _active_tween.is_valid():
+		_active_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	if _fade_overlay != null:
+		_fade_overlay.modulate.a = 0.0
+		_fade_overlay.visible = false
+	if _dark_base != null:
+		_dark_base.color = Color(0.012, 0.015, 0.028, 0.86)
+	if _image_rect != null:
+		_image_rect.pivot_offset = _image_rect.size * 0.5
+		_image_rect.scale = Vector2(0.08, 0.08)
+		var pop_tween := create_tween()
+		pop_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		pop_tween.tween_property(_image_rect, "scale", Vector2.ONE, 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _finish_sequence() -> void:
+	if _btn_mobile_advance != null:
+		_btn_mobile_advance.disabled = true
+	if _mobile_revelation_button != null:
+		_mobile_revelation_button.visible = false
+	is_playing = false
+	_is_transitioning = true
+	_kill_tweens()
+
+	var exit_tween := create_tween()
+	exit_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	if _root_control != null:
+		exit_tween.tween_property(_root_control, "modulate:a", 0.0, 0.20).set_trans(Tween.TRANS_SINE)
+	exit_tween.tween_callback(func():
+		visible = false
+		_is_transitioning = false
+		var tree := get_tree()
+		if tree != null:
+			tree.paused = false
+		_set_gameplay_suspended(false)
+		var seq_id: String = str(current_sequence.get("sequence_id")) if current_sequence != null else ""
+		sequence_completed.emit(seq_id)
+	)
 
 
 func _apply_desktop_presentation_mode() -> void:
 	super._apply_desktop_presentation_mode()
+	if _dark_base != null:
+		_dark_base.color = Color(0.012, 0.015, 0.028, 0.86)
+	if _fade_overlay != null:
+		_fade_overlay.modulate.a = 0.0
+		_fade_overlay.visible = false
 	if _image_rect == null:
 		return
 

@@ -33,6 +33,9 @@ enum CombatState {
 	DEAD
 }
 
+## Dados e atributos do herói configuráveis via Resource (.tres)
+@export var hero_data: Resource = null
+
 ## Velocidade base de deslocamento horizontal (pixels por segundo)
 @export var speed_x: float = 260.0
 
@@ -113,6 +116,31 @@ func _ready() -> void:
 	_ensure_fallback_inputs()
 
 	var session = get_node_or_null("/root/GameSession")
+	var char_id: String = "guilherme"
+	if session != null and "selected_character_id" in session and session.selected_character_id != "":
+		char_id = str(session.selected_character_id).to_lower()
+
+	if hero_data == null:
+		var hero_path := "res://resources/heroes/%s_data.tres" % char_id
+		if ResourceLoader.exists(hero_path):
+			hero_data = load(hero_path)
+		elif ResourceLoader.exists("res://resources/heroes/guilherme_data.tres"):
+			hero_data = load("res://resources/heroes/guilherme_data.tres")
+
+	if hero_data != null:
+		if "speed_x" in hero_data:
+			speed_x = hero_data.speed_x
+		if "speed_y" in hero_data:
+			speed_y = hero_data.speed_y
+		if "jump_force" in hero_data:
+			jump_force = hero_data.jump_force
+		if "jump_gravity" in hero_data:
+			jump_gravity = hero_data.jump_gravity
+		if "special_max_charge" in hero_data:
+			max_special = hero_data.special_max_charge
+		if "special_initial_charge" in hero_data:
+			current_special = hero_data.special_initial_charge
+
 	if session != null and "current_continues" in session:
 		current_continues = int(session.current_continues)
 
@@ -174,63 +202,63 @@ func _build_combo_chain() -> void:
 	var atk1: Resource = AttackDataClass.new()
 	atk1.set("attack_id", "punch_1")
 	atk1.set("animation", &"punch")
-	atk1.set("startup", 0.04)
-	atk1.set("active", 0.12)
-	atk1.set("recovery", 0.22 / maxf(0.1, _tec_mult))
-	atk1.set("damage", 20.0 * _str_mult)
-	atk1.set("horizontal_range", 85.0)
-	atk1.set("depth_tolerance", 26.0 * _tec_mult)
-	atk1.set("hitstun", 0.22)
-	atk1.set("knockback", 40.0)
-	atk1.set("hitstop_frames", 3)
+	atk1.set("startup", hero_data.punch1_startup if hero_data and "punch1_startup" in hero_data else 0.04)
+	atk1.set("active", hero_data.punch1_active if hero_data and "punch1_active" in hero_data else 0.12)
+	atk1.set("recovery", (hero_data.punch1_recovery if hero_data and "punch1_recovery" in hero_data else 0.22) / maxf(0.1, _tec_mult))
+	atk1.set("damage", (hero_data.punch1_damage if hero_data and "punch1_damage" in hero_data else 20.0) * _str_mult)
+	atk1.set("horizontal_range", hero_data.punch1_range if hero_data and "punch1_range" in hero_data else 85.0)
+	atk1.set("depth_tolerance", (hero_data.punch1_depth_tolerance if hero_data and "punch1_depth_tolerance" in hero_data else 26.0) * _tec_mult)
+	atk1.set("hitstun", hero_data.punch1_hitstun if hero_data and "punch1_hitstun" in hero_data else 0.22)
+	atk1.set("knockback", hero_data.punch1_knockback if hero_data and "punch1_knockback" in hero_data else 40.0)
+	atk1.set("hitstop_frames", hero_data.punch1_hitstop_frames if hero_data and "punch1_hitstop_frames" in hero_data else 3)
 	atk1.set("combo_index", 0)
-	atk1.set("combo_window", 0.42 * _tec_mult)
+	atk1.set("combo_window", (hero_data.punch1_combo_window if hero_data and "punch1_combo_window" in hero_data else 0.42) * _tec_mult)
 	atk1.set("can_knockdown", false)
 	atk1.set("impact_profile", "punch")
 	atk1.preferred_regions.assign(["head", "upper_torso"])
-	atk1.hitbox_offset_y = -125.0
+	atk1.hitbox_offset_y = hero_data.punch1_hitbox_offset_y if hero_data and "punch1_hitbox_offset_y" in hero_data else -125.0
 	_combo_attacks.append(atk1)
 
 	# 2. Combo 2: Cruzado / Segundo Soco (Punch 2)
 	var atk2: Resource = AttackDataClass.new()
 	atk2.set("attack_id", "punch_2")
 	atk2.set("animation", &"punch")
-	atk2.set("startup", 0.04)
-	atk2.set("active", 0.12)
-	atk2.set("recovery", 0.22 / maxf(0.1, _tec_mult))
-	atk2.set("damage", 25.0 * _str_mult)
-	atk2.set("horizontal_range", 90.0)
-	atk2.set("depth_tolerance", 26.0 * _tec_mult)
-	atk2.set("hitstun", 0.25)
-	atk2.set("knockback", 55.0)
-	atk2.set("hitstop_frames", 3)
+	atk2.set("startup", hero_data.punch2_startup if hero_data and "punch2_startup" in hero_data else 0.04)
+	atk2.set("active", hero_data.punch2_active if hero_data and "punch2_active" in hero_data else 0.12)
+	atk2.set("recovery", (hero_data.punch2_recovery if hero_data and "punch2_recovery" in hero_data else 0.22) / maxf(0.1, _tec_mult))
+	atk2.set("damage", (hero_data.punch2_damage if hero_data and "punch2_damage" in hero_data else 25.0) * _str_mult)
+	atk2.set("horizontal_range", hero_data.punch2_range if hero_data and "punch2_range" in hero_data else 90.0)
+	atk2.set("depth_tolerance", (hero_data.punch2_depth_tolerance if hero_data and "punch2_depth_tolerance" in hero_data else 26.0) * _tec_mult)
+	atk2.set("hitstun", hero_data.punch2_hitstun if hero_data and "punch2_hitstun" in hero_data else 0.25)
+	atk2.set("knockback", hero_data.punch2_knockback if hero_data and "punch2_knockback" in hero_data else 55.0)
+	atk2.set("hitstop_frames", hero_data.punch2_hitstop_frames if hero_data and "punch2_hitstop_frames" in hero_data else 3)
 	atk2.set("combo_index", 1)
-	atk2.set("combo_window", 0.45 * _tec_mult)
+	atk2.set("combo_window", (hero_data.punch2_combo_window if hero_data and "punch2_combo_window" in hero_data else 0.45) * _tec_mult)
 	atk2.set("can_knockdown", false)
 	atk2.set("impact_profile", "punch")
 	atk2.preferred_regions.assign(["upper_torso", "head"])
-	atk2.hitbox_offset_y = -110.0
+	atk2.hitbox_offset_y = hero_data.punch2_hitbox_offset_y if hero_data and "punch2_hitbox_offset_y" in hero_data else -110.0
 	_combo_attacks.append(atk2)
 
 	# 3. Combo 3: Chute no Tronco (Kick)
 	var atk3: Resource = AttackDataClass.new()
 	atk3.set("attack_id", "kick_3")
 	atk3.set("animation", &"kick")
-	atk3.set("startup", 0.05)
-	atk3.set("active", 0.15)
-	atk3.set("recovery", 0.25 / maxf(0.1, _tec_mult))
-	atk3.set("damage", 32.0 * _str_mult)
-	atk3.set("horizontal_range", 105.0)
-	atk3.set("depth_tolerance", 28.0 * _tec_mult)
-	atk3.set("hitstun", 0.30)
-	atk3.set("knockback", 85.0)
-	atk3.set("hitstop_frames", 4)
+	atk3.set("startup", hero_data.kick3_startup if hero_data and "kick3_startup" in hero_data else 0.05)
+	atk3.set("active", hero_data.kick3_active if hero_data and "kick3_active" in hero_data else 0.15)
+	atk3.set("recovery", (hero_data.kick3_recovery if hero_data and "kick3_recovery" in hero_data else 0.25) / maxf(0.1, _tec_mult))
+	atk3.set("damage", (hero_data.kick3_damage if hero_data and "kick3_damage" in hero_data else 32.0) * _str_mult)
+	atk3.set("horizontal_range", hero_data.kick3_range if hero_data and "kick3_range" in hero_data else 105.0)
+	atk3.set("depth_tolerance", (hero_data.kick3_depth_tolerance if hero_data and "kick3_depth_tolerance" in hero_data else 28.0) * _tec_mult)
+	atk3.set("hitstun", hero_data.kick3_hitstun if hero_data and "kick3_hitstun" in hero_data else 0.30)
+	atk3.set("knockback", hero_data.kick3_knockback if hero_data and "kick3_knockback" in hero_data else 85.0)
+	atk3.set("hitstop_frames", hero_data.kick3_hitstop_frames if hero_data and "kick3_hitstop_frames" in hero_data else 4)
 	atk3.set("combo_index", 2)
-	atk3.set("combo_window", 0.48 * _tec_mult)
+	atk3.set("combo_window", (hero_data.kick3_combo_window if hero_data and "kick3_combo_window" in hero_data else 0.48) * _tec_mult)
 	atk3.set("can_knockdown", false)
 	atk3.set("impact_profile", "kick")
 	atk3.preferred_regions.assign(["lower_torso"])
-	atk3.hitbox_offset_y = -70.0
+	atk3.hitbox_offset_y = hero_data.kick3_hitbox_offset_y if hero_data and "kick3_hitbox_offset_y" in hero_data else -70.0
 	_combo_attacks.append(atk3)
 
 	# 4. Combo 4: Finisher / Gancho Pesado (Heavy - Causa Knockdown!)
@@ -238,19 +266,22 @@ func _build_combo_chain() -> void:
 	var atk4: Resource = AttackDataClass.new()
 	atk4.set("attack_id", "finisher_4")
 	atk4.set("animation", &"heavy")
-	atk4.set("startup", 0.06)
-	atk4.set("active", 0.20)
-	atk4.set("recovery", 0.40 / maxf(0.1, _tec_mult))
-	atk4.set("damage", 48.0 * _str_mult)
-	atk4.set("horizontal_range", 115.0)
-	atk4.set("depth_tolerance", 30.0 * _tec_mult)
-	atk4.set("hitstun", 0.40)
-	atk4.set("knockback", 160.0)
-	atk4.set("hitstop_frames", 6)
+	atk4.set("startup", hero_data.heavy4_startup if hero_data and "heavy4_startup" in hero_data else 0.06)
+	atk4.set("active", hero_data.heavy4_active if hero_data and "heavy4_active" in hero_data else 0.20)
+	atk4.set("recovery", (hero_data.heavy4_recovery if hero_data and "heavy4_recovery" in hero_data else 0.40) / maxf(0.1, _tec_mult))
+	atk4.set("damage", (hero_data.heavy4_damage if hero_data and "heavy4_damage" in hero_data else 48.0) * _str_mult)
+	atk4.set("horizontal_range", hero_data.heavy4_range if hero_data and "heavy4_range" in hero_data else 115.0)
+	atk4.set("depth_tolerance", (hero_data.heavy4_depth_tolerance if hero_data and "heavy4_depth_tolerance" in hero_data else 30.0) * _tec_mult)
+	atk4.set("hitstun", hero_data.heavy4_hitstun if hero_data and "heavy4_hitstun" in hero_data else 0.40)
+	atk4.set("knockback", hero_data.heavy4_knockback if hero_data and "heavy4_knockback" in hero_data else 160.0)
+	atk4.set("hitstop_frames", hero_data.heavy4_hitstop_frames if hero_data and "heavy4_hitstop_frames" in hero_data else 6)
 	atk4.set("combo_index", 3)
 	atk4.set("combo_window", 0.0)
 	atk4.set("can_knockdown", true)
 	atk4.set("impact_profile", "finisher")
+	atk4.preferred_regions.assign(["upper_torso", "head"])
+	atk4.hitbox_offset_y = hero_data.heavy4_hitbox_offset_y if hero_data and "heavy4_hitbox_offset_y" in hero_data else -120.0
+	_combo_attacks.append(atk4)
 	atk4.preferred_regions.assign(["upper_torso", "head"])
 	atk4.hitbox_offset_y = -120.0
 	_combo_attacks.append(atk4)
@@ -650,14 +681,18 @@ func _apply_global_special_impact() -> void:
 		var spark_pos: Vector2 = impact_res.get("position", enemy_pos + Vector2(0.0, -110.0))
 		var impact_reg: String = impact_res.get("region", "upper_torso")
 
+		var spec_dmg: float = (hero_data.special_damage if hero_data and "special_damage" in hero_data else 60.0) * _str_mult
+		var spec_kb: float = hero_data.special_knockback if hero_data and "special_knockback" in hero_data else 180.0
+		var spec_hs: float = hero_data.special_hitstun if hero_data and "special_hitstun" in hero_data else 0.50
+
 		var spec_info := DamageInfoClass.new(
-			60.0 * _str_mult,
+			spec_dmg,
 			self,
 			global_position,
 			Vector2(hit_dir_x, 0.0),
 			"special",
-			180.0,
-			0.50,
+			spec_kb,
+			spec_hs,
 			true,
 			true, # can_knockdown = true!
 			0.08,
@@ -675,9 +710,10 @@ func _apply_global_special_impact() -> void:
 
 	# Props destrutíveis no cenário também sofrem o impacto do Especial
 	var all_props: Array[Node] = tree.get_nodes_in_group("destructibles")
+	var prop_dmg: float = (hero_data.special_prop_damage if hero_data and "special_prop_damage" in hero_data else 50.0) * _str_mult
 	for prop in all_props:
 		if prop != null and is_instance_valid(prop) and prop.has_method("take_damage"):
-			var prop_info := DamageInfoClass.new(50.0 * _str_mult, self, global_position, Vector2(facing_direction, 0), "special", 50.0, 0.2, true)
+			var prop_info := DamageInfoClass.new(prop_dmg, self, global_position, Vector2(facing_direction, 0), "special", 50.0, 0.2, true)
 			prop.take_damage(prop_info)
 
 
@@ -702,18 +738,18 @@ func _try_aerial_attack() -> void:
 	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
 		return
 	_is_jumping = true
-	_jump_v_velocity = -340.0
+	_jump_v_velocity = hero_data.aerial_jump_v_velocity if hero_data and "aerial_jump_v_velocity" in hero_data else -340.0
 	_current_attack_anim = &"jump_atk"
-	melee_attack.damage = 35.0 * _str_mult
-	melee_attack.horizontal_range = 110.0
-	melee_attack.startup_duration = 0.04
-	melee_attack.active_duration = 0.22
-	melee_attack.recovery_duration = 0.23 / maxf(0.1, _tec_mult)
+	melee_attack.damage = (hero_data.aerial_damage if hero_data and "aerial_damage" in hero_data else 35.0) * _str_mult
+	melee_attack.horizontal_range = hero_data.aerial_range if hero_data and "aerial_range" in hero_data else 110.0
+	melee_attack.startup_duration = hero_data.aerial_startup if hero_data and "aerial_startup" in hero_data else 0.04
+	melee_attack.active_duration = hero_data.aerial_active if hero_data and "aerial_active" in hero_data else 0.22
+	melee_attack.recovery_duration = (hero_data.aerial_recovery if hero_data and "aerial_recovery" in hero_data else 0.23) / maxf(0.1, _tec_mult)
 	melee_attack.attack_cooldown = melee_attack.recovery_duration
 	melee_attack.impact_profile = "kick"
 	melee_attack.preferred_regions = ["head", "upper_torso"]
-	melee_attack.hitbox_offset_y = -130.0
-	velocity.x = facing_direction * 240.0
+	melee_attack.hitbox_offset_y = hero_data.aerial_hitbox_offset_y if hero_data and "aerial_hitbox_offset_y" in hero_data else -130.0
+	velocity.x = facing_direction * (hero_data.aerial_forward_velocity if hero_data and "aerial_forward_velocity" in hero_data else 240.0)
 	if melee_attack.execute_attack(facing_direction):
 		if anim_sprite != null:
 			anim_sprite.play("jump_atk")

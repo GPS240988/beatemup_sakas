@@ -39,6 +39,29 @@
 		@supports (height: 100dvh) {
 			html, body, #canvas { height: 100dvh; }
 		}
+		#rotate-overlay {
+			display: none;
+			position: fixed;
+			inset: 0;
+			z-index: 9999;
+			align-items: center;
+			justify-content: center;
+			flex-direction: column;
+			gap: 0.8rem;
+			padding: 2rem;
+			box-sizing: border-box;
+			background: #080b12;
+			color: #f2e6c8;
+			font-family: Arial, sans-serif;
+			text-align: center;
+		}
+		#rotate-overlay .icon { font-size: clamp(3rem, 14vw, 5rem); line-height: 1; }
+		#rotate-overlay strong { font-size: clamp(1.1rem, 5vw, 1.5rem); letter-spacing: 0.08em; }
+		#rotate-overlay span:last-child { max-width: 24rem; color: #b8c0ce; font-size: 0.95rem; line-height: 1.5; }
+		@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+			#canvas { visibility: hidden; }
+			#rotate-overlay { display: flex; }
+		}
 		#load-error {
 			display: none;
 			position: fixed;
@@ -134,10 +157,15 @@
 		<div id="loading-status" class="loading-status">CARREGANDO... 0%</div>
 		<div class="loading-tip">Insira sua ficha e prepare-se para a luta!</div>
 	</div>
+	<div id="rotate-overlay" role="status" aria-live="polite">
+		<span class="icon" aria-hidden="true">↻</span>
+		<strong>GIRE O CELULAR</strong>
+		<span>O Sakas foi feito para jogar com a tela na horizontal. Vire o aparelho para continuar.</span>
+	</div>
 	<div id="load-error" role="alert"></div>
 	<script src="index.js"></script>
 	<script>
-		const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":95361908,"index.wasm":37902138},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"});
+		const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":92643368,"index.wasm":37902138},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"});
 
 		const loadingScreen = document.getElementById('loading-screen');
 		const progressBar = document.getElementById('progress-bar');

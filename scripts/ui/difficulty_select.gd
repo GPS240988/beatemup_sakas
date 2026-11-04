@@ -136,6 +136,23 @@ func _get_background_rendered_rect() -> Rect2:
 
 
 func _update_layout_geometry() -> void:
+	if MobileScreenAction.is_mobile_runtime():
+		if bg_normal != null:
+			bg_normal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			bg_normal.stretch_mode = TextureRect.STRETCH_SCALE
+			bg_normal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		if bg_dificil != null:
+			bg_dificil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			bg_dificil.stretch_mode = TextureRect.STRETCH_SCALE
+			bg_dificil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	else:
+		if bg_normal != null:
+			bg_normal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			bg_normal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		if bg_dificil != null:
+			bg_dificil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			bg_dificil.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+
 	var bg_rect: Rect2 = _get_background_rendered_rect()
 
 	# Posiciona as hitboxes responsivas exatamente sobre os cards desenhados na arte

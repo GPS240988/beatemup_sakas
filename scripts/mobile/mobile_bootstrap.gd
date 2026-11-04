@@ -85,17 +85,7 @@ func _apply_mobile_fullscreen(scene_root: Node) -> void:
 		aspect_wrapper.offset_right = 0.0
 		aspect_wrapper.offset_bottom = 0.0
 
-	# ── 3. MapContainer (map_menu e map_transition) → escala para viewport ──
-	var map_container: Control = root_control.get_node_or_null("MapContainer") as Control
-	if map_container == null:
-		map_container = root_control.get_node_or_null("%MapContainer") as Control
-	if map_container != null:
-		map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
-		map_container.size = Vector2(1920.0, 1080.0)
-		map_container.scale = Vector2(vp_size.x / 1920.0, vp_size.y / 1080.0)
-		map_container.position = Vector2.ZERO
-
-	# ── 4. TextureRects de Background → STRETCH_SCALE preenchendo full screen ──
+	# ── 3. TextureRects de Background → STRETCH_SCALE preenchendo full screen ──
 	# Preenche 100% da viewport ultrawide mantendo a arte inteira visível sem barras pretas
 	var direct_backgrounds: Array[TextureRect] = _find_background_sources(root_control)
 	for bg: TextureRect in direct_backgrounds:

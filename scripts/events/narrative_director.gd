@@ -23,6 +23,8 @@ signal sequence_completed(sequence_id: String)
 signal sequence_skipped(sequence_id: String)
 
 const StoryEventClass = preload("res://scripts/events/story_event.gd")
+const NarrativeLayoutBuilderClass = preload("res://scripts/events/narrative_layout_builder.gd")
+const NarrativeAudioSynthClass = preload("res://scripts/events/narrative_audio_synth.gd")
 const StorySequenceClass = preload("res://scripts/events/story_sequence.gd")
 
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
@@ -566,14 +568,14 @@ func _show_current_text_block(ev: Resource) -> void:
 	var compact_dialogue_ui: bool = ultra_compact or viewport_size.x < 760.0 or viewport_size.y < 540.0
 	var is_narration: bool = speaker_name.strip_edges().to_upper() in ["NARRAÇÃO", "NARRACAO"]
 	var portrait_side: float = 40.0 if ultra_compact else (56.0 if compact_dialogue_ui else 72.0)
-	var speaker_font_size: int = 19 if ultra_compact else (23 if compact_dialogue_ui else 30)
-	var dialogue_font_size: int = 16 if ultra_compact else (20 if compact_dialogue_ui else 24)
+	var speaker_font_size: int = 24 if ultra_compact else (28 if compact_dialogue_ui else 32)
+	var dialogue_font_size: int = 22 if ultra_compact else (26 if compact_dialogue_ui else 28)
 
 	# Narração não usa avatar: reduz a altura do cabeçalho sem perder destaque.
 	# Isso reserva espaço para a frase em duas linhas e mantém o rodapé dentro da moldura.
 	if is_narration:
 		portrait_side = 28.0 if ultra_compact else (34.0 if compact_dialogue_ui else 42.0)
-		speaker_font_size = 17 if ultra_compact else (20 if compact_dialogue_ui else 24)
+		speaker_font_size = 22 if ultra_compact else (26 if compact_dialogue_ui else 28)
 
 	if _speaker_badge != null:
 		_speaker_badge.visible = not speaker_name.is_empty()
@@ -1109,8 +1111,8 @@ func _apply_dialogue_density() -> void:
 
 	# Dimensões equilibradas para que avatar, texto e rodapé NUNCA ultrapassem a moldura
 	var portrait_side: float = 34.0 if ultra_compact else (44.0 if is_mobile else 56.0)
-	var speaker_size: int = 16 if ultra_compact else (18 if is_mobile else 24)
-	var dialogue_size: int = 18 if ultra_compact else 22
+	var speaker_size: int = 24 if ultra_compact else (28 if is_mobile else 32)
+	var dialogue_size: int = 22 if ultra_compact else (26 if is_mobile else 28)
 
 	if _speaker_badge != null:
 		_speaker_badge.custom_minimum_size = Vector2(0.0, portrait_side)
@@ -1132,18 +1134,18 @@ func _apply_dialogue_density() -> void:
 		_scene_counter_label.add_theme_font_size_override("font_size", 10 if compact else 12)
 
 	if _prompt_label != null:
-		_prompt_label.add_theme_font_size_override("font_size", 11 if compact else 13)
+		_prompt_label.add_theme_font_size_override("font_size", 14 if compact else 16)
 
 	if _btn_mobile_advance != null:
 		if is_mobile:
 			# Botão arcade de rodapé de alta visibilidade e proporção tátil ideal
 			_btn_mobile_advance.custom_minimum_size = Vector2(190.0, 52.0)
-			_btn_mobile_advance.add_theme_font_size_override("font_size", 14)
+			_btn_mobile_advance.add_theme_font_size_override("font_size", 16)
 			_btn_mobile_advance.text = "AVANÇAR"
 			_style_mobile_advance_button()
 		else:
 			_btn_mobile_advance.custom_minimum_size = Vector2(120.0, 32.0)
-			_btn_mobile_advance.add_theme_font_size_override("font_size", 12)
+			_btn_mobile_advance.add_theme_font_size_override("font_size", 14)
 			_btn_mobile_advance.text = "AVANÇAR"
 
 	# Reduz os espaçamentos internos em telas baixas.
@@ -1353,457 +1355,20 @@ func _play_sound(stream: AudioStreamWAV) -> void:
 
 ## Constrói os nós visuais programaticamente com estilização Neo-16-bit oficial
 func _build_ui_nodes() -> void:
-	_root_control = Control.new()
-	_root_control.name = "RootControl"
-	_root_control.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_root_control.anchor_right = 1.0
-	_root_control.anchor_bottom = 1.0
-	_root_control.custom_minimum_size = Vector2(1280, 720)
-	_root_control.mouse_filter = Control.MOUSE_FILTER_PASS
-	_root_control.gui_input.connect(_on_root_gui_input)
-	add_child(_root_control)
-
-	# Fundo escuro absoluto
-	_dark_base = ColorRect.new()
-	_dark_base.name = "DarkBase"
-	_dark_base.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_dark_base.color = CINEMATIC_MATTE_COLOR
-	_dark_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root_control.add_child(_dark_base)
-
-	# Placeholder legado, mantido para compatibilidade com cenas existentes.
-	# O preenchimento lateral é feito pelo DarkBase, sem duplicar a arte.
-	_ambient_bg = TextureRect.new()
-	_ambient_bg.name = "AmbientBackground"
-	_ambient_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_ambient_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_ambient_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	_ambient_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_ambient_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ambient_bg.visible = false
-	_root_control.add_child(_ambient_bg)
-
-	# Palco Superior da Imagem (Área Segura que NUNCA é encoberta pela caixa de diálogo)
-	_art_stage = Control.new()
-	_art_stage.name = "ArtStage"
-	_art_stage.anchor_top = 0.0
-	_art_stage.anchor_bottom = 0.74
-	_art_stage.anchor_left = 0.0
-	_art_stage.anchor_right = 1.0
-	_art_stage.clip_contents = true
-	_art_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root_control.add_child(_art_stage)
-
-	_image_rect = TextureRect.new()
-	_image_rect.name = "ImageDisplay"
-	_image_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_image_rect.stretch_mode = TextureRect.STRETCH_SCALE if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_image_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_art_stage.add_child(_image_rect)
-
-	_glitch_bars = Control.new()
-	_glitch_bars.name = "GlitchBars"
-	_glitch_bars.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_glitch_bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_glitch_bars.visible = false
-	_art_stage.add_child(_glitch_bars)
-
-	# CRT Monitor Overlay (CENA 05)
-	_crt_overlay = Control.new()
-	_crt_overlay.name = "CRTScreenOverlay"
-	_crt_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_crt_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_crt_overlay.visible = false
-	_art_stage.add_child(_crt_overlay)
-
-	var crt_center := CenterContainer.new()
-	crt_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	crt_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_crt_overlay.add_child(crt_center)
-
-	var crt_vbox := VBoxContainer.new()
-	crt_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	crt_vbox.add_theme_constant_override("separation", 14)
-	crt_center.add_child(crt_vbox)
-
-	_crt_msg_1 = Label.new()
-	_crt_msg_1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_crt_msg_1.add_theme_font_override("font", ARCADE_FONT)
-	_crt_msg_1.add_theme_font_size_override("font_size", 28)
-	_crt_msg_1.add_theme_color_override("font_color", Color(0.2, 1.0, 0.45, 1.0))
-	_crt_msg_1.text = "FICHA INSERIDA"
-	crt_vbox.add_child(_crt_msg_1)
-
-	_crt_msg_2 = Label.new()
-	_crt_msg_2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_crt_msg_2.add_theme_font_override("font", ARCADE_FONT)
-	_crt_msg_2.add_theme_font_size_override("font_size", 28)
-	_crt_msg_2.add_theme_color_override("font_color", Color(0.2, 1.0, 0.45, 1.0))
-	_crt_msg_2.text = "4 JOGADORES DETECTADOS"
-	crt_vbox.add_child(_crt_msg_2)
-
-	_crt_msg_3 = Label.new()
-	_crt_msg_3.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_crt_msg_3.add_theme_font_override("font", ARCADE_FONT)
-	_crt_msg_3.add_theme_font_size_override("font_size", 32)
-	_crt_msg_3.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15, 1.0))
-	_crt_msg_3.text = "CONTINUE?"
-	crt_vbox.add_child(_crt_msg_3)
-
-	# CRT Monitor Lights (CENA 04)
-	_cena4_crt_overlay = Control.new()
-	_cena4_crt_overlay.name = "Cena4CRTOverlay"
-	_cena4_crt_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_cena4_crt_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_cena4_crt_overlay.visible = false
-	_art_stage.add_child(_cena4_crt_overlay)
-
-	_crt_mon_1 = ColorRect.new()
-	_crt_mon_1.name = "CRTMon1"
-	_crt_mon_1.anchor_left = 0.76
-	_crt_mon_1.anchor_top = 0.19
-	_crt_mon_1.anchor_right = 0.93
-	_crt_mon_1.anchor_bottom = 0.31
-	_crt_mon_1.color = Color(0.2, 0.85, 1.0, 0.08)
-	_crt_mon_1.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_cena4_crt_overlay.add_child(_crt_mon_1)
-
-	_crt_mon_2 = ColorRect.new()
-	_crt_mon_2.name = "CRTMon2"
-	_crt_mon_2.anchor_left = 0.07
-	_crt_mon_2.anchor_top = 0.16
-	_crt_mon_2.anchor_right = 0.18
-	_crt_mon_2.anchor_bottom = 0.26
-	_crt_mon_2.color = Color(0.2, 0.85, 1.0, 0.08)
-	_crt_mon_2.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_cena4_crt_overlay.add_child(_crt_mon_2)
-
-	_crt_mon_3 = ColorRect.new()
-	_crt_mon_3.name = "CRTMon3"
-	_crt_mon_3.anchor_left = 0.65
-	_crt_mon_3.anchor_top = 0.70
-	_crt_mon_3.anchor_right = 0.76
-	_crt_mon_3.anchor_bottom = 0.82
-	_crt_mon_3.color = Color(0.2, 0.85, 1.0, 0.08)
-	_crt_mon_3.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_cena4_crt_overlay.add_child(_crt_mon_3)
-
-	# CENA 01: Cartão de Título Centralizado
-	_title_container = CenterContainer.new()
-	_title_container.name = "TitleCardContainer"
-	_title_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_title_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_title_container.visible = false
-	_root_control.add_child(_title_container)
-
-	var title_vbox := VBoxContainer.new()
-	title_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	title_vbox.add_theme_constant_override("separation", 14)
-	_title_container.add_child(title_vbox)
-
-	_title_header_label = Label.new()
-	_title_header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_header_label.add_theme_font_override("font", ARCADE_FONT)
-	_title_header_label.add_theme_font_size_override("font_size", 32)
-	_title_header_label.add_theme_color_override("font_color", Color(0.92, 0.72, 0.10, 1.0)) # Dourado arcade
-	_title_header_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	_title_header_label.add_theme_constant_override("shadow_offset_x", 3)
-	_title_header_label.add_theme_constant_override("shadow_offset_y", 3)
-	_title_header_label.text = "Saka's"
-	title_vbox.add_child(_title_header_label)
-
-	_title_sub_label = Label.new()
-	_title_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_sub_label.add_theme_font_override("font", ARCADE_FONT)
-	_title_sub_label.add_theme_font_size_override("font_size", 48)
-	_title_sub_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-	_title_sub_label.add_theme_color_override("font_shadow_color", Color(0.1, 0.1, 0.15, 0.95))
-	_title_sub_label.add_theme_constant_override("shadow_offset_x", 4)
-	_title_sub_label.add_theme_constant_override("shadow_offset_y", 4)
-	_title_sub_label.text = "A ÚLTIMA FICHA"
-	title_vbox.add_child(_title_sub_label)
-
-	# Área de Diálogo com Moldura Oficial Arcade
-	_dialogue_area = MarginContainer.new()
-	_dialogue_area.name = "DialogueArea"
-	_dialogue_area.anchor_top = 0.735
-	_dialogue_area.anchor_bottom = 0.99
-	_dialogue_area.anchor_left = 0.0
-	_dialogue_area.anchor_right = 1.0
-	_dialogue_area.add_theme_constant_override("margin_left", 0)
-	_dialogue_area.add_theme_constant_override("margin_right", 0)
-	_dialogue_area.add_theme_constant_override("margin_bottom", 12)
-	_dialogue_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_dialogue_area.visible = false
-	_root_control.add_child(_dialogue_area)
-
-	# Moldura arcade premium. O PanelContainer recebe apenas um filho:
-	# FrameContent, que organiza cabeçalho, divisor, fala e rodapé.
-	_dialogue_frame = PanelContainer.new()
-	_dialogue_frame.name = "DialogueFrame"
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.035, 0.035, 0.055, 0.96)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.border_color = DIALOGUE_GOLD
-	panel_style.corner_radius_top_left = 8
-	panel_style.corner_radius_top_right = 8
-	panel_style.corner_radius_bottom_right = 8
-	panel_style.corner_radius_bottom_left = 8
-	panel_style.shadow_color = Color(0.92, 0.72, 0.36, 0.20)
-	panel_style.shadow_size = 12
-	_dialogue_frame.add_theme_stylebox_override("panel", panel_style)
-	_dialogue_frame.mouse_filter = Control.MOUSE_FILTER_PASS
-	_dialogue_area.add_child(_dialogue_frame)
-
-	var frame_content := Control.new()
-	frame_content.name = "FrameContent"
-	frame_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	frame_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_dialogue_frame.add_child(frame_content)
-
-	var content_margin := MarginContainer.new()
-	content_margin.name = "ContentMargin"
-	content_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content_margin.add_theme_constant_override("margin_left", 30)
-	content_margin.add_theme_constant_override("margin_right", 30)
-	content_margin.add_theme_constant_override("margin_top", 14)
-	content_margin.add_theme_constant_override("margin_bottom", 10)
-	content_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame_content.add_child(content_margin)
-
-	var content_vbox := VBoxContainer.new()
-	content_vbox.name = "VBox"
-	content_vbox.alignment = BoxContainer.ALIGNMENT_BEGIN
-	content_vbox.add_theme_constant_override("separation", 7)
-	content_margin.add_child(content_vbox)
-
-	# Cabeçalho integrado: avatar à esquerda e nome destacado à direita.
-	_speaker_badge = HBoxContainer.new()
-	_speaker_badge.name = "SpeakerBadge"
-	_speaker_badge.visible = false
-	_speaker_badge.custom_minimum_size = Vector2(0, 72)
-	_speaker_badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_speaker_badge.add_theme_constant_override("separation", 16)
-	_speaker_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content_vbox.add_child(_speaker_badge)
-
-	_speaker_portrait = TextureRect.new()
-	_speaker_portrait.name = "SpeakerPortrait"
-	_speaker_portrait.custom_minimum_size = Vector2(72, 72)
-	_speaker_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_speaker_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_speaker_portrait.visible = false
-	_speaker_badge.add_child(_speaker_portrait)
-
-	_speaker_label = Label.new()
-	_speaker_label.name = "SpeakerLabel"
-	_speaker_label.custom_minimum_size = Vector2(0, 68)
-	_speaker_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_speaker_label.add_theme_font_override("font", ARCADE_FONT)
-	_speaker_label.add_theme_font_size_override("font_size", 30)
-	_speaker_label.add_theme_color_override("font_color", SPEAKER_NAME_COLOR)
-	_speaker_label.add_theme_color_override("font_outline_color", SPEAKER_NAME_OUTLINE_COLOR)
-	_speaker_label.add_theme_constant_override("outline_size", 2)
-	_speaker_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	_speaker_label.add_theme_constant_override("shadow_offset_x", 2)
-	_speaker_label.add_theme_constant_override("shadow_offset_y", 2)
-	_speaker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_speaker_label.text = ""
-	_speaker_badge.add_child(_speaker_label)
-
-	# Separador dourado logo abaixo do cabeçalho.
-	_dialogue_separator = HSeparator.new()
-	_dialogue_separator.name = "HeaderDivider"
-	_dialogue_separator.visible = false
-	_dialogue_separator.custom_minimum_size = Vector2(0, 2)
-	var dialogue_separator_style := StyleBoxLine.new()
-	dialogue_separator_style.color = Color(0.78, 0.60, 0.31, 0.90)
-	dialogue_separator_style.thickness = 1.0
-	_dialogue_separator.add_theme_stylebox_override("separator", dialogue_separator_style)
-	content_vbox.add_child(_dialogue_separator)
-
-	# A fala ocupa uma faixa própria abaixo da linha dourada.
-	var text_margin := MarginContainer.new()
-	text_margin.name = "TextMargin"
-	text_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	text_margin.add_theme_constant_override("margin_left", 10)
-	text_margin.add_theme_constant_override("margin_right", 10)
-	text_margin.add_theme_constant_override("margin_top", 2)
-	text_margin.add_theme_constant_override("margin_bottom", 2)
-	text_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content_vbox.add_child(text_margin)
-
-	_dialogue_label = Label.new()
-	_dialogue_label.name = "DialogueLabel"
-	_dialogue_label.add_theme_font_override("font", ARCADE_FONT)
-	_dialogue_label.add_theme_font_size_override("font_size", 24)
-	_dialogue_label.add_theme_color_override("font_color", DIALOGUE_TEXT_COLOR)
-	_dialogue_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 1.0))
-	_dialogue_label.add_theme_constant_override("shadow_offset_x", 2)
-	_dialogue_label.add_theme_constant_override("shadow_offset_y", 2)
-	_dialogue_label.add_theme_constant_override("line_spacing", 6)
-	_dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_dialogue_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	text_margin.add_child(_dialogue_label)
-
-	# Rodapé do Diálogo (Contador de Cena à esquerda, Prompt / Botão à direita)
-	var footer_hbox := HBoxContainer.new()
-	footer_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	content_vbox.add_child(footer_hbox)
-
-	_scene_counter_label = Label.new()
-	_scene_counter_label.name = "SceneCounterLabel"
-	_scene_counter_label.add_theme_font_override("font", ARCADE_FONT)
-	_scene_counter_label.add_theme_font_size_override("font_size", 13)
-	_scene_counter_label.add_theme_color_override("font_color", Color(0.58, 0.64, 0.72, 0.85)) # Cinza/Prata arcade
-	_scene_counter_label.text = "CENA 02 / 03"
-	footer_hbox.add_child(_scene_counter_label)
-
-	var footer_spacer := Control.new()
-	footer_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer_hbox.add_child(footer_spacer)
-
-	_advance_prompt_box = HBoxContainer.new()
-	_advance_prompt_box.name = "AdvancePromptBox"
-	_advance_prompt_box.add_theme_constant_override("separation", 8)
-	_advance_prompt_box.alignment = BoxContainer.ALIGNMENT_END
-	footer_hbox.add_child(_advance_prompt_box)
-
-	_key_badge = TextureRect.new()
-	_key_badge.name = "KeyBadge"
-	_key_badge.custom_minimum_size = Vector2(56, 26)
-	_key_badge.texture = ENTER_KEY_BADGE_TEXTURE
-	_key_badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_key_badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_key_badge.visible = false
-	_advance_prompt_box.add_child(_key_badge)
-
-	_key_badge_label = Label.new()
-	_key_badge_label.name = "KeyBadgeLabel"
-	_key_badge_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_key_badge_label.add_theme_font_override("font", ARCADE_FONT)
-	_key_badge_label.add_theme_font_size_override("font_size", 11)
-	_key_badge_label.add_theme_color_override("font_color", Color(0.98, 0.80, 0.08, 1.0))
-	_key_badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_key_badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_key_badge_label.text = "ENTER"
-	_key_badge.add_child(_key_badge_label)
-
-	_prompt_label = Label.new()
-	_prompt_label.name = "PromptLabel"
-	_prompt_label.add_theme_font_override("font", ARCADE_FONT)
-	_prompt_label.add_theme_font_size_override("font_size", 14)
-	_prompt_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.25, 1.0))
-	_prompt_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.95))
-	_prompt_label.add_theme_constant_override("shadow_offset_x", 2)
-	_prompt_label.add_theme_constant_override("shadow_offset_y", 2)
-	_prompt_label.text = "ENTER PARA AVANÇAR ❯"
-	_advance_prompt_box.add_child(_prompt_label)
-
-	_btn_mobile_advance = Button.new()
-	_btn_mobile_advance.name = "BtnMobileAdvance"
-	_btn_mobile_advance.text = "AVANÇAR"
-	_btn_mobile_advance.custom_minimum_size = Vector2(130, 36)
-	_btn_mobile_advance.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_btn_mobile_advance.add_theme_font_override("font", ARCADE_FONT)
-	_btn_mobile_advance.add_theme_font_size_override("font_size", 13)
-	_btn_mobile_advance.pressed.connect(advance_or_skip_text)
-	footer_hbox.add_child(_btn_mobile_advance)
-
-	# Barra de Ações Superior (Botão PULAR ⏩ ocultado por diretriz de imersão)
-	_top_overlay = MarginContainer.new()
-	_top_overlay.name = "TopOverlay"
-	_top_overlay.anchor_top = 0.0
-	_top_overlay.anchor_right = 1.0
-	_top_overlay.offset_bottom = 60.0
-	_top_overlay.add_theme_constant_override("margin_top", 14)
-	_top_overlay.add_theme_constant_override("margin_right", 24)
-	_top_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_top_overlay.visible = false
-	_root_control.add_child(_top_overlay)
-
-	var top_hbox := HBoxContainer.new()
-	top_hbox.alignment = BoxContainer.ALIGNMENT_END
-	_top_overlay.add_child(top_hbox)
-
-	_btn_skip = Button.new()
-	_btn_skip.name = "BtnSkip"
-	_btn_skip.text = "PULAR ⏩"
-	_btn_skip.custom_minimum_size = Vector2(105, 34)
-	_btn_skip.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_btn_skip.add_theme_font_override("font", ARCADE_FONT)
-	_btn_skip.add_theme_font_size_override("font_size", 12)
-	_btn_skip.visible = false
-	_btn_skip.pressed.connect(skip_sequence)
-	top_hbox.add_child(_btn_skip)
-
-	# Camada Superior de Fade para Preto
-	_fade_overlay = ColorRect.new()
-	_fade_overlay.name = "FadeOverlay"
-	_fade_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_fade_overlay.color = Color(0, 0, 0, 1)
-	_fade_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_fade_overlay.modulate.a = 0.0
-	_root_control.add_child(_fade_overlay)
-
-	_audio_player = AudioStreamPlayer.new()
-	_audio_player.name = "AudioPlayer"
-	add_child(_audio_player)
-
-	# Mantém o enquadramento responsivo caso a interface seja criada por código.
-	if not _root_control.resized.is_connected(_on_narrative_layout_resized):
-		_root_control.resized.connect(_on_narrative_layout_resized)
-	if _art_stage != null and not _art_stage.resized.is_connected(_on_narrative_layout_resized):
-		_art_stage.resized.connect(_on_narrative_layout_resized)
+	NarrativeLayoutBuilderClass.build_and_bind(self, _is_mobile_runtime())
 
 
 func _generate_sound_effects() -> void:
-	_sfx_deep_hum = _create_wav(55.0, 1.8, 0.45)
-	_sfx_nostalgia = _create_wav(660.0, 0.35, 0.35)
-	_sfx_glitch = _create_noise_wav(0.08, 0.5)
-	_sfx_advance = _create_wav(980.0, 0.06, 0.3)
+	var sfx: Dictionary = NarrativeAudioSynthClass.generate_effects_library()
+	_sfx_deep_hum = sfx.get("deep_hum")
+	_sfx_nostalgia = sfx.get("nostalgia")
+	_sfx_glitch = sfx.get("glitch")
+	_sfx_advance = sfx.get("advance")
 
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
-	wav.mix_rate = 22050
-	var sample_count: int = int(22050.0 * duration)
-	var data := PackedByteArray()
-	data.resize(sample_count)
-	for i in range(sample_count):
-		var t: float = float(i) / 22050.0
-		var envelope: float = 1.0 - (float(i) / float(sample_count))
-		var wave: float = sin(t * freq * TAU)
-		var val: float = (wave * volume * envelope) * 127.0 + 128.0
-		data[i] = int(clamp(val, 0.0, 255.0))
-	wav.data = data
-	return wav
+	return NarrativeAudioSynthClass.create_tone_wav(freq, duration, volume)
 
 
 func _create_noise_wav(duration: float, volume: float) -> AudioStreamWAV:
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
-	wav.mix_rate = 22050
-	var sample_count: int = int(22050.0 * duration)
-	var data := PackedByteArray()
-	data.resize(sample_count)
-	for i in range(sample_count):
-		var noise: float = randf_range(-1.0, 1.0)
-		var val: float = (noise * volume) * 127.0 + 128.0
-		data[i] = int(clamp(val, 0.0, 255.0))
-	wav.data = data
-	return wav
+	return NarrativeAudioSynthClass.create_noise_wav(duration, volume)

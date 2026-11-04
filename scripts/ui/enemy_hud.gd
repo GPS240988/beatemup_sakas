@@ -27,6 +27,7 @@ var _recent_damage_timer: float = 0.0
 
 var _current_target: Node = null
 var _bound_health_component: Node = null
+var _cached_player: Node2D = null
 
 
 func _ready() -> void:
@@ -75,9 +76,9 @@ func _check_visibility_rules() -> void:
 			fade_in()
 		return
 
-	var player = get_tree().get_first_node_in_group("player") if get_tree() != null else null
-	if player != null and is_instance_valid(player) and _current_target is Node2D and player is Node2D:
-		var dist: float = (player as Node2D).global_position.distance_to((_current_target as Node2D).global_position)
+	var player: Node2D = _get_player()
+	if player != null and is_instance_valid(player) and _current_target is Node2D:
+		var dist: float = player.global_position.distance_to((_current_target as Node2D).global_position)
 		if dist <= proximity_threshold:
 			if not visible or modulate.a < 1.0:
 				fade_in()
@@ -87,6 +88,12 @@ func _check_visibility_rules() -> void:
 	else:
 		if visible and modulate.a > 0.0:
 			fade_out()
+
+
+func _get_player() -> Node2D:
+	if _cached_player == null or not is_instance_valid(_cached_player):
+		_cached_player = get_tree().get_first_node_in_group("player") as Node2D if get_tree() != null else null
+	return _cached_player
 
 
 func set_enemy_name(value: String) -> void:
@@ -284,7 +291,7 @@ func _select_next_living_target() -> void:
 	var min_dist: float = 999999.0
 	var ref_pos: Vector2 = Vector2.ZERO
 	
-	var player = get_tree().get_first_node_in_group("player")
+	var player: Node2D = _get_player()
 	if player != null and is_instance_valid(player):
 		ref_pos = player.global_position
 	

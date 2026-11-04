@@ -10,8 +10,13 @@ var _sparkle_len: float = 0.0
 var _is_active: bool = false
 
 
+func _ready() -> void:
+	set_process(false)
+
+
 func play_burst() -> void:
 	_is_active = true
+	set_process(true)
 	_ring_radius = 5.0
 	_ring_alpha = 1.0
 	_glow_alpha = 0.9
@@ -26,6 +31,7 @@ func play_burst() -> void:
 
 	tween.finished.connect(func():
 		_is_active = false
+		set_process(false)
 		queue_redraw()
 	)
 
