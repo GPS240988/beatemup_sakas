@@ -125,6 +125,32 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	crt_vbox.add_child(crt_msg_3)
 	director._crt_msg_3 = crt_msg_3
 
+	var crt_continue_button := Button.new()
+	crt_continue_button.name = "CRTContinueButton"
+	crt_continue_button.text = "CONTINUE?"
+	crt_continue_button.add_theme_font_override("font", ARCADE_FONT)
+	crt_continue_button.add_theme_font_size_override("font_size", 32)
+	crt_continue_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15, 1.0))
+	crt_continue_button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 0.45, 1.0))
+	crt_continue_button.add_theme_color_override("font_pressed_color", Color(0.95, 0.70, 0.10, 1.0))
+	crt_continue_button.add_theme_color_override("font_focus_color", Color(1.0, 0.85, 0.15, 1.0))
+	crt_continue_button.add_theme_color_override("font_outline_color", Color(0.45, 0.3, 0.04, 0.95))
+	crt_continue_button.add_theme_constant_override("outline_size", 3)
+
+	var empty_sb := StyleBoxEmpty.new()
+	crt_continue_button.add_theme_stylebox_override("normal", empty_sb)
+	crt_continue_button.add_theme_stylebox_override("hover", empty_sb)
+	crt_continue_button.add_theme_stylebox_override("pressed", empty_sb)
+	crt_continue_button.add_theme_stylebox_override("focus", empty_sb)
+	crt_continue_button.custom_minimum_size = Vector2(240, 56)
+	crt_continue_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	crt_continue_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	crt_continue_button.visible = false
+	if director.has_method("_on_crt_continue_button_pressed"):
+		crt_continue_button.pressed.connect(director._on_crt_continue_button_pressed)
+	crt_vbox.add_child(crt_continue_button)
+	director._crt_continue_button = crt_continue_button
+
 	# CRT Monitor Lights (CENA 04)
 	var cena4_crt_overlay := Control.new()
 	cena4_crt_overlay.name = "Cena4CRTOverlay"
@@ -208,8 +234,8 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	# Área de Diálogo com Moldura Oficial Arcade
 	var dialogue_area := MarginContainer.new()
 	dialogue_area.name = "DialogueArea"
-	dialogue_area.anchor_top = 0.735
-	dialogue_area.anchor_bottom = 0.99
+	dialogue_area.anchor_top = 0.64 if is_mobile else 0.735
+	dialogue_area.anchor_bottom = 0.985 if is_mobile else 0.99
 	dialogue_area.anchor_left = 0.0
 	dialogue_area.anchor_right = 1.0
 	dialogue_area.add_theme_constant_override("margin_left", 0)
@@ -262,7 +288,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 
 	var speaker_portrait := TextureRect.new()
 	speaker_portrait.name = "SpeakerPortrait"
-	speaker_portrait.custom_minimum_size = Vector2(72, 72)
+	speaker_portrait.custom_minimum_size = Vector2(88, 88) if is_mobile else Vector2(72, 72)
 	speaker_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
@@ -378,7 +404,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	var btn_mobile_advance := Button.new()
 	btn_mobile_advance.name = "BtnMobileAdvance"
 	btn_mobile_advance.text = "AVANÇAR"
-	btn_mobile_advance.custom_minimum_size = Vector2(130, 36)
+	btn_mobile_advance.custom_minimum_size = Vector2(148, 40) if is_mobile else Vector2(130, 36)
 	btn_mobile_advance.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	btn_mobile_advance.add_theme_font_override("font", ARCADE_FONT)
 	btn_mobile_advance.add_theme_font_size_override("font_size", 15)

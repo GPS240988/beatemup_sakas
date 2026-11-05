@@ -581,6 +581,21 @@ MapX (Node2D, script: base_level.gd)
     - Novo Jogo inicia com `GameSession.has_played_intro = false`, garantindo a exibição na transição pós-instruções.
     - Ao concluir ou pular, `has_played_intro` é definido como `true`.
     - Ao carregar jogo salvo (CONTINUAR via `load_game_from_slot`), `has_played_intro = true` é ativado de imediato, garantindo que o prólogo **NÃO** seja reproduzido novamente.
+  - **Padronização Visual e Interativa no Story Mobile (`StandardDialogueBox` Pattern)**:
+    - *Isolamento Estrito Desktop vs Mobile*: Desktop/PC preserva integralmente sua composição widescreen, proporções e avanço por [ENTER]/[Espaço].
+    - *Avatar Mobile Canônico*: Exibido na coluna esquerda da moldura com tamanho canônico de **88 × 88 px** (em vez do antigo 44px), `TEXTURE_FILTER_NEAREST`, `STRETCH_KEEP_ASPECT_CENTERED` e `EXPAND_IGNORE_SIZE`, sem distorção ou perda de nitidez de Pixel Art HD.
+    - *Tipografia Canônica Mobile*:
+      - Nome do Orador: 28px no mobile, Ouro Arcade `Color(0.94, 0.75, 0.39, 1.0)`, contorno de 4px, sombra de 2px `Vector2(2, 2)`.
+      - Texto de Diálogo: 26px no mobile, Creme Oficial `Color(0.96, 0.95, 0.90, 1.0)`, contorno de 3px, sombra de 2px `Vector2(2, 2)`, espaçamento entre linhas de 8px e `AUTOWRAP_WORD_SMART`.
+    - *Estrutura de Layout em Duas Colunas*: Coluna esquerda com Avatar (88x88 px) e coluna direita com VBox (Cabeçalho com nome e contador, divisor dourado, texto com entrelinha confortável e rodapé com botão `AVANÇAR`).
+    - *Contenção e Sem Vazamento*: Altura do painel de diálogo no mobile de 35% a 36% do viewport (`anchor_top = 0.64`, `anchor_bottom = 0.985`), impedindo estritamente colisões com o texto ou vazamento do botão sobre as bordas da moldura.
+    - *Botão Mobile AVANÇAR*: Botão arcade em estilo vidro escuro com aro dourado, dimensão de 148 × 40 px (touch target confortável $\ge 48\text{ dp}$), posicionado no canto inferior direito do rodapé interno.
+    - *Mecânica Canônica da CENA 05 (A Máquina CRT)*:
+      - O botão genérico `AVANÇAR` é estritamente removido/ocultado no mobile.
+      - O prompt "CONTINUE?" renderizado no monitor CRT torna-se o único alvo tátil interativo para avançar a cena.
+      - Toques gerais fora do monitor CRT na tela são ignorados e não avançam a cena.
+      - Avanço estritamente manual: sem avanço automático por timer ou término da animação.
+      - Proteção contra duplo clique / toques múltiplos para evitar pular acidentalmente para a cena subsequente.
 
 ---
 
@@ -749,6 +764,29 @@ MapX (Node2D, script: base_level.gd)
    - Molduras de diálogo (`NarrativeDirector`, `counter_card_interaction.gd`) utilizam âncoras relativas proporcionais e `AUTOWRAP_WORD_SMART`, impedindo quebras ou sobreposições com retratos e botões em telas ultrawide.
    - Botões interativos touch possuem tamanho mínimo de toque de **48 × 48 dp**.
    - Assets exportados em formato **WebP** transparente ou Q90 RGB, limitando o peso por tela a **< 1 MB**.
+
+5. **Controles Mobile Oficiais Arcade Neon Dark Glass (`TouchControls`)**:
+   - *Referência Visual Canônica*: Disposição, estética e acabamento baseados na composição oficial *Neon na Chuva*.
+   - *Assets Dedicados em `assets/ui/mobile/`*:
+     - `button_attack.png`: Punho cerrado de alta definição, aro circular em laranja/vermelho neon, interior vidro escuro translúcido. É o maior botão do conjunto. Mapeado para **Tecla J** (`attack` e `attack_punch`).
+     - `button_kick.png`: Silhueta branca de voadora marcial, aro metálico azulado, interior vidro escuro translúcido. Mapeado para **Tecla SPACE** (`attack_aerial` e `jump`).
+     - `button_special.png`: Ícone de corte de fogo/energia em gradiente branco/amarelo/laranja/vermelho, contorno com aura de chamas. Mapeado para **Tecla E** e **Tecla O** (`attack_special` e `special`).
+     - `button_block.png`: Ícone de seta para cima em branco sólido, aro metálico azulado. Mapeado para **Tecla K** e **Tecla H** (`guard`).
+     - `button_pause.png`: Quadrado com cantos arredondados, fundo azul-marinho translúcido, aro metálico azulado, duas barras verticais brancas paralelas. Posicionado no canto superior direito dentro da safe area.
+     - `mobile_dpad_base.png`, `mobile_dpad_arrows.png`, `mobile_dpad_thumb.png`: Direcional analógico no quadrante inferior esquerdo com base circular translúcida, 4 setas indicadoras e knob central metálico.
+   - *Disposição Assimétrica do Cluster de Combate*:
+     - Canto inferior direito: Punho J (maior dimensão).
+     - Acima do Punho (mesmo alinhamento horizontal X): Bloqueio K (seta para cima).
+     - Inferior esquerdo do cluster: Voadora SPACE.
+     - Região intermediária (entre Voadora, Bloqueio e Punho): Especial E.
+   - *Multitouch Concorrente e Robustez*:
+     - Suporte a múltiplos toques simultâneos com rastreamento independente por `touch_index`.
+     - Movimentação diagonal no joystick simultânea a ataques, bloqueios ou voadora.
+     - Manutenção do bloqueio enquanto aciona ataques.
+     - Liberação atômica de todas as ações virtuais via `release_all_virtual_actions()` ao pausar ou ao sair da cena.
+   - *Integração do Pause*:
+     - O botão de pause congela a `SceneTree` (`get_tree().paused = true`), suspende os controles virtuais para evitar acionamentos acidentais e exibe o `PauseMenu`. Ao despausar, os controles touch são reativados suavemente.
+     - O botão de pause é exclusivo de telas de gameplay (não aparece em menus nem telas estáticas).
 
 ---
 

@@ -26,7 +26,10 @@ $test_files = @(
     "tests/arcade_combat_system_test.gd",
     "tests/player_hud_test.gd",
     "tests/arcade_hud_refinement_test.gd",
-    "tests/sergio_npc_test.gd"
+    "tests/sergio_npc_test.gd",
+    "tests/test_standard_dialogue_box.gd",
+    "tests/test_mobile_touch_controls.gd",
+    "tests/test_mobile_story_dialogue.gd"
 )
 
 

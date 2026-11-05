@@ -124,7 +124,3 @@ Não diga que o projeto inteiro foi atualizado, testado ou empacotado quando som
 - Ao alterar controles, UI ou layout, considere toque, multitouch, diferentes proporções de tela, orientação, escala e áreas seguras.
 - Não remova controles de teclado, gamepad ou toque sem solicitação explícita.
 - Ao mudar uma tela ou fluxo, verifique os caminhos de navegação e retorno, inclusive a cena principal definida em `project.godot`.
-
-## 7. PRINCÍPIO FINAL
-
-**A fonte de arquivos depende do ambiente:** ChatGPT sem workspace local trabalha com o repositório autorizado pelo conector GitHub e evita baixar objetos LFS; IDE com workspace local trabalha diretamente na cópia da máquina do usuário e preserva suas alterações locais. Em ambos os casos, não baixar arquivos grandes sem necessidade, não confundir ponteiros LFS com arquivos reais e não sacrificar a integridade do projeto para acelerar uma entrega.

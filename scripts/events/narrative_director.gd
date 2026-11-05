@@ -108,6 +108,10 @@ var _cena4_crt_overlay: Control
 var _crt_mon_1: ColorRect
 var _crt_mon_2: ColorRect
 var _crt_mon_3: ColorRect
+var _crt_continue_button: Button = null
+var _crt_advance_locked: bool = false
+var _mobile_layout_configured: bool = false
+var force_mobile_for_test: bool = false
 var _is_typing: bool = false
 var _typewriter_tween: Tween = null
 # WebView removed to prevent black screen issue during intro-to-gameplay transition
@@ -201,6 +205,39 @@ func _bind_scene_nodes() -> void:
 	if _btn_mobile_advance != null and not _btn_mobile_advance.pressed.is_connected(advance_or_skip_text):
 		_btn_mobile_advance.pressed.connect(advance_or_skip_text)
 
+	# CRT Continue Button interativo para Mobile (CENA 05)
+	if _crt_overlay != null and _crt_continue_button == null:
+		var crt_vbox: VBoxContainer = null
+		if _crt_msg_3 != null:
+			crt_vbox = _crt_msg_3.get_parent() as VBoxContainer
+		if crt_vbox != null:
+			_crt_continue_button = Button.new()
+			_crt_continue_button.name = "CRTContinueButton"
+			_crt_continue_button.text = "CONTINUE?"
+			_crt_continue_button.add_theme_font_override("font", ARCADE_FONT)
+			_crt_continue_button.add_theme_font_size_override("font_size", 32)
+			_crt_continue_button.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15, 1.0))
+			_crt_continue_button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 0.45, 1.0))
+			_crt_continue_button.add_theme_color_override("font_pressed_color", Color(0.95, 0.70, 0.10, 1.0))
+			_crt_continue_button.add_theme_color_override("font_focus_color", Color(1.0, 0.85, 0.15, 1.0))
+			_crt_continue_button.add_theme_color_override("font_outline_color", Color(0.45, 0.3, 0.04, 0.95))
+			_crt_continue_button.add_theme_constant_override("outline_size", 3)
+
+			var empty_sb := StyleBoxEmpty.new()
+			_crt_continue_button.add_theme_stylebox_override("normal", empty_sb)
+			_crt_continue_button.add_theme_stylebox_override("hover", empty_sb)
+			_crt_continue_button.add_theme_stylebox_override("pressed", empty_sb)
+			_crt_continue_button.add_theme_stylebox_override("focus", empty_sb)
+			_crt_continue_button.custom_minimum_size = Vector2(240, 56)
+			_crt_continue_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			_crt_continue_button.mouse_filter = Control.MOUSE_FILTER_STOP
+			_crt_continue_button.visible = false
+			_crt_continue_button.pressed.connect(_on_crt_continue_button_pressed)
+			crt_vbox.add_child(_crt_continue_button)
+
+	if _is_mobile_runtime():
+		_setup_mobile_dialogue_layout()
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_playing or _is_transitioning:
@@ -209,13 +246,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	# ESC não pula nem cancela a sequência narrativa (preserva apenas avanço por ENTER)
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		return
-	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)) or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+
+	# No mobile, CENA 05 (arcade_machine) ignora toques gerais na tela; o avanço é EXCLUSIVO via botão CONTINUE? no monitor CRT
+	if _is_mobile_runtime() and _is_current_event_arcade_machine():
+		return
+
+	if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)) or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_safe_handle_input()
 		advance_or_skip_text()
 
 
 func _on_root_gui_input(event: InputEvent) -> void:
 	if not is_playing or _is_transitioning:
+		return
+	# No mobile, CENA 05 ignora toques fora do botão CRT
+	if _is_mobile_runtime() and _is_current_event_arcade_machine():
 		return
 	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_safe_handle_input()
@@ -491,6 +536,11 @@ func _display_image_event(
 			if _crt_msg_1 != null: _crt_msg_1.modulate.a = 0.0
 			if _crt_msg_2 != null: _crt_msg_2.modulate.a = 0.0
 			if _crt_msg_3 != null: _crt_msg_3.modulate.a = 0.0
+		if _crt_continue_button != null:
+			_crt_continue_button.modulate.a = 0.0
+			_crt_continue_button.visible = false
+			_crt_continue_button.disabled = false
+			_crt_advance_locked = false
 
 		# Aguarda conclusão do zoom (1.6s) + 1.0s de pausa obrigatória
 		_active_tween.tween_interval(1.6 + 1.0)
@@ -514,7 +564,21 @@ func _display_image_event(
 
 		_active_tween.tween_callback(func():
 			_play_sound(_sfx_nostalgia)
-			if _crt_msg_3 != null:
+			if _is_mobile_runtime() and _crt_continue_button != null:
+				_crt_continue_button.visible = true
+				_crt_continue_button.disabled = false
+				_crt_advance_locked = false
+				var t_btn := create_tween()
+				t_btn.tween_property(_crt_continue_button, "modulate:a", 1.0, 0.25)
+				if _crt_flicker_tween != null and _crt_flicker_tween.is_valid():
+					_crt_flicker_tween.kill()
+				_crt_flicker_tween = create_tween().set_loops()
+				_crt_flicker_tween.tween_property(_crt_continue_button, "modulate:a", 0.35, 0.45).set_trans(Tween.TRANS_SINE)
+				_crt_flicker_tween.tween_property(_crt_continue_button, "modulate:a", 1.0, 0.45).set_trans(Tween.TRANS_SINE)
+				if _crt_msg_3 != null:
+					_crt_msg_3.visible = false
+			elif _crt_msg_3 != null:
+				_crt_msg_3.visible = true
 				var t3 := create_tween()
 				t3.tween_property(_crt_msg_3, "modulate:a", 1.0, 0.25)
 				if _crt_flicker_tween != null and _crt_flicker_tween.is_valid():
@@ -551,11 +615,16 @@ func _show_current_text_block(ev: Resource) -> void:
 	if ev_id == "arcade_machine":
 		if _dialogue_area != null:
 			_dialogue_area.visible = false
+		if _btn_mobile_advance != null:
+			_btn_mobile_advance.visible = false
 		if _mobile_revelation_button != null:
-			_mobile_revelation_button.visible = _is_mobile_runtime()
+			_mobile_revelation_button.visible = false
 		_start_prompt_pulse()
 		event_started.emit(ev_id, current_text_index)
 		return
+
+	if _is_mobile_runtime():
+		_setup_mobile_dialogue_layout()
 
 	var texts: Array = ev.get("texts")
 	if texts.is_empty() or current_text_index >= texts.size():
@@ -579,23 +648,30 @@ func _show_current_text_block(ev: Resource) -> void:
 	var viewport_size: Vector2 = _root_control.size if _root_control != null else Vector2(1280.0, 720.0)
 	var ultra_compact: bool = viewport_size.y < 420.0
 	var compact_dialogue_ui: bool = ultra_compact or viewport_size.x < 760.0 or viewport_size.y < 540.0
+	var is_mob := _is_mobile_runtime()
 	var is_narration: bool = speaker_name.strip_edges().to_upper() in ["NARRAÇÃO", "NARRACAO"]
-	var portrait_side: float = 40.0 if ultra_compact else (56.0 if compact_dialogue_ui else 72.0)
-	var speaker_font_size: int = 24 if ultra_compact else (28 if compact_dialogue_ui else 32)
-	var dialogue_font_size: int = 22 if ultra_compact else (26 if compact_dialogue_ui else 28)
+	var portrait_side: float = 88.0 if is_mob else (40.0 if ultra_compact else (56.0 if compact_dialogue_ui else 72.0))
+	var speaker_font_size: int = 28 if is_mob else (24 if ultra_compact else (28 if compact_dialogue_ui else 32))
+	var dialogue_font_size: int = 26 if is_mob else (22 if ultra_compact else (26 if compact_dialogue_ui else 28))
 
 	# Narração não usa avatar: reduz a altura do cabeçalho sem perder destaque.
 	# Isso reserva espaço para a frase em duas linhas e mantém o rodapé dentro da moldura.
 	if is_narration:
-		portrait_side = 28.0 if ultra_compact else (34.0 if compact_dialogue_ui else 42.0)
-		speaker_font_size = 22 if ultra_compact else (26 if compact_dialogue_ui else 28)
+		portrait_side = 0.0 if is_mob else (28.0 if ultra_compact else (34.0 if compact_dialogue_ui else 42.0))
+		speaker_font_size = 28 if is_mob else (22 if ultra_compact else (26 if compact_dialogue_ui else 28))
 
 	if _speaker_badge != null:
 		_speaker_badge.visible = not speaker_name.is_empty()
 		_speaker_badge.custom_minimum_size = Vector2(0.0, portrait_side)
 
 	if _speaker_portrait != null:
-		_speaker_portrait.custom_minimum_size = Vector2(portrait_side, portrait_side)
+		if is_mob:
+			_speaker_portrait.custom_minimum_size = Vector2(88, 88)
+			_speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			_speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		else:
+			_speaker_portrait.custom_minimum_size = Vector2(portrait_side, portrait_side)
 		var portrait_texture: Texture2D = _resolve_speaker_portrait(speaker_name, ev)
 		_speaker_portrait.texture = portrait_texture
 		_speaker_portrait.visible = portrait_texture != null and not speaker_name.is_empty()
@@ -615,23 +691,13 @@ func _show_current_text_block(ev: Resource) -> void:
 
 	if _speaker_label != null:
 		_speaker_label.visible = not speaker_name.is_empty()
-		_speaker_label.custom_minimum_size = Vector2(0.0, portrait_side)
 		_speaker_label.text = speaker_name.to_upper()
 		_speaker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_speaker_label.add_theme_color_override("font_color", SPEAKER_NAME_COLOR)
-		_speaker_label.add_theme_color_override(
-			"font_outline_color",
-			SPEAKER_NAME_OUTLINE_COLOR
-		)
-		_speaker_label.add_theme_constant_override("outline_size", 2)
-		_speaker_label.add_theme_constant_override("shadow_offset_x", 2)
-		_speaker_label.add_theme_constant_override("shadow_offset_y", 2)
-		_speaker_label.add_theme_color_override(
-			"font_shadow_color",
-			Color(0.0, 0.0, 0.0, 0.9)
-		)
-		_speaker_label.add_theme_font_size_override("font_size", speaker_font_size)
+		_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(is_mob)
+		_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_speaker_label.custom_minimum_size = Vector2(0.0, portrait_side)
+		_speaker_label.add_theme_font_size_override("font_size", _speaker_label.label_settings.font_size)
 
 	# Linha dourada entre a identificação e o conteúdo da fala.
 	if _dialogue_separator != null:
@@ -658,8 +724,9 @@ func _show_current_text_block(ev: Resource) -> void:
 		_dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		_dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_dialogue_label.add_theme_font_size_override("font_size", dialogue_font_size)
-		_dialogue_label.add_theme_color_override("font_color", DIALOGUE_TEXT_COLOR)
+		_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(is_mob)
+		_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_dialogue_label.add_theme_font_size_override("font_size", _dialogue_label.label_settings.font_size)
 		_start_typewriter()
 
 	# Atualiza Tecla e Indicador de Avanço (Oculta moldura duplicada ENTER)
@@ -754,6 +821,10 @@ func advance_or_skip_text() -> void:
 	if ev_id == "arcade_machine":
 		_kill_tweens()
 		_is_transitioning = false
+		if _crt_continue_button != null:
+			_crt_continue_button.visible = false
+			_crt_continue_button.disabled = true
+		_crt_advance_locked = false
 		_play_sound(_sfx_advance)
 		_advance_to_next_event()
 		return
@@ -824,6 +895,10 @@ func _trigger_crt_pulse(duration: float = 0.2) -> void:
 func _advance_to_next_event() -> void:
 	if _mobile_revelation_button != null:
 		_mobile_revelation_button.visible = false
+	if _crt_continue_button != null:
+		_crt_continue_button.visible = false
+		_crt_continue_button.disabled = true
+	_crt_advance_locked = false
 	var events: Array = current_sequence.get("events") if current_sequence != null else []
 	if current_event_index < events.size():
 		var prev_ev: Resource = events[current_event_index]
@@ -1065,9 +1140,9 @@ func _apply_responsive_layout() -> void:
 
 	if _is_mobile_runtime() and not is_portrait:
 		# Mobile landscape: a ilustração ocupa todo o viewport; o painel é
-		# sobreposto na faixa inferior, sem reduzir o palco ou cortar a imagem.
+		# sobreposto na faixa inferior com altura generosa (36% da tela) para caber o avatar 88x88 e diálogo confortavelmente.
 		art_bottom = 1.0
-		dialogue_top = 0.72
+		dialogue_top = 0.64
 	elif is_portrait:
 		# Celular vertical: arte no topo e painel amplo na metade inferior.
 		art_bottom = 0.38
@@ -1099,16 +1174,18 @@ func _apply_responsive_layout() -> void:
 	_dialogue_area.anchor_left = 0.0
 	_dialogue_area.anchor_top = dialogue_top
 	_dialogue_area.anchor_right = 1.0
-	_dialogue_area.anchor_bottom = 0.99
+	_dialogue_area.anchor_bottom = 0.985 if _is_mobile_runtime() else 0.99
 	_dialogue_area.offset_top = 0.0
 	_dialogue_area.offset_bottom = -6.0
-	_dialogue_area.offset_left = 0.0
-	_dialogue_area.offset_right = 0.0
+	_dialogue_area.offset_left = 12.0 if _is_mobile_runtime() else 0.0
+	_dialogue_area.offset_right = -12.0 if _is_mobile_runtime() else 0.0
 	_dialogue_area.add_theme_constant_override("margin_left", 0)
 	_dialogue_area.add_theme_constant_override("margin_right", 0)
 
 
 func _is_mobile_runtime() -> bool:
+	if force_mobile_for_test:
+		return true
 	return (
 		OS.has_feature("mobile")
 		or OS.has_feature("web_android")
@@ -1128,21 +1205,30 @@ func _apply_dialogue_density() -> void:
 	var compact: bool = is_mobile or ultra_compact or (viewport_size.x > 0.0 and viewport_size.x < 760.0)
 
 	# Dimensões equilibradas para que avatar, texto e rodapé NUNCA ultrapassem a moldura
-	var portrait_side: float = 34.0 if ultra_compact else (44.0 if is_mobile else 56.0)
+	var portrait_side: float = 34.0 if ultra_compact else (88.0 if is_mobile else 56.0)
 	var speaker_size: int = 24 if ultra_compact else (28 if is_mobile else 32)
-	var dialogue_size: int = 22 if ultra_compact else (26 if is_mobile else 28)
+	var dialogue_size: int = 22 if ultra_compact else (26 if is_mobile else 30)
 
 	if _speaker_badge != null:
 		_speaker_badge.custom_minimum_size = Vector2(0.0, portrait_side)
 
 	if _speaker_portrait != null:
 		_speaker_portrait.custom_minimum_size = Vector2(portrait_side, portrait_side)
+		_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	if _speaker_label != null:
 		_speaker_label.custom_minimum_size = Vector2(0.0, portrait_side)
+		if _speaker_label.label_settings == null:
+			_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(is_mobile)
+		_speaker_label.label_settings.font_size = speaker_size
+		_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_speaker_label.add_theme_font_size_override("font_size", speaker_size)
 
 	if _dialogue_label != null:
+		if _dialogue_label.label_settings == null:
+			_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(is_mobile)
+		_dialogue_label.label_settings.font_size = dialogue_size
+		_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_dialogue_label.add_theme_font_size_override("font_size", dialogue_size)
 
 	if _dialogue_separator != null:
@@ -1156,9 +1242,9 @@ func _apply_dialogue_density() -> void:
 
 	if _btn_mobile_advance != null:
 		if is_mobile:
-			# Botão arcade de rodapé de alta visibilidade e proporção tátil ideal
-			_btn_mobile_advance.custom_minimum_size = Vector2(190.0, 52.0)
-			_btn_mobile_advance.add_theme_font_size_override("font_size", 16)
+			# Botão arcade de rodapé proporcional e sem sobreposição com borda ou texto
+			_btn_mobile_advance.custom_minimum_size = Vector2(148.0, 40.0)
+			_btn_mobile_advance.add_theme_font_size_override("font_size", 15)
 			_btn_mobile_advance.text = "AVANÇAR"
 			_style_mobile_advance_button()
 		else:
@@ -1422,3 +1508,125 @@ func _skip_typewriter() -> void:
 	if _dialogue_label != null:
 		_dialogue_label.visible_characters = -1
 	_is_typing = false
+
+
+func _on_crt_continue_button_pressed() -> void:
+	if not is_playing or _is_transitioning or _crt_advance_locked:
+		return
+	_crt_advance_locked = true
+	if _crt_continue_button != null:
+		_crt_continue_button.disabled = true
+	advance_or_skip_text()
+
+
+func _is_current_event_arcade_machine() -> bool:
+	if current_sequence == null:
+		return false
+	var events: Array = current_sequence.get("events") if current_sequence != null else []
+	if current_event_index < events.size():
+		var ev: Resource = events[current_event_index]
+		if ev != null and str(ev.get("id")) == "arcade_machine":
+			return true
+	return false
+
+
+func _setup_mobile_dialogue_layout() -> void:
+	if _mobile_layout_configured or not _is_mobile_runtime():
+		return
+	if _dialogue_frame == null:
+		return
+	var content_margin := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin") as MarginContainer
+	if content_margin == null:
+		return
+
+	content_margin.add_theme_constant_override("margin_left", 18)
+	content_margin.add_theme_constant_override("margin_right", 18)
+	content_margin.add_theme_constant_override("margin_top", 10)
+	content_margin.add_theme_constant_override("margin_bottom", 10)
+
+	var old_vbox := content_margin.get_node_or_null("VBox") as VBoxContainer
+	if old_vbox != null:
+		var mobile_hbox := HBoxContainer.new()
+		mobile_hbox.name = "MobileDialogueHBox"
+		mobile_hbox.add_theme_constant_override("separation", 18)
+		mobile_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mobile_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		mobile_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		content_margin.add_child(mobile_hbox)
+
+		if _speaker_portrait != null:
+			var prev_parent = _speaker_portrait.get_parent()
+			if prev_parent != null:
+				prev_parent.remove_child(_speaker_portrait)
+			_speaker_portrait.custom_minimum_size = Vector2(88, 88)
+			_speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			_speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			_speaker_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			mobile_hbox.add_child(_speaker_portrait)
+
+		var right_vbox := VBoxContainer.new()
+		right_vbox.name = "RightVBox"
+		right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		right_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		right_vbox.add_theme_constant_override("separation", 4)
+		mobile_hbox.add_child(right_vbox)
+
+		var header_hbox := HBoxContainer.new()
+		header_hbox.name = "MobileHeaderHBox"
+		header_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		right_vbox.add_child(header_hbox)
+
+		if _speaker_label != null:
+			var spk_parent = _speaker_label.get_parent()
+			if spk_parent != null:
+				spk_parent.remove_child(_speaker_label)
+			_speaker_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(true)
+			_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			header_hbox.add_child(_speaker_label)
+
+		if _scene_counter_label != null:
+			var cnt_parent = _scene_counter_label.get_parent()
+			if cnt_parent != null:
+				cnt_parent.remove_child(_scene_counter_label)
+			_scene_counter_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			_scene_counter_label.add_theme_font_override("font", ARCADE_FONT)
+			_scene_counter_label.add_theme_font_size_override("font_size", 13)
+			_scene_counter_label.add_theme_color_override("font_color", Color(0.58, 0.64, 0.72, 0.85))
+			header_hbox.add_child(_scene_counter_label)
+
+		if _dialogue_separator != null:
+			var sep_parent = _dialogue_separator.get_parent()
+			if sep_parent != null:
+				sep_parent.remove_child(_dialogue_separator)
+			right_vbox.add_child(_dialogue_separator)
+
+		if _dialogue_label != null:
+			var dlg_parent = _dialogue_label.get_parent()
+			if dlg_parent != null:
+				dlg_parent.remove_child(_dialogue_label)
+			_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(true)
+			_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			_dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_dialogue_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			right_vbox.add_child(_dialogue_label)
+
+		var footer_hbox := HBoxContainer.new()
+		footer_hbox.name = "MobileFooterHBox"
+		footer_hbox.alignment = BoxContainer.ALIGNMENT_END
+		right_vbox.add_child(footer_hbox)
+
+		if _btn_mobile_advance != null:
+			var btn_parent = _btn_mobile_advance.get_parent()
+			if btn_parent != null:
+				btn_parent.remove_child(_btn_mobile_advance)
+			_btn_mobile_advance.custom_minimum_size = Vector2(148, 40)
+			_style_mobile_advance_button()
+			footer_hbox.add_child(_btn_mobile_advance)
+
+		content_margin.remove_child(old_vbox)
+		old_vbox.queue_free()
+
+	_mobile_layout_configured = true

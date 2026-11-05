@@ -402,7 +402,9 @@ func test_manual_advance_and_no_timer_skips() -> void:
 	assert_test(nar.current_event_index == initial_event_index, "Evento narrativo não avançou automaticamente sem input")
 	assert_test(nar.current_text_index == initial_text_index, "Texto do diálogo permaneceu na tela sem avançar por timer")
 
-	# Avanço manual via confirmação explícita
+	# Avanço manual via confirmação explícita (respeita typewriter skip se estiver em digitação)
+	if nar.get("_is_typing"):
+		nar.advance_or_skip_text()
 	nar.advance_or_skip_text()
 	assert_test(nar.current_text_index == initial_text_index + 1, "Avanço manual avançou com sucesso para o próximo bloco")
 

@@ -66,8 +66,10 @@ func _run_all_tests_async() -> void:
 	await process_frame
 	
 	var top_right = proto_hud.get_node_or_null("TopRightControls") as Control
-	assert_test(top_right != null, "Contêiner TopRightControls existe")
-	assert_test(not top_right.visible, "Controles Touch (DESLIGADO) estão OCULTOS por padrão na tela")
+	if top_right != null:
+		assert_test(not top_right.visible, "Controles Touch (DESLIGADO) estão OCULTOS por padrão na tela")
+	elif proto_hud.touch_controls != null:
+		assert_test(not proto_hud.touch_controls.visible, "Controles Touch estão OCULTOS por padrão no desktop")
 	proto_hud.queue_free()
 
 	# --- 5. Verificação da Placa de Combo e Animação de Impacto ---

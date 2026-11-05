@@ -9,6 +9,8 @@ var _arcade_fullscreen_mode: bool = false
 
 
 func _is_mobile_runtime() -> bool:
+	if force_mobile_for_test:
+		return true
 	# Não classifica um desktop com monitor touchscreen como celular.
 	# A plataforma deve informar explicitamente uma feature mobile.
 	return (
@@ -90,14 +92,21 @@ func _prepare_dialogue_preview(ev: Resource) -> void:
 	if _speaker_label != null:
 		_speaker_label.text = speaker_name.to_upper()
 		_speaker_label.visible = not speaker_name.is_empty()
+		_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(false)
+		_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_speaker_label.add_theme_font_size_override("font_size", 32)
 	if _speaker_portrait != null:
 		var portrait_texture: Texture2D = _resolve_speaker_portrait(speaker_name, ev)
 		_speaker_portrait.texture = portrait_texture
 		_speaker_portrait.visible = portrait_texture != null and not speaker_name.is_empty()
+		_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if _dialogue_separator != null:
 		_dialogue_separator.visible = not speaker_name.is_empty()
 	if _dialogue_label != null:
 		_dialogue_label.text = text_content
+		_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(false)
+		_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_dialogue_label.add_theme_font_size_override("font_size", 30)
 	if _scene_counter_label != null:
 		_scene_counter_label.visible = true
 		_scene_counter_label.text = "%02d" % (current_event_index + 1)

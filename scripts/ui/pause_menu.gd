@@ -238,6 +238,8 @@ func open_pause(level_path: String = "") -> void:
 	_touch_controls = null
 	if current_scene != null:
 		_touch_controls = current_scene.find_child("TouchControls", true, false) as TouchControls
+	elif get_tree().root != null:
+		_touch_controls = get_tree().root.find_child("TouchControls", true, false) as TouchControls
 	_touch_controls_were_visible = _touch_controls != null and _touch_controls.visible
 	if _touch_controls_were_visible:
 		_touch_controls.set_controls_enabled(false)
