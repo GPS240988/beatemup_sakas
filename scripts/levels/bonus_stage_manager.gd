@@ -47,6 +47,9 @@ func _ready() -> void:
 
 
 func _initialize_bonus_stage() -> void:
+	if not is_inside_tree() or is_queued_for_deletion():
+		return
+
 	_orange_car = get_node_or_null(orange_car_path)
 	_blue_car = get_node_or_null(blue_car_path)
 	

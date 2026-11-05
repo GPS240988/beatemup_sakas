@@ -188,7 +188,7 @@ func test_continue_reward_and_timer() -> void:
 
 
 func test_bonus_intro_dialogue_lifecycle() -> void:
-	print("\\n--- 4. Validando Apresentação Narrativa da Garagem Bônus ---")
+	print("\n--- 4. Validando Apresentação Narrativa da Garagem Bônus ---")
 	var sequence_path: String = BonusStageManagerClass.BONUS_INTRO_SEQUENCE_PATH
 	_assert(ResourceLoader.exists(sequence_path), "Recurso narrativo da garagem bônus existe")
 
