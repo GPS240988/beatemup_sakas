@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="StorySequence" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/story_event.gd" id="1_event"]
+[ext_resource type="Script" path="res://scripts/events/story_sequence.gd" id="2_sequence"]
+
+[sub_resource type="Resource" id="BonusGarageIntroEvent"]
+script = ExtResource("1_event")
+id = "bonus_garage_mission"
+event_type = "narration"
+image_path = "res://assets/backgrounds/maps/bonus1/garagem.webp"
+texts = Array[String]([
+"Alessandro precisa de uma força! Os agiotas estão cobrando, o IPVA está chegando e ele ainda precisa levantar o valor do seguro. Vamos dar um fim nesses carros!",
+"Você tem 40 segundos para destruir os dois carros. Cada carro completamente destruído vale +1 CONTINUE extra. Destrua os dois e ganhe até +2 CONTINUES!"
+])
+speaker = "NARRAÇÃO"
+duration_per_text = 4.0
+entry_effect = "fade_in"
+exit_effect = "fade_out"
+transition_duration = 0.32
+pause_after = 0.4
+safe_framing = true
+
+[resource]
+script = ExtResource("2_sequence")
+sequence_id = "bonus_garage_intro"
+events = Array[Resource]([SubResource("BonusGarageIntroEvent")])

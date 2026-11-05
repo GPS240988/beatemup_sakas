@@ -966,6 +966,15 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 ### 3. Ponto de Reaparecimento Esquerdo no Mapa 1 (`SpawnPoint_Left`):
 - Posição canônica calibrada: `Vector2(408, 557)`. Protegida contra reversões acidentais para coordenadas obsoletas fora da área útil.
 
+### 4. Apresentação Narrativa Inicial da Garagem Bônus:
+`STATUS: IMPLEMENTED`
+- Ao entrar em `bonus_garage.tscn`, antes do início da contagem regressiva, o `BonusStageManager` reproduz `resources/story/bonus_garage_intro.tres` usando a cena oficial `NarrativeDirector` (`scenes/ui/narrative_director.tscn`).
+- A apresentação reutiliza a arte de fundo `assets/backgrounds/maps/bonus1/garagem.webp`, mantém o padrão narrativo arcade e identifica o orador como `NARRAÇÃO`.
+- **Bloco 1** contextualiza a ajuda a Alessandro: cobrança dos agiotas, proximidade do IPVA e necessidade do valor do seguro.
+- **Bloco 2** explica o objetivo: destruir os dois carros em 40 segundos; cada veículo completamente destruído concede exatamente +1 continue, total máximo de +2.
+- O avanço é manual (Enter/Espaço/Gamepad A/toque) e o jogador pode pular a apresentação. O cronômetro de 40 segundos só é iniciado após a conclusão ou o pulo da sequência.
+- Se o recurso narrativo ou a cena do diretor não puder ser carregado, o gerenciador registra um aviso e inicia a rodada normalmente, evitando bloquear a fase.
+
 ---
 
 ## 34. ENEMY HUD PURITY & CINEMATIC INTRO EFFECTS
