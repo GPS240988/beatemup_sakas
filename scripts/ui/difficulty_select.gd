@@ -36,7 +36,8 @@ var _selection_badge: Label
 
 func _ready() -> void:
 	_generate_audio_effects()
-	_create_selection_frame()
+	# A HUD de seleção (moldura + badge) foi removida por decisão de UX:
+	# a arte cinematográfica já indica claramente o modo ativo via crossfade.
 
 	if btn_start_game != null:
 		btn_start_game.pressed.connect(_on_start_pressed)

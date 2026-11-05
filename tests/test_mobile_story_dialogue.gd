@@ -116,7 +116,7 @@ func test_mobile_typography_standardization() -> void:
 		var s_settings: LabelSettings = spk_label.label_settings
 		assert_test(s_settings != null, "SpeakerLabel possui LabelSettings aplicado")
 		if s_settings != null:
-			assert_test(s_settings.font_size == 28, "Nome do personagem possui tamanho 28px no mobile")
+			assert_test(s_settings.font_size == 36, "Nome do personagem possui tamanho 36px no mobile")
 			assert_test(
 				s_settings.font_color.is_equal_approx(Color(0.94, 0.75, 0.39, 1.0)),
 				"Nome do personagem possui cor dourada oficial (#EFBF63)"
@@ -131,7 +131,7 @@ func test_mobile_typography_standardization() -> void:
 		var d_settings: LabelSettings = dlg_label.label_settings
 		assert_test(d_settings != null, "DialogueLabel possui LabelSettings aplicado")
 		if d_settings != null:
-			assert_test(d_settings.font_size == 26, "Texto de diálogo possui tamanho 26px no mobile")
+			assert_test(d_settings.font_size == 34, "Texto de diálogo possui tamanho 34px no mobile")
 			assert_test(
 				d_settings.font_color.is_equal_approx(Color(0.96, 0.95, 0.90, 1.0)),
 				"Texto de diálogo possui cor creme oficial (#F5F2E6)"

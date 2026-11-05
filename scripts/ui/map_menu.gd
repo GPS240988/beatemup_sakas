@@ -82,6 +82,12 @@ func _ready() -> void:
 	_select_point(0)
 
 	if MobileScreenAction.is_mobile_runtime():
+		# No mobile, o toque direto no mapa seleciona e confirma; sem botões dock.
+		if btn_confirm != null:
+			btn_confirm.visible = false
+		if btn_back != null:
+			btn_back.visible = false
+	else:
 		_mobile_action_button = MobileScreenAction.add_primary_action(
 			self, "AVANÇAR", Callable(self, "_on_confirm_pressed"), Color(0.90, 0.67, 0.25, 1.0), btn_confirm
 		)
@@ -318,10 +324,18 @@ func _setup_buttons() -> void:
 		btn_confirm.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_on_back_pressed()
+
+
 func _gui_input(event: InputEvent) -> void:
 	if _is_transitioning:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var local_pos: Vector2 = _get_map_coordinates(event.position)
+		_handle_point_click(local_pos)
+	elif event is InputEventScreenTouch and event.pressed:
 		var local_pos: Vector2 = _get_map_coordinates(event.position)
 		_handle_point_click(local_pos)
 
@@ -337,7 +351,10 @@ func _handle_point_click(pos: Vector2) -> void:
 		var rect: Rect2 = STAGE_POINTS[i]["click_rect"]
 		if rect.has_point(pos):
 			if is_point_unlocked(i):
-				if _selected_point_index == i:
+				if MobileScreenAction.is_mobile_runtime():
+					_select_point(i)
+					_on_confirm_pressed()
+				elif _selected_point_index == i:
 					_on_confirm_pressed()
 				else:
 					_select_point(i)
@@ -345,6 +362,10 @@ func _handle_point_click(pos: Vector2) -> void:
 			else:
 				_play_sound(_sfx_cancel)
 			return
+
+	# No mobile, o toque na tela avança a fase selecionada diretamente
+	if MobileScreenAction.is_mobile_runtime() and is_point_unlocked(_selected_point_index):
+		_on_confirm_pressed()
 
 
 func _unhandled_input(event: InputEvent) -> void:

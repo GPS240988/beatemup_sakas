@@ -651,14 +651,11 @@ func _show_current_text_block(ev: Resource) -> void:
 	var is_mob := _is_mobile_runtime()
 	var is_narration: bool = speaker_name.strip_edges().to_upper() in ["NARRAÇÃO", "NARRACAO"]
 	var portrait_side: float = 88.0 if is_mob else (40.0 if ultra_compact else (56.0 if compact_dialogue_ui else 72.0))
-	var speaker_font_size: int = 28 if is_mob else (24 if ultra_compact else (28 if compact_dialogue_ui else 32))
-	var dialogue_font_size: int = 26 if is_mob else (22 if ultra_compact else (26 if compact_dialogue_ui else 28))
 
 	# Narração não usa avatar: reduz a altura do cabeçalho sem perder destaque.
 	# Isso reserva espaço para a frase em duas linhas e mantém o rodapé dentro da moldura.
 	if is_narration:
 		portrait_side = 0.0 if is_mob else (28.0 if ultra_compact else (34.0 if compact_dialogue_ui else 42.0))
-		speaker_font_size = 28 if is_mob else (22 if ultra_compact else (26 if compact_dialogue_ui else 28))
 
 	if _speaker_badge != null:
 		_speaker_badge.visible = not speaker_name.is_empty()
@@ -1190,7 +1187,6 @@ func _is_mobile_runtime() -> bool:
 		OS.has_feature("mobile")
 		or OS.has_feature("web_android")
 		or OS.has_feature("web_ios")
-		or DisplayServer.is_touchscreen_available()
 	)
 
 
@@ -1205,9 +1201,10 @@ func _apply_dialogue_density() -> void:
 	var compact: bool = is_mobile or ultra_compact or (viewport_size.x > 0.0 and viewport_size.x < 760.0)
 
 	# Dimensões equilibradas para que avatar, texto e rodapé NUNCA ultrapassem a moldura
+	# Preserva estritamente os tamanhos canônicos da StandardDialogueBox, sem regressão de tamanho
 	var portrait_side: float = 34.0 if ultra_compact else (88.0 if is_mobile else 56.0)
-	var speaker_size: int = 24 if ultra_compact else (28 if is_mobile else 32)
-	var dialogue_size: int = 22 if ultra_compact else (26 if is_mobile else 30)
+	var speaker_size: int = 28 if ultra_compact else 32
+	var dialogue_size: int = 26 if ultra_compact else 30
 
 	if _speaker_badge != null:
 		_speaker_badge.custom_minimum_size = Vector2(0.0, portrait_side)
@@ -1584,6 +1581,7 @@ func _setup_mobile_dialogue_layout() -> void:
 			_speaker_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(true)
 			_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			_speaker_label.add_theme_font_size_override("font_size", _speaker_label.label_settings.font_size)
 			header_hbox.add_child(_speaker_label)
 
 		if _scene_counter_label != null:
@@ -1608,6 +1606,7 @@ func _setup_mobile_dialogue_layout() -> void:
 				dlg_parent.remove_child(_dialogue_label)
 			_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(true)
 			_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			_dialogue_label.add_theme_font_size_override("font_size", _dialogue_label.label_settings.font_size)
 			_dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_dialogue_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

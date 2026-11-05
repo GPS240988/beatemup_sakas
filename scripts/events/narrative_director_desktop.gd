@@ -89,12 +89,13 @@ func _prepare_dialogue_preview(ev: Resource) -> void:
 
 	if _speaker_badge != null:
 		_speaker_badge.visible = not speaker_name.is_empty()
+	var is_mob: bool = _is_mobile_runtime()
 	if _speaker_label != null:
 		_speaker_label.text = speaker_name.to_upper()
 		_speaker_label.visible = not speaker_name.is_empty()
-		_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(false)
+		_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(is_mob)
 		_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_speaker_label.add_theme_font_size_override("font_size", 32)
+		_speaker_label.add_theme_font_size_override("font_size", _speaker_label.label_settings.font_size)
 	if _speaker_portrait != null:
 		var portrait_texture: Texture2D = _resolve_speaker_portrait(speaker_name, ev)
 		_speaker_portrait.texture = portrait_texture
@@ -104,9 +105,10 @@ func _prepare_dialogue_preview(ev: Resource) -> void:
 		_dialogue_separator.visible = not speaker_name.is_empty()
 	if _dialogue_label != null:
 		_dialogue_label.text = text_content
-		_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(false)
+		_dialogue_label.visible_characters = 0
+		_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(is_mob)
 		_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_dialogue_label.add_theme_font_size_override("font_size", 30)
+		_dialogue_label.add_theme_font_size_override("font_size", _dialogue_label.label_settings.font_size)
 	if _scene_counter_label != null:
 		_scene_counter_label.visible = true
 		_scene_counter_label.text = "%02d" % (current_event_index + 1)

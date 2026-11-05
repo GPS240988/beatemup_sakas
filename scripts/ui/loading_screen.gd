@@ -38,12 +38,13 @@ func _ready() -> void:
 	_load_background_image()
 	_update_hero_info()
 	_setup_buttons()
-	_mobile_action_button = MobileScreenAction.add_primary_action(
-		self, "INICIAR FASE", Callable(self, "_on_continue_pressed"), Color(0.95, 0.73, 0.22, 1.0), btn_continue
-	)
-	MobileScreenAction.add_secondary_action(
-		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
-	)
+	if not MobileScreenAction.is_mobile_runtime():
+		_mobile_action_button = MobileScreenAction.add_primary_action(
+			self, "INICIAR FASE", Callable(self, "_on_continue_pressed"), Color(0.95, 0.73, 0.22, 1.0), btn_continue
+		)
+		MobileScreenAction.add_secondary_action(
+			self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
+		)
 	_start_prompt_pulse()
 
 
@@ -126,10 +127,15 @@ func _start_prompt_pulse() -> void:
 	_pulse_tween.tween_property(btn_continue, "modulate", Color(0.9, 0.9, 1.0, 0.85), 0.55).set_trans(Tween.TRANS_SINE)
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_on_back_pressed()
+
+
 func _gui_input(event: InputEvent) -> void:
-	if _is_transitioning or MobileScreenAction.is_mobile_runtime():
+	if _is_transitioning:
 		return
-	if event is InputEventMouseButton and event.pressed:
+	if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed):
 		_safe_handle_input()
 		_on_continue_pressed()
 
@@ -141,7 +147,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_safe_handle_input()
 		_on_back_pressed()
-	elif (event is InputEventKey and event.pressed and not event.echo) or (not MobileScreenAction.is_mobile_runtime() and event is InputEventMouseButton and event.pressed) or event.is_action_pressed("ui_accept"):
+	elif (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed) or event.is_action_pressed("ui_accept"):
 		_safe_handle_input()
 		_on_continue_pressed()
 

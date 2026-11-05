@@ -6,13 +6,13 @@
 [ext_resource type="PackedScene" uid="uid://cxvd6h0452i8y" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
 [ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
-[ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
+[ext_resource type="PackedScene" uid="uid://cx6etug1g8lhg" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_1_navpoly.tres" id="8_navpoly"]
 [ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
 [ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
 [ext_resource type="PackedScene" uid="uid://bm5qsuqs2ao8t" path="res://scenes/actors/sergio_npc.tscn" id="11_sergio_scene"]
 [ext_resource type="PackedScene" uid="uid://c85moa1s18w10" path="res://scenes/props/destructible_games_box.tscn" id="12_games_box"]
-[ext_resource type="PackedScene" path="res://scenes/items/counter_card_interaction.tscn" id="13_card_interaction"]
+[ext_resource type="PackedScene" uid="uid://b3f31kdieeuh5" path="res://scenes/items/counter_card_interaction.tscn" id="13_card_interaction"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_boundary"]
 size = Vector2(2200, 68.125)
@@ -41,9 +41,6 @@ size = Vector2(60, 80)
 [node name="Map1" type="Node2D" unique_id=1806759155]
 script = ExtResource("1_map1_transition")
 map_name = "Fase 1 - Seção 1: Entrada da Rua"
-map_index = 1
-mobile_camera_fill_overscan = 1.02
-map_group = "fase1"
 next_map_scene_path = "res://scenes/levels/map_2.tscn"
 reinforcement_waves_enabled = true
 reinforcement_count = 3
@@ -139,8 +136,8 @@ collision_layer = 2
 position = Vector2(24.75, -38)
 shape = SubResource("RectangleShape2D_glass_counter")
 
-[node name="CounterCardInteraction" parent="World/Props/StaticProps" instance=ExtResource("13_card_interaction")]
-position = Vector2(1685, 682)
+[node name="CounterCardInteraction" parent="World/Props/StaticProps" unique_id=1819076716 instance=ExtResource("13_card_interaction")]
+position = Vector2(751, 514)
 
 [node name="Destructibles" type="Node2D" parent="World/Props" unique_id=1962846628]
 y_sort_enabled = true

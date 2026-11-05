@@ -106,6 +106,8 @@ func _ready() -> void:
 		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
 	)
 	_update_mobile_action()
+	if MobileScreenAction.is_mobile_runtime():
+		_shift_mobile_dock_right()
 
 
 func _apply_mobile_fullscreen_layout() -> void:
@@ -122,6 +124,25 @@ func _apply_mobile_fullscreen_layout() -> void:
 	if incoming_slot != null:
 		incoming_slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		incoming_slot.stretch_mode = TextureRect.STRETCH_SCALE
+
+
+## Desloca o dock de ações mobile para a direita para não sobrepor os status do personagem.
+func _shift_mobile_dock_right() -> void:
+	var dock := get_node_or_null("MobileNavigationLayer") as CanvasLayer
+	if dock == null:
+		return
+	var wide_row := dock.get_node_or_null("SafeRoot/BottomPanel/DockMargin/DockRows/WideRow") as HBoxContainer
+	if wide_row != null:
+		wide_row.alignment = BoxContainer.ALIGNMENT_END
+	var action_row := dock.get_node_or_null("SafeRoot/BottomPanel/DockMargin/DockRows/ActionRow") as HBoxContainer
+	if action_row != null:
+		action_row.alignment = BoxContainer.ALIGNMENT_END
+	var margin := dock.get_node_or_null("SafeRoot/BottomPanel/DockMargin") as MarginContainer
+	if margin != null:
+		var vp_size: Vector2 = get_viewport_rect().size
+		var left_reserve: int = int(clampf(vp_size.x * 0.35, 160.0, 460.0))
+		margin.add_theme_constant_override("margin_left", left_reserve)
+
 
 func _setup_touch_hitboxes() -> void:
 	var hitboxes: Array[Button] = [

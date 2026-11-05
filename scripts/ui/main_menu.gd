@@ -78,8 +78,10 @@ func _ready() -> void:
 			brush_highlight.visible = false
 	# Aguarda frame para o sistema de layout do Godot resolver os tamanhos e posições reais
 	await get_tree().process_frame
-	_set_selected_index(0, false)
-	if not _is_mobile_runtime():
+	if _is_mobile_runtime():
+		_set_selected_index(-1, false)
+	else:
+		_set_selected_index(0, false)
 		_start_idle_pulse()
 
 func _input(event: InputEvent) -> void:
@@ -213,6 +215,16 @@ func _on_button_clicked(index: int) -> void:
 	_activate_option(index)
 
 func _set_selected_index(new_idx: int, animate: bool = false) -> void:
+	if new_idx < 0:
+		_current_index = -1
+		if _is_mobile_runtime():
+			for i in range(_buttons.size()):
+				var menu_button: Button = _buttons[i]
+				if menu_button != null:
+					menu_button.add_theme_stylebox_override("normal", _make_mobile_selector_style(false))
+					menu_button.add_theme_stylebox_override("hover", _make_mobile_selector_style(false))
+					menu_button.add_theme_stylebox_override("pressed", _make_mobile_selector_style(false))
+		return
 	_current_index = clampi(new_idx, 0, 5)
 	_update_selector_positions(animate)
 	if _is_mobile_runtime():
@@ -278,18 +290,61 @@ func _update_selector_positions(animate: bool = false) -> void:
 		brush_highlight.position = b_pos
 		brush_highlight.size = b_size
 
-func _make_mobile_selector_style(_selected: bool) -> StyleBoxFlat:
-	# Os botões são hitboxes invisíveis no mobile; não desenhar moldura de seleção.
+func _make_mobile_selector_style(selected: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color.TRANSPARENT
-	style.border_color = Color.TRANSPARENT
-	style.set_border_width_all(0)
-	style.set_corner_radius_all(0)
-	style.shadow_color = Color.TRANSPARENT
-	style.shadow_size = 0
+	if selected:
+		style.bg_color = Color(0.95, 0.75, 0.20, 0.18)
+		style.border_color = Color(1.0, 0.85, 0.35, 0.85)
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(6)
+		style.shadow_color = Color(1.0, 0.75, 0.20, 0.35)
+		style.shadow_size = 6
+	else:
+		style.bg_color = Color.TRANSPARENT
+		style.border_color = Color.TRANSPARENT
+		style.set_border_width_all(0)
+		style.set_corner_radius_all(0)
+		style.shadow_color = Color.TRANSPARENT
+		style.shadow_size = 0
 	style.content_margin_left = 18.0
 	style.content_margin_right = 18.0
 	return style
+
+
+func _play_selection_feedback(index: int) -> void:
+	if index < 0 or index >= _buttons.size():
+		return
+	var target_btn: Button = _buttons[index]
+	if target_btn == null:
+		return
+
+	if _is_mobile_runtime():
+		# Estilo de confirmação com brilho dourado Dark Premium Medieval
+		var confirmed_style := StyleBoxFlat.new()
+		confirmed_style.bg_color = Color(1.0, 0.85, 0.25, 0.38)
+		confirmed_style.border_color = Color(1.0, 0.95, 0.50, 1.0)
+		confirmed_style.set_border_width_all(3)
+		confirmed_style.set_corner_radius_all(6)
+		confirmed_style.shadow_color = Color(1.0, 0.80, 0.20, 0.6)
+		confirmed_style.shadow_size = 10
+		target_btn.add_theme_stylebox_override("normal", confirmed_style)
+		target_btn.add_theme_stylebox_override("hover", confirmed_style)
+		target_btn.add_theme_stylebox_override("pressed", confirmed_style)
+
+		var feedback_tween := create_tween()
+		feedback_tween.tween_property(target_btn, "modulate", Color(1.3, 1.3, 1.3, 1.0), 0.12)
+		feedback_tween.tween_property(target_btn, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18)
+	else:
+		if brush_highlight != null:
+			var feedback_tween := create_tween()
+			feedback_tween.set_parallel(true)
+			feedback_tween.tween_property(brush_highlight, "modulate", Color(2.0, 1.9, 1.2, 1.0), 0.12)
+			if left_chevron != null:
+				feedback_tween.tween_property(left_chevron, "modulate", Color(1.8, 1.8, 1.3, 1.0), 0.12)
+			if right_chevron != null:
+				feedback_tween.tween_property(right_chevron, "modulate", Color(1.8, 1.8, 1.3, 1.0), 0.12)
+			feedback_tween.chain().tween_property(brush_highlight, "modulate", Color(1.2, 1.2, 0.9, 1.0), 0.18)
+
 
 func _start_idle_pulse() -> void:
 	if _pulse_tween != null and _pulse_tween.is_valid():
@@ -303,34 +358,39 @@ func _start_idle_pulse() -> void:
 func _activate_option(index: int) -> void:
 	if _is_transitioning:
 		return
+
+	if index == 4: # CONFIGURAÇÕES (Desabilitado)
+		_deny_action("Configurações em desenvolvimento.")
+		return
+
+	_is_transitioning = true
+	_play_sound(_sfx_confirm)
+	_play_selection_feedback(index)
+
+	# Feedback amigável ao usuário: intervalo de exibição antes da transição de tela
+	var delay: float = 0.35
+	if index == 5: # SAIR
+		delay = 0.25
+	var timer := get_tree().create_timer(delay)
+	await timer.timeout
+
 	match index:
 		0: # NOVO JOGO
-			_is_transitioning = true
-			_play_sound(_sfx_confirm)
 			var session = get_node_or_null("/root/GameSession")
 			if session != null and session.has_method("reset_session"):
 				session.reset_session()
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
 		1: # CONTINUAR
-			_is_transitioning = true
-			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CONTINUE_SCENE)
+
 		2: # PERSONAGENS
-			_is_transitioning = true
-			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
 		3: # MAPA
-			_is_transitioning = true
-			_play_sound(_sfx_confirm)
 			get_tree().change_scene_to_file(MAP_MENU_SCENE)
 
-		4: # CONFIGURAÇÕES (Desabilitado)
-			_deny_action("Configurações em desenvolvimento.")
-
 		5: # SAIR
-			_play_sound(_sfx_confirm)
 			if _is_mobile_runtime():
 				_quit_mobile_game()
 			else:

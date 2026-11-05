@@ -9,6 +9,7 @@ extends Control
 const TARGET_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
 const STORY_SEQUENCE_PATH: String = "res://resources/story/story_intro_map1.tres"
 
+
 @onready var narrative_director: NarrativeDirector = %NarrativeDirector
 
 var _is_transitioning: bool = false
