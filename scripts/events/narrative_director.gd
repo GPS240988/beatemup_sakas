@@ -267,6 +267,16 @@ func _on_root_gui_input(event: InputEvent) -> void:
 		advance_or_skip_text()
 
 
+func _on_dialogue_gui_input(event: InputEvent) -> void:
+	if not is_playing or _is_transitioning:
+		return
+	if _is_mobile_runtime() and _is_current_event_arcade_machine():
+		return
+	if (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+		_safe_handle_input()
+		advance_or_skip_text()
+
+
 func _safe_handle_input() -> void:
 	if get_viewport() != null:
 		get_viewport().set_input_as_handled()
@@ -358,8 +368,8 @@ func _process_current_event() -> void:
 	var img_path: String = str(ev.get("image_path"))
 	var sound_name: String = str(ev.get("sound_effect_name"))
 	var entry_eff: String = str(ev.get("entry_effect"))
-	var zoom_start: float = float(ev.get("zoom_start"))
-	var zoom_end: float = float(ev.get("zoom_end"))
+	var zoom_start: float = maxf(float(ev.get("zoom_start")), 0.01)
+	var zoom_end: float = maxf(float(ev.get("zoom_end")), 0.01)
 	var glitch_frames: int = int(ev.get("glitch_frames"))
 
 	_play_audio_by_name(sound_name)
@@ -446,10 +456,14 @@ func _display_image_event(
 		_dark_base.color = CINEMATIC_MATTE_COLOR
 	if _image_rect != null:
 		_image_rect.visible = true
-		_image_rect.pivot_offset = _image_rect.size * 0.5
+		# Guarda contra size zero (antes do layout no Web) para evitar affine_invert det==0
+		var img_size: Vector2 = _image_rect.size
+		if img_size.x > 0.0 and img_size.y > 0.0:
+			_image_rect.pivot_offset = img_size * 0.5
 		# Em mobile, mantém a escala neutra para não cortar bordas da arte.
 		# Fade/glitch continuam como animações de entrada.
-		_image_rect.scale = Vector2.ONE * (1.0 if mobile_safe_framing else zoom_start)
+		var safe_zoom: float = maxf(zoom_start, 0.01)
+		_image_rect.scale = Vector2.ONE * (1.0 if mobile_safe_framing else safe_zoom)
 		_image_rect.position = Vector2.ZERO
 		_image_rect.modulate = Color.WHITE
 
@@ -521,7 +535,9 @@ func _display_image_event(
 			_dialogue_area.visible = false
 		if _image_rect != null:
 			_image_rect.modulate = Color(1.2, 1.2, 1.2, 0.0)
-			_image_rect.pivot_offset = Vector2(_image_rect.size.x * 0.5, _image_rect.size.y * 0.42)
+			var crt_size: Vector2 = _image_rect.size
+			if crt_size.x > 0.0 and crt_size.y > 0.0:
+				_image_rect.pivot_offset = Vector2(crt_size.x * 0.5, crt_size.y * 0.42)
 			_active_tween.tween_property(_image_rect, "modulate:a", 1.0, 0.45).set_trans(Tween.TRANS_SINE)
 			_active_tween.tween_property(_image_rect, "modulate", Color.WHITE, 0.25).set_trans(Tween.TRANS_QUAD)
 
@@ -746,12 +762,12 @@ func _show_current_text_block(ev: Resource) -> void:
 		_prompt_label.text = "ENTER"
 		_prompt_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.25, 1.0))
 
-	# Adapta controle de avanço: no PC exibe prompt arcade do teclado; no mobile exibe botão padronizado AVANÇAR
+	# Adapta controle de avanço: no PC exibe prompt arcade do teclado; no mobile exibe flechinha indicativa
 	var is_mobile := _is_mobile_runtime()
 	if _btn_mobile_advance != null:
 		_btn_mobile_advance.visible = is_mobile
 		if is_mobile:
-			_btn_mobile_advance.text = "AVANÇAR"
+			_btn_mobile_advance.text = "►"
 			_style_mobile_advance_button()
 	if _advance_prompt_box != null:
 		_advance_prompt_box.visible = not is_mobile
@@ -1147,14 +1163,14 @@ func _apply_responsive_layout() -> void:
 	var dialogue_top: float
 
 	if _is_mobile_runtime() and not is_portrait:
-		# Mobile landscape: a ilustração ocupa todo o viewport; o painel é
-		# sobreposto na faixa inferior com altura generosa (36% da tela) para caber o avatar 88x88 e diálogo confortavelmente.
+		# Mobile landscape: a ilustração ocupa o viewport; o painel fica compacto na faixa inferior (74% a 98.5%)
+		# garantindo que quase três quartos da tela fiquem visíveis para a imagem e personagens.
 		art_bottom = 1.0
-		dialogue_top = 0.64
+		dialogue_top = 0.74
 	elif is_portrait:
-		# Celular vertical: arte no topo e painel amplo na metade inferior.
-		art_bottom = 0.38
-		dialogue_top = 0.40
+		# Celular vertical: arte na metade superior (58%) e painel na inferior (40%).
+		art_bottom = 0.58
+		dialogue_top = 0.60
 	elif viewport_size.y < 420.0:
 		# Paisagem muito baixa: preserva arte 100% visível e painel compacto no terço inferior.
 		art_bottom = 0.68
@@ -1253,10 +1269,10 @@ func _apply_dialogue_density() -> void:
 
 	if _btn_mobile_advance != null:
 		if is_mobile:
-			# Botão arcade de rodapé proporcional e sem sobreposição com borda ou texto
-			_btn_mobile_advance.custom_minimum_size = Vector2(148.0, 40.0)
-			_btn_mobile_advance.add_theme_font_size_override("font_size", 15)
-			_btn_mobile_advance.text = "AVANÇAR"
+			# Flecha indicativa moderna de avanço sem moldura retangular
+			_btn_mobile_advance.custom_minimum_size = Vector2(28.0, 24.0)
+			_btn_mobile_advance.add_theme_font_size_override("font_size", 22)
+			_btn_mobile_advance.text = "►"
 			_style_mobile_advance_button()
 		else:
 			_btn_mobile_advance.custom_minimum_size = Vector2(120.0, 32.0)
@@ -1288,39 +1304,23 @@ func _apply_dialogue_density() -> void:
 func _style_mobile_advance_button() -> void:
 	if _btn_mobile_advance == null:
 		return
+	_btn_mobile_advance.text = "►"
 	_btn_mobile_advance.add_theme_font_override("font", ARCADE_FONT)
-	_btn_mobile_advance.add_theme_font_size_override("font_size", 14)
-	_btn_mobile_advance.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82, 1.0))
-	_btn_mobile_advance.add_theme_color_override("font_hover_color", Color.WHITE)
+	_btn_mobile_advance.add_theme_font_size_override("font_size", 22)
+	_btn_mobile_advance.add_theme_color_override("font_color", Color(1.0, 0.92, 0.25, 1.0))
+	_btn_mobile_advance.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 0.6, 1.0))
 	_btn_mobile_advance.add_theme_color_override("font_pressed_color", Color(1.0, 0.85, 0.4, 1.0))
 	_btn_mobile_advance.add_theme_constant_override("outline_size", 2)
 	_btn_mobile_advance.add_theme_color_override("font_outline_color", Color(0.015, 0.02, 0.035, 1.0))
 
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.06, 0.08, 0.13, 0.96)
-	normal.border_color = Color(0.96, 0.73, 0.22, 1.0)
-	normal.set_border_width_all(2)
-	normal.set_corner_radius_all(8)
-	normal.shadow_color = Color(0.96, 0.73, 0.22, 0.28)
-	normal.shadow_size = 5
-	normal.shadow_offset = Vector2(0.0, 2.0)
-	normal.content_margin_left = 16.0
-	normal.content_margin_right = 16.0
-	normal.content_margin_top = 8.0
-	normal.content_margin_bottom = 8.0
-
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.14, 0.18, 0.25, 1.0)
-	pressed.shadow_size = 2
-	pressed.shadow_offset = Vector2.ZERO
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.08, 0.11, 0.18, 0.98)
-	hover.border_color = Color(1.0, 0.85, 0.45, 1.0)
-
-	_btn_mobile_advance.add_theme_stylebox_override("normal", normal)
-	_btn_mobile_advance.add_theme_stylebox_override("hover", hover)
-	_btn_mobile_advance.add_theme_stylebox_override("pressed", pressed)
-	_btn_mobile_advance.add_theme_stylebox_override("focus", hover)
+	var empty_sb := StyleBoxEmpty.new()
+	_btn_mobile_advance.add_theme_stylebox_override("normal", empty_sb)
+	_btn_mobile_advance.add_theme_stylebox_override("hover", empty_sb)
+	_btn_mobile_advance.add_theme_stylebox_override("pressed", empty_sb)
+	_btn_mobile_advance.add_theme_stylebox_override("focus", empty_sb)
+	_btn_mobile_advance.add_theme_stylebox_override("disabled", empty_sb)
+	_btn_mobile_advance.custom_minimum_size = Vector2(28.0, 24.0)
+	_btn_mobile_advance.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 
 func _align_dialogue_area_to_image() -> void:
@@ -1416,14 +1416,18 @@ func _align_dialogue_area_to_image() -> void:
 
 
 func _start_prompt_pulse() -> void:
-	var target_node: Control = _advance_prompt_box if _advance_prompt_box != null else _prompt_label
+	var target_node: Control
+	if _is_mobile_runtime():
+		target_node = _btn_mobile_advance
+	else:
+		target_node = _advance_prompt_box if _advance_prompt_box != null else _prompt_label
 	if target_node == null:
 		return
 	if _pulse_tween != null and _pulse_tween.is_valid():
 		_pulse_tween.kill()
 
 	_pulse_tween = create_tween().set_loops()
-	_pulse_tween.tween_property(target_node, "modulate:a", 0.55, 0.45).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.tween_property(target_node, "modulate:a", 0.35, 0.45).set_trans(Tween.TRANS_SINE)
 	_pulse_tween.tween_property(target_node, "modulate:a", 1.00, 0.45).set_trans(Tween.TRANS_SINE)
 
 
@@ -1549,14 +1553,25 @@ func _setup_mobile_dialogue_layout() -> void:
 		return
 	if _dialogue_frame == null:
 		return
+
+	# Garante que toques no painel e na área de diálogo avancem o texto
+	if _dialogue_frame != null:
+		_dialogue_frame.mouse_filter = Control.MOUSE_FILTER_PASS
+		if not _dialogue_frame.gui_input.is_connected(_on_dialogue_gui_input):
+			_dialogue_frame.gui_input.connect(_on_dialogue_gui_input)
+	if _dialogue_area != null:
+		_dialogue_area.mouse_filter = Control.MOUSE_FILTER_PASS
+		if not _dialogue_area.gui_input.is_connected(_on_dialogue_gui_input):
+			_dialogue_area.gui_input.connect(_on_dialogue_gui_input)
+
 	var content_margin := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin") as MarginContainer
 	if content_margin == null:
 		return
 
-	content_margin.add_theme_constant_override("margin_left", 18)
-	content_margin.add_theme_constant_override("margin_right", 18)
-	content_margin.add_theme_constant_override("margin_top", 10)
-	content_margin.add_theme_constant_override("margin_bottom", 10)
+	content_margin.add_theme_constant_override("margin_left", 22)
+	content_margin.add_theme_constant_override("margin_right", 22)
+	content_margin.add_theme_constant_override("margin_top", 8)
+	content_margin.add_theme_constant_override("margin_bottom", 8)
 
 	var old_vbox := content_margin.get_node_or_null("VBox") as VBoxContainer
 	if old_vbox != null:
@@ -1638,7 +1653,8 @@ func _setup_mobile_dialogue_layout() -> void:
 			var btn_parent = _btn_mobile_advance.get_parent()
 			if btn_parent != null:
 				btn_parent.remove_child(_btn_mobile_advance)
-			_btn_mobile_advance.custom_minimum_size = Vector2(148, 40)
+			_btn_mobile_advance.custom_minimum_size = Vector2(28, 24)
+			_btn_mobile_advance.text = "►"
 			_style_mobile_advance_button()
 			footer_hbox.add_child(_btn_mobile_advance)
 

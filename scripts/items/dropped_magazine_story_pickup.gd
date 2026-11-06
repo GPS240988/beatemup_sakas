@@ -360,14 +360,13 @@ func _build_dialogue_overlay() -> void:
 
 	var continue_prompt := ui_nodes["continue_label"] as Label
 	if is_mobile:
-		continue_prompt.visible = false
-		MobileScreenAction.add_inline_primary_action(
-			root,
-			"AVANÇAR",
-			Callable(self, "_on_mobile_advance_pressed"),
-			Color(0.96, 0.73, 0.22, 1.0),
-			0.77, 0.87, 0.95, 0.97
-		)
+		continue_prompt.visible = true
+		# Touch-anywhere-to-advance: toque em qualquer parte do diálogo avança o texto
+		var dialogue_area_ctrl := ui_nodes["dialogue_area"] as Control
+		if dialogue_area_ctrl != null:
+			dialogue_area_ctrl.mouse_filter = Control.MOUSE_FILTER_PASS
+			if not dialogue_area_ctrl.is_connected("gui_input", Callable(self, "_on_mobile_dialogue_touch")):
+				dialogue_area_ctrl.connect("gui_input", Callable(self, "_on_mobile_dialogue_touch"))
 
 
 func _layout_expanded_card() -> void:
@@ -379,11 +378,12 @@ func _layout_expanded_card() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0 or item_size.x <= 0.0 or item_size.y <= 0.0:
 		return
 
-	var top_margin: float = viewport_size.y * 0.035
-	var dialogue_top: float = viewport_size.y * 0.70
-	var dialogue_gap: float = maxf(12.0, viewport_size.y * 0.025)
+	var is_mobile: bool = MobileScreenAction.is_mobile_runtime()
+	var top_margin: float = viewport_size.y * (0.02 if is_mobile else 0.035)
+	var dialogue_top: float = viewport_size.y * (0.78 if is_mobile else 0.70)
+	var dialogue_gap: float = maxf(8.0 if is_mobile else 12.0, viewport_size.y * 0.02)
 	var available_height: float = maxf(1.0, dialogue_top - top_margin - dialogue_gap)
-	var max_display_size: Vector2 = Vector2(viewport_size.x * 0.42, available_height)
+	var max_display_size: Vector2 = Vector2(viewport_size.x * (0.55 if is_mobile else 0.42), available_height)
 	var fit_scale: float = minf(max_display_size.x / item_size.x, max_display_size.y / item_size.y)
 	var display_size: Vector2 = item_size * fit_scale
 
@@ -439,6 +439,14 @@ func _on_mobile_advance_pressed() -> void:
 		_skip_typewriter()
 		return
 	_close_dialogue()
+
+
+## Touch-anywhere no diálogo para avançar (padrão mobile)
+func _on_mobile_dialogue_touch(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and event.pressed:
+		_on_mobile_advance_pressed()
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_on_mobile_advance_pressed()
 
 
 func _close_dialogue() -> void:

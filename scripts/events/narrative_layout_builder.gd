@@ -234,7 +234,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	# Área de Diálogo com Moldura Oficial Arcade
 	var dialogue_area := MarginContainer.new()
 	dialogue_area.name = "DialogueArea"
-	dialogue_area.anchor_top = 0.64 if is_mobile else 0.735
+	dialogue_area.anchor_top = 0.74 if is_mobile else 0.735
 	dialogue_area.anchor_bottom = 0.985 if is_mobile else 0.99
 	dialogue_area.anchor_left = 0.0
 	dialogue_area.anchor_right = 1.0
@@ -403,11 +403,18 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 
 	var btn_mobile_advance := Button.new()
 	btn_mobile_advance.name = "BtnMobileAdvance"
-	btn_mobile_advance.text = "AVANÇAR"
-	btn_mobile_advance.custom_minimum_size = Vector2(148, 40) if is_mobile else Vector2(130, 36)
+	btn_mobile_advance.text = "►" if is_mobile else "AVANÇAR"
+	btn_mobile_advance.custom_minimum_size = Vector2(28, 24) if is_mobile else Vector2(130, 36)
 	btn_mobile_advance.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	btn_mobile_advance.add_theme_font_override("font", ARCADE_FONT)
-	btn_mobile_advance.add_theme_font_size_override("font_size", 15)
+	btn_mobile_advance.add_theme_font_size_override("font_size", 22 if is_mobile else 15)
+	if is_mobile:
+		var btn_empty_sb := StyleBoxEmpty.new()
+		btn_mobile_advance.add_theme_stylebox_override("normal", btn_empty_sb)
+		btn_mobile_advance.add_theme_stylebox_override("hover", btn_empty_sb)
+		btn_mobile_advance.add_theme_stylebox_override("pressed", btn_empty_sb)
+		btn_mobile_advance.add_theme_stylebox_override("focus", btn_empty_sb)
+		btn_mobile_advance.add_theme_stylebox_override("disabled", btn_empty_sb)
 	if director.has_method("advance_or_skip_text"):
 		btn_mobile_advance.pressed.connect(director.advance_or_skip_text)
 	footer_hbox.add_child(btn_mobile_advance)

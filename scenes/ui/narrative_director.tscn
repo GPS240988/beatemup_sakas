@@ -506,12 +506,12 @@ text = "ENTER"
 [node name="BtnMobileAdvance" type="Button" parent="RootControl/DialogueArea/DialogueFrame/FrameContent/ContentMargin/VBox/FooterHBox"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(190, 52)
+custom_minimum_size = Vector2(28, 24)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 theme_override_fonts/font = ExtResource("2_arcade_font")
-theme_override_font_sizes/font_size = 16
-text = "AVANÇAR"
+theme_override_font_sizes/font_size = 22
+text = "►"
 
 [node name="TopOverlay" type="MarginContainer" parent="RootControl"]
 unique_name_in_owner = true

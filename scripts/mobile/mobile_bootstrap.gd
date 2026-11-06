@@ -13,8 +13,9 @@ func _ready() -> void:
 		return
 
 	# Orientação horizontal com altura lógica constante (no web, o travamento é feito pelo navegador via mobile_shell).
-	if not OS.has_feature("web") and DisplayServer.has_feature(DisplayServer.FEATURE_ORIENTATION):
-		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	if not OS.has_feature("web") and DisplayServer.screen_get_orientation() != DisplayServer.SCREEN_LANDSCAPE:
+		if DisplayServer.has_feature(DisplayServer.FEATURE_ORIENTATION):
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
 	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP_HEIGHT
 
 	if not get_tree().scene_changed.is_connected(_on_scene_changed):

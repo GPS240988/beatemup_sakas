@@ -64,7 +64,7 @@ func _test_factory_methods() -> void:
 	_assert(speaker_desktop.shadow_size == 2, "Sombra do orador é 2px")
 
 	var speaker_mobile: LabelSettings = StandardDialogueBox.create_speaker_settings(true)
-	_assert(speaker_mobile.font_size == 32, "Tamanho da fonte do orador no mobile é 32px")
+	_assert(speaker_mobile.font_size == 26, "Tamanho da fonte do orador no mobile é 26px (não estoura cantoneiras)")
 
 	var dialogue_desktop: LabelSettings = StandardDialogueBox.create_dialogue_settings(false)
 	_assert(dialogue_desktop.font_size == 30, "Tamanho da fonte do diálogo no desktop é 30px")
@@ -72,7 +72,7 @@ func _test_factory_methods() -> void:
 	_assert(dialogue_desktop.line_spacing == 8, "Entrelinha do diálogo é 8px")
 
 	var dialogue_mobile: LabelSettings = StandardDialogueBox.create_dialogue_settings(true)
-	_assert(dialogue_mobile.font_size == 30, "Tamanho da fonte do diálogo no mobile é 30px")
+	_assert(dialogue_mobile.font_size == 24, "Tamanho da fonte do diálogo no mobile é 24px (compacto e legível)")
 
 
 func _test_container_hierarchy() -> void:
@@ -103,6 +103,15 @@ func _test_container_hierarchy() -> void:
 	var dialogue := ui["dialogue_label"] as Label
 	_assert(dialogue != null and dialogue.label_settings != null, "Texto de fala usa LabelSettings")
 	_assert(dialogue.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART, "Texto de fala possui quebra de linha inteligente")
+
+	# Validação Mobile da StandardDialogueBox
+	var ui_mob := StandardDialogueBox.build_dialogue_ui(root_ctrl, true)
+	var area_mob := ui_mob["dialogue_area"] as MarginContainer
+	_assert(is_equal_approx(area_mob.anchor_top, 0.78), "Mobile posiciona caixa de diálogo em 78% (compacta, liberando arte)")
+	var continue_prompt_mob := ui_mob["continue_label"] as Label
+	_assert(continue_prompt_mob != null and continue_prompt_mob.text == "►", "Mobile usa flecha '►' intuitiva no prompt")
+	var portrait_mob := ui_mob["portrait"] as TextureRect
+	_assert(portrait_mob.custom_minimum_size == Vector2(72, 72), "Avatar mobile é reduzido proporcionalmente (72x72)")
 
 	root_ctrl.queue_free()
 

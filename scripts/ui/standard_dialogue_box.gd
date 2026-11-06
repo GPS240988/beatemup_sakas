@@ -35,9 +35,9 @@ static func create_dialogue_stylebox() -> StyleBoxTexture:
 static func create_speaker_settings(is_mobile: bool = false) -> LabelSettings:
 	var settings := LabelSettings.new()
 	settings.font = ARCADE_FONT
-	settings.font_size = 32
+	settings.font_size = 26 if is_mobile else 32
 	settings.font_color = GOLD_SPEAKER_COLOR
-	settings.outline_size = 4
+	settings.outline_size = 3 if is_mobile else 4
 	settings.outline_color = OUTLINE_SPEAKER_COLOR
 	settings.shadow_size = 2
 	settings.shadow_color = SHADOW_COLOR
@@ -49,14 +49,14 @@ static func create_speaker_settings(is_mobile: bool = false) -> LabelSettings:
 static func create_dialogue_settings(is_mobile: bool = false) -> LabelSettings:
 	var settings := LabelSettings.new()
 	settings.font = ARCADE_FONT
-	settings.font_size = 30
+	settings.font_size = 24 if is_mobile else 30
 	settings.font_color = DIALOGUE_TEXT_COLOR
-	settings.outline_size = 3
+	settings.outline_size = 2 if is_mobile else 3
 	settings.outline_color = OUTLINE_DIALOGUE_COLOR
 	settings.shadow_size = 2
 	settings.shadow_color = SHADOW_COLOR
 	settings.shadow_offset = Vector2(2, 2)
-	settings.line_spacing = 8
+	settings.line_spacing = 6 if is_mobile else 8
 	return settings
 
 
@@ -79,10 +79,10 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 	var dialogue_area := MarginContainer.new()
 	dialogue_area.name = "DialogueArea"
 	dialogue_area.anchor_left = 0.05
-	dialogue_area.anchor_top = 0.67
+	dialogue_area.anchor_top = 0.78 if is_mobile else 0.67
 	dialogue_area.anchor_right = 0.95
 	dialogue_area.anchor_bottom = 0.98
-	dialogue_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dialogue_area.mouse_filter = Control.MOUSE_FILTER_PASS if is_mobile else Control.MOUSE_FILTER_IGNORE
 	parent.add_child(dialogue_area)
 
 	var dialogue_panel := PanelContainer.new()
@@ -93,23 +93,27 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 
 	var inner_margin := MarginContainer.new()
 	inner_margin.name = "InnerMargin"
-	inner_margin.add_theme_constant_override("margin_left", 18)
-	inner_margin.add_theme_constant_override("margin_top", 12)
-	inner_margin.add_theme_constant_override("margin_right", 18)
-	inner_margin.add_theme_constant_override("margin_bottom", 10)
+	# Margens seguras: respeita as cantoneiras douradas da moldura 9-patch
+	var m_side: int = 22 if is_mobile else 18
+	var m_top: int = 10 if is_mobile else 12
+	var m_bottom: int = 8 if is_mobile else 10
+	inner_margin.add_theme_constant_override("margin_left", m_side)
+	inner_margin.add_theme_constant_override("margin_top", m_top)
+	inner_margin.add_theme_constant_override("margin_right", m_side)
+	inner_margin.add_theme_constant_override("margin_bottom", m_bottom)
 	inner_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialogue_panel.add_child(inner_margin)
 
 	var hbox := HBoxContainer.new()
 	hbox.name = "DialogueHBox"
-	hbox.add_theme_constant_override("separation", 18)
+	hbox.add_theme_constant_override("separation", 12 if is_mobile else 18)
 	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	inner_margin.add_child(hbox)
 
 	var portrait := TextureRect.new()
 	portrait.name = "Portrait"
 	portrait.texture = DEFAULT_GABRIEL_PORTRAIT
-	portrait.custom_minimum_size = Vector2(110, 110) if not is_mobile else Vector2(88, 88)
+	portrait.custom_minimum_size = Vector2(72, 72) if is_mobile else Vector2(110, 110)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -122,7 +126,7 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 2 if is_mobile else 4)
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(vbox)
 
@@ -148,8 +152,19 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 
 	var continue_label := Label.new()
 	continue_label.name = "ContinuePrompt"
-	continue_label.text = "TOQUE OU PRESSIONE ENTER PARA CONTINUAR"
-	continue_label.label_settings = create_prompt_settings(is_mobile)
+	if is_mobile:
+		continue_label.text = "►"
+		var arrow_settings := LabelSettings.new()
+		arrow_settings.font = ARCADE_FONT
+		arrow_settings.font_size = 22
+		arrow_settings.font_color = Color(1.0, 0.92, 0.25, 1.0)
+		arrow_settings.shadow_size = 1
+		arrow_settings.shadow_color = Color(0.0, 0.0, 0.0, 0.90)
+		arrow_settings.shadow_offset = Vector2(1, 1)
+		continue_label.label_settings = arrow_settings
+	else:
+		continue_label.text = "TOQUE OU PRESSIONE ENTER PARA CONTINUAR"
+		continue_label.label_settings = create_prompt_settings(false)
 	continue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	continue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	continue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

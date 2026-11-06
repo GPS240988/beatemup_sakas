@@ -120,7 +120,8 @@ func _prepare_dialogue_preview(ev: Resource) -> void:
 	if _btn_mobile_advance != null:
 		_btn_mobile_advance.visible = is_mobile
 		if is_mobile:
-			_btn_mobile_advance.text = "AVANÇAR"
+			_btn_mobile_advance.text = "►"
+			_style_mobile_advance_button()
 	_dialogue_area.visible = true
 	_dialogue_area.modulate.a = 1.0
 

@@ -116,12 +116,12 @@ func test_mobile_typography_standardization() -> void:
 		var s_settings: LabelSettings = spk_label.label_settings
 		assert_test(s_settings != null, "SpeakerLabel possui LabelSettings aplicado")
 		if s_settings != null:
-			assert_test(s_settings.font_size == 32, "Nome do personagem possui tamanho 32px no mobile")
+			assert_test(s_settings.font_size == 26, "Nome do personagem possui tamanho 26px no mobile (anti-estouro)")
 			assert_test(
 				s_settings.font_color.is_equal_approx(Color(0.94, 0.75, 0.39, 1.0)),
 				"Nome do personagem possui cor dourada oficial (#EFBF63)"
 			)
-			assert_test(s_settings.outline_size == 4, "Nome do personagem possui contorno de 4px")
+			assert_test(s_settings.outline_size == 3, "Nome do personagem possui contorno de 3px no mobile")
 			assert_test(s_settings.shadow_size == 2, "Nome do personagem possui sombra de 2px")
 
 	var dlg_label: Label = nar.get_node_or_null("%DialogueLabel")
@@ -131,14 +131,14 @@ func test_mobile_typography_standardization() -> void:
 		var d_settings: LabelSettings = dlg_label.label_settings
 		assert_test(d_settings != null, "DialogueLabel possui LabelSettings aplicado")
 		if d_settings != null:
-			assert_test(d_settings.font_size == 30, "Texto de diálogo possui tamanho 30px no mobile")
+			assert_test(d_settings.font_size == 24, "Texto de diálogo possui tamanho 24px no mobile (anti-estouro)")
 			assert_test(
 				d_settings.font_color.is_equal_approx(Color(0.96, 0.95, 0.90, 1.0)),
 				"Texto de diálogo possui cor creme oficial (#F5F2E6)"
 			)
-			assert_test(d_settings.outline_size == 3, "Texto de diálogo possui contorno de 3px")
+			assert_test(d_settings.outline_size == 2, "Texto de diálogo possui contorno de 2px no mobile")
 			assert_test(d_settings.shadow_size == 2, "Texto de diálogo possui sombra de 2px")
-			assert_test(d_settings.line_spacing == 8, "Texto de diálogo possui espaçamento entre linhas de 8px")
+			assert_test(d_settings.line_spacing == 6, "Texto de diálogo possui espaçamento entre linhas de 6px no mobile")
 		assert_test(
 			dlg_label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART,
 			"DialogueLabel utiliza quebra de linha inteligente AUTOWRAP_WORD_SMART"
@@ -171,7 +171,7 @@ func test_mobile_layout_and_advance_button() -> void:
 	var dialogue_area: MarginContainer = nar.get_node_or_null("%DialogueArea")
 	assert_test(dialogue_area != null, "DialogueArea existe")
 	if dialogue_area != null:
-		assert_test(dialogue_area.anchor_top <= 0.65, "Painel mobile possui anchor_top generoso (<= 0.65)")
+		assert_test(dialogue_area.anchor_top >= 0.72 and dialogue_area.anchor_top <= 0.76, "Painel mobile é compacto na faixa inferior (anchor_top ~0.74, sem tampar a imagem)")
 		assert_test(dialogue_area.anchor_bottom >= 0.98, "Painel mobile está ancorado próximo ao fundo (>= 0.98)")
 
 	var btn_adv: Button = nar.get_node_or_null("%BtnMobileAdvance")
@@ -179,11 +179,22 @@ func test_mobile_layout_and_advance_button() -> void:
 	assert_test(btn_adv != null, "BtnMobileAdvance existe")
 	if btn_adv != null:
 		assert_test(btn_adv.visible == true, "BtnMobileAdvance está visível no modo mobile")
-		assert_test(btn_adv.text == "AVANÇAR", "BtnMobileAdvance exibe texto 'AVANÇAR'")
+		assert_test(btn_adv.text == "►", "BtnMobileAdvance exibe flechinha à direita '►' sem moldura retangular")
 		assert_test(
-			btn_adv.custom_minimum_size.x >= 140.0 and btn_adv.custom_minimum_size.y >= 38.0,
-			"BtnMobileAdvance possui touch target adequado para toque (>= 140x38 px)"
+			btn_adv.get_theme_stylebox("normal") is StyleBoxEmpty,
+			"BtnMobileAdvance não possui moldura retangular (StyleBoxEmpty)"
 		)
+
+	# Valida que o toque em qualquer parte do painel de diálogo avança o texto
+	var initial_text_idx = nar.current_text_index
+	var touch_dialogue := InputEventScreenTouch.new()
+	touch_dialogue.pressed = true
+	touch_dialogue.position = Vector2(500, 600)
+	nar._on_dialogue_gui_input(touch_dialogue)
+	assert_test(
+		nar.current_text_index > initial_text_idx or not nar._is_typing,
+		"Toque em qualquer parte do diálogo avança o texto ou encerra digitação"
+	)
 
 	var desktop_prompt: HBoxContainer = nar.get_node_or_null("%AdvancePromptBox")
 	if desktop_prompt != null:

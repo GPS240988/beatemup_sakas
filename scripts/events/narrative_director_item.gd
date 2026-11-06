@@ -54,7 +54,9 @@ func _display_image_event(
 	if _dark_base != null:
 		_dark_base.color = Color(0.012, 0.015, 0.028, 0.86)
 	if _image_rect != null:
-		_image_rect.pivot_offset = _image_rect.size * 0.5
+		var item_size: Vector2 = _image_rect.size
+		if item_size.x > 0.0 and item_size.y > 0.0:
+			_image_rect.pivot_offset = item_size * 0.5
 		_image_rect.scale = Vector2(0.08, 0.08)
 		var pop_tween := create_tween()
 		pop_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
@@ -126,14 +128,14 @@ func _apply_responsive_layout() -> void:
 	var art_bottom: float
 	var dialogue_top: float
 	if is_portrait:
-		art_bottom = 0.38
-		dialogue_top = 0.405
+		art_bottom = 0.58
+		dialogue_top = 0.60
 	elif viewport_size.y < 440.0:
-		art_bottom = 0.62
-		dialogue_top = 0.645
+		art_bottom = 0.72
+		dialogue_top = 0.74
 	else:
-		art_bottom = 0.68
-		dialogue_top = 0.705
+		art_bottom = 0.73
+		dialogue_top = 0.75
 
 	_art_stage.anchor_left = 0.0
 	_art_stage.anchor_top = 0.0
