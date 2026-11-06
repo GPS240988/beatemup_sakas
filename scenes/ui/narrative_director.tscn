@@ -367,10 +367,10 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 30
+theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 30
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 12
 
 [node name="VBox" type="VBoxContainer" parent="RootControl/DialogueArea/DialogueFrame/FrameContent/ContentMargin"]
 layout_mode = 2
@@ -501,7 +501,7 @@ theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_fonts/font = ExtResource("2_arcade_font")
 theme_override_font_sizes/font_size = 16
-text = "ENTER PARA AVANÇAR"
+text = "ENTER"
 
 [node name="BtnMobileAdvance" type="Button" parent="RootControl/DialogueArea/DialogueFrame/FrameContent/ContentMargin/VBox/FooterHBox"]
 unique_name_in_owner = true

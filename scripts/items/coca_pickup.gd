@@ -118,5 +118,6 @@ func _play_consumed_animation() -> void:
 	for blink_index: int in range(3):
 		tween.tween_property(visual_root, "modulate:a", 0.12, 0.09)
 		tween.tween_property(visual_root, "modulate:a", 1.0, 0.09)
-	tween.tween_property(visual_root, "scale", Vector2.ZERO, 0.12)
+	# Escala para valor mínimo (nunca zero) para evitar affine_invert det==0
+	tween.tween_property(visual_root, "scale", Vector2(0.01, 0.01), 0.12)
 	tween.tween_callback(queue_free)

@@ -686,6 +686,9 @@ func _show_current_text_block(ev: Resource) -> void:
 		else:
 			_speaker_portrait.modulate.a = 1.0
 
+	var has_portrait: bool = _speaker_portrait != null and _speaker_portrait.visible and _speaker_portrait.texture != null
+	var spk_min_h: float = portrait_side if has_portrait else 32.0
+
 	if _speaker_label != null:
 		_speaker_label.visible = not speaker_name.is_empty()
 		_speaker_label.text = speaker_name.to_upper()
@@ -693,23 +696,31 @@ func _show_current_text_block(ev: Resource) -> void:
 		_speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(is_mob)
 		_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_speaker_label.custom_minimum_size = Vector2(0.0, portrait_side)
+		_speaker_label.custom_minimum_size = Vector2(0.0, spk_min_h)
 		_speaker_label.add_theme_font_size_override("font_size", _speaker_label.label_settings.font_size)
+
+	if _speaker_badge != null:
+		_speaker_badge.custom_minimum_size = Vector2(0.0, spk_min_h)
 
 	# Linha dourada entre a identificação e o conteúdo da fala.
 	if _dialogue_separator != null:
 		_dialogue_separator.visible = not speaker_name.is_empty()
 
-	# Compacta os espaçamentos internos no próprio evento; assim o texto e o rodapé
-	# permanecem dentro da moldura mesmo quando a narração ocupa duas linhas.
+	# Margens seguras oficiais: nunca encostam nas cantoneiras 9-patch e
+	# mantêm a posição estável independentemente do número de linhas do texto.
 	if _dialogue_frame != null:
 		var content_margin := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin") as MarginContainer
 		if content_margin != null:
-			content_margin.add_theme_constant_override("margin_top", 5 if is_narration else 6)
-			content_margin.add_theme_constant_override("margin_bottom", 4)
+			var m_side: int = 24 if is_mob else 32
+			var m_top: int = 12 if is_mob else 14
+			var m_bottom: int = 10 if is_mob else 12
+			content_margin.add_theme_constant_override("margin_left", m_side)
+			content_margin.add_theme_constant_override("margin_right", m_side)
+			content_margin.add_theme_constant_override("margin_top", m_top)
+			content_margin.add_theme_constant_override("margin_bottom", m_bottom)
 		var content_vbox := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin/VBox") as VBoxContainer
 		if content_vbox != null:
-			content_vbox.add_theme_constant_override("separation", 3)
+			content_vbox.add_theme_constant_override("separation", 4 if is_mob else 6)
 		var text_margin := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin/VBox/TextMargin") as MarginContainer
 		if text_margin != null:
 			text_margin.add_theme_constant_override("margin_top", 2)
@@ -732,7 +743,7 @@ func _show_current_text_block(ev: Resource) -> void:
 	if _key_badge_label != null:
 		_key_badge_label.text = "ENTER"
 	if _prompt_label != null:
-		_prompt_label.text = "ENTER PARA AVANÇAR ❯"
+		_prompt_label.text = "ENTER"
 		_prompt_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.25, 1.0))
 
 	# Adapta controle de avanço: no PC exibe prompt arcade do teclado; no mobile exibe botão padronizado AVANÇAR
@@ -1206,15 +1217,18 @@ func _apply_dialogue_density() -> void:
 	var speaker_size: int = 28 if ultra_compact else 32
 	var dialogue_size: int = 26 if ultra_compact else 30
 
+	var has_portrait: bool = _speaker_portrait != null and _speaker_portrait.visible and _speaker_portrait.texture != null
+	var spk_min_h: float = portrait_side if has_portrait else 32.0
+
 	if _speaker_badge != null:
-		_speaker_badge.custom_minimum_size = Vector2(0.0, portrait_side)
+		_speaker_badge.custom_minimum_size = Vector2(0.0, spk_min_h)
 
 	if _speaker_portrait != null:
 		_speaker_portrait.custom_minimum_size = Vector2(portrait_side, portrait_side)
 		_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	if _speaker_label != null:
-		_speaker_label.custom_minimum_size = Vector2(0.0, portrait_side)
+		_speaker_label.custom_minimum_size = Vector2(0.0, spk_min_h)
 		if _speaker_label.label_settings == null:
 			_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(is_mobile)
 		_speaker_label.label_settings.font_size = speaker_size
@@ -1249,14 +1263,17 @@ func _apply_dialogue_density() -> void:
 			_btn_mobile_advance.add_theme_font_size_override("font_size", 14)
 			_btn_mobile_advance.text = "AVANÇAR"
 
-	# Reduz os espaçamentos internos em telas baixas.
+	# Margens seguras oficiais: nunca encostam nas cantoneiras e mantêm a posição estável
 	if _dialogue_frame != null:
 		var content_margin := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin") as MarginContainer
 		if content_margin != null:
-			content_margin.add_theme_constant_override("margin_left", 8 if ultra_compact else (12 if compact else 24))
-			content_margin.add_theme_constant_override("margin_right", 8 if ultra_compact else (12 if compact else 24))
-			content_margin.add_theme_constant_override("margin_top", 3 if ultra_compact else (5 if compact else 8))
-			content_margin.add_theme_constant_override("margin_bottom", 3 if ultra_compact else (4 if compact else 6))
+			var m_side: int = 20 if ultra_compact else 32
+			var m_top: int = 10 if ultra_compact else (12 if compact else 14)
+			var m_bottom: int = 8 if ultra_compact else (10 if compact else 12)
+			content_margin.add_theme_constant_override("margin_left", m_side)
+			content_margin.add_theme_constant_override("margin_right", m_side)
+			content_margin.add_theme_constant_override("margin_top", m_top)
+			content_margin.add_theme_constant_override("margin_bottom", m_bottom)
 
 		var content_vbox := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin/VBox") as VBoxContainer
 		if content_vbox != null:

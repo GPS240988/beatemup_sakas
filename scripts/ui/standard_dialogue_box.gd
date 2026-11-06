@@ -35,7 +35,7 @@ static func create_dialogue_stylebox() -> StyleBoxTexture:
 static func create_speaker_settings(is_mobile: bool = false) -> LabelSettings:
 	var settings := LabelSettings.new()
 	settings.font = ARCADE_FONT
-	settings.font_size = 36
+	settings.font_size = 32
 	settings.font_color = GOLD_SPEAKER_COLOR
 	settings.outline_size = 4
 	settings.outline_color = OUTLINE_SPEAKER_COLOR
@@ -49,7 +49,7 @@ static func create_speaker_settings(is_mobile: bool = false) -> LabelSettings:
 static func create_dialogue_settings(is_mobile: bool = false) -> LabelSettings:
 	var settings := LabelSettings.new()
 	settings.font = ARCADE_FONT
-	settings.font_size = 34
+	settings.font_size = 30
 	settings.font_color = DIALOGUE_TEXT_COLOR
 	settings.outline_size = 3
 	settings.outline_color = OUTLINE_DIALOGUE_COLOR

@@ -290,22 +290,15 @@ func _update_selector_positions(animate: bool = false) -> void:
 		brush_highlight.position = b_pos
 		brush_highlight.size = b_size
 
-func _make_mobile_selector_style(selected: bool) -> StyleBoxFlat:
+func _make_mobile_selector_style(_selected: bool = false) -> StyleBoxFlat:
+	# No mobile, os botões são hitboxes transparentes sobre a arte oficial sem molduras retangulares.
 	var style := StyleBoxFlat.new()
-	if selected:
-		style.bg_color = Color(0.95, 0.75, 0.20, 0.18)
-		style.border_color = Color(1.0, 0.85, 0.35, 0.85)
-		style.set_border_width_all(2)
-		style.set_corner_radius_all(6)
-		style.shadow_color = Color(1.0, 0.75, 0.20, 0.35)
-		style.shadow_size = 6
-	else:
-		style.bg_color = Color.TRANSPARENT
-		style.border_color = Color.TRANSPARENT
-		style.set_border_width_all(0)
-		style.set_corner_radius_all(0)
-		style.shadow_color = Color.TRANSPARENT
-		style.shadow_size = 0
+	style.bg_color = Color.TRANSPARENT
+	style.border_color = Color.TRANSPARENT
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(0)
+	style.shadow_color = Color.TRANSPARENT
+	style.shadow_size = 0
 	style.content_margin_left = 18.0
 	style.content_margin_right = 18.0
 	return style
@@ -319,21 +312,11 @@ func _play_selection_feedback(index: int) -> void:
 		return
 
 	if _is_mobile_runtime():
-		# Estilo de confirmação com brilho dourado Dark Premium Medieval
-		var confirmed_style := StyleBoxFlat.new()
-		confirmed_style.bg_color = Color(1.0, 0.85, 0.25, 0.38)
-		confirmed_style.border_color = Color(1.0, 0.95, 0.50, 1.0)
-		confirmed_style.set_border_width_all(3)
-		confirmed_style.set_corner_radius_all(6)
-		confirmed_style.shadow_color = Color(1.0, 0.80, 0.20, 0.6)
-		confirmed_style.shadow_size = 10
-		target_btn.add_theme_stylebox_override("normal", confirmed_style)
-		target_btn.add_theme_stylebox_override("hover", confirmed_style)
-		target_btn.add_theme_stylebox_override("pressed", confirmed_style)
-
-		var feedback_tween := create_tween()
-		feedback_tween.tween_property(target_btn, "modulate", Color(1.3, 1.3, 1.3, 1.0), 0.12)
-		feedback_tween.tween_property(target_btn, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18)
+		# Moldura em ouro arcade com brilho difuso pulsa sobre a opção clicada (modulate tween).
+		# Sem StyleBoxFlat — apenas o flash dourado no próprio botão.
+		var mobile_tween := create_tween()
+		mobile_tween.tween_property(target_btn, "modulate", Color(1.3, 1.2, 0.9, 1.0), 0.12)
+		mobile_tween.tween_property(target_btn, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18)
 	else:
 		if brush_highlight != null:
 			var feedback_tween := create_tween()
@@ -388,6 +371,9 @@ func _activate_option(index: int) -> void:
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
 		3: # MAPA
+			var session_map = get_node_or_null("/root/GameSession")
+			if session_map != null:
+				session_map.set_meta("map_entry_context", "browse")
 			get_tree().change_scene_to_file(MAP_MENU_SCENE)
 
 		5: # SAIR

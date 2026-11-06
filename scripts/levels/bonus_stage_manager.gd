@@ -13,6 +13,9 @@ signal timer_updated(time_remaining: float)
 signal car_destroyed(car_node: Node, reward_continue_granted: bool)
 signal bonus_stage_completed(cars_destroyed_count: int, bonus_continues_awarded: int)
 
+const BONUS_INTRO_SEQUENCE_PATH: String = "res://resources/story/bonus_garage_intro.tres"
+const NARRATIVE_DIRECTOR_SCENE_PATH: String = "res://scenes/ui/narrative_director.tscn"
+
 @export var round_duration: float = 40.0
 @export var orange_car_path: NodePath = NodePath("../World/Props/Vehicles/CarOrange")
 @export var blue_car_path: NodePath = NodePath("../World/Props/Vehicles/CarBlue")
@@ -33,6 +36,7 @@ var _orange_car: Node = null
 var _blue_car: Node = null
 var _hud: Node = null
 var _level_root: BaseLevel = null
+var _narrative_director: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -43,6 +47,15 @@ func _ready() -> void:
 
 
 func _initialize_bonus_stage() -> void:
+	var level_parent: Node = get_parent()
+	if (
+		not is_inside_tree()
+		or is_queued_for_deletion()
+		or level_parent == null
+		or level_parent.is_queued_for_deletion()
+	):
+		return
+
 	_orange_car = get_node_or_null(orange_car_path)
 	_blue_car = get_node_or_null(blue_car_path)
 	
@@ -59,6 +72,59 @@ func _initialize_bonus_stage() -> void:
 			center_hud.set_time_seconds(int(time_left))
 			center_hud.set_stage_text("BÔNUS - 0/2")
 	
+	if is_completed:
+		return
+
+	_start_bonus_intro()
+
+
+func _start_bonus_intro() -> void:
+	if not ResourceLoader.exists(BONUS_INTRO_SEQUENCE_PATH):
+		push_warning("BonusStageManager: sequência narrativa da garagem não encontrada.")
+		start_round()
+		return
+
+	var director_scene: PackedScene = load(NARRATIVE_DIRECTOR_SCENE_PATH) as PackedScene
+	if director_scene == null:
+		push_warning("BonusStageManager: NarrativeDirector indisponível; iniciando a rodada sem a apresentação.")
+		start_round()
+		return
+
+	var narrative_layer: CanvasLayer = director_scene.instantiate() as CanvasLayer
+	if narrative_layer == null:
+		push_warning("BonusStageManager: não foi possível instanciar o NarrativeDirector.")
+		start_round()
+		return
+
+	var narrative_host: Node = _level_root if _level_root != null else get_parent()
+	if narrative_host == null:
+		narrative_layer.queue_free()
+		start_round()
+		return
+
+	narrative_layer.name = "BonusGarageNarrativeDirector"
+	narrative_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	narrative_layer.connect(
+		&"sequence_completed",
+		Callable(self, "_on_bonus_intro_completed"),
+		CONNECT_ONE_SHOT
+	)
+	narrative_host.add_child(narrative_layer)
+	_narrative_director = narrative_layer
+	narrative_layer.call("play_sequence_from_path", BONUS_INTRO_SEQUENCE_PATH)
+
+	# Falhas de carregamento não podem deixar a fase sem cronômetro.
+	if not bool(narrative_layer.get("is_playing")):
+		push_warning("BonusStageManager: falha ao iniciar a apresentação; iniciando a rodada.")
+		narrative_layer.queue_free()
+		_narrative_director = null
+		start_round()
+
+
+func _on_bonus_intro_completed(_sequence_id: String) -> void:
+	if _narrative_director != null and is_instance_valid(_narrative_director):
+		_narrative_director.queue_free()
+	_narrative_director = null
 	start_round()
 
 

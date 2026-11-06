@@ -59,20 +59,20 @@ func _test_factory_methods() -> void:
 	_assert(is_equal_approx(style.texture_margin_bottom, 14.0), "Margem inferior do StyleBox é 14px")
 
 	var speaker_desktop: LabelSettings = StandardDialogueBox.create_speaker_settings(false)
-	_assert(speaker_desktop.font_size == 36, "Tamanho da fonte do orador no desktop é 36px")
+	_assert(speaker_desktop.font_size == 32, "Tamanho da fonte do orador no desktop é 32px")
 	_assert(speaker_desktop.outline_size == 4, "Contorno do orador no desktop é 4px")
 	_assert(speaker_desktop.shadow_size == 2, "Sombra do orador é 2px")
 
 	var speaker_mobile: LabelSettings = StandardDialogueBox.create_speaker_settings(true)
-	_assert(speaker_mobile.font_size == 36, "Tamanho da fonte do orador no mobile é 36px")
+	_assert(speaker_mobile.font_size == 32, "Tamanho da fonte do orador no mobile é 32px")
 
 	var dialogue_desktop: LabelSettings = StandardDialogueBox.create_dialogue_settings(false)
-	_assert(dialogue_desktop.font_size == 34, "Tamanho da fonte do diálogo no desktop é 34px")
+	_assert(dialogue_desktop.font_size == 30, "Tamanho da fonte do diálogo no desktop é 30px")
 	_assert(dialogue_desktop.outline_size == 3, "Contorno do diálogo no desktop é 3px")
 	_assert(dialogue_desktop.line_spacing == 8, "Entrelinha do diálogo é 8px")
 
 	var dialogue_mobile: LabelSettings = StandardDialogueBox.create_dialogue_settings(true)
-	_assert(dialogue_mobile.font_size == 34, "Tamanho da fonte do diálogo no mobile é 34px")
+	_assert(dialogue_mobile.font_size == 30, "Tamanho da fonte do diálogo no mobile é 30px")
 
 
 func _test_container_hierarchy() -> void:

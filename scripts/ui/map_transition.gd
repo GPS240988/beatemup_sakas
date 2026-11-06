@@ -177,13 +177,16 @@ func _setup_scaling() -> void:
 	if OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios"):
 		map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
 		map_container.size = Vector2(1920.0, 1080.0)
-		map_container.scale = Vector2(vp_size.x / 1920.0, vp_size.y / 1080.0)
+		var scale_x: float = maxf(vp_size.x / 1920.0, 0.01)
+		var scale_y: float = maxf(vp_size.y / 1080.0, 0.01)
+		map_container.scale = Vector2(scale_x, scale_y)
 		map_container.position = Vector2.ZERO
 		return
 
 	var scale_factor: float = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
 	if scale_factor <= 0.0:
 		scale_factor = 1.0
+	scale_factor = maxf(scale_factor, 0.01)
 
 	map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
 	map_container.size = Vector2(1920.0, 1080.0)

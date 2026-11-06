@@ -40,6 +40,7 @@ func _run_all_tests() -> void:
 	test_walltop_geometry()
 	test_vehicle_hurtbox_detection()
 	test_continue_reward_and_timer()
+	await test_bonus_intro_dialogue_lifecycle()
 	test_enemy_hud_visibility_rules()
 	test_siga_cleanup()
 
@@ -182,6 +183,62 @@ func test_continue_reward_and_timer() -> void:
 	_assert(manager.blue_continue_awarded == true, "blue_continue_awarded registrado")
 	_assert(manager.total_continues_awarded == 2, "+2 continues totais concedidos pela destruição de ambos os carros")
 	_assert(manager.is_completed == true, "Rodada finalizada automaticamente após destruição de ambos os carros")
+
+	garage.queue_free()
+
+
+func test_bonus_intro_dialogue_lifecycle() -> void:
+	print("\n--- 4. Validando Apresentação Narrativa da Garagem Bônus ---")
+	var sequence_path: String = BonusStageManagerClass.BONUS_INTRO_SEQUENCE_PATH
+	_assert(ResourceLoader.exists(sequence_path), "Recurso narrativo da garagem bônus existe")
+
+	var sequence: Resource = load(sequence_path)
+	_assert(sequence != null, "Sequência narrativa bônus carrega com sucesso")
+	if sequence != null:
+		_assert(sequence.get("sequence_id") == "bonus_garage_intro", "Identificador da sequência bônus confere")
+		var events: Array = sequence.get("events")
+		_assert(events.size() == 1, "Apresentação contém um evento narrativo único")
+		if not events.is_empty():
+			var event: Resource = events[0] as Resource
+			var texts: Array = event.get("texts")
+			_assert(event.get("speaker") == "NARRAÇÃO", "Orador da apresentação é o Narrador")
+			_assert(
+				event.get("image_path") == "res://assets/backgrounds/maps/bonus1/garagem.webp",
+				"Apresentação reutiliza a arte oficial da garagem"
+			)
+			_assert(
+				texts.size() == 2
+				and str(texts[0]).contains("agiotas")
+				and str(texts[0]).contains("IPVA")
+				and str(texts[0]).contains("seguro"),
+				"Primeiro bloco explica a situação financeira do Alessandro"
+			)
+			_assert(
+				texts.size() == 2
+				and str(texts[1]).contains("40 segundos")
+				and str(texts[1]).contains("+1 CONTINUE")
+				and str(texts[1]).contains("+2 CONTINUES"),
+				"Segundo bloco comunica tempo e recompensa por carro"
+			)
+
+	var garage_scene: PackedScene = load("res://scenes/levels/bonus_garage.tscn")
+	var garage: Node = garage_scene.instantiate()
+	root.add_child(garage)
+	await create_timer(0.05).timeout
+
+	var manager: Node = garage.get_node_or_null("BonusStageManager")
+	_assert(manager != null, "Gerenciador da garagem permanece presente")
+	if manager != null:
+		_assert(not bool(manager.get("is_active")), "Cronômetro aguarda o encerramento da apresentação")
+		var director: Node = garage.get_node_or_null("BonusGarageNarrativeDirector")
+		_assert(director != null, "NarrativeDirector é instanciado na entrada da garagem")
+		if director != null:
+			_assert(bool(director.get("is_playing")), "Sequência narrativa começa automaticamente ao entrar na fase")
+			director.call("skip_sequence")
+			await create_timer(0.85).timeout
+			_assert(bool(manager.get("is_active")), "Cronômetro começa após concluir ou pular a apresentação")
+			var remaining: float = float(manager.get("time_left"))
+			_assert(remaining > 39.0 and remaining <= 40.0, "Rodada inicia com 40 segundos disponíveis")
 
 	garage.queue_free()
 

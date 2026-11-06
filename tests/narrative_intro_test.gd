@@ -450,7 +450,7 @@ func test_official_dialogue_frame_and_typography() -> void:
 	var prompt_lbl: Label = nar.get_node_or_null("%PromptLabel")
 	assert_test(
 		prompt_lbl != null
-		and prompt_lbl.text == "ENTER PARA AVANÇAR"
+		and prompt_lbl.text == "ENTER"
 		and prompt_lbl.get_theme_font_size("font_size") >= 16,
 		"Prompt de ENTER tem tamanho padronizado e não depende de glifo decorativo"
 	)

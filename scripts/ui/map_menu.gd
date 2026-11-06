@@ -69,6 +69,8 @@ var _sfx_cancel: AudioStreamWAV
 var _sfx_move: AudioStreamWAV
 var _bob_tween: Tween
 var _mobile_action_button: Button
+## Contexto de entrada: "campaign" (novo jogo/continuar) ou "browse" (menu principal).
+var _entry_context: String = ""
 
 
 func _ready() -> void:
@@ -77,6 +79,13 @@ func _ready() -> void:
 	_load_background_image()
 	_setup_progression_display()
 	_setup_buttons()
+
+	# Identifica se o mapa foi acessado pelo fluxo de campanha ou pelo menu principal
+	var session := _get_game_session()
+	if session != null and session.has_meta("map_entry_context"):
+		_entry_context = str(session.get_meta("map_entry_context"))
+	else:
+		_entry_context = ""
 
 	# O ponteiro deve estar SEMPRE no 1 ao abrir o mapa
 	_select_point(0)
@@ -87,6 +96,9 @@ func _ready() -> void:
 			btn_confirm.visible = false
 		if btn_back != null:
 			btn_back.visible = false
+		var click_zones := get_node_or_null("%ClickZones") as Control
+		if click_zones != null:
+			click_zones.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	else:
 		_mobile_action_button = MobileScreenAction.add_primary_action(
 			self, "AVANÇAR", Callable(self, "_on_confirm_pressed"), Color(0.90, 0.67, 0.25, 1.0), btn_confirm
@@ -117,12 +129,15 @@ func _setup_scaling() -> void:
 			dark_base.color = Color(0.035, 0.05, 0.09, 1.0)
 		map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
 		map_container.size = Vector2(1920.0, 1080.0)
-		map_container.scale = Vector2(vp_size.x / 1920.0, vp_size.y / 1080.0)
+		var scale_x: float = maxf(vp_size.x / 1920.0, 0.01)
+		var scale_y: float = maxf(vp_size.y / 1080.0, 0.01)
+		map_container.scale = Vector2(scale_x, scale_y)
 		map_container.position = Vector2.ZERO
 		return
 
 	if scale_factor <= 0.0:
 		scale_factor = 1.0
+	scale_factor = maxf(scale_factor, 0.01)
 
 	map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
 	map_container.size = Vector2(1920.0, 1080.0)
@@ -329,32 +344,33 @@ func _notification(what: int) -> void:
 		_on_back_pressed()
 
 
-func _gui_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if _is_transitioning:
 		return
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if event is InputEventScreenTouch and event.pressed:
 		var local_pos: Vector2 = _get_map_coordinates(event.position)
-		_handle_point_click(local_pos)
-	elif event is InputEventScreenTouch and event.pressed:
+		_handle_point_click(local_pos, true)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var local_pos: Vector2 = _get_map_coordinates(event.position)
-		_handle_point_click(local_pos)
+		_handle_point_click(local_pos, MobileScreenAction.is_mobile_runtime())
 
 
 func _get_map_coordinates(screen_pos: Vector2) -> Vector2:
 	if map_container == null:
 		return screen_pos
-	return (screen_pos - map_container.position) / map_container.scale
+	var s: Vector2 = map_container.scale
+	if s.x <= 0.001 or s.y <= 0.001:
+		return screen_pos
+	return (screen_pos - map_container.position) / s
 
 
-func _handle_point_click(pos: Vector2) -> void:
+func _handle_point_click(pos: Vector2, is_touch: bool = false) -> void:
 	for i in range(STAGE_POINTS.size()):
 		var rect: Rect2 = STAGE_POINTS[i]["click_rect"]
 		if rect.has_point(pos):
 			if is_point_unlocked(i):
-				if MobileScreenAction.is_mobile_runtime():
+				if is_touch or MobileScreenAction.is_mobile_runtime() or _selected_point_index == i:
 					_select_point(i)
-					_on_confirm_pressed()
-				elif _selected_point_index == i:
 					_on_confirm_pressed()
 				else:
 					_select_point(i)
@@ -363,9 +379,14 @@ func _handle_point_click(pos: Vector2) -> void:
 				_play_sound(_sfx_cancel)
 			return
 
-	# No mobile, o toque na tela avança a fase selecionada diretamente
-	if MobileScreenAction.is_mobile_runtime() and is_point_unlocked(_selected_point_index):
-		_on_confirm_pressed()
+	# Em modo touch ou mobile, tocar em qualquer área da tela navega conforme o contexto:
+	# - Campanha (novo jogo / continuar): avança para a fase selecionada
+	# - Browse (menu principal): retorna ao menu principal
+	if is_touch or MobileScreenAction.is_mobile_runtime():
+		if _entry_context == "campaign" and is_point_unlocked(_selected_point_index):
+			_on_confirm_pressed()
+		else:
+			_on_back_pressed()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -393,10 +414,17 @@ func _on_back_pressed() -> void:
 	_play_sound(_sfx_cancel)
 	_safe_handle_input()
 
-	var err := get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+	# Navegação inversa conforme o contexto de entrada (GAME_RULES.md §1.4):
+	# - Campanha: retorna à tela de dificuldade
+	# - Browse (menu): retorna ao menu principal
+	var back_scene: String = MAIN_MENU_SCENE
+	if _entry_context == "campaign":
+		back_scene = DIFFICULTY_SELECT_SCENE
+
+	var err := get_tree().change_scene_to_file(back_scene)
 	if err != OK:
 		_is_transitioning = false
-		printerr("Erro ao retornar do mapa para o menu principal: ", err)
+		printerr("Erro ao retornar do mapa: ", err)
 
 
 func _on_confirm_pressed() -> void:

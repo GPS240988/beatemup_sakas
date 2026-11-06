@@ -78,12 +78,19 @@ func _ready() -> void:
 			get_viewport().size_changed.connect(_update_layout_geometry)
 
 	_select_difficulty("normal", false)
-	_mobile_action_button = MobileScreenAction.add_primary_action(
-		self, "INICIAR NO MODO NORMAL", Callable(self, "_on_start_pressed"), Color(0.96, 0.73, 0.22, 1.0), btn_start_game
-	)
-	MobileScreenAction.add_secondary_action(
-		self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
-	)
+	if MobileScreenAction.is_mobile_runtime():
+		# No mobile, o toque direto nos cards seleciona/confirma; sem dock buttons.
+		if btn_start_game != null:
+			btn_start_game.visible = false
+		if btn_back != null:
+			btn_back.visible = false
+	else:
+		_mobile_action_button = MobileScreenAction.add_primary_action(
+			self, "INICIAR NO MODO NORMAL", Callable(self, "_on_start_pressed"), Color(0.96, 0.73, 0.22, 1.0), btn_start_game
+		)
+		MobileScreenAction.add_secondary_action(
+			self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
+		)
 	_update_mobile_action()
 	call_deferred("_update_layout_geometry")
 
@@ -187,10 +194,16 @@ func _input(event: InputEvent) -> void:
 		return
 	var touch_pos: Vector2 = event.position
 	if card_normal != null and card_normal.get_global_rect().has_point(touch_pos):
-		_select_difficulty("normal", true)
+		if current_difficulty == "normal":
+			_on_start_pressed()
+		else:
+			_select_difficulty("normal", true)
 		_safe_handle_input()
 	elif card_dificil != null and card_dificil.get_global_rect().has_point(touch_pos):
-		_select_difficulty("dificil", true)
+		if current_difficulty == "dificil":
+			_on_start_pressed()
+		else:
+			_select_difficulty("dificil", true)
 		_safe_handle_input()
 
 
@@ -315,6 +328,11 @@ func _on_back_pressed() -> void:
 	var err := get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 	if err != OK:
 		printerr("Erro ao retornar à seleção de personagens: ", err)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_on_back_pressed()
 
 
 func _unhandled_input(event: InputEvent) -> void:

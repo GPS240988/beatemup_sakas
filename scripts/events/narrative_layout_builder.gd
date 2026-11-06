@@ -263,10 +263,10 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	var content_margin := MarginContainer.new()
 	content_margin.name = "ContentMargin"
 	content_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content_margin.add_theme_constant_override("margin_left", 30)
-	content_margin.add_theme_constant_override("margin_right", 30)
+	content_margin.add_theme_constant_override("margin_left", 32)
+	content_margin.add_theme_constant_override("margin_right", 32)
 	content_margin.add_theme_constant_override("margin_top", 14)
-	content_margin.add_theme_constant_override("margin_bottom", 10)
+	content_margin.add_theme_constant_override("margin_bottom", 12)
 	content_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame_content.add_child(content_margin)
 
@@ -397,7 +397,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	prompt_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.95))
 	prompt_label.add_theme_constant_override("shadow_offset_x", 2)
 	prompt_label.add_theme_constant_override("shadow_offset_y", 2)
-	prompt_label.text = "ENTER PARA AVANÇAR ❯"
+	prompt_label.text = "ENTER"
 	advance_prompt_box.add_child(prompt_label)
 	director._prompt_label = prompt_label
 

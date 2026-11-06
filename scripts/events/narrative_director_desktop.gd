@@ -136,7 +136,7 @@ func _show_current_text_block(ev: Resource) -> void:
 	if _key_badge != null:
 		_key_badge.visible = false
 	if _prompt_label != null:
-		_prompt_label.text = "ENTER PARA AVANÇAR"
+		_prompt_label.text = "ENTER"
 		_prompt_label.add_theme_font_size_override("font_size", 16)
 
 
@@ -148,7 +148,7 @@ func _configure_desktop_advance_prompt() -> void:
 	if _key_badge_label != null:
 		_key_badge_label.text = "ENTER"
 	if _prompt_label != null:
-		_prompt_label.text = "ENTER PARA AVANÇAR"
+		_prompt_label.text = "ENTER"
 		_prompt_label.add_theme_font_size_override("font_size", 16)
 
 

@@ -38,6 +38,7 @@ func _run_all_tests() -> void:
 	test_game_session_bonus_and_stage2_persistence()
 	test_map_menu_dynamic_progression()
 	test_base_level_map_4_and_bonus_interception()
+	test_map_menu_touch_advance()
 
 	print("==================================================")
 	print("RESULTADO DOS TESTES MAP TRANSITION: %d/%d PASSARAM (Falhas: %d)" % [passed_tests, total_tests, failed_tests])
@@ -233,3 +234,19 @@ func test_base_level_map_4_and_bonus_interception() -> void:
 	assert_test(garage.get("map_group") == "bonus1", "bonus_garage pertence ao grupo 'bonus1'")
 	assert_test(garage.get_node_or_null("SigaIndicator") != null, "SigaIndicator restaurado na cena da Garagem Bônus")
 	garage.free()
+
+
+func test_map_menu_touch_advance() -> void:
+	print("\n--- Testando Avanço por Touch no Menu do Mapa ---")
+	var menu_scene: PackedScene = load("res://scenes/ui/map_menu.tscn")
+	assert_test(menu_scene != null, "map_menu.tscn carregada para teste de touch")
+	var menu: Node = menu_scene.instantiate()
+	root.add_child(menu)
+
+	var ev_touch := InputEventScreenTouch.new()
+	ev_touch.pressed = true
+	ev_touch.position = Vector2(400, 400)
+
+	root.push_input(ev_touch)
+	assert_test(menu.get("_is_transitioning") == true, "Toque na tela do mapa aciona transição para próxima fase")
+	menu.queue_free()
