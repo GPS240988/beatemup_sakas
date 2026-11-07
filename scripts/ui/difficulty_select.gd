@@ -121,6 +121,7 @@ func _create_selection_frame() -> void:
 	_selection_badge.add_theme_font_override("font", ARCADE_FONT)
 	_selection_badge.add_theme_font_size_override("font_size", 14)
 	_selection_badge.add_theme_constant_override("outline_size", 4)
+	_selection_badge.visible = false
 	_selection_frame.add_child(_selection_badge)
 
 
@@ -264,9 +265,8 @@ func _update_visuals(animate: bool = true) -> void:
 				style.shadow_color = Color(1.0, 0.15, 0.10, 0.45)
 				style.shadow_size = 8
 				if _selection_badge != null:
-					_selection_badge.text = "[ MODO DIFÍCIL ATIVO ]"
-					_selection_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.85, 1.0))
-					_selection_badge.add_theme_color_override("font_outline_color", Color(0.4, 0.05, 0.05, 1.0))
+					_selection_badge.text = ""
+					_selection_badge.visible = false
 			else:
 				# Modo Normal: Dourado Premium Medieval
 				style.bg_color = Color(0.96, 0.73, 0.22, 0.12)
@@ -276,9 +276,8 @@ func _update_visuals(animate: bool = true) -> void:
 				style.shadow_color = Color(0.96, 0.73, 0.22, 0.45)
 				style.shadow_size = 8
 				if _selection_badge != null:
-					_selection_badge.text = "[ MODO NORMAL ATIVO ]"
-					_selection_badge.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82, 1.0))
-					_selection_badge.add_theme_color_override("font_outline_color", Color(0.25, 0.18, 0.05, 1.0))
+					_selection_badge.text = ""
+					_selection_badge.visible = false
 
 			_selection_frame.add_theme_stylebox_override("panel", style)
 
@@ -292,9 +291,9 @@ func _update_visuals(animate: bool = true) -> void:
 				_selection_frame.global_position = frame_rect.position
 				_selection_frame.size = frame_rect.size
 
-	# Desktop: atualiza o rótulo do botão Iniciar
-	if btn_start_game != null and not MobileScreenAction.is_mobile_runtime():
-		btn_start_game.text = "INICIAR DIFÍCIL" if is_dif_active else "INICIAR NORMAL"
+	# Limpa qualquer texto sobreposto no botão Iniciar (a arte oficial já contém o desenho do botão)
+	if btn_start_game != null:
+		btn_start_game.text = ""
 
 
 func _on_start_pressed() -> void:

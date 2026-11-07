@@ -137,18 +137,37 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 		# O offset local compensa o pivô para que o centro visual da faísca fique exatamente no ponto de impacto 'pos'.
 		var visual_offset := Vector2(43.0, 35.0)
 		match profile:
-			"light", "punch":
+			"punch":
+				if vfx_frames.has_animation(&"blunt_hit"):
+					anim_name = &"blunt_hit"
+					sprite_scale = 1.05
+					visual_offset = Vector2(0.0, -6.0)
+				else:
+					anim_name = &"impacto"
+					sprite_scale = 0.65
+					visual_offset = Vector2(43.0, 35.0)
+			"light":
 				anim_name = &"impacto"
 				sprite_scale = 0.65
 				visual_offset = Vector2(43.0, 35.0)
 			"medium", "kick":
-				anim_name = &"impacto"
-				sprite_scale = 0.80
-				visual_offset = Vector2(43.0, 35.0)
+				if vfx_frames.has_animation(&"hit_spark"):
+					anim_name = &"hit_spark"
+					sprite_scale = 1.05
+					visual_offset = Vector2.ZERO
+				else:
+					anim_name = &"impacto"
+					sprite_scale = 0.80
+					visual_offset = Vector2(43.0, 35.0)
 			"heavy", "finisher":
-				anim_name = &"combinado"
-				sprite_scale = 0.85
-				visual_offset = Vector2(21.0, 26.0)
+				if vfx_frames.has_animation(&"crit_hit"):
+					anim_name = &"crit_hit"
+					sprite_scale = 0.95
+					visual_offset = Vector2.ZERO
+				else:
+					anim_name = &"combinado"
+					sprite_scale = 0.85
+					visual_offset = Vector2(21.0, 26.0)
 			"special":
 				anim_name = &"impactoazul"
 				sprite_scale = 0.95
@@ -159,37 +178,48 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 				visual_offset = Vector2(43.0, 35.0)
 
 		var facing_sign: float = -1.0 if direction.x < 0.0 else 1.0
-		effect_sprite.offset = visual_offset
+		effect_sprite.offset = Vector2(visual_offset.x * facing_sign, visual_offset.y)
 		effect_sprite.scale = Vector2(sprite_scale * facing_sign, sprite_scale)
-		effect_sprite.rotation = randf_range(-0.25, 0.25)
+		effect_sprite.rotation = 0.0 if anim_name in [&"blunt_hit", &"hit_spark", &"crit_hit"] else randf_range(-0.25, 0.25)
 		if not effect_sprite.is_inside_tree():
 			parent.add_child(effect_sprite)
 
 		effect_sprite.play(anim_name)
 
-		var on_spark_finished: Callable
-		on_spark_finished = func():
-			if is_instance_valid(effect_sprite):
-				if effect_sprite.animation_finished.is_connected(on_spark_finished):
-					effect_sprite.animation_finished.disconnect(on_spark_finished)
-				if spark_pool != null and spark_pool.has_method("release"):
-					spark_pool.call("release", effect_sprite)
-				else:
-					effect_sprite.queue_free()
+		var spr_ref: WeakRef = weakref(effect_sprite)
+		var pool_ref: WeakRef = weakref(spark_pool)
 
-		effect_sprite.animation_finished.connect(on_spark_finished)
-
-		# Timer de segurança para reciclagem
-		var safety_timer: SceneTreeTimer = parent.get_tree().create_timer(0.4)
-		safety_timer.timeout.connect(func():
-			if is_instance_valid(effect_sprite) and effect_sprite.is_playing():
-				if effect_sprite.animation_finished.is_connected(on_spark_finished):
-					effect_sprite.animation_finished.disconnect(on_spark_finished)
-				if spark_pool != null and spark_pool.has_method("release"):
-					spark_pool.call("release", effect_sprite)
+		var on_spark_finished: Callable = func():
+			var spr: AnimatedSprite2D = spr_ref.get_ref() as AnimatedSprite2D
+			var pool: Node = pool_ref.get_ref() as Node
+			if spr != null and is_instance_valid(spr):
+				if pool != null and is_instance_valid(pool) and pool.has_method("release"):
+					pool.call("release", spr)
 				else:
-					effect_sprite.queue_free()
-		)
+					spr.queue_free()
+
+		effect_sprite.animation_finished.connect(on_spark_finished, Object.CONNECT_ONE_SHOT)
+
+		# Timer de segurança dinâmico calculado a partir da velocidade e duração real da animação
+		var frame_count: int = vfx_frames.get_frame_count(anim_name)
+		var anim_speed: float = vfx_frames.get_animation_speed(anim_name)
+		var anim_duration: float = float(frame_count) / maxf(anim_speed, 1.0)
+		var safety_duration: float = maxf(anim_duration + 0.15, 0.4)
+
+		var tree: SceneTree = parent.get_tree() if parent.is_inside_tree() else Engine.get_main_loop() as SceneTree
+		if tree != null:
+			var safety_timer: SceneTreeTimer = tree.create_timer(safety_duration)
+			safety_timer.timeout.connect(func():
+				if spr_ref == null:
+					return
+				var spr: AnimatedSprite2D = spr_ref.get_ref() as AnimatedSprite2D
+				var pool: Node = pool_ref.get_ref() as Node if pool_ref != null else null
+				if spr != null and is_instance_valid(spr) and spr.is_playing():
+					if pool != null and is_instance_valid(pool) and pool.has_method("release"):
+						pool.call("release", spr)
+					else:
+						spr.queue_free()
+			)
 
 	# 2. Partículas direcionais de alta velocidade via ObjectPool
 	var part_pool := ObjectPoolClass.get_or_create(
@@ -278,15 +308,23 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 	particles.emitting = true
 
 	# Reciclagem limpa no pool após emissão
-	var cleanup_timer: SceneTreeTimer = parent.get_tree().create_timer(SPARK_LIFETIME + 0.1)
-	cleanup_timer.timeout.connect(func():
-		if is_instance_valid(particles):
-			particles.emitting = false
-			if part_pool != null and part_pool.has_method("release"):
-				part_pool.call("release", particles)
-			else:
-				particles.queue_free()
-	)
+	var part_ref: WeakRef = weakref(particles)
+	var part_pool_ref: WeakRef = weakref(part_pool)
+	var part_tree: SceneTree = parent.get_tree() if parent.is_inside_tree() else Engine.get_main_loop() as SceneTree
+	if part_tree != null:
+		var cleanup_timer: SceneTreeTimer = part_tree.create_timer(SPARK_LIFETIME + 0.1)
+		cleanup_timer.timeout.connect(func():
+			if part_ref == null:
+				return
+			var p: CPUParticles2D = part_ref.get_ref() as CPUParticles2D
+			var pp: Node = part_pool_ref.get_ref() as Node if part_pool_ref != null else null
+			if p != null and is_instance_valid(p):
+				p.emitting = false
+				if pp != null and is_instance_valid(pp) and pp.has_method("release"):
+					pp.call("release", p)
+				else:
+					p.queue_free()
+		)
 
 
 ## Gera nuvem de poeira de impacto no solo (Knockdown / Aterrissagem)

@@ -277,8 +277,8 @@ MapX (Node2D, script: base_level.gd)
   - **Botão Exclusivo de Especial** (`attack_special` / `special`):
     - Dispara evento global de combate consumindo 100% da barra de Especial (sem subtrair vida do jogador, exigindo medidor completamente cheio).
     - Concede invulnerabilidade temporária durante a apresentação.
-    - Exibe apresentação visual cinematográfica rápida (0.35s - 0.50s) com frames existentes do herói e tema de cor próprio.
-    - Aplica dano global e queda obrigatória em todos os inimigos vivos do encontro, preservando NPCs civis.
+    - Exibe apresentação visual cinematográfica oficial de 2,50 segundos (`SpecialPresentation`, layer 120) orientada por dados (`HeroData`), cobrindo integralmente a viewport em qualquer proporção (`STRETCH_KEEP_ASPECT_COVERED`) com proporção preservada e sem poluição de texto na tela. A sequência possui 6 etapas rigorosamente sincronizadas (Abertura 0,35s, Construção de Energia 0,55s, Hold do Clímax 0,40s, Flash de Impacto 0,20s, Respiro 0,50s, Saída 0,50s), emitindo o sinal `impact_reached` estritamente aos 1,30s e `finished` aos 2,50s de forma idempotente.
+    - Aplica dano global e queda obrigatória em todos os inimigos vivos do encontro exatamente aos 1,30s no sinal `impact_reached`, preservando NPCs civis.
   - **Botão de Salto** (`jump`):
     - Projeta o nó `Visual` no eixo Y (`Y < 0`). Ataque no ar dispara o golpe aéreo (`jump_atk`).
   - **Botão de Guarda** (`guard`):
@@ -404,11 +404,16 @@ MapX (Node2D, script: base_level.gd)
       - Jump kick: Cabeça e tórax superior (`head`, `upper_torso`).
       - Especial: Área global resolvendo a região anatômica de cada alvo atingido.
     - **Simetria Horizontal e Calibração de Offset de VFX de Impacto**:
-      - Os frames originais de faíscas de impacto (`assets/sprites/Efeitos/` em canvas 195×196) possuem o miolo da explosão no quadrante superior esquerdo (~55, ~64) e não no centro geométrico da textura (97.5, 98.0).
-      - `CombatFeedback.spawn_hit_spark()` aplica compensação local de offset (`visual_offset = Vector2(43, 35)` para punch/kick, `Vector2(21, 26)` para finisher, `Vector2(46, 27)` para especial) e espelhamento horizontal via `scale.x = sprite_scale * facing_sign`.
-      - Isso garante que a faísca visual coincida rigorosamente com o ponto de impacto no corpo do alvo em ambos os lados, eliminando a assimetria onde golpes para a direita pareciam detonar no atacante.
-    - **Garantia de Dano Único**: Um ataque que intersecta múltiplas regiões do mesmo alvo aplica dano estritamente uma única vez (`hit_targets.append(target_actor)`).
-    - **Suíte de Validação**: `tests/anatomical_combat_impact_test.gd`.
+      - **Cálculo de Contato Bidirecional Relativo**: A coordenada horizontal `pos_x` do impacto é calculada avaliando a posição geométrica real do atacante em relação à vítima (`attacker_pos.x < target_pos.x`), garantindo que o impacto apareça invariavelmente na face de contato da vítima voltada para o atacante (`base_x - inset` se atacante à esquerda, `base_x + inset` se atacante à direita), funcionando com total simetria nos dois sentidos (Jogador -> Inimigo e Inimigo -> Jogador).
+      - **Compensação Dinâmica de Espelhamento de Offset**: Em `CombatFeedback.gd`, o offset local é rigorosamente multiplicado pela direção horizontal (`visual_offset = Vector2(visual_offset.x * facing_sign, visual_offset.y)`), eliminando o desvio espúrio que projetava efeitos para fora do alvo ou próximos ao personagem atacante quando `scale.x` era negativo.
+      - **Parametrização Anatômica dos Golpes Inimigos**: Tanto inimigos comuns (`enemy_ai.gd`) quanto o Chefe Alessandro (`boss_alessandro.gd`) configuram dinamicamente `impact_profile`, `preferred_regions` e `hitbox_offset_y` em cada tipo de golpe (`punch` alto [-125px / -135px], `kick` baixo [-70px / -75px], `heavy`/`combo` [-120px / -130px] e `jump_atk` [-150px]), garantindo que golpes recebidos pelo herói respeitem com exatidão anatômica a região atingida.
+      - **Efeito Piloto PixelFX (`punch`)**: O perfil de impacto `punch` utiliza o efeito oficial PixelFX `blunt_hit` (`scenes/vfx/hit_effects_frames.tres` com spritesheet `assets/sprites/Efeitos/pixelfx/blunt_hit.png`, 28 frames em 30 FPS, canvas 128×88). Possui compensação local de offset em `Vector2(0.0, -6.0)` (alinhamento preciso do centro da explosão com `pos`), escala 1.05x, rotação nula para queda vertical natural dos estilhaços e ciclo de vida gerenciado via `animation_finished` com safety timer dinâmico.
+      - **Adoção e Integração de Novos Efeitos PixelFX para Golpes Complementares**:
+        - `kick` (chute e voadora): Integrado oficialmente o efeito PixelFX `hit_spark` (`scenes/vfx/hit_effects_frames.tres` com spritesheet `assets/sprites/Efeitos/pixelfx/hit-spark.png`, 16 frames em 30 FPS, canvas 136×80, duração 0,53s). Núcleo central perfeitamente simétrico `(68, 40)` com `visual_offset = Vector2.ZERO`, entregando flare em cruz afiado e cone direcional de estilhaços no sentido da perna.
+        - `finisher`/`heavy` (golpe pesado e knockdown): Integrado oficialmente o efeito PixelFX `crit_hit` (`scenes/vfx/hit_effects_frames.tres` com spritesheet `assets/sprites/Efeitos/pixelfx/crit-hit.png`, 28 frames em 30 FPS, canvas 216×136, duração 0,93s). Núcleo central simétrico `(108, 68)` com `visual_offset = Vector2.ZERO`, entregando explosão estelar angular de alto impacto ("jagged starburst") com anéis de choque expansivos e chuva de fragmentos em cascata que maximizam o feedback tátil de derrubada.
+        - `special` (golpe especial): Preservado `impactoazul` (`assets/sprites/Efeitos/impactoazul*.png`, escala 0.95x, offset compensado `Vector2(46 * facing_sign, 27)`), pois sua assinatura visual retrô azul mística é superior e indispensável à narrativa visual do Herói Guilherme (efeitos PixelFX de energia possuem leitura sci-fi/arcana destoante).
+    - **Garantia de Dano Único e Isolamento de Whiff**: Um ataque que intersecta múltiplas regiões do mesmo alvo aplica dano estritamente uma única vez (`hit_targets.append(target_actor)`). Ataques desferidos no ar sem interceptação de alvo (Whiff) não instanciam faíscas ou partículas.
+    - **Suíte de Validação**: `tests/test_combat_impact_positioning.gd` (9 cenários mandatórios de posicionamento, bidirecionalidade e zonas) e `tests/anatomical_combat_impact_test.gd` (52 cenários anatômicos e de combate).
   - **Ponto de Integração de Áudio de Combate**: Método desacoplado `CombatFeedback.play_impact_sound()` pronto para rotear efeitos sonoros conforme perfis (`punch`, `kick`, `finisher`, `special`) quando os recursos de áudio forem adicionados ao repositório.
 - **Vitória do Encontro (`encounter_cleared`)**:
   - Ocorre estritamente quando `alive_enemies.is_empty()` **E** `pending_spawns_count == 0` **E** não houver chefe configurado pendente de spawn.
@@ -748,8 +753,8 @@ MapX (Node2D, script: base_level.gd)
    - Controles touch virtuais (`TouchControls`, D-Pad analógico, botões de ataque/pulo/especial) são **exclusivos de runtime mobile** (`OS.has_feature("mobile")`, `web_android`, `web_ios`).
    - No Desktop/PC, nenhum botão virtual ou dock touch aparece na tela. Atalhos de teclado (WASD, Setas, Enter, Espaço, ESC) e navegação com mouse permanecem 100% nativos e intocados.
    - Botões de depuração como `TouchToggleBtn` são permanentemente ocultados no runtime final.
-   - O Menu Principal no mobile não exibe botão dock inferior — as opções do menu são tocáveis diretamente via hitboxes invisíveis sobre a arte.
-   - Hints de teclado (`ControlsLabel`, chevrons, brush_highlight) são ocultados no mobile.
+   - O Menu Principal no mobile não exibe botão dock inferior — as opções do menu são tocáveis diretamente via hitboxes invisíveis sobre a arte. Ao tocar/clicar em qualquer opção, a pincelada dourada arcade pisca sobre a opção para confirmar a escolha, sem chevrons (`<<` e `>>`) e sem inserir retângulo ou moldura retangular comprida em volta do botão.
+   - Hints de teclado (`ControlsLabel`) e seletores fixos de repouso são ocultados no mobile até o toque de confirmação.
 
 2. **Display, Orientação e Preenchimento Fullscreen Nativo (Sem Cortes)**:
    - `project.godot`: `window/handheld/orientation=0` (`landscape`) garante abertura imediata em modo paisagem.
@@ -761,12 +766,18 @@ MapX (Node2D, script: base_level.gd)
    - **Desktop preservado**: No desktop, a proporção 16:9 clássica (`ratio = 1.777778`, `STRETCH_KEEP_ASPECT_CENTERED`, `scale_factor = minf(...)`) é mantida estritamente inalterada.
    - Nos mapas da Fase 1, `mobile_base_level.gd` realiza clamp dinâmico de câmera e cálculo de zoom adaptativo (`_apply_mobile_camera_bounds`), impedindo vazamento de margens cinzas além da arte do mapa em qualquer proporção de tela.
 
-3. **UX & Seleção de Dificuldade Evidente ("Dark Premium Medieval")**:
+3. **UX & Seleção de Dificuldade Desobstruída ("Dark Premium Medieval")**:
    - As cartas de dificuldade possuem hitboxes responsivas calculadas em runtime via `_get_background_rendered_rect()`.
-   - Destaque visual evidente com frame animado (`DifficultySelectionFrame`):
-     - Modo Normal: Contorno dourado `#F5BA38`, brilho sutil e badge `[ MODO NORMAL ATIVO ]`.
-     - Modo Difícil: Contorno vermelho-neon flamejante `#FF3A3A`, glow rubi e badge `[ MODO DIFÍCIL ATIVO ]`.
-   - Atualização dinâmica dos botões de início (`INICIAR NO MODO NORMAL` vs `INICIAR NO MODO DIFÍCIL`), garantindo resposta visual e sonora imediata em cliques e toques.
+   - **Arte Limpa sem Textos Centralizados Sobrepostos**: Rótulos e badges redundantes no meio da tela foram completamente removidos (`btn_start_game.text = ""` e `_selection_badge.visible = false`). A arte cinematográfica oficial (`dificuldade.webp` vs `dificuldade_dificil.webp`) comunica o modo ativo de forma visualmente nobre através de crossfade suave e responsivo.
+   - Atualização dinâmica da ação contextual mobile no dock inferior (`INICIAR NO MODO NORMAL` vs `INICIAR NO MODO DIFÍCIL`), garantindo resposta tátil imediata em cliques e toques.
+
+3.1. **Regras de Navegação e Menu Principal (Desktop e Mobile)**:
+   - **Opção 'Personagens' (`BtnCharSelect`)**: Desabilitada permanentemente tanto no modo Desktop quanto no Mobile (`disabled = true`). Clicar ou ativar a opção não executa ação nem transição.
+   - **Opção 'Configurações' (`BtnSettings`)**: Habilitada na apresentação visual mobile e desktop, comportando-se a princípio como no-op ao ser clicada (sem travamento, sem ruído de recusa e sem alterar o estado do jogo, idêntica ao desktop).
+   - **Menu de Mapa (`MapMenu`)**:
+     - *Acesso via Menu Principal (Browse)*: Ao ser acessado através da opção "MAPA" do Menu Principal (`map_entry_context = "browse"`), o mapa atua em modo de consulta/visualização e o acionamento de qualquer botão, tecla ou toque na tela retorna diretamente ao Menu Principal (`res://scenes/ui/main_menu.tscn`).
+     - *Acesso por Campanha / Outros Fluxos (Novo Jogo, Continuar, Próximo Mapa)*: Segue o fluxo canônico de jogo — permite navegar pela trilha com setas/cliques nas fases desbloqueadas, confirmação ([Enter], [Espaço] ou clique na fase) avança para a fase correspondente (`loading_screen.tscn` / `map_X.tscn`), e cancelar/voltar ([ESC] ou botão Voltar) retorna à tela de seleção de dificuldade (`difficulty_select.tscn`).
+   - **Reinício Seguro de Fase (`Tecla [R]`)**: O recarregamento de cena (`reload_current_scene()`) é estritamente blindado contra erros de ciclo de vida. `EnemyHUD`, `EnemyAI`, `CombatDirector` e `CombatFeedback` possuem proteções de `is_inside_tree()`, garantindo que reiniciar uma fase com inimigos ainda vivos não gere erros de nós órfãos ou ponteiros nulos no console.
 
 4. **Safe Area & Molduras de Diálogo**:
    - Molduras de diálogo (`NarrativeDirector`, `counter_card_interaction.gd`) utilizam âncoras relativas proporcionais e `AUTOWRAP_WORD_SMART`, impedindo quebras ou sobreposições com retratos e botões em telas ultrawide.
@@ -781,7 +792,7 @@ MapX (Node2D, script: base_level.gd)
      - `button_special.png`: Ícone de corte de fogo/energia em gradiente branco/amarelo/laranja/vermelho, contorno com aura de chamas. Mapeado para **Tecla E** e **Tecla O** (`attack_special` e `special`).
      - `button_block.png`: Ícone de seta para cima em branco sólido, aro metálico azulado. Mapeado para **Tecla K** e **Tecla H** (`guard`).
      - `button_pause.png`: Quadrado com cantos arredondados, fundo azul-marinho translúcido, aro metálico azulado, duas barras verticais brancas paralelas. Posicionado no canto superior direito dentro da safe area.
-     - `mobile_dpad_base.png`, `mobile_dpad_arrows.png`, `mobile_dpad_thumb.png`: Direcional analógico no quadrante inferior esquerdo com base circular translúcida, 4 setas indicadoras e knob central metálico.
+     - `mobile_dpad_base.png`, `mobile_dpad_arrows.png`, `mobile_dpad_thumb.png`: Direcional analógico no quadrante inferior esquerdo com base circular translúcida ampliada (raio de 112px / diâmetro 224px), 4 setas indicadoras e knob central metálico ampliado (raio de 48px), calibrado para alta precisão e ergonomia no toque mobile.
    - *Disposição Assimétrica do Cluster de Combate*:
      - Canto inferior direito: Punho J (maior dimensão).
      - Acima do Punho (mesmo alinhamento horizontal X): Bloqueio K (seta para cima).
@@ -900,6 +911,19 @@ Permite diferenciar visualmente inimigos do mesmo tipo (ex: Jogador de Magic) se
   - Dano infligido pelo próprio especial não recarrega o medidor.
 - **Ativação Restrita (Gatekeeping em Gameplay)**: `execute_special()` só pode ser disparado quando o medidor estiver rigorosamente em **100%** (`current_special >= max_special`). Pressões com carga parcial não geram dano, nem animação cinematográfica, nem invulnerabilidade.
 - **Substituição de Custo**: O custo antigo de 15% de HP foi extinto; especial consome 100% da barra de especial sem subtrair HP do herói.
+- **Apresentação Cinematográfica do Especial (2,50s)**:
+  - **Separação Arquitetural**:
+    - `HeroData`: Recurso desacoplado com propriedades exportadas `special_presentation_texture` (arte oficial do golpe, ex: `especial_1_guilherme.webp`), `special_title` (opcional/vazio para não poluir a arte), `special_theme_color` e `special_presentation_duration` (= 2.5).
+    - `SpecialPresentation`: Componente visual puro (`CanvasLayer`, layer 120) que realiza cobertura total da viewport em qualquer proporção sem distorção (`STRETCH_KEEP_ASPECT_COVERED` e `EXPAND_IGNORE_SIZE`), zoom dramático com pivot centralizado responsivo e efeito de flash de impacto. Não exibe banner de texto para valorização integral da arte do herói.
+    - `PlayerController`: Coordena o fluxo de combate — valida medidor a 100%, consome a carga, concede invulnerabilidade, instancia a apresentação conectando o sinal `impact_reached` ao dano global nos inimigos vivos com queda obrigatória (`FALL`), preservando NPCs civis, e só restabelece o estado `NORMAL` após o sinal `finished`.
+  - **Cronograma Temporal Sincronizado**:
+    - 0,00s - 0,35s: Abertura cinematográfica (fade-in, zoom inicial suave e entrada da arte oficial).
+    - 0,35s - 0,90s: Construção de energia e aproximação rápida (zoom progressivo de 1.0 para 1.06 e pulso da cor temática do herói).
+    - 0,90s - 1,30s: Hold dramático do clímax visual (tensão máxima no ápice).
+    - 1,30s: **Ápice do Impacto** — emissão estrita do sinal `impact_reached`, aplicação atômica do dano global e disparo do flash branco de tela (0,20s).
+    - 1,50s - 2,00s: Respiro pós-impacto com dissipação de energia e acomodação de escala.
+    - 2,00s - 2,50s: Saída cinematográfica e recolhimento visual.
+    - 2,50s: Emissão idempotente de `finished`, destruição limpa do nó (`queue_free()`) e retorno do herói a `NORMAL`.
 
 ### 4. Efeito de Aura Elétrica de Especial Pronto:
 - **Aura Neon Pulsante**: Ao atingir 100%, o retrato do personagem recebe uma aura de energia elétrica azul animada (`hud_electric_aura.png`), pulsando suavemente ao redor da moldura.
@@ -914,6 +938,24 @@ Permite diferenciar visualmente inimigos do mesmo tipo (ex: Jogador de Magic) se
 
 ### 7. Indicador "SIGA →" com Acompanhamento de Câmera:
 - **Comportamento Dinâmico**: Ao derrotar o último inimigo de um encontro, o banner estático de texto central ("Área Limpa") é suprimido, e o indicador visual piscante "SIGA →" é ativado na tela, acompanhando a posição da câmera para permanecer visível independentemente de onde o personagem estiver no cenário.
+
+---
+
+
+### 8. Menu Principal: Navegação Fluida e Confirmação Estroboscópica (Game UX):
+- **Eliminação Permanente dos Chevrons (`<<` e `>>`)**: Chevrons visuais foram eliminados tanto no Desktop quanto no Mobile. O menu preserva visual limpo e sofisticado "Dark Premium Medieval", sem poluição gráfica sobre a tipografia clássica da arte `menu_state_vf.webp`.
+- **Navegação e Escolha Fluida (Hover / Browsing)**:
+  - **Desktop**: A pincelada dourada (`BrushHighlight`) desliza suavemente entre as opções (0.10s via `Tween.TRANS_CUBIC`, `EASE_OUT`) ao mover com teclado (Setas/WASD) ou hover do mouse, acompanhada de áudio arcade suave (`_sfx_move`). Em repouso, exibe pulsação orgânica de respiração (opacidade 0.70 <-> 1.00). Opções desabilitadas (ex: Configurações) exibem tonalidade grafite sutil (`Color(0.55, 0.55, 0.60, 0.45)`).
+  - **Mobile**: Em repouso, a tela permanece 100% limpa (`brush_highlight.visible = false`) sem obstruir a arte. O realce surge de forma reativa e imediata ao primeiro toque sobre qualquer opção.
+- **Feedback Estroboscópico de Confirmação (Arcade Strobe Flare)**:
+  - Ao confirmar uma opção (Enter/Espaço/Clique no PC ou Toque no Mobile), a pincelada dourada executa uma sequência em 4 etapas:
+    1. Pico de impacto luminoso em branco-ouro (`Color(2.6, 2.3, 1.4)`) com micro-punch de escala tátil (1.03x horizontal, 1.08x vertical) em 0.05s.
+    2. Queda rápida de contraste (strobe dip, 0.05s).
+    3. Segundo flash de confirmação brilhante (0.05s).
+    4. Assentamento estável em ouro luminoso (0.08s) e reprodução do som canônico de confirmação (`_sfx_confirm`).
+- **Zero Molduras Retangulares**: Não é criada nenhuma caixa retangular ou contorno `StyleBoxFlat` ao redor dos botões (permanecem estritamente transparentes).
+- **Opções Desabilitadas (Recusa Clara)**: Feedback em flash âmbar/vermelho rápido (`Color(2.0, 0.4, 0.3)`), som de recusa (`_sfx_denied`) e micro-shake de tela, informando intuitivamente a indisponibilidade.
+- **Janela de Respiro Pré-Transição**: Pausa calculada de 0.35s após o flash antes da troca de cena, permitindo que o jogador absorva o feedback de confirmação visual e auditivo.
 
 ---
 

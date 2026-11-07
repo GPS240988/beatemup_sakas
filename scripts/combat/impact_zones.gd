@@ -122,12 +122,16 @@ func get_zone_local_bounds(region_name: String) -> Vector2:
 
 
 ## Determina a região atingida e calcula a posição espacial do feedback de impacto
+## attacker_global_pos: posição global real do atacante (pés), usada para calcular
+## a posição horizontal do spark na face de contato voltada para o atacante.
+## Se Vector2.ZERO, faz fallback para o cálculo legado com attacker_facing.
 func resolve_impact(
 	attack_hitbox_global_pos: Vector2,
 	hitbox_size: Vector2 = Vector2(80.0, 60.0),
 	preferred_regions: Array = [],
 	attacker_facing: float = 1.0,
-	_impact_profile: String = "punch"
+	_impact_profile: String = "punch",
+	attacker_global_pos: Vector2 = Vector2.ZERO
 ) -> Dictionary:
 	var half_h: float = absf(hitbox_size.y) * 0.5
 	var atk_top: float = attack_hitbox_global_pos.y - half_h
@@ -215,8 +219,22 @@ func resolve_impact(
 		# Prioridade 3: Centro espacial calibrado da região anatômica
 		pos_y = z_data["center"]
 
-	# Coordenada horizontal: face de contato voltada para o atacante
-	var pos_x: float = base_x - (attacker_facing * horizontal_contact_inset)
+	# Coordenada horizontal: face de contato no corpo do alvo voltada para o atacante
+	# Usa a posição geométrica real do atacante (não apenas facing_direction) para
+	# garantir que o spark aparece na borda correta do alvo em qualquer cenário,
+	# incluindo turn-arounds, multi-target e ataques cruzados.
+	var pos_x: float
+	if attacker_global_pos != Vector2.ZERO:
+		# Posição relativa real: atacante está à esquerda ou direita do alvo?
+		var is_attacker_left: bool = attacker_global_pos.x < base_x
+		# Spark na borda do alvo voltada para o atacante, deslocado para dentro
+		if is_attacker_left:
+			pos_x = base_x - horizontal_contact_inset
+		else:
+			pos_x = base_x + horizontal_contact_inset
+	else:
+		# Fallback legado: usa attacker_facing quando posição real não disponível
+		pos_x = base_x - (attacker_facing * horizontal_contact_inset)
 	if marker != null and is_instance_valid(marker) and marker.position.x != 0.0:
 		pos_x = marker.global_position.x
 
@@ -228,20 +246,22 @@ func resolve_impact(
 
 
 ## Helper estático universal para resolver impacto anatômico em qualquer alvo
+## attacker_global_pos: posição real do atacante para cálculo preciso da face de contato.
 static func resolve_impact_on_target(
 	target: Node,
 	attack_hitbox_global_pos: Vector2,
 	hitbox_size: Vector2 = Vector2(80.0, 60.0),
 	preferred_regions: Array = [],
 	attacker_facing: float = 1.0,
-	impact_profile: String = "punch"
+	impact_profile: String = "punch",
+	attacker_global_pos: Vector2 = Vector2.ZERO
 ) -> Dictionary:
 	if target == null:
 		return { "region": REGION_UPPER_TORSO, "position": attack_hitbox_global_pos }
 
 	var iz := get_impact_zones(target)
 	if iz != null and is_instance_valid(iz):
-		return iz.resolve_impact(attack_hitbox_global_pos, hitbox_size, preferred_regions, attacker_facing, impact_profile)
+		return iz.resolve_impact(attack_hitbox_global_pos, hitbox_size, preferred_regions, attacker_facing, impact_profile, attacker_global_pos)
 
 	# Se o alvo fornecer cálculo espacial próprio de ponto de contato (ex: DestructibleProp / Veículos)
 	if target.has_method("get_impact_point"):
@@ -257,12 +277,15 @@ static func resolve_impact_on_target(
 	var base_pos: Vector2 = target_node2d.global_position if target_node2d != null else attack_hitbox_global_pos
 	var hurtbox: Area2D = target.get_node_or_null("Hurtbox") as Area2D
 
+	var is_attacker_left: bool = (attacker_global_pos.x < base_pos.x) if attacker_global_pos != Vector2.ZERO else (attacker_facing >= 0.0)
+	var fallback_x_offset: float = -16.0 if is_attacker_left else 16.0
 	var fallback_y: float = base_pos.y - 85.0
-	var fallback_x: float = base_pos.x - (attacker_facing * 16.0)
+	var fallback_x: float = base_pos.x + fallback_x_offset
 
 	if hurtbox != null and is_instance_valid(hurtbox):
 		fallback_y = hurtbox.global_position.y
-		fallback_x = hurtbox.global_position.x - (attacker_facing * 10.0)
+		var hurtbox_offset: float = -10.0 if is_attacker_left else 10.0
+		fallback_x = hurtbox.global_position.x + hurtbox_offset
 
 	return {
 		"region": REGION_UPPER_TORSO,

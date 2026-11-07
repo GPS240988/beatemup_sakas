@@ -412,7 +412,9 @@ func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, p
 
 	# Se o snapshot não foi fornecido explicitamente, tenta capturar do nível atual
 	if world_snapshot.is_empty():
-		var current_level: Node = get_tree().current_scene if get_tree() != null else null
+		var current_level: Node = null
+		if is_inside_tree() and get_tree() != null:
+			current_level = get_tree().current_scene
 		if current_level != null and current_level.has_method("capture_world_snapshot"):
 			world_snapshot = current_level.capture_world_snapshot()
 

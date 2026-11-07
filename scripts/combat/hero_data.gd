@@ -34,6 +34,10 @@ extends Resource
 @export var special_prop_damage: float = 50.0
 @export var special_knockback: float = 180.0
 @export var special_hitstun: float = 0.50
+@export var special_presentation_texture: Texture2D = null
+@export var special_title: String = ""
+@export var special_theme_color: Color = Color(0.95, 0.78, 0.15, 0.90) # Ouro nobre e branco
+@export var special_presentation_duration: float = 2.5
 
 @export_group("Combo 1 - Jab / Soco")
 @export var punch1_damage: float = 20.0

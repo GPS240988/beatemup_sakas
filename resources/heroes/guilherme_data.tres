@@ -1,6 +1,11 @@
 [gd_resource type="Resource" script_class="HeroData" format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/hero_data.gd" id="1_8cke0"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/especial_1_guilherme.webp" id="2_special_tex"]
 
 [resource]
 script = ExtResource("1_8cke0")
+special_presentation_texture = ExtResource("2_special_tex")
+special_title = ""
+special_theme_color = Color(0.95, 0.78, 0.15, 0.9)
+special_presentation_duration = 2.5

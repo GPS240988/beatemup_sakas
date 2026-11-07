@@ -83,3 +83,7 @@ mcp-server.log
 *.zip
 *.7z
 *.tar.gz
+
+# PixelFX dev tools
+.tools/pixelfx/node_modules/
+.tools/pixelfx/records/

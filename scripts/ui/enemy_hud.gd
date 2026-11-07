@@ -90,9 +90,16 @@ func _check_visibility_rules() -> void:
 			fade_out()
 
 
+func _exit_tree() -> void:
+	unbind_target()
+
+
 func _get_player() -> Node2D:
 	if _cached_player == null or not is_instance_valid(_cached_player):
-		_cached_player = get_tree().get_first_node_in_group("player") as Node2D if get_tree() != null else null
+		if is_inside_tree() and get_tree() != null:
+			_cached_player = get_tree().get_first_node_in_group("player") as Node2D
+		else:
+			_cached_player = null
 	return _cached_player
 
 
@@ -279,14 +286,18 @@ func _on_target_died() -> void:
 
 func _on_target_tree_exited() -> void:
 	unbind_target()
-	call_deferred("_select_next_living_target")
+	if is_inside_tree() and not is_queued_for_deletion():
+		call_deferred("_select_next_living_target")
 
 
 func _select_next_living_target() -> void:
-	if get_tree() == null:
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	if tree == null:
 		return
 	
-	var living_enemies = get_tree().get_nodes_in_group("enemies")
+	var living_enemies = tree.get_nodes_in_group("enemies")
 	var best_target: Node = null
 	var min_dist: float = 999999.0
 	var ref_pos: Vector2 = Vector2.ZERO

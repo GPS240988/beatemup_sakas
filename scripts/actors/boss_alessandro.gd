@@ -90,18 +90,30 @@ func _trigger_attack() -> void:
 			anim_name = &"punch"
 			if melee_attack != null:
 				melee_attack.damage = 20.0
+				melee_attack.impact_profile = "punch"
+				melee_attack.preferred_regions = ["head", "upper_torso"]
+				melee_attack.hitbox_offset_y = -135.0
 		1:
 			anim_name = &"kick"
 			if melee_attack != null:
 				melee_attack.damage = 25.0
+				melee_attack.impact_profile = "kick"
+				melee_attack.preferred_regions = ["lower_torso"]
+				melee_attack.hitbox_offset_y = -75.0
 		2:
 			anim_name = &"combo"
 			if melee_attack != null:
 				melee_attack.damage = 30.0
+				melee_attack.impact_profile = "finisher"
+				melee_attack.preferred_regions = ["upper_torso", "head"]
+				melee_attack.hitbox_offset_y = -130.0
 		3:
 			anim_name = &"jump_atk"
 			if melee_attack != null:
 				melee_attack.damage = 28.0
+				melee_attack.impact_profile = "kick"
+				melee_attack.preferred_regions = ["head"]
+				melee_attack.hitbox_offset_y = -150.0
 
 	if anim_sprite != null and anim_sprite.sprite_frames.has_animation(anim_name):
 		anim_sprite.play(anim_name)

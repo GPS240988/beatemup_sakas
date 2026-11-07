@@ -309,12 +309,25 @@ func _process_waiting(_delta: float) -> void:
 
 
 func _initialize_navigation() -> void:
-	await get_tree().physics_frame
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	await tree.physics_frame
+	if not is_inside_tree():
+		return
+	tree = get_tree()
+	if tree == null:
+		return
 	if nav_agent != null and is_instance_valid(nav_agent) and nav_agent.is_inside_tree():
 		var map_id: RID = nav_agent.get_navigation_map()
 		if map_id.is_valid():
-			while NavigationServer2D.map_get_iteration_id(map_id) == 0:
-				await get_tree().physics_frame
+			while is_inside_tree() and NavigationServer2D.map_get_iteration_id(map_id) == 0:
+				tree = get_tree()
+				if tree == null:
+					return
+				await tree.physics_frame
 
 
 ## Verifica se há colisão/obstáculo sólido entre duas coordenadas do mapa
@@ -587,10 +600,19 @@ func _trigger_attack() -> void:
 	match archetype:
 		Archetype.AGGRESSOR, Archetype.FLANKER:
 			_play_anim("kick")
+			melee_attack.impact_profile = "kick"
+			melee_attack.preferred_regions = ["lower_torso"]
+			melee_attack.hitbox_offset_y = -70.0
 		Archetype.TANK:
 			_play_anim("heavy")
+			melee_attack.impact_profile = "finisher"
+			melee_attack.preferred_regions = ["upper_torso", "head"]
+			melee_attack.hitbox_offset_y = -120.0
 		_:
 			_play_anim("punch")
+			melee_attack.impact_profile = "punch"
+			melee_attack.preferred_regions = ["head", "upper_torso"]
+			melee_attack.hitbox_offset_y = -125.0
 	melee_attack.execute_attack(facing_direction)
 
 

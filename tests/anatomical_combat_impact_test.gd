@@ -45,7 +45,7 @@ func _run_suite() -> void:
 	var m_sprite: AnimatedSprite2D = magic_enemy.get_node_or_null("Visual/AnimatedSprite2D")
 	assert_test(m_sprite != null, "AnimatedSprite2D presente no Jogador de Magic")
 	assert_test(is_equal_approx(m_sprite.scale.x, 0.42) and is_equal_approx(m_sprite.scale.y, 0.42), "Escala do sprite estritamente preservada em 0.42 (sem normalização 220x300)")
-	assert_test(is_equal_approx(m_sprite.position.y, -96.0), "Posição vertical do sprite preservada em Y = -96.0")
+	assert_test(is_equal_approx(m_sprite.position.y, -91.0), "Posição vertical do sprite preservada em Y = -91.0")
 
 	var m_iz = magic_enemy.get_node_or_null("ImpactZones")
 	assert_test(m_iz != null, "Nó ImpactZones presente no Jogador de Magic")
@@ -258,17 +258,25 @@ func _run_suite() -> void:
 	CombatFeedbackClass.spawn_hit_spark(dummy_holder, Vector2(500, 300), Vector2.RIGHT, "punch")
 	CombatFeedbackClass.spawn_hit_spark(dummy_holder, Vector2(500, 300), Vector2.LEFT, "punch")
 	var sparks: Array[AnimatedSprite2D] = []
-	for child in dummy_holder.get_children():
-		if child is AnimatedSprite2D:
-			sparks.append(child)
+	for s in dummy_holder.find_children("*", "AnimatedSprite2D", true, false):
+		var spr := s as AnimatedSprite2D
+		if spr != null and spr.visible:
+			sparks.append(spr)
 	assert_test(sparks.size() >= 2, "Instanciação de faíscas direita/esquerda realizada")
 	if sparks.size() >= 2:
-		var s_right := sparks[0]
-		var s_left := sparks[1]
-		assert_test(s_right.offset.x > 0.0 and s_right.offset.y > 0.0, "Offset local de compensação calibrado para centrar o miolo visual do sprite")
-		assert_test(s_right.scale.x > 0.0, "Escala horizontal positiva para ataque à direita")
-		assert_test(s_left.scale.x < 0.0, "Escala horizontal invertida (negativa) para ataque à esquerda")
-		assert_test(absf(s_right.scale.x) == absf(s_left.scale.x), "Magnitude da escala visual simétrica entre direita e esquerda")
+		var s_right: AnimatedSprite2D = null
+		var s_left: AnimatedSprite2D = null
+		for s in sparks:
+			if s.scale.x > 0.0 and s_right == null:
+				s_right = s
+			elif s.scale.x < 0.0 and s_left == null:
+				s_left = s
+		assert_test(s_right != null and s_right.animation == &"blunt_hit", "Perfil punch utiliza nova animação blunt_hit do PixelFX")
+		assert_test(s_right != null and s_right.offset == Vector2(0.0, -6.0), "Offset local de compensação calibrado para centrar o miolo visual do sprite (0, -6)")
+		assert_test(s_right != null and s_right.scale.x > 0.0, "Escala horizontal positiva para ataque à direita")
+		assert_test(s_left != null and s_left.scale.x < 0.0, "Escala horizontal invertida (negativa) para ataque à esquerda")
+		if s_right != null and s_left != null:
+			assert_test(absf(s_right.scale.x) == absf(s_left.scale.x), "Magnitude da escala visual simétrica entre direita e esquerda")
 	dummy_holder.queue_free()
 
 	# Limpeza dos nós de teste

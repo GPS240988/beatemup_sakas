@@ -13,8 +13,6 @@ const BASE_WIDTH: float = 1920.0
 const BASE_HEIGHT: float = 1080.0
 ## Coordenadas calibradas com precisão milimétrica no espaço 1920x1080 da arte menu_state_vf.webp:
 ## cy: centro vertical exato do texto
-## lx: coordenada X do chevron esquerdo '<'
-## rx: coordenada X do chevron direito '>' emoldurando o texto simetricamente
 ## bx: coordenada X inicial da pincelada de realce
 ## bw: largura da pincelada de realce
 const OPTION_CONFIGS: Array[Dictionary] = [
@@ -25,8 +23,6 @@ const OPTION_CONFIGS: Array[Dictionary] = [
 	{ "cy": 860.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }, # 4: CONFIGURAÇÕES
 	{ "cy": 941.0, "lx": 615.0, "rx": 1256.0, "bx": 668.0, "bw": 584.0 }  # 5: SAIR
 ]
-const CHEV_LEFT_OFFSET_Y: float = 0.0
-const CHEV_RIGHT_OFFSET_Y: float = 0.0
 
 @onready var background_slot: TextureRect = %BackgroundSlot
 @onready var aspect_wrapper: AspectRatioContainer = %AspectWrapper
@@ -49,6 +45,7 @@ var _current_index: int = 0
 var _move_tween: Tween
 var _pulse_tween: Tween
 var _shake_tween: Tween
+var _blink_tween: Tween
 var _is_transitioning: bool = false
 var _sfx_move: AudioStreamWAV
 var _sfx_confirm: AudioStreamWAV
@@ -60,22 +57,23 @@ func _ready() -> void:
 	_generate_audio_effects()
 	_setup_hitboxes()
 
+	# Chevrons (< e >) eliminados permanentemente tanto no PC quanto no Mobile
+	if left_chevron != null:
+		left_chevron.visible = false
+	if right_chevron != null:
+		right_chevron.visible = false
+
 	if aspect_wrapper != null:
 		aspect_wrapper.resized.connect(_on_aspect_wrapper_resized)
+
 	if _is_mobile_runtime():
 		_apply_mobile_fullscreen()
-		# No mobile, o menu é operado por toque direto nos itens da arte.
-		# Não cria botão dock nem exibe chevrons/highlights — o toque nos
-		# botões invisíveis sobre os itens do menu já dispara a ação.
 		var nav_layer := get_node_or_null("MobileNavigationLayer") as CanvasLayer
 		if nav_layer != null:
 			nav_layer.visible = false
-		if left_chevron != null:
-			left_chevron.visible = false
-		if right_chevron != null:
-			right_chevron.visible = false
 		if brush_highlight != null:
 			brush_highlight.visible = false
+
 	# Aguarda frame para o sistema de layout do Godot resolver os tamanhos e posições reais
 	await get_tree().process_frame
 	if _is_mobile_runtime():
@@ -84,9 +82,10 @@ func _ready() -> void:
 		_set_selected_index(0, false)
 		_start_idle_pulse()
 
+
 func _input(event: InputEvent) -> void:
 	# O toque nativo é tratado antes da conversão opcional para mouse do Godot.
-	# Um único toque na opção executa a ação, sem exigir um segundo toque no dock.
+	# Um único toque na opção executa a ação imediatamente com feedback tátil visual.
 	if not _is_mobile_runtime() or _is_transitioning:
 		return
 	if not (event is InputEventScreenTouch and event.pressed and event.index == 0):
@@ -95,15 +94,21 @@ func _input(event: InputEvent) -> void:
 	var touch_position: Vector2 = event.position
 	if _is_mobile_dock_touch(touch_position):
 		return
+
 	for idx in range(_buttons.size()):
 		var menu_button: Button = _buttons[idx]
 		if menu_button == null or not menu_button.is_visible_in_tree():
 			continue
 		if menu_button.get_global_rect().has_point(touch_position):
 			_safe_handle_input()
-			_set_selected_index(idx, true)
+			if menu_button.disabled:
+				# Opções desabilitadas (Personagens e Configurações):
+				# A princípio ao clicar nada acontece, exatamente igual ao desktop
+				return
+			_set_selected_index(idx, false)
 			_activate_option(idx)
 			return
+
 
 func _is_mobile_dock_touch(screen_position: Vector2) -> bool:
 	var navigation_layer: CanvasLayer = get_node_or_null("MobileNavigationLayer") as CanvasLayer
@@ -117,8 +122,10 @@ func _is_mobile_dock_touch(screen_position: Vector2) -> bool:
 				return true
 	return false
 
+
 func _is_mobile_runtime() -> bool:
 	return MobileScreenAction.is_mobile_runtime()
+
 
 func _setup_hitboxes() -> void:
 	for idx in range(_buttons.size()):
@@ -134,11 +141,20 @@ func _setup_hitboxes() -> void:
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		b.mouse_entered.connect(_on_button_hovered.bind(idx))
 		b.pressed.connect(_on_button_clicked.bind(idx))
-	if btn_char_select != null:
-		btn_char_select.disabled = false
 
+		# Blindagem contra caixas cinzas/apagadas padrão do tema Godot
+		var transparent_style := _make_mobile_selector_style(false)
+		b.add_theme_stylebox_override("normal", transparent_style)
+		b.add_theme_stylebox_override("hover", transparent_style)
+		b.add_theme_stylebox_override("pressed", transparent_style)
+		b.add_theme_stylebox_override("disabled", transparent_style)
+		b.add_theme_stylebox_override("focus", transparent_style)
+
+	if btn_char_select != null:
+		btn_char_select.disabled = true
 	if btn_settings != null:
-		btn_settings.disabled = true
+		# No mobile e no menu geral, configurações NÃO fica apagada (disabled = false)
+		btn_settings.disabled = false
 
 
 func _apply_mobile_fullscreen() -> void:
@@ -168,6 +184,7 @@ func _apply_mobile_fullscreen() -> void:
 	if get_viewport() != null and not get_viewport().size_changed.is_connected(_apply_mobile_fullscreen):
 		get_viewport().size_changed.connect(_apply_mobile_fullscreen)
 
+
 func _on_aspect_wrapper_resized() -> void:
 	if _is_mobile_runtime() and aspect_wrapper != null:
 		var vp_size: Vector2 = get_viewport_rect().size
@@ -176,6 +193,7 @@ func _on_aspect_wrapper_resized() -> void:
 			if absf(aspect_wrapper.ratio - target_ratio) > 0.001:
 				aspect_wrapper.ratio = target_ratio
 	_update_selector_positions(false)
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_S or event.keycode == KEY_DOWN)):
@@ -192,6 +210,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_play_sound(_sfx_denied)
 		get_tree().change_scene_to_file(TITLE_SCREEN_SCENE)
 
+
 func _safe_handle_input() -> void:
 	if get_viewport() != null:
 		get_viewport().set_input_as_handled()
@@ -205,18 +224,27 @@ func _move_selection(delta: int) -> void:
 
 
 func _on_button_hovered(index: int) -> void:
+	if _is_mobile_runtime():
+		return # No mobile não há hover
 	if _current_index != index:
 		_set_selected_index(index, true)
 
+
 func _on_button_clicked(index: int) -> void:
+	if index >= 0 and index < _buttons.size():
+		var btn = _buttons[index]
+		if btn != null and btn.disabled:
+			# Opção desabilitada: nada acontece
+			return
 	_set_selected_index(index, true)
-	# Também confirma diretamente pelo Button quando o sistema mobile entrega
-	# o toque como mouse emulado, sem depender do caminho InputEventScreenTouch.
 	_activate_option(index)
+
 
 func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 	if new_idx < 0:
 		_current_index = -1
+		if brush_highlight != null:
+			brush_highlight.visible = false
 		if _is_mobile_runtime():
 			for i in range(_buttons.size()):
 				var menu_button: Button = _buttons[i]
@@ -225,8 +253,12 @@ func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 					menu_button.add_theme_stylebox_override("hover", _make_mobile_selector_style(false))
 					menu_button.add_theme_stylebox_override("pressed", _make_mobile_selector_style(false))
 		return
+
 	_current_index = clampi(new_idx, 0, 5)
 	_update_selector_positions(animate)
+	if not _is_mobile_runtime():
+		_start_idle_pulse()
+
 	if _is_mobile_runtime():
 		for i in range(_buttons.size()):
 			var menu_button: Button = _buttons[i]
@@ -236,59 +268,68 @@ func _set_selected_index(new_idx: int, animate: bool = false) -> void:
 				menu_button.add_theme_stylebox_override("hover", _make_mobile_selector_style(selected))
 				menu_button.add_theme_stylebox_override("pressed", _make_mobile_selector_style(selected))
 
-func _update_selector_positions(animate: bool = false) -> void:
-	if _is_mobile_runtime():
-		if brush_highlight != null: brush_highlight.visible = false
-		if left_chevron != null: left_chevron.visible = false
-		if right_chevron != null: right_chevron.visible = false
-		return
-	if aspect_wrapper == null or left_chevron == null or right_chevron == null or brush_highlight == null:
-		return
 
+func _calculate_selector_transforms(index: int) -> Dictionary:
+	if aspect_wrapper == null or index < 0 or index >= OPTION_CONFIGS.size():
+		return {}
 	var view_size: Vector2 = aspect_wrapper.size
 	if view_size.x <= 0.0 or view_size.y <= 0.0:
-		return
-	if _current_index < 0 or _current_index >= OPTION_CONFIGS.size():
-		return
+		return {}
 
 	var sx: float = view_size.x / BASE_WIDTH
 	var sy: float = view_size.y / BASE_HEIGHT
 
-	var cfg: Dictionary = OPTION_CONFIGS[_current_index]
+	var cfg: Dictionary = OPTION_CONFIGS[index]
 	var target_cy: float = float(cfg["cy"]) * sy
-	var target_lx: float = float(cfg["lx"]) * sx
-	var target_rx: float = float(cfg["rx"]) * sx
 	var target_bx: float = float(cfg["bx"]) * sx
 	var target_bw: float = float(cfg["bw"]) * sx
-	var chev_h: float = 54.0 * sy
-	var chev_w: float = 56.0 * sx
 	var brush_h: float = 60.0 * sy
-	# Alinhamento vertical: centraliza na linha do texto + compensação individual do bico da seta
-	var l_offset_y: float = CHEV_LEFT_OFFSET_Y * sy
-	var r_offset_y: float = CHEV_RIGHT_OFFSET_Y * sy
-	var l_pos = Vector2(target_lx, target_cy - (chev_h * 0.5) + l_offset_y)
-	var r_pos = Vector2(target_rx, target_cy - (chev_h * 0.5) + r_offset_y)
-	var b_pos = Vector2(target_bx, target_cy - (brush_h * 0.5))
-	var b_size = Vector2(target_bw, brush_h)
+
+	return {
+		"brush_pos": Vector2(target_bx, target_cy - (brush_h * 0.5)),
+		"brush_size": Vector2(target_bw, brush_h)
+	}
+
+
+func _update_selector_positions(animate: bool = false) -> void:
+	if _is_mobile_runtime():
+		# No mobile, o seletor fica oculto durante o repouso para exibição limpa da arte
+		if brush_highlight != null and not _is_transitioning:
+			brush_highlight.visible = false
+		return
+
+	if aspect_wrapper == null or brush_highlight == null:
+		return
+	if _current_index < 0 or _current_index >= OPTION_CONFIGS.size():
+		return
+
+	var transforms: Dictionary = _calculate_selector_transforms(_current_index)
+	if transforms.is_empty():
+		return
+
+	brush_highlight.visible = true
+	brush_highlight.pivot_offset = transforms["brush_size"] * 0.5
+
+	# Ajusta tom de cor: âmbar suave para opções normais, grafite para desabilitadas
+	var base_color: Color = Color(1.3, 1.15, 0.75, 0.95)
+	if _current_index == 2: # Personagens (2) (desabilitada)
+		base_color = Color(0.55, 0.55, 0.60, 0.45)
+
 	if _move_tween != null and _move_tween.is_valid():
 		_move_tween.kill()
+
 	if animate:
 		_move_tween = create_tween().set_parallel(true)
 		_move_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		_move_tween.tween_property(left_chevron, "position", l_pos, 0.12)
-		_move_tween.tween_property(left_chevron, "size", Vector2(chev_w, chev_h), 0.12)
-		_move_tween.tween_property(right_chevron, "position", r_pos, 0.12)
-		_move_tween.tween_property(right_chevron, "size", Vector2(chev_w, chev_h), 0.12)
-		_move_tween.tween_property(brush_highlight, "position", b_pos, 0.12)
-		_move_tween.tween_property(brush_highlight, "size", b_size, 0.12)
+		_move_tween.tween_property(brush_highlight, "position", transforms["brush_pos"], 0.10)
+		_move_tween.tween_property(brush_highlight, "size", transforms["brush_size"], 0.10)
+		_move_tween.tween_property(brush_highlight, "modulate", base_color, 0.10)
 		_play_sound(_sfx_move)
 	else:
-		left_chevron.position = l_pos
-		left_chevron.size = Vector2(chev_w, chev_h)
-		right_chevron.position = r_pos
-		right_chevron.size = Vector2(chev_w, chev_h)
-		brush_highlight.position = b_pos
-		brush_highlight.size = b_size
+		brush_highlight.position = transforms["brush_pos"]
+		brush_highlight.size = transforms["brush_size"]
+		brush_highlight.modulate = base_color
+
 
 func _make_mobile_selector_style(_selected: bool = false) -> StyleBoxFlat:
 	# No mobile, os botões são hitboxes transparentes sobre a arte oficial sem molduras retangulares.
@@ -307,31 +348,51 @@ func _make_mobile_selector_style(_selected: bool = false) -> StyleBoxFlat:
 func _play_selection_feedback(index: int) -> void:
 	if index < 0 or index >= _buttons.size():
 		return
-	var target_btn: Button = _buttons[index]
-	if target_btn == null:
+	if brush_highlight == null:
 		return
 
-	if _is_mobile_runtime():
-		# Moldura em ouro arcade com brilho difuso pulsa sobre a opção clicada (modulate tween).
-		# Sem StyleBoxFlat — apenas o flash dourado no próprio botão.
-		var mobile_tween := create_tween()
-		mobile_tween.tween_property(target_btn, "modulate", Color(1.3, 1.2, 0.9, 1.0), 0.12)
-		mobile_tween.tween_property(target_btn, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18)
-	else:
-		if brush_highlight != null:
-			var feedback_tween := create_tween()
-			feedback_tween.set_parallel(true)
-			feedback_tween.tween_property(brush_highlight, "modulate", Color(2.0, 1.9, 1.2, 1.0), 0.12)
-			if left_chevron != null:
-				feedback_tween.tween_property(left_chevron, "modulate", Color(1.8, 1.8, 1.3, 1.0), 0.12)
-			if right_chevron != null:
-				feedback_tween.tween_property(right_chevron, "modulate", Color(1.8, 1.8, 1.3, 1.0), 0.12)
-			feedback_tween.chain().tween_property(brush_highlight, "modulate", Color(1.2, 1.2, 0.9, 1.0), 0.18)
+	var transforms: Dictionary = _calculate_selector_transforms(index)
+	if transforms.is_empty():
+		return
+
+	# Interrompe tweens anteriores de movimento ou pulso
+	if _move_tween != null and _move_tween.is_valid():
+		_move_tween.kill()
+	if _pulse_tween != null and _pulse_tween.is_valid():
+		_pulse_tween.kill()
+	if _blink_tween != null and _blink_tween.is_valid():
+		_blink_tween.kill()
+
+	brush_highlight.visible = true
+	brush_highlight.position = transforms["brush_pos"]
+	brush_highlight.size = transforms["brush_size"]
+	brush_highlight.pivot_offset = transforms["brush_size"] * 0.5
+
+	# Feedback de confirmação Arcade Premium (tanto no PC quanto no Mobile):
+	# Piscar rápido com pico de luminosidade e sutil punch de escala na pincelada dourada.
+	# ZERO retângulos ou molduras compridas — apenas a iluminação brilhante da própria arte.
+	_blink_tween = create_tween()
+	# 1. Pico de impacto inicial (flash branco-ouro + leve expansão punch)
+	_blink_tween.parallel().tween_property(brush_highlight, "modulate", Color(2.6, 2.3, 1.4, 1.0), 0.05)
+	_blink_tween.parallel().tween_property(brush_highlight, "scale", Vector2(1.03, 1.08), 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	# 2. Queda rápida de contraste (strobe dip)
+	_blink_tween.chain().tween_property(brush_highlight, "modulate", Color(0.8, 0.7, 0.4, 0.25), 0.05)
+	_blink_tween.parallel().tween_property(brush_highlight, "scale", Vector2.ONE, 0.05)
+
+	# 3. Segundo flash de confirmação
+	_blink_tween.chain().tween_property(brush_highlight, "modulate", Color(2.3, 2.0, 1.2, 1.0), 0.05)
+
+	# 4. Assentamento estável em ouro luminoso para a transição
+	_blink_tween.chain().tween_property(brush_highlight, "modulate", Color(1.6, 1.4, 0.8, 0.95), 0.08)
 
 
 func _start_idle_pulse() -> void:
 	if _pulse_tween != null and _pulse_tween.is_valid():
 		_pulse_tween.kill()
+
+	if _is_mobile_runtime() or brush_highlight == null:
+		return
 
 	_pulse_tween = create_tween().set_loops()
 	_pulse_tween.tween_property(brush_highlight, "modulate:a", 0.70, 0.45).set_trans(Tween.TRANS_SINE)
@@ -342,8 +403,7 @@ func _activate_option(index: int) -> void:
 	if _is_transitioning:
 		return
 
-	if index == 4: # CONFIGURAÇÕES (Desabilitado)
-		_deny_action("Configurações em desenvolvimento.")
+	if index == 2 or index == 4: # PERSONAGENS (2) e CONFIGURAÇÕES (4) (Desabilitados - a princípio nada acontece)
 		return
 
 	_is_transitioning = true
@@ -381,12 +441,15 @@ func _activate_option(index: int) -> void:
 				_quit_mobile_game()
 			else:
 				get_tree().quit()
+
+
 ## Encerra o app nativo. No Web mobile, o shell tenta fechar a janela e
 ## apresenta uma tela de encerramento caso o navegador bloqueie window.close().
 func _quit_mobile_game() -> void:
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("if (typeof window.sakasQuitGame === 'function') { window.sakasQuitGame(); }")
 	get_tree().quit()
+
 
 func _deny_action(_reason: String) -> void:
 	_play_sound(_sfx_denied)
@@ -401,6 +464,7 @@ func _deny_action(_reason: String) -> void:
 		_shake_tween.tween_property(aspect_wrapper, "position:x", orig_pos.x - 4.0, 0.04)
 		_shake_tween.tween_property(aspect_wrapper, "position:x", orig_pos.x, 0.04)
 
+
 func _play_sound(stream: AudioStreamWAV) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
@@ -411,6 +475,7 @@ func _generate_audio_effects() -> void:
 	_sfx_move = _create_wav(720.0, 0.04, 0.3)
 	_sfx_confirm = _create_wav(1040.0, 0.12, 0.4)
 	_sfx_denied = _create_wav(160.0, 0.16, 0.5)
+
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:
 	var wav = AudioStreamWAV.new()
