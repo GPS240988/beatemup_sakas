@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "",
+  "buildCommand": "node scripts/pwa_post_export.js",
   "outputDirectory": "public",
   "installCommand": "",
   "cleanUrls": true,
@@ -15,6 +15,15 @@
         {
           "key": "Cross-Origin-Embedder-Policy",
           "value": "require-corp"
+        }
+      ]
+    },
+    {
+      "source": "/(index\\.service\\.worker\\.js|version\\.json)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },

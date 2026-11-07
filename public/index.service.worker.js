@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1794068310|14496581429';
+const CACHE_VERSION = 'd355ce91';
 /** @type {string} */
 const CACHE_PREFIX = 'Beat Em Up - Sak-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
@@ -21,6 +21,8 @@ const CACHEABLE_FILES = ["index.wasm","index.pck"];
 const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);
 
 self.addEventListener('install', (event) => {
+	// SAKAS_INSTALL_SKIP_WAITING
+	self.skipWaiting();
 	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES)));
 });
 
@@ -32,7 +34,8 @@ self.addEventListener('activate', (event) => {
 		}
 	).then(function () {
 		// Enable navigation preload if available.
-		return ('navigationPreload' in self.registration) ? self.registration.navigationPreload.enable() : Promise.resolve();
+		// SAKAS_ACTIVATE_CLAIM
+		return self.clients.claim().then(() => ('navigationPreload' in self.registration) ? self.registration.navigationPreload.enable() : Promise.resolve();
 	}));
 });
 
@@ -105,21 +108,22 @@ self.addEventListener(
 				// Try to use cache first
 				const cache = await caches.open(CACHE_NAME);
 				if (isNavigate) {
-					// Check if we have full cache during HTML page request.
-					/** @type {Response[]} */
-					const fullCache = await Promise.all(FULL_CACHE.map((name) => cache.match(name)));
-					const missing = fullCache.some((v) => v === undefined);
-					if (missing) {
-						try {
-							// Try network if some cached file is missing (so we can display offline page in case).
-							const response = await fetchAndCache(event, cache, isCacheable);
-							return response;
-						} catch (e) {
-							// And return the hopefully always cached offline page in case of network failure.
-							console.error('Network error: ', e); // eslint-disable-line no-console
-							return caches.match(OFFLINE_URL);
+					// SAKAS_NETWORK_FIRST_NAV: Busca index.html na rede para receber novo deploy imediatamente.
+					// Se estiver offline ou a rede falhar, utiliza o cache local ou a página offline.
+					try {
+						const netResp = await fetch(event.request);
+						if (netResp && netResp.ok) {
+							cache.put(event.request, netResp.clone());
+							return ensureCrossOriginIsolationHeaders(netResp);
 						}
+					} catch (_err) {
+						// Offline: continua para o cache abaixo
 					}
+					const cachedNav = await cache.match(event.request);
+					if (cachedNav != null) {
+						return ensureCrossOriginIsolationHeaders(cachedNav);
+					}
+					return caches.match(OFFLINE_URL);
 				}
 				let cached = await cache.match(event.request);
 				if (cached != null) {
@@ -154,7 +158,7 @@ self.addEventListener('message', (event) => {
 		if (!client) {
 			return; // Not a valid client.
 		}
-		if (msg === 'claim') {
+		if (msg === 'claim' || msg === 'SKIP_WAITING' || (typeof msg === 'object' && msg && msg.type === 'SKIP_WAITING')) {
 			self.skipWaiting().then(() => self.clients.claim());
 		} else if (msg === 'clear') {
 			caches.delete(CACHE_NAME);

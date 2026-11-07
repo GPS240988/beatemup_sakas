@@ -476,6 +476,7 @@ MapX (Node2D, script: base_level.gd)
   - É expressamente proibido chamar `NavigationRegion2D.bake_navigation_polygon()` ao destruir props.
   - A liberação de passagem é instantânea via `nav_obstacle.avoidance_enabled = false` e `collision_shape.set_deferred("disabled", true)`.
 - **Idempotência**: Chamadas repetidas a `destroy_prop()` são seguras e não duplicam drops nem emitem sinais espúrios.
+- **Padronização Obrigatória de Drops**: Qualquer prop destrutível que instancie itens ao ser quebrado (`drops_item = true`) DEVE instanciar pickups compatíveis com a arquitetura canônica da **Seção 35 (Arquitetura Canônica de Itens Dropados e Pickups 2.5D)**.
 
 ---
 
@@ -1034,6 +1035,51 @@ Em estrita conformidade com o roteiro oficial (`Roteiro Introdução Fase 1.docx
 - **CENA 05 (A Máquina)**: Fade In CRT com surto enérgico de brilho por 0.3s (sem blur), micro-jitter horizontal de 3px e pulso de luminosidade a cada linha do arcade.
 - **CENA 06 (Passado e Presente)**: Crossfade temporal com glitch curto de 2 frames e micro-distorção horizontal a cada avanço de texto.
 - **CENA 07 (Retorno à Locadora)**: Crossfade ultrarrápido (0.16s) entre as falas dos personagens para dinâmica ágil de diálogo arcade.
+
+---
+
+## 35. CANONICAL DROPPED ITEMS & PICKUPS ARCHITECTURE (2.5D)
+`STATUS: IMPLEMENTED`
+
+Todo e qualquer item dropado no jogo (consumíveis de cura, colecionáveis narrativos, cartas, revistas, armas ou moedas) DEVE obrigatoriamente seguir a padronização arquitetural, visual e de interação estabelecida por este contrato, sem exceções.
+
+### 1. Componente Modular Reutilizável (`DroppedItemVisuals`)
+- **Obrigatoriedade**: Todo item dropado DEVE instanciar e ser gerenciado pelo componente canônico `scripts/items/dropped_item_visuals.gd`.
+- **Proibição de Código Paralelo**: É terminantemente proibido recriar sombras manuais, polígonos avulsos ou rotinas duplicadas de partículas e flutuação dentro de scripts individuais de pickups.
+
+### 2. Normalização Canônica da Base Visual no Solo (2.5D & Y-Sort)
+- **Princípio da Linha de Solo em $Y = 0$**: No motor 2.5D do Sakas, a origem local da cena raiz $(0, 0)$ representa estritamente o plano de contato físico com o chão (*feet on the ground* / linha de Y-sorting).
+- **Normalização Automática (`normalize_target_base`)**:
+  - Elementos visuais (`Sprite2D`, `AnimatedSprite2D` ou nós contêineres) jamais podem ter sua metade inferior atravessando o solo (evitando que a aura corte o meio do sprite, como ocorria originalmente na revista).
+  - O método `DroppedItemVisuals.normalize_target_base()` detecta dinamicamente a geometria do sprite e garante que sua base inferior descanse na linha do solo com folga controlada ($Y = -ground\_clearance$, padrão de 2.0px).
+- **Imutabilidade da Raiz Física (Blindagem do Y-Sort)**:
+  - A raiz física (`Node2D` / `Area2D`) e o nó âncora `GroundAnchor` (com a sombra e a aura) permanecem rigorosamente estáticos em $(0, 0)$ no mundo.
+  - O efeito senoidal de flutuação (*bobbing*) e pulso luminoso ocorre **exclusivamente na coordenada local Y do nó visual filho** (`target_visual.position.y`), nunca na raiz física.
+
+### 3. Identidade Visual e Fidelidade Pixel Art HD
+- **Sombra Fixa no Solo**: `Polygon2D` elíptico achatado em $(0, 0)$ com cor escura (`Color(0.02, 0.03, 0.06, 0.48)`), desacoplado da flutuação.
+- **Aura Luminosa de Solo**: `Polygon2D` elíptico projetado com mistura aditiva (`CanvasItemMaterial.BLEND_MODE_ADD`), garantindo contraste legível com o calçamento urbano escuro.
+- **Identidade Cromática por Categoria**:
+  - **Consumíveis de Vida / Cura (`CocaPickup`)**: Verde ou verde-limão (`Color(0.25, 0.95, 0.40)`).
+  - **Colecionáveis Narrativos / História / Especiais (`Revistas`)**: Dourado ou âmbar (`Color(0.98, 0.78, 0.22)`).
+- **Partículas Procedurais**: Emissor moderado `CPUParticles2D` com brilhos ascendentes suaves e fade-out gradiente.
+- **Animação de Ejeção (*Spawn Arc*)**: Transição elástica via `Tween` simulando a expulsão do item de dentro do prop destrutível e assentamento suave no solo.
+- **Estética Rasterizada**: Todos os elementos devem manter `TEXTURE_FILTER_NEAREST`, sem blur bilinear ou deformações.
+
+### 4. Contrato de Interação e Acessibilidade UX (PC & Mobile)
+- **Texto Canônico Padronizado**: O botão de prompt deve exibir estritamente a string `"Pegar"`. É terminantemente proibido exibir `"J - Pegar"`, `"J - PEGAR"`, `"Pressione J"` ou qualquer indicação de tecla na interface.
+- **Área de Toque Mobile**: Área interativa mínima de 48 × 48 dp (tamanho base 96 × 48 px no viewport; se a raiz possuir escala reduzida, o botão deve aplicar compensação de escala inversa, ex: escala 2.0 para raiz 0.5).
+- **Controle Duplo (Toque & Teclado/Gamepad)**:
+  - Mobile: toque direto no botão `PickUpHint` aciona a coleta imediata (`pressed`).
+  - Desktop/Gamepad: a aproximação 2.5D registra o item como interactable no `Player`, e a tecla `J` (ou botão de ataque do controle) aciona `interact(player)`.
+- **Arbitragem de Prompt Único**:
+  - Todos os itens dropados interativos pertencem ao grupo canônico `"interactive_dropped_pickups"`.
+  - Quando múltiplos itens estiverem simultaneamente ao alcance do herói, o botão "Pegar" deve ficar visível **apenas no item mais próximo** (distância euclidiana ao jogador), evitando sobreposição e poluição na tela.
+- **Regra de Vida Cheia para Consumíveis**:
+  - Itens de cura (`CocaPickup`) não devem exibir o botão "Pegar" nem aceitar comandos de coleta se o jogador já estiver com vida máxima (`current_health >= max_health`).
+- **Camada Visual Dianteira (Z-Index)**:
+  - O botão de prompt `PickUpHint` deve configurar `z_index = 100` e `z_as_relative = false` e posicionar-se acima do topo do sprite normalizado, impedindo que o Y-Sort do chão o oculte atrás de fragmentos de caixas ou mobílias.
+
 
 
 
