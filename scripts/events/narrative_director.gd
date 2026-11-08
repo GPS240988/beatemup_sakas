@@ -116,11 +116,11 @@ var _is_typing: bool = false
 var _typewriter_tween: Tween = null
 # WebView removed to prevent black screen issue during intro-to-gameplay transition
 
-# Efeitos sonoros procedurais integrados
-var _sfx_deep_hum: AudioStreamWAV
-var _sfx_nostalgia: AudioStreamWAV
-var _sfx_glitch: AudioStreamWAV
-var _sfx_advance: AudioStreamWAV
+# Efeitos sonoros procedurais integrados com suporte a áudio gravado
+var _sfx_deep_hum: AudioStream
+var _sfx_nostalgia: AudioStream
+var _sfx_glitch: AudioStream
+var _sfx_advance: AudioStream
 
 
 func _init() -> void:
@@ -1473,7 +1473,7 @@ func _play_audio_by_name(sound_name: String) -> void:
 			pass
 
 
-func _play_sound(stream: AudioStreamWAV) -> void:
+func _play_sound(stream: AudioStream) -> void:
 	if _audio_player != null and stream != null:
 		_audio_player.stream = stream
 		_audio_player.play()
@@ -1490,6 +1490,11 @@ func _generate_sound_effects() -> void:
 	_sfx_nostalgia = sfx.get("nostalgia")
 	_sfx_glitch = sfx.get("glitch")
 	_sfx_advance = sfx.get("advance")
+
+	if ResourceLoader.exists("res://assets/audio/sfx/deep_intro_hum.mp3"):
+		_sfx_deep_hum = load("res://assets/audio/sfx/deep_intro_hum.mp3")
+	if ResourceLoader.exists("res://assets/audio/sfx/glitch_static.mp3"):
+		_sfx_glitch = load("res://assets/audio/sfx/glitch_static.mp3")
 
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:

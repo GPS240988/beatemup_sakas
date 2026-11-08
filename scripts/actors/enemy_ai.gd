@@ -549,6 +549,7 @@ func _process_fall(delta: float) -> void:
 		_state_timer = 0.35
 		velocity = Vector2.ZERO
 		CombatFeedback.spawn_dust(self, global_position)
+		CombatFeedback.play_enemy_fall_sound(self)
 		if anim_sprite != null:
 			visual_root.rotation_degrees = 0.0
 			visual_root.position.y = 0.0
@@ -647,6 +648,7 @@ func _on_damaged(_amount: float) -> void:
 	if current_state == State.DEAD:
 		return
 
+	CombatFeedback.play_enemy_hurt_sound(self)
 	_release_combat_resources()
 
 	if melee_attack != null:

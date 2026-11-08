@@ -43,6 +43,7 @@ var _dialogue_label: Label = null
 var _portrait_rect: TextureRect = null
 var _is_typing: bool = false
 var _typewriter_tween: Tween = null
+var _pickup_audio_player: AudioStreamPlayer = null
 
 
 ## Chamado pelo GamesBoxDropController antes de a instância entrar na árvore.
@@ -310,6 +311,10 @@ func interact(actor: Node) -> bool:
 	_set_registered_player(null)
 	_refresh_group_for_player(actor)
 
+	if _display_name.to_upper().begins_with("EMMANUE"):
+		_pickup_audio_player = CombatFeedback.play_pickup_sound(self, "emmanuelle")
+	else:
+		_pickup_audio_player = CombatFeedback.play_pickup_sound(self, "magazine")
 	_show_inspection_overlay()
 	return true
 
@@ -477,6 +482,18 @@ func _close_dialogue() -> void:
 	_is_typing = false
 	_dialogue_open = false
 	_consumed = true
+
+	if is_instance_valid(_pickup_audio_player) and _pickup_audio_player.playing:
+		var audio_ref := _pickup_audio_player
+		_pickup_audio_player = null
+		var fade_tween := create_tween()
+		if fade_tween != null:
+			fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			fade_tween.tween_property(audio_ref, "volume_db", -40.0, 0.25)
+			fade_tween.tween_callback(func():
+				if is_instance_valid(audio_ref):
+					audio_ref.stop()
+			)
 
 	if _overlay_layer != null:
 		_overlay_layer.visible = false

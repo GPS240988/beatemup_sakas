@@ -79,11 +79,170 @@ static func trigger_screen_shake(context_node: Node, intensity: float = 8.0, dur
 	)
 
 
-## Ponto de integração arquitetural para efeitos sonoros de combate (P3)
-## Quando arquivos de som forem importados no repositório (ex: em res://assets/audio/),
-## este método concentrará a reprodução de áudio desacoplada por perfil de impacto.
-static func play_impact_sound(_context_node: Node, _profile: String = "punch") -> void:
-	pass
+# =========================================================================
+# REPRODUÇÃO E SINCRONIZAÇÃO DE EFEITOS SONOROS DE COMBATE (SFX)
+# =========================================================================
+
+const SFX_SOCO_1: String = "res://assets/audio/sfx/soco_1_guilherme.mp3"
+const SFX_SOCO_2: String = "res://assets/audio/sfx/soco_2_guilherme.mp3"
+const SFX_FINALIZADOR: String = "res://assets/audio/sfx/finalizador_3_guilherme.mp3"
+const SFX_JUMPKICK: String = "res://assets/audio/sfx/jumpkick_guilherme.mp3"
+const SFX_ESPECIAL: String = "res://assets/audio/sfx/especial_1.1_guilherme.mp3"
+const SFX_INIMIGO_DANO_1: String = "res://assets/audio/sfx/inimigo_apanhando_1.mp3"
+const SFX_INIMIGO_DANO_2: String = "res://assets/audio/sfx/inimigo_apanhando_2.mp3"
+const SFX_INIMIGO_QUEDA: String = "res://assets/audio/sfx/inimigo_queda_1.mp3"
+
+const SFX_COCA_PICKUP: String = "res://assets/audio/sfx/Coca-Cola.mp3"
+const SFX_REVISTA_PICKUP: String = "res://assets/audio/sfx/Revista.mp3"
+const SFX_EMMANUELLE_PICKUP: String = "res://assets/audio/sfx/emmanuelle.mp3"
+const SFX_PROP_BOX_HIT: String = "res://assets/audio/sfx/Pancada na Caixa.mp3"
+const SFX_PROP_BOX_BREAK: String = "res://assets/audio/sfx/Quebra da Caixa.mp3"
+const SFX_PROP_TRASH_HIT: String = "res://assets/audio/sfx/Lata de Lixo  Metal.mp3"
+const SFX_MENU_MOVE: String = "res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"
+const SFX_MENU_CONFIRM: String = "res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"
+const SFX_MENU_DENIED: String = "res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"
+const SFX_NARRATIVE_HUM: String = "res://assets/audio/sfx/deep_intro_hum.mp3"
+const SFX_NARRATIVE_GLITCH: String = "res://assets/audio/sfx/glitch_static.mp3"
+
+static var _sound_cache: Dictionary = {}
+static var _punch_toggle: bool = false
+static var _hurt_toggle: bool = false
+
+
+static func _get_cached_stream(path: String) -> AudioStream:
+	if not _sound_cache.has(path):
+		if ResourceLoader.exists(path):
+			_sound_cache[path] = load(path) as AudioStream
+		else:
+			_sound_cache[path] = null
+	return _sound_cache[path]
+
+
+## Toca um efeito sonoro de combate com pitch levemente variado e reciclagem segura no pool.
+static func play_sound(context_node: Node, path: String, volume_db: float = 0.0, pitch_var: float = 0.05) -> AudioStreamPlayer:
+	if context_node == null or not context_node.is_inside_tree():
+		return null
+	var scene_root: Node = null
+	if context_node.get_tree() != null and context_node.get_tree().current_scene != null:
+		scene_root = context_node.get_tree().current_scene
+	else:
+		scene_root = context_node
+	if scene_root == null:
+		return null
+
+	var stream := _get_cached_stream(path)
+	if stream == null:
+		return null
+
+	var audio_pool := ObjectPoolClass.get_or_create(
+		scene_root,
+		"_Pool_CombatSFX",
+		null,
+		func():
+			var p := AudioStreamPlayer.new()
+			p.name = "CombatAudioPlayer"
+			p.bus = &"Master"
+			p.process_mode = Node.PROCESS_MODE_ALWAYS
+			return p,
+		8
+	)
+
+	var player: AudioStreamPlayer = null
+	if audio_pool != null and audio_pool.has_method("acquire"):
+		player = audio_pool.call("acquire") as AudioStreamPlayer
+
+	if player == null:
+		player = AudioStreamPlayer.new()
+		player.name = "CombatAudioPlayer"
+		player.bus = &"Master"
+		player.process_mode = Node.PROCESS_MODE_ALWAYS
+		scene_root.add_child(player)
+
+	player.stream = stream
+	player.volume_db = volume_db
+	player.pitch_scale = 1.0 if pitch_var <= 0.0 else randf_range(1.0 - pitch_var, 1.0 + pitch_var)
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	player.play()
+
+	var stream_len: float = stream.get_length() if stream.has_method("get_length") else 0.5
+	var player_id: int = player.get_instance_id()
+	var pool_id: int = audio_pool.get_instance_id() if audio_pool != null else 0
+	var timer := context_node.get_tree().create_timer(maxf(0.1, stream_len + 0.05), false, false, true)
+	timer.timeout.connect(func():
+		var p_inst := instance_from_id(player_id) as AudioStreamPlayer
+		var pool_inst := instance_from_id(pool_id)
+		if is_instance_valid(p_inst) and is_instance_valid(pool_inst):
+			if pool_inst.has_method("release"):
+				pool_inst.call("release", p_inst)
+	)
+	return player
+
+
+## Reproduz o efeito de impacto com base no perfil do ataque (punch, kick, finisher, special)
+static func play_impact_sound(context_node: Node, profile: String = "punch") -> void:
+	match profile:
+		"punch", "light":
+			var path := SFX_SOCO_1 if _punch_toggle else SFX_SOCO_2
+			_punch_toggle = not _punch_toggle
+			play_sound(context_node, path, -0.5, 0.05)
+		"kick", "medium":
+			play_sound(context_node, SFX_JUMPKICK, 0.0, 0.04)
+		"heavy", "finisher":
+			play_sound(context_node, SFX_FINALIZADOR, 1.5, 0.03)
+		"special":
+			play_sound(context_node, SFX_ESPECIAL, 2.5, 0.02)
+		_:
+			play_sound(context_node, SFX_SOCO_2, -0.5, 0.05)
+
+
+## Reproduz o som de dor / reação a golpe dos inimigos de rua
+static func play_enemy_hurt_sound(context_node: Node) -> void:
+	var path := SFX_INIMIGO_DANO_1 if _hurt_toggle else SFX_INIMIGO_DANO_2
+	_hurt_toggle = not _hurt_toggle
+	play_sound(context_node, path, -1.5, 0.06)
+
+
+## Reproduz o som de impacto no solo quando um inimigo sofre queda (Knockdown)
+static func play_enemy_fall_sound(context_node: Node) -> void:
+	play_sound(context_node, SFX_INIMIGO_QUEDA, 1.0, 0.04)
+
+
+## Reproduz som de impacto em objeto destrutível (madeira ou metal)
+static func play_prop_hit_sound(context_node: Node, is_metal: bool = false) -> void:
+	var path := SFX_PROP_TRASH_HIT if is_metal else SFX_PROP_BOX_HIT
+	play_sound(context_node, path, -0.5, 0.05)
+
+
+## Reproduz som de quebra/destruição de objeto destrutível
+static func play_prop_break_sound(context_node: Node, is_metal: bool = false) -> void:
+	var path := SFX_PROP_TRASH_HIT if is_metal else SFX_PROP_BOX_BREAK
+	play_sound(context_node, path, 1.0, 0.04)
+
+
+## Reproduz som de coleta de item (Coca, Revista de História ou Emmanuelle)
+static func play_pickup_sound(context_node: Node, item_type: String = "coca") -> AudioStreamPlayer:
+	match item_type:
+		"coca", "health":
+			return play_sound(context_node, SFX_COCA_PICKUP, 0.0, 0.03)
+		"magazine", "story", "revista":
+			return play_sound(context_node, SFX_REVISTA_PICKUP, 0.5, 0.02)
+		"emmanuelle", "emmanuele":
+			return play_sound(context_node, SFX_EMMANUELLE_PICKUP, 1.0, 0.0)
+		_:
+			return play_sound(context_node, SFX_COCA_PICKUP, 0.0, 0.03)
+
+
+## Reproduz som de interface / navegação de menus
+static func play_menu_sound(context_node: Node, action: String = "move") -> void:
+	match action:
+		"move":
+			play_sound(context_node, SFX_MENU_MOVE, -1.0, 0.04)
+		"confirm":
+			play_sound(context_node, SFX_MENU_CONFIRM, 0.5, 0.02)
+		"denied":
+			play_sound(context_node, SFX_MENU_DENIED, 0.5, 0.02)
+		_:
+			play_sound(context_node, SFX_MENU_MOVE, -1.0, 0.04)
 
 
 ## Gera partículas de impacto direcionais (CPUParticles2D) e efeitos visuais animados (Pixel Art HD)

@@ -120,6 +120,24 @@ func _run_suite() -> void:
 		var bottom_y: float = mag_card_sprite.position.y + half_h
 		_assert(bottom_y <= 0.0, "Base da revista normalizada no nível do solo (Y <= 0.0, base: %.1f)" % bottom_y)
 
+	# Validação do áudio sincronizado do item Emmanuele
+	var dummy_interactor := CharacterBody2D.new()
+	dummy_interactor.name = "DummyPlayer"
+	dummy_interactor.add_to_group("player")
+	world.add_child(dummy_interactor)
+	dummy_interactor.global_position = mag.global_position
+	mag.call("_on_body_entered", dummy_interactor)
+	mag.call("set_hint_selected", true, dummy_interactor)
+	var interact_ok: bool = mag.interact(dummy_interactor)
+	_assert(interact_ok, "interact(player) executado com sucesso no item Emmanuele")
+	_assert(mag._pickup_audio_player != null, "Item Emmanuele acionou player de áudio dedicado")
+	if mag._pickup_audio_player != null:
+		var stream_path: String = mag._pickup_audio_player.stream.resource_path if mag._pickup_audio_player.stream != null else ""
+		_assert("emmanuelle" in stream_path.to_lower(), "Áudio reproduzido é especificamente emmanuelle.mp3 (Path: %s)" % stream_path)
+		_assert(mag._pickup_audio_player.process_mode == Node.PROCESS_MODE_ALWAYS, "Player de áudio Emmanuelle configurado com process_mode ALWAYS")
+	mag.call("_close_dialogue")
+	dummy_interactor.queue_free()
+
 	# --- TESTE 4: Regra de Vida Cheia para a Coca ---
 	print("\n--- Teste 4: Regra de Vida Cheia para a Coca ---")
 	var player := CharacterBody2D.new()

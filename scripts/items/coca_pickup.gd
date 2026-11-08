@@ -269,6 +269,7 @@ func try_consume(player: Node) -> bool:
 	_set_hint_visible(false)
 	_set_registered_player(null)
 
+	CombatFeedback.play_pickup_sound(self, "coca")
 	_spawn_heal_feedback(player_node)
 	_play_consumed_animation()
 	return true

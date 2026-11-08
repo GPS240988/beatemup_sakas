@@ -64,9 +64,9 @@ const STAGE_POINTS: Array[Dictionary] = [
 
 var _selected_point_index: int = 0
 var _is_transitioning: bool = false
-var _sfx_confirm: AudioStreamWAV
-var _sfx_cancel: AudioStreamWAV
-var _sfx_move: AudioStreamWAV
+var _sfx_confirm: AudioStream
+var _sfx_cancel: AudioStream
+var _sfx_move: AudioStream
 var _bob_tween: Tween
 var _mobile_action_button: Button
 ## Contexto de entrada: "campaign" (novo jogo/continuar) ou "browse" (menu principal).
@@ -498,16 +498,33 @@ func _safe_handle_input() -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _play_sound(stream: AudioStreamWAV) -> void:
+func _play_sound(stream: AudioStream) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
 		audio_player.play()
 
 
 func _generate_audio_effects() -> void:
-	_sfx_confirm = _create_wav(1040.0, 0.12, 0.40)
-	_sfx_cancel = _create_wav(160.0, 0.14, 0.40)
-	_sfx_move = _create_wav(720.0, 0.05, 0.35)
+	if ResourceLoader.exists("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"):
+		_sfx_confirm = load("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3")
+	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_confirm.mp3"):
+		_sfx_confirm = load("res://assets/audio/sfx/sfx_menu_confirm.mp3")
+	else:
+		_sfx_confirm = _create_wav(1040.0, 0.12, 0.40)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"):
+		_sfx_cancel = load("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3")
+	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_denied.mp3"):
+		_sfx_cancel = load("res://assets/audio/sfx/sfx_menu_denied.mp3")
+	else:
+		_sfx_cancel = _create_wav(160.0, 0.14, 0.40)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"):
+		_sfx_move = load("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3")
+	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_move.mp3"):
+		_sfx_move = load("res://assets/audio/sfx/sfx_menu_move.mp3")
+	else:
+		_sfx_move = _create_wav(720.0, 0.05, 0.35)
 
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:

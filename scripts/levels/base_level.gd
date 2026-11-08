@@ -13,6 +13,9 @@ const SpawnPointClass = preload("res://scripts/spawning/spawn_point.gd")
 const PauseMenuScene: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const NarrativeDirectorClass = preload("res://scripts/events/narrative_director.gd")
 
+const BGM_STAGE_1_2: String = "res://assets/audio/bgm/M_1_2 - Estágio 1.mp3"
+const BGM_STAGE_3_4: String = "res://assets/audio/bgm/M_3_4 - Estágio 1.mp3"
+
 # Spawn seguro da onda de reforços do Mapa 1. A faixa Y 650..715 corresponde
 # ao corredor inferior contínuo da map_1_navpoly.tres.
 const MAP1_MOBILE_SPAWN_MIN_X: float = 300.0
@@ -228,6 +231,48 @@ func _ready() -> void:
 
 	# Disparo da abertura narrativa cinemática (Novo Jogo -> Mapa 1)
 	_check_and_trigger_opening_narrative()
+
+	# Inicialização da trilha sonora (BGM) correspondente ao mapa
+	_setup_level_bgm()
+
+
+var _level_bgm_player: AudioStreamPlayer = null
+
+
+## Configura a trilha sonora (BGM) do nível conforme o mapa atual:
+## Map 1 e Map 2 -> M_1_2 - Estágio 1
+## Map 3 e Map 4 -> M_3_4 - Estágio 1
+func _setup_level_bgm() -> void:
+	var target_bgm: String = ""
+	if map_index in [1, 2]:
+		target_bgm = BGM_STAGE_1_2
+	elif map_index in [3, 4]:
+		target_bgm = BGM_STAGE_3_4
+
+	if target_bgm.is_empty():
+		return
+
+	# Tenta delegar ao GameSession (Autoload) para que a música não reinicie entre map_1 e map_2
+	var gs: Node = get_node_or_null("/root/GameSession")
+	if gs != null and gs.has_method("play_bgm"):
+		gs.call("play_bgm", target_bgm)
+		return
+
+	# Fallback autônomo (testes isolados de cena sem autoload carregado)
+	if _level_bgm_player == null:
+		_level_bgm_player = AudioStreamPlayer.new()
+		_level_bgm_player.name = "LevelBGMPlayer"
+		_level_bgm_player.bus = &"Master"
+		add_child(_level_bgm_player)
+
+	if ResourceLoader.exists(target_bgm):
+		var stream: AudioStream = load(target_bgm) as AudioStream
+		if stream != null:
+			if stream is AudioStreamMP3:
+				(stream as AudioStreamMP3).loop = true
+			_level_bgm_player.stream = stream
+			_level_bgm_player.volume_db = -4.0
+			_level_bgm_player.play()
 
 
 func _check_and_trigger_opening_narrative() -> void:

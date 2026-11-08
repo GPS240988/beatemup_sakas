@@ -51,9 +51,9 @@ var _controls_overlay: Control
 var _settings_nav_buttons: Array[Button] = []
 var _settings_selected_index: int = 0
 
-var _sfx_move: AudioStreamWAV
-var _sfx_confirm: AudioStreamWAV
-var _sfx_cancel: AudioStreamWAV
+var _sfx_move: AudioStream
+var _sfx_confirm: AudioStream
+var _sfx_cancel: AudioStream
 var _mobile_action_button: Button
 var _mobile_back_button: Button
 var _touch_controls: TouchControls
@@ -720,16 +720,27 @@ func _show_status(message: String, col: Color) -> void:
 	status_label.modulate = col
 
 
-func _play_sound(stream: AudioStreamWAV) -> void:
+func _play_sound(stream: AudioStream) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
 		audio_player.play()
 
 
 func _generate_audio_effects() -> void:
-	_sfx_move = _create_wav(680.0, 0.035, 0.25)
-	_sfx_confirm = _create_wav(1040.0, 0.10, 0.40)
-	_sfx_cancel = _create_wav(180.0, 0.12, 0.40)
+	if ResourceLoader.exists("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"):
+		_sfx_move = load("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3")
+	else:
+		_sfx_move = _create_wav(680.0, 0.035, 0.25)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"):
+		_sfx_confirm = load("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3")
+	else:
+		_sfx_confirm = _create_wav(1040.0, 0.10, 0.40)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"):
+		_sfx_cancel = load("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3")
+	else:
+		_sfx_cancel = _create_wav(180.0, 0.12, 0.40)
 
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:

@@ -47,9 +47,9 @@ var _pulse_tween: Tween
 var _shake_tween: Tween
 var _blink_tween: Tween
 var _is_transitioning: bool = false
-var _sfx_move: AudioStreamWAV
-var _sfx_confirm: AudioStreamWAV
-var _sfx_denied: AudioStreamWAV
+var _sfx_move: AudioStream
+var _sfx_confirm: AudioStream
+var _sfx_denied: AudioStream
 
 
 func _ready() -> void:
@@ -465,16 +465,27 @@ func _deny_action(_reason: String) -> void:
 		_shake_tween.tween_property(aspect_wrapper, "position:x", orig_pos.x, 0.04)
 
 
-func _play_sound(stream: AudioStreamWAV) -> void:
+func _play_sound(stream: AudioStream) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
 		audio_player.play()
 
 
 func _generate_audio_effects() -> void:
-	_sfx_move = _create_wav(720.0, 0.04, 0.3)
-	_sfx_confirm = _create_wav(1040.0, 0.12, 0.4)
-	_sfx_denied = _create_wav(160.0, 0.16, 0.5)
+	if ResourceLoader.exists("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"):
+		_sfx_move = load("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3")
+	else:
+		_sfx_move = _create_wav(720.0, 0.04, 0.3)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"):
+		_sfx_confirm = load("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3")
+	else:
+		_sfx_confirm = _create_wav(1040.0, 0.12, 0.4)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"):
+		_sfx_denied = load("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3")
+	else:
+		_sfx_denied = _create_wav(160.0, 0.16, 0.5)
 
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:

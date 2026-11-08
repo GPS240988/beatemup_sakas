@@ -650,6 +650,7 @@ func execute_special() -> bool:
 ## Aplica o dano global e queda em todos os inimigos válidos do encontro
 func _apply_global_special_impact() -> void:
 	CombatFeedbackClass.trigger_screen_shake(self, 14.0, 0.4)
+	CombatFeedbackClass.play_impact_sound(self, "special")
 
 	var tree := get_tree()
 	if tree == null:
