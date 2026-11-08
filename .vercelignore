@@ -1,18 +1,30 @@
-# Ignorar tudo que não é do jogo web
-pyproject.toml
-uv.lock
-src/
-plugin/
-test_project/
-migration_bridge/
+# Vercel Deployment Ignore
+# O jogo Web roda exclusivamente a partir de public/ e scripts/pwa_post_export.js
+
+.godot/
+.tools/
 .venv/
 .claude/
 .github/
-script/
+assets/
+scenes/
 tests/
+test_project/
+plugin/
+src/
+migration_bridge/
 tools/
+script/
+docs/
+scratch/
+ajustemobile/
+*.py
+*.spec
+*.md
+*.txt
+*.log
+pyproject.toml
+uv.lock
 CHANGELOG.md
 LICENSE
 AGENTS.md
-*.py
-*.spec

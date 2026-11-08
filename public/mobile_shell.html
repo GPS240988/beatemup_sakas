@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<title>$GODOT_PROJECT_NAME</title>
-	<meta name="sakas-build-id" content="35453917">
+	<meta name="sakas-build-id" content="b7a532f6">
 	<meta name="sakas-build-id" content="initial">
 	$GODOT_HEAD_INCLUDE
 	<style>
@@ -384,17 +384,31 @@
 			};
 		})();
 
-		engine.startGame({
-			onProgress: function(current, total) {
-				if (total > 0) {
-					const percent = Math.min(100, Math.floor((current / total) * 100));
-					if (progressBar) progressBar.style.width = percent + '%';
-					if (loadingStatus) loadingStatus.textContent = 'CARREGANDO... ' + percent + '%';
-				} else {
-					if (loadingStatus) loadingStatus.textContent = 'INICIALIZANDO MOTOR...';
+		const modularPacks = [
+			'packs/pack_audio_bgm.pck',
+			'packs/pack_story_cinematics.pck',
+			'packs/pack_stage1.pck'
+		];
+
+		// Pré-carregamento em paralelo dos pacotes modulares (Multi-PCK)
+		const preloadPromises = modularPacks.map(p => engine.preloadFile(p, p).catch(err => {
+			console.warn('[Modular PCK] Falha ou aviso ao pré-carregar pacote:', p, err);
+		}));
+
+		Promise.all([
+			...preloadPromises,
+			engine.startGame({
+				onProgress: function(current, total) {
+					if (total > 0) {
+						const percent = Math.min(100, Math.floor((current / total) * 100));
+						if (progressBar) progressBar.style.width = percent + '%';
+						if (loadingStatus) loadingStatus.textContent = 'CARREGANDO... ' + percent + '%';
+					} else {
+						if (loadingStatus) loadingStatus.textContent = 'INICIALIZANDO MOTOR...';
+					}
 				}
-			}
-		}).then(() => {
+			})
+		]).then(() => {
 			if (window.sakasNotifyGameStarted) {
 				window.sakasNotifyGameStarted();
 			}

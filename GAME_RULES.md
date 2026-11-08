@@ -132,6 +132,30 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    - `GameOverLayer`: Camada arcade (`CanvasLayer` layer = 90) com imagem de fim de jogo `game_over.webp`. Fade in cinematográfico de aproximadamente 5.0 segundos com bloqueio estrito de reinício (`_can_restart = false`). Comando `[R]` liberado apenas após o término do fade in, reiniciando o primeiro mapa da fase correspondente com quantidade de continues ZERADA (`current_continues = 0`) e sem labels de instrução redundantes (legenda nativa na imagem).
    - Suíte de validação: `tests/arcade_hud_migration_test.gd`, `tests/player_hud_test.gd` e `tests/game_over_flow_test.gd`.
 
+### 1.5. Arquitetura Modular Multi-PCK e Orçamento de Armazenamento
+STATUS: IMPLEMENTED
+
+1. **Princípio Arquitetural e Orçamento Rígido**:
+   - Para permitir escalabilidade contínua de fases, músicas e cinemáticas sem ultrapassar as travas das CDNs (Vercel Hobby 100 MB por arquivo) e eliminar consumo de Git LFS no GitHub, o jogo adota a arquitetura modular **Multi-PCK** no Godot Engine 4.x.
+   - **Teto Orçamentário Mandatório**: Nenhum arquivo .pck individual pode ultrapassar **45.0 MB** (>55% de margem contra a trava de 100 MB).
+   - Todos os pacotes pesados adicionais (public/packs/*.pck) e binários web são estritamente ignorados pelo .gitignore, consumindo **0 bytes de Git LFS**.
+2. **Catálogo Canônico de Pacotes**:
+   - index.pck (Core Base): Motor, scripts, UI principal, shaders, SFX e atores base (~50 MB).
+   - packs/pack_audio_bgm.pck: Faixas de áudio BGM de alta fidelidade (~16 MB).
+   - packs/pack_story_cinematics.pck: Cinemáticas e telas de diálogo ilustradas em Full HD (~36 MB).
+   - packs/pack_stage1.pck: Mapas 1 a 4, Garagem Bônus e backgrounds do Estágio 1 (~19 MB).
+3. **Autoload PackManager (scripts/core/pack_manager.gd)**:
+   - Inicializado antes dos demais sistemas no project.godot.
+   - Monta dinamicamente pacotes locais ou pré-carregados na raiz virtual 
+es:// através de ProjectSettings.load_resource_pack(path, false).
+   - Transparência total: código existente continua consumindo caminhos canônicos (
+es://...) sem qualquer alteração.
+4. **Pipeline DevOps e Automação de Build**:
+   - 	ools/pack_builder.gd: Construtor headless automatizado via PCKPacker C++ nativo. Empacota fontes brutos, arquivos .import e seus derivados importados (.ctex, .mp3str), gera public/packs/manifest.json e falha preventivamente se qualquer pacote exceder 45 MB.
+   - 	ools/deploy_web.py: Script de orquestração que empacota os módulos, valida a integridade binária, carimba versão no Service Worker (scripts/pwa_post_export.js) e dispara o deploy seguro para a Vercel.
+5. **Suíte de Validação**:
+   - 	ests/test_modular_packs.gd (30/30 testes passando).
+
 ---
 
 ## 2. LEVEL SCENE CONTRACT

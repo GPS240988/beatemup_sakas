@@ -66,6 +66,25 @@ function updateServiceWorker(version) {
 		content = `const CACHE_VERSION = '${version}';\n` + content;
 	}
 
+	// 1.1 Atualiza CACHEABLE_FILES com pacotes modulares de public/packs/
+	const packsDir = path.join(PUBLIC_DIR, 'packs');
+	let extraPacks = ['packs/manifest.json'];
+	if (fs.existsSync(packsDir)) {
+		const packFiles = fs.readdirSync(packsDir);
+		for (const f of packFiles) {
+			if (f.endsWith('.pck')) {
+				extraPacks.push(`packs/${f}`);
+			}
+		}
+	}
+	const cacheableRegex = /const\s+CACHEABLE_FILES\s*=\s*\[[^\]]*\];/;
+	const baseCacheable = ['index.wasm', 'index.pck'];
+	const fullCacheable = Array.from(new Set([...baseCacheable, ...extraPacks]));
+	const newCacheableStr = `const CACHEABLE_FILES = ${JSON.stringify(fullCacheable)};`;
+	if (cacheableRegex.test(content)) {
+		content = content.replace(cacheableRegex, newCacheableStr);
+	}
+
 	// 2. Garante self.skipWaiting() no evento install
 	if (!content.includes('// SAKAS_INSTALL_SKIP_WAITING')) {
 		content = content.replace(
