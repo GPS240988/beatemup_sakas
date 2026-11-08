@@ -158,6 +158,36 @@ function updateHtmlMetaTag(filePath, version) {
 	console.log(`[PWA Build] ${path.basename(filePath)} atualizado com meta sakas-build-id = '${version}'`);
 }
 
+function updateHtmlFileSizes(filePath) {
+	if (!fs.existsSync(filePath)) return;
+	let content = fs.readFileSync(filePath, 'utf8');
+
+	const sizes = {};
+	const wasmPath = path.join(PUBLIC_DIR, 'index.wasm');
+	const pckPath = path.join(PUBLIC_DIR, 'index.pck');
+	if (fs.existsSync(wasmPath)) sizes['index.wasm'] = fs.statSync(wasmPath).size;
+	if (fs.existsSync(pckPath)) sizes['index.pck'] = fs.statSync(pckPath).size;
+
+	const packsDir = path.join(PUBLIC_DIR, 'packs');
+	if (fs.existsSync(packsDir)) {
+		const files = fs.readdirSync(packsDir);
+		for (const file of files) {
+			if (file.endsWith('.pck')) {
+				const full = path.join(packsDir, file);
+				sizes[`packs/${file}`] = fs.statSync(full).size;
+			}
+		}
+	}
+
+	const fileSizesJson = JSON.stringify(sizes);
+	const fileSizesRegex = /"fileSizes"\s*:\s*\{[^}]*\}/g;
+	if (fileSizesRegex.test(content)) {
+		content = content.replace(fileSizesRegex, `"fileSizes":${fileSizesJson}`);
+		fs.writeFileSync(filePath, content, 'utf8');
+		console.log(`[PWA Build] ${path.basename(filePath)} atualizado com fileSizes completos (${Object.keys(sizes).length} arquivos).`);
+	}
+}
+
 function main() {
 	console.log('[PWA Build] Iniciando automação pós-exportação / deploy...');
 
@@ -183,6 +213,7 @@ function main() {
 	updateServiceWorker(version);
 	updateHtmlMetaTag(path.join(PUBLIC_DIR, 'mobile_shell.html'), version);
 	updateHtmlMetaTag(path.join(PUBLIC_DIR, 'index.html'), version);
+	updateHtmlFileSizes(path.join(PUBLIC_DIR, 'index.html'));
 
 	console.log('[PWA Build] Automação concluída com sucesso!');
 }

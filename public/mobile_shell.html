@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<title>$GODOT_PROJECT_NAME</title>
-	<meta name="sakas-build-id" content="f57f522e">
+	<meta name="sakas-build-id" content="e65aff13">
 	<meta name="sakas-build-id" content="initial">
 	$GODOT_HEAD_INCLUDE
 	<style>
@@ -390,25 +390,31 @@
 			'packs/pack_stage1.pck'
 		];
 
-		// Pré-carregamento em paralelo dos pacotes modulares (Multi-PCK)
-		const preloadPromises = modularPacks.map(p => engine.preloadFile(p, p).catch(err => {
-			console.warn('[Modular PCK] Falha ou aviso ao pré-carregar pacote:', p, err);
-		}));
+		// Rastreamento de progresso unificado (motor + todos os pacotes modulares)
+		engine.config.onProgress = function(current, total) {
+			if (total > 0) {
+				const percent = Math.min(100, Math.floor((current / total) * 100));
+				if (progressBar) progressBar.style.width = percent + '%';
+				if (loadingStatus) loadingStatus.textContent = 'CARREGANDO... ' + percent + '%';
+			} else {
+				if (loadingStatus) loadingStatus.textContent = 'INICIALIZANDO MOTOR...';
+			}
+		};
 
+		// Sequencia canonica do Godot 4 Web:
+		// 1. Inicializa o ambiente WebAssembly (index.wasm)
+		// 2. Pre-carrega index.pck e todos os pacotes modulares (.pck) em paralelo
+		// 3. Executa engine.start() somente apos todos estarem montados na memoria virtual
 		Promise.all([
-			...preloadPromises,
-			engine.startGame({
-				onProgress: function(current, total) {
-					if (total > 0) {
-						const percent = Math.min(100, Math.floor((current / total) * 100));
-						if (progressBar) progressBar.style.width = percent + '%';
-						if (loadingStatus) loadingStatus.textContent = 'CARREGANDO... ' + percent + '%';
-					} else {
-						if (loadingStatus) loadingStatus.textContent = 'INICIALIZANDO MOTOR...';
-					}
-				}
-			})
+			engine.init('index'),
+			engine.preloadFile('index.pck', 'index.pck'),
+			...modularPacks.map(p => engine.preloadFile(p, p).catch(err => {
+				console.warn('[Modular PCK] Aviso ao pre-carregar pacote:', p, err);
+			}))
 		]).then(() => {
+			if (loadingStatus) loadingStatus.textContent = 'INICIANDO MOTOR...';
+			return engine.start();
+		}).then(() => {
 			if (window.sakasNotifyGameStarted) {
 				window.sakasNotifyGameStarted();
 			}
