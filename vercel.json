@@ -1,5 +1,6 @@
 {
   "framework": null,
+  "ignoreCommand": "node scripts/vercel_ignore_step.js",
   "buildCommand": "node scripts/pwa_post_export.js",
   "outputDirectory": "public",
   "installCommand": "",

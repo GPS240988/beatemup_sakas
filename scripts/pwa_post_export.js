@@ -160,6 +160,22 @@ function updateHtmlMetaTag(filePath, version) {
 
 function main() {
 	console.log('[PWA Build] Iniciando automação pós-exportação / deploy...');
+
+	// Trava de segurança para Vercel Cloud Build (evita publicar site quebrado se acionado via Git)
+	if (process.env.VERCEL) {
+		const pckPath = path.join(PUBLIC_DIR, 'index.pck');
+		const wasmPath = path.join(PUBLIC_DIR, 'index.wasm');
+		if (!fs.existsSync(pckPath) || !fs.existsSync(wasmPath)) {
+			console.error('\n======================================================================');
+			console.error('[ERRO DEVOPS CRÍTICO] Build Vercel cancelado por ausência de binários!');
+			console.error('O repositório Git não armazena index.pck nem index.wasm (economia de LFS).');
+			console.error('Para publicar o jogo com todos os arquivos, execute no computador:');
+			console.error('  tools\\deploy_web.bat');
+			console.error('======================================================================\n');
+			process.exit(1);
+		}
+	}
+
 	const version = resolveBuildVersion();
 	console.log(`[PWA Build] Versão canônica detectada: ${version}`);
 
