@@ -39,6 +39,23 @@ def print_header(title: str):
     print("=" * 70)
 
 
+def ensure_godot_web_export():
+    pck_path = PUBLIC_DIR / "index.pck"
+    wasm_path = PUBLIC_DIR / "index.wasm"
+    needs_export = not pck_path.exists() or not wasm_path.exists() or "--force-export" in sys.argv
+
+    if needs_export:
+        print_header("0. EXPORTANDO PROJETO BASE GODOT WEB (godot_console --headless)")
+        print("  index.pck ou index.wasm ausentes. Disparando exportação automática do Godot...")
+        cmd = ["godot_console.exe", "--headless", "--export-release", "Web", "public/index.html"]
+        print(f"  Executando: {' '.join(cmd)} ...")
+        res = subprocess.run(cmd, cwd=ROOT_DIR)
+        if res.returncode != 0:
+            print(f"  [ERRO] Falha na exportação Web do Godot (Código {res.returncode})")
+            sys.exit(res.returncode)
+        print("  [OK] Exportação Web do Godot concluída com sucesso!")
+
+
 def build_modular_packs():
     print_header("1. CONSTRUINDO PACOTES MODULARES (Multi-PCK via Godot)")
     if not PACK_BUILDER_SCRIPT.exists():
@@ -150,6 +167,7 @@ def deploy_to_vercel():
 
 
 def main():
+    ensure_godot_web_export()
     build_modular_packs()
     check_exported_binaries()
     run_pwa_post_export()
