@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
 
+PackManager="*res://scripts/core/pack_manager.gd"
 GameSession="*res://scripts/core/game_session.gd"
 MobileBootstrap="*res://scripts/mobile/mobile_bootstrap.gd"
 

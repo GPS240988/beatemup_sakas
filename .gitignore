@@ -91,3 +91,5 @@ mcp-server.log
 # Godot Web Heavy Binaries (Untracked from Git LFS to preserve quota; deployed via Vercel pipeline)
 public/*.pck
 public/*.wasm
+public/packs/*.pck
+.vercel
