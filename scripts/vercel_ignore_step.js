@@ -38,3 +38,4 @@ if (!hasPck || !hasWasm) {
 
 console.log('[Vercel Ignored Build Step] ✅ Binários Godot detectados. Prosseguindo com o build...');
 process.exit(1); // Exit 1 = Prossegue com o build na Vercel
+
