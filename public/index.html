@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<title>Beat Em Up - Sakas</title>
-	<meta name="sakas-build-id" content="e65aff13">
+	<meta name="sakas-build-id" content="30f1ae55">
 	<meta name="sakas-build-id" content="initial">
 	<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
@@ -416,6 +416,7 @@
 			}))
 		]).then(() => {
 			if (loadingStatus) loadingStatus.textContent = 'INICIANDO MOTOR...';
+			engine.config.args = ['--main-pack', 'index.pck'].concat(engine.config.args || []);
 			return engine.start();
 		}).then(() => {
 			if (window.sakasNotifyGameStarted) {
