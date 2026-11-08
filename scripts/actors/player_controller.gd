@@ -282,9 +282,6 @@ func _build_combo_chain() -> void:
 	atk4.preferred_regions.assign(["upper_torso", "head"])
 	atk4.hitbox_offset_y = hero_data.heavy4_hitbox_offset_y if hero_data and "heavy4_hitbox_offset_y" in hero_data else -120.0
 	_combo_attacks.append(atk4)
-	atk4.preferred_regions.assign(["upper_torso", "head"])
-	atk4.hitbox_offset_y = -120.0
-	_combo_attacks.append(atk4)
 
 
 var _saved_anim_speed_scale: float = 1.0
@@ -571,7 +568,7 @@ func _execute_combo_attack(step: int) -> bool:
 	# Mantém a janela de combo aberta durante o golpe para encadeamentos suaves
 	var win: float = float(atk.get("combo_window"))
 	if win > 0.0:
-		_combo_window_timer = win + 0.60
+		_combo_window_timer = win
 	else:
 		_combo_window_timer = 0.0
 
@@ -606,24 +603,29 @@ func execute_special() -> bool:
 		melee_attack.cancel_attack()
 	_input_buffered = false
 
-	# Identificação do herói atual para apresentação
-	var session = get_node_or_null("/root/GameSession")
-	var char_id: String = "guilherme"
-	if session != null and "selected_character_id" in session:
-		char_id = str(session.selected_character_id).to_lower()
+	# Instanciação da apresentação cinematográfica oficial do Especial
+	var presentation: SpecialPresentation
+	if hero_data != null:
+		presentation = SpecialPresentationClass.new(hero_data)
+	else:
+		# Fallback por ID e textura de sprite se hero_data não estiver carregado
+		var session = get_node_or_null("/root/GameSession")
+		var char_id: String = "guilherme"
+		if session != null and "selected_character_id" in session:
+			char_id = str(session.selected_character_id).to_lower()
 
-	# Extrai textura existente do herói para apresentação do Especial
-	var hero_tex: Texture2D = null
-	if anim_sprite != null and anim_sprite.sprite_frames != null:
-		var sf: SpriteFrames = anim_sprite.sprite_frames
-		if sf.has_animation("idle") and sf.get_frame_count("idle") > 0:
-			hero_tex = sf.get_frame_texture("idle", 0)
-		elif sf.has_animation("punch") and sf.get_frame_count("punch") > 0:
-			hero_tex = sf.get_frame_texture("punch", 0)
-		elif sf.has_animation("heavy") and sf.get_frame_count("heavy") > 0:
-			hero_tex = sf.get_frame_texture("heavy", 0)
+		var hero_tex: Texture2D = null
+		if anim_sprite != null and anim_sprite.sprite_frames != null:
+			var sf: SpriteFrames = anim_sprite.sprite_frames
+			if sf.has_animation("idle") and sf.get_frame_count("idle") > 0:
+				hero_tex = sf.get_frame_texture("idle", 0)
+			elif sf.has_animation("punch") and sf.get_frame_count("punch") > 0:
+				hero_tex = sf.get_frame_texture("punch", 0)
+			elif sf.has_animation("heavy") and sf.get_frame_count("heavy") > 0:
+				hero_tex = sf.get_frame_texture("heavy", 0)
 
-	var presentation := SpecialPresentationClass.new(char_id, hero_tex)
+		presentation = SpecialPresentationClass.new(char_id, hero_tex)
+
 	var scene_root := get_tree().root
 	if scene_root != null:
 		scene_root.add_child(presentation)
@@ -648,6 +650,7 @@ func execute_special() -> bool:
 ## Aplica o dano global e queda em todos os inimigos válidos do encontro
 func _apply_global_special_impact() -> void:
 	CombatFeedbackClass.trigger_screen_shake(self, 14.0, 0.4)
+	CombatFeedbackClass.play_impact_sound(self, "special")
 
 	var tree := get_tree()
 	if tree == null:
@@ -676,7 +679,8 @@ func _apply_global_special_impact() -> void:
 			Vector2(100.0, 100.0),
 			["upper_torso", "head"],
 			hit_dir_x,
-			"special"
+			"special",
+			global_position
 		)
 		var spark_pos: Vector2 = impact_res.get("position", enemy_pos + Vector2(0.0, -110.0))
 		var impact_reg: String = impact_res.get("region", "upper_torso")

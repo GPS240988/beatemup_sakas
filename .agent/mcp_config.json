@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sloyd": {
+      "url": "https://api.sloyd.ai/api/mcp",
+      "headers": {
+        "x-client-id": "sok_live_-lhFKY6EokAYSGz5yv-VsRO1",
+        "x-client-secret": "1Mw1mEULVXcmdIMD5TKwdDFdoY2L2SgQ9WcGpCWOu0Q"
+      }
+    }
+  }
+}
+

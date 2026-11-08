@@ -4,6 +4,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<title>Beat Em Up - Sakas</title>
+	<meta name="sakas-build-id" content="35453917">
+	<meta name="sakas-build-id" content="initial">
 	<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 <link rel="manifest" href="index.manifest.json">
@@ -165,7 +167,7 @@
 	<div id="load-error" role="alert"></div>
 	<script src="index.js"></script>
 	<script>
-		const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":95946012,"index.wasm":37902138},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"});
+		const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":105669992,"index.wasm":37902138},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"});
 
 		const loadingScreen = document.getElementById('loading-screen');
 		const progressBar = document.getElementById('progress-bar');
@@ -221,6 +223,170 @@
 			return true;
 		};
 
+		// --- SAKAS PWA AUTO-UPDATE MANAGER (GODOT WEB / MOBILE) ---
+		(function initPwaUpdateManager() {
+			if (!('serviceWorker' in navigator)) return;
+
+			let refreshing = false;
+			let engineRunning = false;
+			let updateToast = null;
+
+			function showUpdateToast() {
+				if (updateToast) return;
+				updateToast = document.createElement('div');
+				updateToast.id = 'sakas-update-toast';
+				updateToast.setAttribute('role', 'alert');
+				updateToast.innerHTML = `
+					<span>NOVA VERSÃO DISPONÍVEL!</span>
+					<button id="sakas-update-btn">ATUALIZAR AGORA</button>
+				`;
+				updateToast.style.cssText = `
+					position: fixed;
+					top: 14px;
+					left: 50%;
+					transform: translateX(-50%);
+					z-index: 99999;
+					display: flex;
+					align-items: center;
+					gap: 12px;
+					padding: 8px 16px;
+					background: rgba(14, 20, 32, 0.95);
+					border: 1px solid #e5b958;
+					border-radius: 8px;
+					box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+					color: #f2e6c8;
+					font-family: Arial, sans-serif;
+					font-size: 13px;
+					font-weight: bold;
+					letter-spacing: 0.05em;
+				`;
+				const btn = updateToast.querySelector('#sakas-update-btn');
+				btn.style.cssText = `
+					background: #e5b958;
+					color: #080b12;
+					border: none;
+					padding: 4px 10px;
+					border-radius: 4px;
+					font-weight: bold;
+					cursor: pointer;
+					font-size: 12px;
+				`;
+				btn.addEventListener('click', () => {
+					window.location.reload();
+				});
+				document.body.appendChild(updateToast);
+			}
+
+			function safeReload(targetVersion) {
+				if (refreshing) return;
+				const reloadedVersion = sessionStorage.getItem('sakas_reloaded_version');
+				if (targetVersion && reloadedVersion === targetVersion) {
+					console.log('[PWA] Já recarregado nesta sessão para a versão:', targetVersion);
+					return;
+				}
+				refreshing = true;
+				sessionStorage.setItem('sakas_reloaded_version', targetVersion || 'updated');
+				console.log('[PWA] Recarregando para aplicar nova versão publicada...');
+				window.location.reload();
+			}
+
+			navigator.serviceWorker.addEventListener('controllerchange', () => {
+				console.log('[PWA] Novo Service Worker assumiu o controle.');
+				if (!engineRunning) {
+					safeReload();
+				} else {
+					showUpdateToast();
+				}
+			});
+
+			async function checkForPublishedRelease(registration) {
+				try {
+					if (registration) {
+						registration.update().catch(() => {});
+					}
+					const resp = await fetch('version.json?_t=' + Date.now(), {
+						cache: 'no-store',
+						headers: { 'Accept': 'application/json' }
+					});
+					if (!resp.ok) return;
+					const data = await resp.json();
+					const serverVersion = data && data.version ? String(data.version) : '';
+					if (!serverVersion) return;
+
+					const localMeta = document.querySelector('meta[name="sakas-build-id"]');
+					const currentVersion = localMeta ? localMeta.getAttribute('content') : '';
+
+					if (currentVersion && currentVersion !== 'initial' && serverVersion !== currentVersion) {
+						console.log(`[PWA] Atualização detectada: ${serverVersion} (local: ${currentVersion})`);
+						if (registration && registration.waiting) {
+							registration.waiting.postMessage('SKIP_WAITING');
+							registration.waiting.postMessage('claim');
+						} else if (registration) {
+							registration.update().then((reg) => {
+								if (reg && reg.waiting) {
+									reg.waiting.postMessage('SKIP_WAITING');
+									reg.waiting.postMessage('claim');
+								}
+							});
+						}
+					}
+				} catch (_e) {
+					// Offline: falha de rede silenciosa esperada
+				}
+			}
+
+			function checkWaitingWorker(registration) {
+				if (!registration) return;
+				if (registration.waiting) {
+					console.log('[PWA] Worker em espera detectado. Solicitando ativação...');
+					registration.waiting.postMessage('SKIP_WAITING');
+					registration.waiting.postMessage('claim');
+				}
+				registration.addEventListener('updatefound', () => {
+					const newWorker = registration.installing;
+					if (!newWorker) return;
+					newWorker.addEventListener('statechange', () => {
+						if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+							console.log('[PWA] Nova versão instalada no cache. Ativando...');
+							newWorker.postMessage('SKIP_WAITING');
+							newWorker.postMessage('claim');
+						}
+					});
+				});
+			}
+
+			navigator.serviceWorker.getRegistration().then((reg) => {
+				if (reg) {
+					checkWaitingWorker(reg);
+					checkForPublishedRelease(reg);
+				}
+			});
+
+			let lastForegroundCheck = Date.now();
+			function onForegroundResume() {
+				const now = Date.now();
+				if (now - lastForegroundCheck > 45000) {
+					lastForegroundCheck = now;
+					navigator.serviceWorker.getRegistration().then((reg) => {
+						if (reg) {
+							checkForPublishedRelease(reg);
+						}
+					});
+				}
+			}
+
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'visible') {
+					onForegroundResume();
+				}
+			});
+			window.addEventListener('focus', onForegroundResume);
+
+			window.sakasNotifyGameStarted = function() {
+				engineRunning = true;
+			};
+		})();
+
 		engine.startGame({
 			onProgress: function(current, total) {
 				if (total > 0) {
@@ -232,6 +398,9 @@
 				}
 			}
 		}).then(() => {
+			if (window.sakasNotifyGameStarted) {
+				window.sakasNotifyGameStarted();
+			}
 			if (loadingScreen) {
 				loadingScreen.style.opacity = '0';
 				setTimeout(() => {

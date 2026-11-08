@@ -4,10 +4,9 @@ script/*       text eol=lf
 script/githooks/* text eol=lf
 *.sh           text eol=lf
 # ── Git LFS: binários pesados do jogo ──
-# Godot web export (PCK cresce a cada asset novo)
-*.pck filter=lfs diff=lfs merge=lfs -text
-# WebAssembly engine binary
-*.wasm filter=lfs diff=lfs merge=lfs -text
+# Godot web export (*.pck e *.wasm desvinculados do LFS para proteger cota; ignorados no git e publicados via deploy direto)
+# *.pck filter=lfs diff=lfs merge=lfs -text
+# *.wasm filter=lfs diff=lfs merge=lfs -text
 # Large raw media (vídeos)
 *.ogv filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text

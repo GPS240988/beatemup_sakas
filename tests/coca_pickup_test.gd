@@ -93,7 +93,7 @@ func _test_pickup_behavior() -> void:
 	assert_test(not bool(pickup.call("try_consume", player)), "mesmo item não pode ser consumido duas vezes")
 	assert_test(not pickup.is_in_group("health_pickups"), "item consumido sai imediatamente do grupo de coleta")
 
-	var feedback: Label2D = player.get_node_or_null("HealPickupFeedback") as Label2D
+	var feedback: Label = player.get_node_or_null("HealPickupFeedback") as Label
 	assert_test(feedback != null, "coleta cria texto flutuante sobre o personagem")
 	if feedback != null:
 		assert_test(feedback.text == "+25% Vida", "texto de cura mostra exatamente '+25% Vida'")

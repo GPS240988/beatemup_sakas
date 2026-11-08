@@ -397,17 +397,24 @@ func _try_hit_target(node: Node) -> void:
 		hitbox_sz,
 		preferred_regions,
 		facing_direction,
-		impact_profile
+		impact_profile,
+		attacker_pos
 	)
 	var impact_region: String = impact_res.get("region", "upper_torso")
 	var spark_pos: Vector2 = impact_res.get("position", target_pos + Vector2(0.0, -85.0))
+
+	# Vetor de direção geométrica real do golpe (do atacante para a vítima)
+	var hit_dir_x: float = signf(target_pos.x - attacker_pos.x)
+	if hit_dir_x == 0.0:
+		hit_dir_x = facing_direction
+	var hit_direction_vec := Vector2(hit_dir_x, 0.0)
 
 	# Criação desacoplada de DamageInfo (FASE 6 / COMBATE ARCADE)
 	var damage_info := DamageInfoClass.new(
 		damage,
 		_owner_actor,
 		attacker_pos,
-		Vector2(facing_direction, 0.0),
+		hit_direction_vec,
 		"melee",
 		knockback_force,
 		hitstun_duration,
@@ -428,7 +435,7 @@ func _try_hit_target(node: Node) -> void:
 
 	if applied:
 		CombatFeedbackClass.apply_hitstop(_owner_actor, target_actor, hitstop_duration)
-		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, Vector2(facing_direction, 0), impact_profile, impact_region)
+		CombatFeedbackClass.spawn_hit_spark(self, spark_pos, hit_direction_vec, impact_profile, impact_region)
 		CombatFeedbackClass.play_impact_sound(self, impact_profile)
 		if impact_profile in ["heavy", "finisher", "special"]:
 			CombatFeedbackClass.trigger_screen_shake(self, 6.0, 0.22)

@@ -300,6 +300,7 @@ func destroy_prop() -> void:
 
 ## Toca efeitos visuais e sonoros de impacto (se disponíveis)
 func _play_impact_effect(impact_pos: Vector2 = Vector2.ZERO) -> void:
+	var played_sound: bool = false
 	if effects != null:
 		var sound: AudioStreamPlayer2D = effects.get_node_or_null("ImpactSound") as AudioStreamPlayer2D
 		if sound != null and sound.stream != null:
@@ -307,6 +308,7 @@ func _play_impact_effect(impact_pos: Vector2 = Vector2.ZERO) -> void:
 			if impact_pos != Vector2.ZERO:
 				sound.position = effects.to_local(impact_pos)
 			sound.play()
+			played_sound = true
 
 		var particles: CPUParticles2D = effects.get_node_or_null("ImpactParticles") as CPUParticles2D
 		if particles != null:
@@ -314,6 +316,11 @@ func _play_impact_effect(impact_pos: Vector2 = Vector2.ZERO) -> void:
 				particles.position = effects.to_local(impact_pos)
 			particles.restart()
 			particles.emitting = true
+
+	# Fallback canônico de áudio de impacto caso o nó Effects/ImpactSound não possua stream
+	if not played_sound:
+		var is_metal: bool = prop_name.containsn("Lixo") or prop_name.containsn("Metal") or prop_name.containsn("Lata")
+		CombatFeedback.play_prop_hit_sound(self, is_metal)
 
 	# Micro tremor visual ao sofrer impacto (Dark Premium Medieval / Arcade feel)
 	if visual_root != null and is_inside_tree():
@@ -326,25 +333,30 @@ func _play_impact_effect(impact_pos: Vector2 = Vector2.ZERO) -> void:
 
 ## Toca efeitos visuais e sonoros de destruição (se disponíveis)
 func _play_destruction_effect() -> void:
-	if effects == null:
-		return
-
 	# Efeitos de fogo são opcionais: props que não possuem FireParticles não são afetados.
 	_set_fire_particles_emitting(false)
 
-	var sound: AudioStreamPlayer2D = effects.get_node_or_null("BreakSound") as AudioStreamPlayer2D
-	if sound != null and sound.stream != null:
-		sound.play()
+	var played_sound: bool = false
+	if effects != null:
+		var sound: AudioStreamPlayer2D = effects.get_node_or_null("BreakSound") as AudioStreamPlayer2D
+		if sound != null and sound.stream != null:
+			sound.play()
+			played_sound = true
 
-	var break_particles: CPUParticles2D = effects.get_node_or_null("BreakParticles") as CPUParticles2D
-	if break_particles != null:
-		break_particles.restart()
-		break_particles.emitting = true
+		var break_particles: CPUParticles2D = effects.get_node_or_null("BreakParticles") as CPUParticles2D
+		if break_particles != null:
+			break_particles.restart()
+			break_particles.emitting = true
 
-	var smoke_particles: CPUParticles2D = effects.get_node_or_null("SmokeParticles") as CPUParticles2D
-	if smoke_particles != null:
-		smoke_particles.restart()
-		smoke_particles.emitting = true
+		var smoke_particles: CPUParticles2D = effects.get_node_or_null("SmokeParticles") as CPUParticles2D
+		if smoke_particles != null:
+			smoke_particles.restart()
+			smoke_particles.emitting = true
+
+	# Fallback canônico de áudio de quebra caso o nó Effects/BreakSound não possua stream
+	if not played_sound:
+		var is_metal: bool = prop_name.containsn("Lixo") or prop_name.containsn("Metal") or prop_name.containsn("Lata")
+		CombatFeedback.play_prop_break_sound(self, is_metal)
 
 
 ## Liga/desliga o fogo de props incendiados sem acoplar o componente a uma cena específica.

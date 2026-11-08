@@ -26,8 +26,8 @@ const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
 
 var _pulse_tween: Tween
-var _sfx_start: AudioStreamWAV
-var _sfx_cancel: AudioStreamWAV
+var _sfx_start: AudioStream
+var _sfx_cancel: AudioStream
 var _is_transitioning: bool = false
 var _mobile_action_button: Button
 var _ambient_backdrop: TextureRect
@@ -202,15 +202,26 @@ func _on_back_pressed() -> void:
 				printerr("Erro ao retornar: ", err)
 
 
-func _play_sound(stream: AudioStreamWAV) -> void:
+func _play_sound(stream: AudioStream) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
 		audio_player.play()
 
 
 func _generate_audio_effects() -> void:
-	_sfx_start = _create_wav(880.0, 0.18, 0.45)
-	_sfx_cancel = _create_wav(220.0, 0.12, 0.4)
+	if ResourceLoader.exists("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"):
+		_sfx_start = load("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3")
+	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_confirm.mp3"):
+		_sfx_start = load("res://assets/audio/sfx/sfx_menu_confirm.mp3")
+	else:
+		_sfx_start = _create_wav(880.0, 0.18, 0.45)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"):
+		_sfx_cancel = load("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3")
+	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_denied.mp3"):
+		_sfx_cancel = load("res://assets/audio/sfx/sfx_menu_denied.mp3")
+	else:
+		_sfx_cancel = _create_wav(220.0, 0.12, 0.4)
 
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:

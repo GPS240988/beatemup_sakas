@@ -412,7 +412,9 @@ func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, p
 
 	# Se o snapshot não foi fornecido explicitamente, tenta capturar do nível atual
 	if world_snapshot.is_empty():
-		var current_level: Node = get_tree().current_scene if get_tree() != null else null
+		var current_level: Node = null
+		if is_inside_tree() and get_tree() != null:
+			current_level = get_tree().current_scene
 		if current_level != null and current_level.has_method("capture_world_snapshot"):
 			world_snapshot = current_level.capture_world_snapshot()
 
@@ -524,3 +526,50 @@ func delete_save_slot(slot: int) -> bool:
 	var path: String = SAVE_PATH_TEMPLATE % slot
 	var err := DirAccess.remove_absolute(path)
 	return err == OK
+
+
+# =========================================================================
+# GERENCIAMENTO DE TRILHA SONORA (BGM)
+# =========================================================================
+
+var _bgm_player: AudioStreamPlayer = null
+var _current_bgm_path: String = ""
+
+
+## Reproduz a música de fundo (BGM) especificada.
+## Se a faixa solicitada já estiver tocando, mantém a reprodução contínua sem interrupção.
+func play_bgm(bgm_path: String, volume_db: float = -4.0) -> void:
+	if _current_bgm_path == bgm_path and _bgm_player != null and _bgm_player.playing:
+		return
+
+	if _bgm_player == null:
+		_bgm_player = AudioStreamPlayer.new()
+		_bgm_player.name = "GameSessionBGMPlayer"
+		_bgm_player.process_mode = Node.PROCESS_MODE_ALWAYS
+		_bgm_player.bus = &"Master"
+		add_child(_bgm_player)
+
+	if bgm_path.is_empty() or not ResourceLoader.exists(bgm_path):
+		stop_bgm()
+		return
+
+	var stream: AudioStream = load(bgm_path) as AudioStream
+	if stream != null:
+		if stream is AudioStreamMP3:
+			(stream as AudioStreamMP3).loop = true
+		_bgm_player.stream = stream
+		_bgm_player.volume_db = volume_db
+		_bgm_player.play()
+		_current_bgm_path = bgm_path
+
+
+## Interrompe a reprodução de BGM atual
+func stop_bgm() -> void:
+	if _bgm_player != null and _bgm_player.playing:
+		_bgm_player.stop()
+	_current_bgm_path = ""
+
+
+## Retorna o caminho da faixa de BGM em reprodução
+func get_current_bgm_path() -> String:
+	return _current_bgm_path

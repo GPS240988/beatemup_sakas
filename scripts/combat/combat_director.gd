@@ -80,12 +80,16 @@ func _ready() -> void:
 
 
 func _setup_director() -> void:
+	if not is_inside_tree():
+		return
 	_find_player()
 	_register_existing_enemies()
 	encounter_started.emit()
 
 
 func _process(delta: float) -> void:
+	if not is_inside_tree():
+		return
 	_cleanup_invalid_instances()
 	if player_target == null or not is_instance_valid(player_target):
 		_find_player()
@@ -94,14 +98,24 @@ func _process(delta: float) -> void:
 
 ## Localiza o jogador na cena
 func _find_player() -> void:
-	var found: Node = get_tree().get_first_node_in_group(player_group)
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var found: Node = tree.get_first_node_in_group(player_group)
 	if found is CharacterBody2D:
 		player_target = found as CharacterBody2D
 
 
 ## Registra automaticamente inimigos já presentes no grupo
 func _register_existing_enemies() -> void:
-	var nodes: Array[Node] = get_tree().get_nodes_in_group(enemy_group)
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var nodes: Array[Node] = tree.get_nodes_in_group(enemy_group)
 	for n in nodes:
 		if n is CharacterBody2D and not n.is_in_group("npcs") and not n.is_in_group("player") and not registered_enemies.has(n):
 			register_enemy(n as CharacterBody2D)

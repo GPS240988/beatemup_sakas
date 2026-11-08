@@ -24,13 +24,18 @@ func _init() -> void:
 func _run_tests() -> void:
 	print("\n=== TESTE: DROP DOS ITENS DA CAIXA — FASE 1-1 ===")
 
+	var map_root := Node2D.new()
+	map_root.name = "Map1"
+	root.add_child(map_root)
+	current_scene = map_root
+
 	var box := GamesBoxScene.instantiate()
 	_assert_test(box != null, "Cena da caixa foi instanciada")
 	if box == null:
 		quit(1)
 		return
 
-	root.add_child(box)
+	map_root.add_child(box)
 	await process_frame
 
 	var controller := box.get_node_or_null("GamesBoxDropController")
@@ -68,19 +73,21 @@ func _run_tests() -> void:
 			_assert_test(emmanuele_sprite != null and emmanuele_sprite.texture != null and emmanuele_sprite.texture.resource_path.ends_with("emmanuele.jpg"), "Thumbnail EMMANUELE carregado")
 			_assert_test(playboy_sprite != null and playboy_sprite.texture != null and playboy_sprite.texture.resource_path.ends_with("playboy.jpg"), "Thumbnail PLAYBOY carregado")
 
-			var emmanuele_dialogue := emmanuele.get_node_or_null("CardInspectionOverlay/OverlayRoot")
-			var playboy_dialogue := playboy.get_node_or_null("CardInspectionOverlay/OverlayRoot")
-			_assert_test(emmanuele_dialogue != null and emmanuele_dialogue.get_node_or_null("EnlargedCard") != null, "Painel de inspeção EMMANUELE construído")
-			_assert_test(playboy_dialogue != null and playboy_dialogue.get_node_or_null("EnlargedCard") != null, "Painel de inspeção PLAYBOY construído")
+			var emmanuele_seq: Resource = emmanuele.call("build_dialogue_sequence")
+			var playboy_seq: Resource = playboy.call("build_dialogue_sequence")
+			var emmanuele_evt: Resource = emmanuele_seq.get("events")[0] if emmanuele_seq != null else null
+			var playboy_evt: Resource = playboy_seq.get("events")[0] if playboy_seq != null else null
+			_assert_test(emmanuele_evt != null and String(emmanuele_evt.get("image_path")).ends_with("emmanuele_gg.jpg"), "Painel de inspeção EMMANUELE construído")
+			_assert_test(playboy_evt != null and String(playboy_evt.get("image_path")).ends_with("playboy_gg.jpg"), "Painel de inspeção PLAYBOY construído")
 
-			var emmanuele_speaker: Label = emmanuele_dialogue.get_node_or_null("SpeakerName") as Label if emmanuele_dialogue != null else null
-			var playboy_speaker: Label = playboy_dialogue.get_node_or_null("SpeakerName") as Label if playboy_dialogue != null else null
-			var emmanuele_text: Label = emmanuele_dialogue.get_node_or_null("DialogueText") as Label if emmanuele_dialogue != null else null
-			var playboy_text: Label = playboy_dialogue.get_node_or_null("DialogueText") as Label if playboy_dialogue != null else null
-			_assert_test(emmanuele_speaker != null and emmanuele_speaker.text == "GABRIEL", "Emmanuele usa Gabriel como interlocutor")
-			_assert_test(playboy_speaker != null and playboy_speaker.text == "GABRIEL", "Playboy usa Gabriel como interlocutor")
-			_assert_test(emmanuele_text != null and emmanuele_text.text == "Sei todas as falas, faltava esse pra minha coleção.", "Fala de Gabriel para Emmanuele confere")
-			_assert_test(playboy_text != null and playboy_text.text == "Japonês safado, larga essas coisas aqui.", "Fala de Gabriel para Playboy confere")
+			var emmanuele_speaker: String = String(emmanuele_evt.get("speaker")) if emmanuele_evt != null else ""
+			var playboy_speaker: String = String(playboy_evt.get("speaker")) if playboy_evt != null else ""
+			var emmanuele_text: String = String(emmanuele_evt.get("texts")[0]) if emmanuele_evt != null and emmanuele_evt.get("texts").size() > 0 else ""
+			var playboy_text: String = String(playboy_evt.get("texts")[0]) if playboy_evt != null and playboy_evt.get("texts").size() > 0 else ""
+			_assert_test(emmanuele_speaker == "GABRIEL", "Emmanuele usa Gabriel como interlocutor")
+			_assert_test(playboy_speaker == "GABRIEL", "Playboy usa Gabriel como interlocutor")
+			_assert_test(emmanuele_text == "Sei todas as falas, faltava esse pra minha coleção.", "Fala de Gabriel para Emmanuele confere")
+			_assert_test(playboy_text == "Japonês safado, larga essas coisas aqui.", "Fala de Gabriel para Playboy confere")
 
 			# Simula o jogador dentro das duas áreas ao mesmo tempo. Só o drop
 			# mais próximo pode exibir PEGAR e registrar a interação.
@@ -102,5 +109,5 @@ func _run_tests() -> void:
 			test_player.queue_free()
 
 	print("=== RESULTADO: %d/%d aprovados; %d falhas ===" % [passed_tests, total_tests, failed_tests])
-	box.queue_free()
+	map_root.queue_free()
 	quit(0 if failed_tests == 0 else 1)

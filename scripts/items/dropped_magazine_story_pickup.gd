@@ -14,6 +14,8 @@ const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd
 const StandardDialogueBox = preload("res://scripts/ui/standard_dialogue_box.gd")
 const BLINK_SPEED: float = 4.8
 const DROPPED_ITEMS_GROUP: StringName = &"dropped_magazine_items"
+const INTERACTIVE_PICKUPS_GROUP: StringName = &"interactive_dropped_pickups"
+const DroppedItemVisualsScript: Script = preload("res://scripts/items/dropped_item_visuals.gd")
 
 @onready var _card_sprite: Sprite2D = get_node_or_null("CardSprite") as Sprite2D
 @onready var _interaction_shape: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
@@ -32,6 +34,7 @@ var _nearby_player: Node = null
 var _registered_player: Node = null
 var _interacting_player: Node = null
 var _hint_button: Button
+var _visuals: Node2D = null
 
 var _overlay_layer: CanvasLayer = null
 var _expanded_card: TextureRect = null
@@ -40,6 +43,7 @@ var _dialogue_label: Label = null
 var _portrait_rect: TextureRect = null
 var _is_typing: bool = false
 var _typewriter_tween: Tween = null
+var _pickup_audio_player: AudioStreamPlayer = null
 
 
 ## Chamado pelo GamesBoxDropController antes de a instância entrar na árvore.
@@ -63,6 +67,8 @@ func _ready() -> void:
 	monitoring = true
 	monitorable = false
 	add_to_group(DROPPED_ITEMS_GROUP)
+	add_to_group("dropped_items")
+	add_to_group(INTERACTIVE_PICKUPS_GROUP)
 
 	_world_texture = _load_texture(_world_texture_path, _display_name + " thumbnail")
 	_inspect_texture = _load_texture(_inspect_texture_path, _display_name + " artwork")
@@ -71,6 +77,11 @@ func _ready() -> void:
 		_card_sprite.texture = _world_texture
 		_card_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_card_sprite.scale = _fit_world_sprite(_world_texture)
+
+		_visuals = DroppedItemVisualsScript.new()
+		_visuals.name = "DroppedItemVisuals"
+		add_child(_visuals)
+		_visuals.call("setup", _card_sprite, false, Vector2(24.0, 9.0), Vector2(30.0, 12.0))
 
 	if _interaction_shape != null and _interaction_shape.shape is RectangleShape2D:
 		var unique_shape := (_interaction_shape.shape as RectangleShape2D).duplicate() as RectangleShape2D
@@ -123,9 +134,10 @@ func _fit_world_sprite(texture: Texture2D) -> Vector2:
 func _build_interaction_hint() -> void:
 	_hint_button = Button.new()
 	_hint_button.name = "PickUpHint"
-	_hint_button.text = "PEGAR"
-	_hint_button.position = Vector2(-76.0, -68.0)
-	_hint_button.size = Vector2(152.0, 40.0)
+	_hint_button.text = "Pegar"
+	_hint_button.position = Vector2(-48.0, -94.0)
+	_hint_button.size = Vector2(96.0, 48.0)
+	_hint_button.custom_minimum_size = Vector2(96.0, 48.0)
 	# O indicador precisa ficar na camada visual dianteira da caixa destruída.
 	# Z absoluto impede que o Y-sort do chão o desenhe atrás do sprite do prop.
 	_hint_button.z_index = 100
@@ -133,20 +145,20 @@ func _build_interaction_hint() -> void:
 	_hint_button.focus_mode = Control.FOCUS_NONE
 	_hint_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_hint_button.add_theme_font_override("font", ARCADE_FONT)
-	_hint_button.add_theme_font_size_override("font_size", 15)
-	_hint_button.add_theme_color_override("font_color", Color(1.0, 0.86, 0.54, 1.0))
-	_hint_button.add_theme_color_override("font_hover_color", Color(1.0, 0.96, 0.76, 1.0))
-	_hint_button.add_theme_color_override("font_pressed_color", Color(1.0, 0.78, 0.32, 1.0))
-	_hint_button.add_theme_color_override("font_outline_color", Color(0.025, 0.025, 0.04, 1.0))
+	_hint_button.add_theme_font_size_override("font_size", 16)
+	_hint_button.add_theme_color_override("font_color", Color(1.0, 0.92, 0.65, 1.0))
+	_hint_button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 0.85, 1.0))
+	_hint_button.add_theme_color_override("font_pressed_color", Color(1.0, 0.82, 0.40, 1.0))
+	_hint_button.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.03, 1.0))
 	_hint_button.add_theme_constant_override("outline_size", 4)
 
 	var normal_style := StyleBoxFlat.new()
 	normal_style.bg_color = Color(0.025, 0.035, 0.055, 0.92)
 	normal_style.set_border_width_all(2)
 	normal_style.border_color = Color(0.92, 0.69, 0.25, 0.95)
-	normal_style.set_corner_radius_all(5)
-	normal_style.content_margin_left = 8.0
-	normal_style.content_margin_right = 8.0
+	normal_style.set_corner_radius_all(6)
+	normal_style.content_margin_left = 12.0
+	normal_style.content_margin_right = 12.0
 	_hint_button.add_theme_stylebox_override("normal", normal_style)
 
 	var hover_style := normal_style.duplicate() as StyleBoxFlat
@@ -194,13 +206,13 @@ func is_dialogue_open_for_player(player: Node) -> bool:
 	return _dialogue_open and _interacting_player == player
 
 
-## Resolve um único PEGAR entre todos os drops próximos do mesmo jogador.
+## Resolve um único Pegar entre todos os drops próximos do mesmo jogador.
 ## A menor distância vence; instance_id desempata distâncias idênticas.
 func _refresh_group_for_player(player: Node) -> void:
 	if get_tree() == null or player == null or not is_instance_valid(player):
 		return
 
-	var items: Array[Node] = get_tree().get_nodes_in_group(DROPPED_ITEMS_GROUP)
+	var items: Array[Node] = get_tree().get_nodes_in_group(INTERACTIVE_PICKUPS_GROUP)
 	var dialogue_already_open: bool = false
 	for candidate: Node in items:
 		if candidate.has_method("is_dialogue_open_for_player") and candidate.call("is_dialogue_open_for_player", player):
@@ -210,28 +222,36 @@ func _refresh_group_for_player(player: Node) -> void:
 	if not (player is Node2D):
 		return
 	var player_2d := player as Node2D
-	var preferred: DroppedMagazineStoryPickup = null
+	var preferred: Node = null
 	var best_distance: float = INF
 	if not dialogue_already_open:
 		for candidate: Node in items:
-			var item := candidate as DroppedMagazineStoryPickup
-			if item == null or not item.can_offer_hint_to(player):
+			if candidate == null or not is_instance_valid(candidate):
 				continue
-			var distance_sq: float = item.global_position.distance_squared_to(player_2d.global_position)
+			if not candidate.has_method("can_offer_hint_to") or not candidate.call("can_offer_hint_to", player):
+				continue
+			var cand_2d := candidate as Node2D
+			if cand_2d == null:
+				continue
+			var distance_sq: float = cand_2d.global_position.distance_squared_to(player_2d.global_position)
 			if distance_sq < best_distance or (
 				is_equal_approx(distance_sq, best_distance)
-				and (preferred == null or item.get_instance_id() < preferred.get_instance_id())
+				and (preferred == null or candidate.get_instance_id() < preferred.get_instance_id())
 			):
 				best_distance = distance_sq
-				preferred = item
+				preferred = candidate
 
 	for candidate: Node in items:
-		var item := candidate as DroppedMagazineStoryPickup
-		if item == null:
+		if candidate == null or not is_instance_valid(candidate):
 			continue
-		var selected: bool = item == preferred
-		item._set_hint_visible(selected)
-		item._set_registered_player(player if selected else null)
+		var is_selected: bool = (candidate == preferred)
+		if candidate.has_method("set_hint_selected"):
+			candidate.call("set_hint_selected", is_selected, player)
+
+
+func set_hint_selected(selected: bool, player: Node) -> void:
+	_set_hint_visible(selected)
+	_set_registered_player(player if selected else null)
 
 
 func _set_hint_visible(should_be_visible: bool) -> void:
@@ -291,6 +311,10 @@ func interact(actor: Node) -> bool:
 	_set_registered_player(null)
 	_refresh_group_for_player(actor)
 
+	if _display_name.to_upper().begins_with("EMMANUE"):
+		_pickup_audio_player = CombatFeedback.play_pickup_sound(self, "emmanuelle")
+	else:
+		_pickup_audio_player = CombatFeedback.play_pickup_sound(self, "magazine")
 	_show_inspection_overlay()
 	return true
 
@@ -459,6 +483,18 @@ func _close_dialogue() -> void:
 	_dialogue_open = false
 	_consumed = true
 
+	if is_instance_valid(_pickup_audio_player) and _pickup_audio_player.playing:
+		var audio_ref := _pickup_audio_player
+		_pickup_audio_player = null
+		var fade_tween := create_tween()
+		if fade_tween != null:
+			fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			fade_tween.tween_property(audio_ref, "volume_db", -40.0, 0.25)
+			fade_tween.tween_callback(func():
+				if is_instance_valid(audio_ref):
+					audio_ref.stop()
+			)
+
 	if _overlay_layer != null:
 		_overlay_layer.visible = false
 	if _card_sprite != null:
@@ -476,6 +512,8 @@ func _close_dialogue() -> void:
 	_set_hint_visible(false)
 	_set_registered_player(null)
 	remove_from_group(DROPPED_ITEMS_GROUP)
+	remove_from_group("dropped_items")
+	remove_from_group(INTERACTIVE_PICKUPS_GROUP)
 
 	var player := _interacting_player
 	_interacting_player = null

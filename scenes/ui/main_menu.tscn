@@ -117,6 +117,7 @@ anchor_left = 0.345
 anchor_top = 0.606
 anchor_right = 0.655
 anchor_bottom = 0.680
+disabled = true
 flat = true
 
 [node name="BtnMap" type="Button" parent="AspectWrapper/MenuHitboxes"]
@@ -137,7 +138,6 @@ anchor_left = 0.345
 anchor_top = 0.762
 anchor_right = 0.655
 anchor_bottom = 0.832
-disabled = true
 flat = true
 
 [node name="BtnQuit" type="Button" parent="AspectWrapper/MenuHitboxes"]

@@ -24,6 +24,14 @@ func _ready() -> void:
 		vamos_control.modulate.a = 0.0
 
 
+func _exit_tree() -> void:
+	_is_active = false
+	if _impact_tween != null and _impact_tween.is_valid():
+		_impact_tween.kill()
+	if _banner_pulse_tween != null and _banner_pulse_tween.is_valid():
+		_banner_pulse_tween.kill()
+
+
 ## Ativa a sequência oficial: VAMOS, MALACOS! no topo com pulso arcade
 func activate() -> void:
 	if _is_active:
@@ -33,8 +41,11 @@ func activate() -> void:
 
 	# Breve intervalo antes do impacto cinematográfico
 	if delay_before_appear > 0.0:
-		await get_tree().create_timer(delay_before_appear).timeout
-		if not _is_active:
+		var tree := get_tree()
+		if tree == null:
+			return
+		await tree.create_timer(delay_before_appear).timeout
+		if not is_inside_tree() or not _is_active:
 			return
 
 	_start_vamos_impact()

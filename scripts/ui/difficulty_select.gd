@@ -23,9 +23,9 @@ const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 var current_difficulty: String = "normal"
 var _fade_tween: Tween
 var _frame_tween: Tween
-var _sfx_move: AudioStreamWAV
-var _sfx_confirm: AudioStreamWAV
-var _sfx_cancel: AudioStreamWAV
+var _sfx_move: AudioStream
+var _sfx_confirm: AudioStream
+var _sfx_cancel: AudioStream
 var _is_transitioning: bool = false
 var _mobile_action_button: Button
 
@@ -121,6 +121,7 @@ func _create_selection_frame() -> void:
 	_selection_badge.add_theme_font_override("font", ARCADE_FONT)
 	_selection_badge.add_theme_font_size_override("font_size", 14)
 	_selection_badge.add_theme_constant_override("outline_size", 4)
+	_selection_badge.visible = false
 	_selection_frame.add_child(_selection_badge)
 
 
@@ -264,9 +265,8 @@ func _update_visuals(animate: bool = true) -> void:
 				style.shadow_color = Color(1.0, 0.15, 0.10, 0.45)
 				style.shadow_size = 8
 				if _selection_badge != null:
-					_selection_badge.text = "[ MODO DIFÍCIL ATIVO ]"
-					_selection_badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.85, 1.0))
-					_selection_badge.add_theme_color_override("font_outline_color", Color(0.4, 0.05, 0.05, 1.0))
+					_selection_badge.text = ""
+					_selection_badge.visible = false
 			else:
 				# Modo Normal: Dourado Premium Medieval
 				style.bg_color = Color(0.96, 0.73, 0.22, 0.12)
@@ -276,9 +276,8 @@ func _update_visuals(animate: bool = true) -> void:
 				style.shadow_color = Color(0.96, 0.73, 0.22, 0.45)
 				style.shadow_size = 8
 				if _selection_badge != null:
-					_selection_badge.text = "[ MODO NORMAL ATIVO ]"
-					_selection_badge.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82, 1.0))
-					_selection_badge.add_theme_color_override("font_outline_color", Color(0.25, 0.18, 0.05, 1.0))
+					_selection_badge.text = ""
+					_selection_badge.visible = false
 
 			_selection_frame.add_theme_stylebox_override("panel", style)
 
@@ -292,9 +291,9 @@ func _update_visuals(animate: bool = true) -> void:
 				_selection_frame.global_position = frame_rect.position
 				_selection_frame.size = frame_rect.size
 
-	# Desktop: atualiza o rótulo do botão Iniciar
-	if btn_start_game != null and not MobileScreenAction.is_mobile_runtime():
-		btn_start_game.text = "INICIAR DIFÍCIL" if is_dif_active else "INICIAR NORMAL"
+	# Limpa qualquer texto sobreposto no botão Iniciar (a arte oficial já contém o desenho do botão)
+	if btn_start_game != null:
+		btn_start_game.text = ""
 
 
 func _on_start_pressed() -> void:
@@ -358,16 +357,27 @@ func _safe_handle_input() -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _play_sound(stream: AudioStreamWAV) -> void:
+func _play_sound(stream: AudioStream) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
 		audio_player.play()
 
 
 func _generate_audio_effects() -> void:
-	_sfx_move = _create_wav(640.0, 0.04, 0.25)
-	_sfx_confirm = _create_wav(1040.0, 0.12, 0.40)
-	_sfx_cancel = _create_wav(160.0, 0.14, 0.40)
+	if ResourceLoader.exists("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"):
+		_sfx_move = load("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3")
+	else:
+		_sfx_move = _create_wav(640.0, 0.04, 0.25)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"):
+		_sfx_confirm = load("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3")
+	else:
+		_sfx_confirm = _create_wav(1040.0, 0.12, 0.40)
+
+	if ResourceLoader.exists("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"):
+		_sfx_cancel = load("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3")
+	else:
+		_sfx_cancel = _create_wav(160.0, 0.14, 0.40)
 
 
 func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:

@@ -44,8 +44,8 @@ var block_btn_pos: Vector2:                  # Alias para guard_btn_pos
 var pause_btn_pos: Vector2 = Vector2.ZERO    # Pause (Canto superior direito)
 
 # Dimensões e raios dos controles
-var joystick_radius: float = 96.0
-var knob_radius: float = 40.0
+var joystick_radius: float = 112.0
+var knob_radius: float = 48.0
 var combo_btn_radius: float = 68.0           # Maior botão do conjunto
 var aerial_btn_radius: float = 46.0          # Botão menor (voadora)
 var special_btn_radius: float = 52.0         # Botão intermediário com aura de fogo
@@ -135,8 +135,8 @@ func _recalculate_layout() -> void:
 	)
 
 	# Escala geométrica dos controles
-	joystick_radius = 96.0 * _layout_scale
-	knob_radius = 40.0 * _layout_scale
+	joystick_radius = 112.0 * _layout_scale
+	knob_radius = 48.0 * _layout_scale
 	combo_btn_radius = 68.0 * _layout_scale      # Punho (J) maior que os demais
 	aerial_btn_radius = 46.0 * _layout_scale     # Voadora (Space)
 	special_btn_radius = 52.0 * _layout_scale    # Especial (E)
@@ -144,8 +144,8 @@ func _recalculate_layout() -> void:
 	pause_btn_size = Vector2(52.0, 52.0) * _layout_scale
 
 	# Direcional: quadrante inferior esquerdo
-	var dpad_margin_x: float = maxf(joystick_radius + 36.0 * _layout_scale, area.x * 0.11)
-	var dpad_margin_y: float = area.y - joystick_radius - 38.0 * _layout_scale
+	var dpad_margin_x: float = maxf(joystick_radius + 32.0 * _layout_scale, area.x * 0.11)
+	var dpad_margin_y: float = area.y - joystick_radius - 36.0 * _layout_scale
 	joystick_base_pos = Vector2(dpad_margin_x, dpad_margin_y)
 
 	# Agrupamento de combate: quadrante inferior direito (disposição exata da referência)
