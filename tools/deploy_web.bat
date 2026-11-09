@@ -14,4 +14,5 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo.
 echo [Sakas Deploy] Processo finalizado!
+pause
 

@@ -1,8 +1,44 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/map_menu.gd" id="1_map_menu_script"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/Mapa.webp" id="2_mapa_bg"]
-[ext_resource type="Script" path="res://scripts/ui/map_arrow_renderer.gd" id="3_arrow_renderer_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/sakas-map.webp" id="2_sakas_map_bg"]
+[ext_resource type="FontFile" path="res://assets/fonts/barlow_condensed_bold.ttf" id="3_barlow_bold"]
+[ext_resource type="FontFile" path="res://assets/fonts/barlow_condensed_extrabold_italic.ttf" id="4_barlow_extra_italic"]
+[ext_resource type="FontFile" path="res://assets/fonts/press_start_2p.ttf" id="5_press_start_font"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_back.png" id="6_back_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_pause.png" id="7_pause_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_play.png" id="8_play_icon"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/arcade_button.tscn" id="9_arcade_btn_scene"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/settings_panel.tscn" id="10_settings_panel_scene"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icon_button"]
+bg_color = Color(0.09, 0.082, 0.239, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.439, 0.435, 0.949, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.012, 0.016, 0.043, 0.8)
+shadow_size = 4
+shadow_offset = Vector2(3, 3)
+
+[sub_resource type="Gradient" id="Gradient_top_overlay"]
+colors = PackedColorArray(0.012, 0.02, 0.078, 0.85, 0.012, 0.02, 0.078, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_top"]
+gradient = SubResource("Gradient_top_overlay")
+fill_to = Vector2(0, 1)
+
+[sub_resource type="Gradient" id="Gradient_bottom_overlay"]
+colors = PackedColorArray(0.012, 0.02, 0.078, 0, 0.016, 0.024, 0.078, 0.96)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_bottom"]
+gradient = SubResource("Gradient_bottom_overlay")
+fill_to = Vector2(0, 1)
 
 [node name="MapMenu" type="Control"]
 layout_mode = 3
@@ -22,77 +58,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.02, 0.02, 0.05, 1)
 
-[node name="MapContainer" type="Control" parent="."]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(1920, 1080)
-layout_mode = 0
-offset_right = 1920.0
-offset_bottom = 1080.0
-
-[node name="BackgroundTexture" type="TextureRect" parent="MapContainer"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 1920.0
-offset_bottom = 1080.0
-texture = ExtResource("2_mapa_bg")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Point1Cover" type="TextureRect" parent="MapContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_left = 223.0
-offset_top = 334.0
-offset_right = 257.0
-offset_bottom = 365.0
-expand_mode = 1
-
-[node name="Point2Cover" type="TextureRect" parent="MapContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_left = 856.0
-offset_top = 255.0
-offset_right = 885.0
-offset_bottom = 299.0
-expand_mode = 1
-
-[node name="Point3Cover" type="TextureRect" parent="MapContainer"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_left = 1248.0
-offset_top = 298.0
-offset_right = 1277.0
-offset_bottom = 342.0
-expand_mode = 1
-
-[node name="ArrowP1" type="Node2D" parent="MapContainer"]
-unique_name_in_owner = true
-visible = false
-position = Vector2(240, 348)
-script = ExtResource("3_arrow_renderer_script")
-
-[node name="ArrowBonus" type="Node2D" parent="MapContainer"]
-unique_name_in_owner = true
-visible = false
-position = Vector2(578, 282)
-script = ExtResource("3_arrow_renderer_script")
-
-[node name="ArrowP2" type="Node2D" parent="MapContainer"]
-unique_name_in_owner = true
-visible = false
-position = Vector2(870, 265)
-script = ExtResource("3_arrow_renderer_script")
-
-[node name="ArrowP3" type="Node2D" parent="MapContainer"]
-unique_name_in_owner = true
-visible = false
-position = Vector2(1262, 335)
-script = ExtResource("3_arrow_renderer_script")
-
-[node name="ClickZones" type="Control" parent="MapContainer"]
+[node name="BackgroundTexture" type="TextureRect" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -100,38 +66,219 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("2_sakas_map_bg")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="BtnBack" type="Button" parent="MapContainer/ClickZones"]
+[node name="TopGradient" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 140.0
+grow_horizontal = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_top")
+expand_mode = 1
+
+[node name="BottomGradient" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -140.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_bottom")
+expand_mode = 1
+
+[node name="HotspotsContainer" type="Control" parent="."]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 140.0
-offset_top = 890.0
-offset_right = 315.0
-offset_bottom = 940.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 32.0
+offset_top = 24.0
+offset_right = -32.0
+offset_bottom = 96.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="BtnBack" type="Button" parent="TopBar/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+size_flags_vertical = 4
 mouse_default_cursor_shape = 2
-flat = true
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_button")
+icon = ExtResource("6_back_icon")
+icon_alignment = 1
+expand_icon = true
 
-[node name="BtnConfirm" type="Button" parent="MapContainer/ClickZones"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 830.0
-offset_top = 890.0
-offset_right = 1005.0
-offset_bottom = 940.0
-mouse_default_cursor_shape = 2
-flat = true
+[node name="TitlesVBox" type="VBoxContainer" parent="TopBar/HBox"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
 
-[node name="NoticeLabel" type="Label" parent="MapContainer/ClickZones"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 500.0
-offset_top = 830.0
-offset_right = 1100.0
-offset_bottom = 860.0
-theme_override_colors/font_color = Color(1.0, 0.35, 0.35, 1.0)
+[node name="EyebrowLabel" type="Label" parent="TopBar/HBox/TitlesVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941, 1, 1)
+theme_override_fonts/font = ExtResource("3_barlow_bold")
 theme_override_font_sizes/font_size = 14
-horizontal_alignment = 1
-text = "MODALIDADE MAPA EM DESENVOLVIMENTO"
+text = "ESCOLHA SEU DESTINO"
+
+[node name="TitleLabel" type="Label" parent="TopBar/HBox/TitlesVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.969, 0.902, 1)
+theme_override_colors/font_shadow_color = Color(0.769, 0.082, 0.271, 1)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_fonts/font = ExtResource("4_barlow_extra_italic")
+theme_override_font_sizes/font_size = 42
+text = "MAPA DA VILA"
+
+[node name="Spacer" type="Control" parent="TopBar/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="BtnPause" type="Button" parent="TopBar/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_button")
+icon = ExtResource("7_pause_icon")
+icon_alignment = 1
+expand_icon = true
+
+[node name="Footer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = -106.0
+offset_right = -32.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="HBox" type="HBoxContainer" parent="Footer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 24
+
+[node name="SelectionCard" type="HBoxContainer" parent="Footer/HBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="StageNumberLabel" type="Label" parent="Footer/HBox/SelectionCard"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(1, 0.678, 0.118, 1)
+theme_override_colors/font_shadow_color = Color(0.624, 0.071, 0.173, 1)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_fonts/font = ExtResource("4_barlow_extra_italic")
+theme_override_font_sizes/font_size = 58
+text = "01"
+vertical_alignment = 1
+
+[node name="SelectionDetailsVBox" type="VBoxContainer" parent="Footer/HBox/SelectionCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="SmallCardLabel" type="Label" parent="Footer/HBox/SelectionCard/SelectionDetailsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941, 1, 1)
+theme_override_fonts/font = ExtResource("5_press_start_font")
+theme_override_font_sizes/font_size = 9
+text = "FASE SELECIONADA"
+
+[node name="StageTitleLabel" type="Label" parent="Footer/HBox/SelectionCard/SelectionDetailsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("4_barlow_extra_italic")
+theme_override_font_sizes/font_size = 26
+text = "O REENCONTRO"
+
+[node name="StatusContainer" type="HBoxContainer" parent="Footer/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="StatusDot" type="ColorRect" parent="Footer/HBox/StatusContainer"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0, 0.941, 1, 1)
+
+[node name="MapStatusLabel" type="Label" parent="Footer/HBox/StatusContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.788, 0.8, 0.894, 1)
+theme_override_fonts/font = ExtResource("3_barlow_bold")
+theme_override_font_sizes/font_size = 15
+text = "FASE 1 DISPONÍVEL"
+vertical_alignment = 1
+
+[node name="PlayBtnContainer" type="Control" parent="Footer/HBox"]
+custom_minimum_size = Vector2(260, 54)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="BtnPlayStage" parent="Footer/HBox/PlayBtnContainer" instance=ExtResource("9_arcade_btn_scene")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+button_text = "JOGAR FASE"
+is_primary = true
+icon_texture = ExtResource("8_play_icon")
+
+[node name="SettingsPanel" parent="." instance=ExtResource("10_settings_panel_scene")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
 
 [node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
+bus = &"Master"

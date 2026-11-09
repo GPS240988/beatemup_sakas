@@ -385,7 +385,8 @@ func _process_current_event() -> void:
 		if session != null and session.has_method("play_bgm"):
 			session.play_bgm(BGM_HISTORIA, -4.0, 2.0)
 
-	_play_audio_by_name(sound_name)
+	# Som analógico na entrada de nova cena removido para fluidez narrativa suave
+	# _play_audio_by_name(sound_name)
 
 	# Identifica se é Tela de Abertura (CENA 01) ou Cena Narrativa com Imagem
 	if ev_id == "title_card" or img_path.is_empty():
@@ -770,10 +771,11 @@ func _show_current_text_block(ev: Resource) -> void:
 	if _key_badge != null:
 		_key_badge.visible = false
 	if _key_badge_label != null:
-		_key_badge_label.text = "ENTER"
+		_key_badge_label.text = "►"
 	if _prompt_label != null:
-		_prompt_label.text = "ENTER"
+		_prompt_label.text = "►"
 		_prompt_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.25, 1.0))
+		_prompt_label.add_theme_font_size_override("font_size", 22)
 
 	# Adapta controle de avanço: no PC exibe prompt arcade do teclado; no mobile exibe flechinha indicativa
 	var is_mobile := _is_mobile_runtime()
@@ -785,10 +787,10 @@ func _show_current_text_block(ev: Resource) -> void:
 	if _advance_prompt_box != null:
 		_advance_prompt_box.visible = not is_mobile
 
-	# Configura Identificação da Cena (CENA 01 a 07)
+	# Oculta número da cena na história inicial
 	if _scene_counter_label != null:
-		_scene_counter_label.visible = true
-		_scene_counter_label.text = "CENA %02d" % (current_event_index + 1)
+		_scene_counter_label.visible = false
+		_scene_counter_label.text = ""
 
 	# Exibe Área de Diálogo com animação suave de entrada da moldura
 	if _dialogue_area != null:

@@ -104,6 +104,10 @@ func _test_container_hierarchy() -> void:
 	_assert(dialogue != null and dialogue.label_settings != null, "Texto de fala usa LabelSettings")
 	_assert(dialogue.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART, "Texto de fala possui quebra de linha inteligente")
 
+	var continue_prompt_desktop := ui["continue_label"] as Label
+	_assert(continue_prompt_desktop != null and continue_prompt_desktop.text == "►", "Desktop usa flecha '►' intuitiva no prompt")
+	_assert(ui.has("prompt_label") and ui["prompt_label"] == continue_prompt_desktop, "Retornou prompt_label compatível")
+
 	# Validação Mobile da StandardDialogueBox
 	var ui_mob := StandardDialogueBox.build_dialogue_ui(root_ctrl, true)
 	var area_mob := ui_mob["dialogue_area"] as MarginContainer

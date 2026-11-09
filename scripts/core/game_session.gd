@@ -123,6 +123,7 @@ func _ready() -> void:
 	# Inicialização padrão da sessão e restauração da progressão persistente da campanha
 	reset_session()
 	_load_campaign_progression()
+	_init_bgm_pack_listener()
 
 
 ## Estado de progressão do jogador entre seções do mesmo mapa (ex: Fase 1)
@@ -535,6 +536,46 @@ func delete_save_slot(slot: int) -> bool:
 var _bgm_player: AudioStreamPlayer = null
 var _current_bgm_path: String = ""
 var _bgm_tween: Tween = null
+var _pending_bgm_path: String = ""
+var _pending_volume_db: float = -4.0
+var _pending_fade_in: float = 0.0
+
+
+func _init_bgm_pack_listener() -> void:
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_signal("pack_mounted"):
+		if not pack_mgr.pack_mounted.is_connected(_on_pack_mounted_bgm_retry):
+			pack_mgr.pack_mounted.connect(_on_pack_mounted_bgm_retry)
+
+
+func _on_pack_mounted_bgm_retry(_pack_id: String) -> void:
+	if not _pending_bgm_path.is_empty() and ResourceLoader.exists(_pending_bgm_path):
+		var p_path := _pending_bgm_path
+		var p_vol := _pending_volume_db
+		var p_fade := _pending_fade_in
+		_pending_bgm_path = ""
+		play_bgm(p_path, p_vol, p_fade)
+
+
+func _input(event: InputEvent) -> void:
+	if OS.has_feature("web"):
+		if event is InputEventMouseButton or event is InputEventScreenTouch or event is InputEventKey:
+			if event.is_pressed():
+				JavaScriptBridge.eval("""
+					try {
+						if (window.GodotAudio && window.GodotAudio.ctx && window.GodotAudio.ctx.state === 'suspended') {
+							window.GodotAudio.ctx.resume();
+						}
+					} catch(e) {}
+				""")
+				if not _pending_bgm_path.is_empty() and ResourceLoader.exists(_pending_bgm_path):
+					var p_path := _pending_bgm_path
+					var p_vol := _pending_volume_db
+					var p_fade := _pending_fade_in
+					_pending_bgm_path = ""
+					play_bgm(p_path, p_vol, p_fade)
+				elif _bgm_player != null and not _bgm_player.playing and not _current_bgm_path.is_empty():
+					_bgm_player.play()
 
 
 ## Reproduz a música de fundo (BGM) especificada.
@@ -555,10 +596,19 @@ func play_bgm(bgm_path: String, volume_db: float = -4.0, fade_in_duration: float
 		_bgm_tween.kill()
 		_bgm_tween = null
 
-	if bgm_path.is_empty() or not ResourceLoader.exists(bgm_path):
+	if bgm_path.is_empty():
 		stop_bgm()
 		return
 
+	if not ResourceLoader.exists(bgm_path):
+		_pending_bgm_path = bgm_path
+		_pending_volume_db = volume_db
+		_pending_fade_in = fade_in_duration
+		_init_bgm_pack_listener()
+		stop_bgm()
+		return
+
+	_pending_bgm_path = ""
 	var stream: AudioStream = load(bgm_path) as AudioStream
 	if stream != null:
 		if stream is AudioStreamMP3:

@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 	<title>$GODOT_PROJECT_NAME</title>
-	<meta name="sakas-build-id" content="6bc42d32">
+	<meta name="sakas-build-id" content="802fa39d">
 	<meta name="sakas-build-id" content="initial">
 	$GODOT_HEAD_INCLUDE
 	<style>
@@ -382,6 +382,23 @@
 			window.sakasNotifyGameStarted = function() {
 				engineRunning = true;
 			};
+
+			// Desbloqueio universal de Web Audio no primeiro gesto do usuário (Autoplay Policy)
+			(function() {
+				function unlockWebAudio() {
+					try {
+						if (window.GodotAudio && window.GodotAudio.ctx && window.GodotAudio.ctx.state === 'suspended') {
+							window.GodotAudio.ctx.resume().then(function() {
+								console.log('[WebAudio] Contexto de áudio do Godot ativado com sucesso!');
+							}).catch(function() {});
+						}
+					} catch (_err) {}
+				}
+				['pointerdown', 'touchstart', 'mousedown', 'keydown', 'click'].forEach(function(evt) {
+					window.addEventListener(evt, unlockWebAudio, { capture: true, passive: true });
+					document.addEventListener(evt, unlockWebAudio, { capture: true, passive: true });
+				});
+			})();
 		})();
 
 		const modularPacks = [
@@ -401,19 +418,27 @@
 			}
 		};
 
+		const executable = (engine.config && engine.config.executable) ? engine.config.executable : 'index';
+		const mainPack = (engine.config && engine.config.mainPack) ? engine.config.mainPack : (executable + '.pck');
+
 		// Sequencia canonica do Godot 4 Web:
-		// 1. Inicializa o ambiente WebAssembly (index.wasm)
-		// 2. Pre-carrega index.pck e todos os pacotes modulares (.pck) em paralelo
+		// 1. Inicializa o ambiente WebAssembly (index.wasm ou tmp_js_export)
+		// 2. Pre-carrega o pacote principal e todos os pacotes modulares (.pck) em paralelo
 		// 3. Executa engine.start() somente apos todos estarem montados na memoria virtual
 		Promise.all([
-			engine.init('index'),
-			engine.preloadFile('index.pck', 'index.pck'),
+			engine.init(executable),
+			engine.preloadFile(mainPack, mainPack).catch((err) => {
+				if (mainPack !== 'index.pck') {
+					return engine.preloadFile('index.pck', 'index.pck');
+				}
+				throw err;
+			}),
 			...modularPacks.map(p => engine.preloadFile(p, p).catch(err => {
 				console.warn('[Modular PCK] Aviso ao pre-carregar pacote:', p, err);
 			}))
 		]).then(() => {
 			if (loadingStatus) loadingStatus.textContent = 'INICIANDO MOTOR...';
-			engine.config.args = ['--main-pack', 'index.pck'].concat(engine.config.args || []);
+			engine.config.args = ['--main-pack', mainPack].concat(engine.config.args || []);
 			return engine.start();
 		}).then(() => {
 			if (window.sakasNotifyGameStarted) {

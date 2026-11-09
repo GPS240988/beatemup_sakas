@@ -1,208 +1,345 @@
 class_name MapMenu
 extends Control
 
-## Tela de Menu de Mapa com arte oficial 16:9 HD (assets/backgrounds/Mapa.webp).
-## Exibe a rota e o cadeado desbloqueado conforme a progressão salva no GameSession.
-## Integração com fluxo de campanha e acesso direto via Menu Principal.
+## Tela de Mapa da Vila / Seleção de Fases — Projeto Sakas
+## Design System Neo-16-bit Urban Arcade baseado em sakas-map.webp e no protótipo oficial.
+## Recursos:
+## - Topbar com botão Voltar ao Menu Principal e Botão de Pausa/Configurações
+## - Hotspots interativos com medalhões arcade e indicador de seleção pulsante
+## - Card inferior esquerdo com número da fase em ouro e título selecionado
+## - Botão "JOGAR FASE" (ArcadeButton primário) no canto inferior direito
+## - Suporte a Mouse, Touch, Teclado e Gamepad
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
-const DIFFICULTY_SELECT_SCENE: String = "res://scenes/ui/difficulty_select.tscn"
-const INSTRUCTIONS_SCENE: String = "res://scenes/ui/loading_screen.tscn"
+const MAP_IMAGE_PATH: String = "res://assets/backgrounds/sakas-map.webp"
+const FALLBACK_MAP_IMAGE_PATH: String = "res://assets/backgrounds/Mapa.webp"
+
+const SFX_MOVE_PATH := "res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"
+const SFX_CONFIRM_PATH := "res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"
+const SFX_CANCEL_PATH := "res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"
+
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
+const ArcadeButtonClass = preload("res://scripts/ui/components/arcade_button.gd")
+const MapStagePointScene = preload("res://scenes/ui/components/map_stage_point.tscn")
+const SettingsPanelClass = preload("res://scripts/ui/components/settings_panel.gd")
 
-const MAP_IMAGE_PATH: String = "res://assets/backgrounds/Mapa.webp"
-const FALLBACK_MAP_IMAGE_PATH: String = "res://assets/backgrounds/mapa.webp"
-
-const POINT_1_PATCH_RECT := Rect2i(223, 334, 34, 31)
-const POINT_2_PADLOCK_RECT := Rect2i(856, 255, 29, 44)
-const POINT_3_PADLOCK_RECT := Rect2i(1248, 298, 29, 44)
-
-const STAGE_POINTS: Array[Dictionary] = [
+const STAGE_CONFIGS: Array[Dictionary] = [
 	{
-		"id": "point_1",
-		"name": "FASE 1: O REENCONTRO",
-		"position": Vector2(240, 348),
-		"click_rect": Rect2(180, 290, 130, 130),
-		"scene": "res://scenes/ui/loading_screen.tscn"
+		"id": "01",
+		"title": "O REENCONTRO",
+		"tag": "O REENCONTRO",
+		"pos_ratio": Vector2(0.13, 0.38),
+		"scene": "res://scenes/levels/map_1.tscn",
+		"loading_scene": "res://scenes/ui/loading_screen.tscn"
 	},
 	{
-		"id": "bonus",
-		"name": "FASE BÔNUS: GARAGEM",
-		"position": Vector2(578, 282),
-		"click_rect": Rect2(520, 230, 130, 130),
-		"scene": "res://scenes/levels/bonus_garage.tscn"
+		"id": "B",
+		"title": "GARAGEM",
+		"tag": "BÔNUS",
+		"pos_ratio": Vector2(0.30, 0.31),
+		"scene": "res://scenes/levels/bonus_garage.tscn",
+		"loading_scene": "res://scenes/levels/bonus_garage.tscn"
 	},
 	{
-		"id": "point_2",
-		"name": "FASE 2: HAPPEN",
-		"position": Vector2(870, 265),
-		"click_rect": Rect2(810, 210, 130, 130),
-		"scene": "res://scenes/levels/map_2.tscn"
+		"id": "02",
+		"title": "HAPPEN",
+		"tag": "HAPPEN",
+		"pos_ratio": Vector2(0.46, 0.29),
+		"scene": "res://scenes/levels/map_2.tscn",
+		"loading_scene": "res://scenes/levels/map_2.tscn"
 	},
 	{
-		"id": "point_3",
-		"name": "FASE 3: METRÔ",
-		"position": Vector2(1262, 335),
-		"click_rect": Rect2(1200, 280, 130, 130),
-		"scene": "res://scenes/levels/map_3.tscn"
+		"id": "03",
+		"title": "METRÔ",
+		"tag": "METRÔ",
+		"pos_ratio": Vector2(0.655, 0.35),
+		"scene": "res://scenes/levels/map_3.tscn",
+		"loading_scene": "res://scenes/levels/map_3.tscn"
 	}
 ]
 
-@onready var map_container: Control = get_node_or_null("%MapContainer") as Control
 @onready var background_texture: TextureRect = %BackgroundTexture
-@onready var point1_cover: TextureRect = get_node_or_null("%Point1Cover") as TextureRect
-@onready var point2_cover: TextureRect = get_node_or_null("%Point2Cover") as TextureRect
-@onready var point3_cover: TextureRect = get_node_or_null("%Point3Cover") as TextureRect
-@onready var arrow_p1: Node2D = get_node_or_null("%ArrowP1") as Node2D
-@onready var arrow_bonus: Node2D = get_node_or_null("%ArrowBonus") as Node2D
-@onready var arrow_p2: Node2D = get_node_or_null("%ArrowP2") as Node2D
-@onready var arrow_p3: Node2D = get_node_or_null("%ArrowP3") as Node2D
 @onready var btn_back: Button = %BtnBack
-@onready var btn_confirm: Button = %BtnConfirm
-@onready var notice_label: Label = %NoticeLabel
+@onready var btn_pause: Button = get_node_or_null("%BtnPause") as Button
+@onready var btn_play_stage: Button = %BtnPlayStage
+@onready var stage_number_label: Label = %StageNumberLabel
+@onready var stage_title_label: Label = %StageTitleLabel
+@onready var map_status_label: Label = %MapStatusLabel
+@onready var hotspots_container: Control = %HotspotsContainer
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
+@onready var settings_panel: Control = get_node_or_null("%SettingsPanel") as Control
 
-var _selected_point_index: int = 0
+var _selected_index: int = 0
 var _is_transitioning: bool = false
+var _is_in_settings: bool = false
+var _entry_context: String = ""
+
+var _sfx_move: AudioStream
 var _sfx_confirm: AudioStream
 var _sfx_cancel: AudioStream
-var _sfx_move: AudioStream
-var _bob_tween: Tween
-var _mobile_action_button: Button
-## Contexto de entrada: "campaign" (novo jogo/continuar) ou "browse" (menu principal).
-var _entry_context: String = ""
+
+var _hotspot_nodes: Array[Control] = []
 
 
 func _ready() -> void:
-	# Identifica se o mapa foi acessado pelo fluxo de campanha ou pelo menu principal
 	var session := _get_game_session()
 	if session != null and session.has_meta("map_entry_context"):
 		_entry_context = str(session.get_meta("map_entry_context"))
 
-	_generate_audio_effects()
-	_setup_scaling()
+	_init_audio()
 	_load_background_image()
-	_setup_progression_display()
-	_setup_buttons()
+	_build_stage_hotspots()
+	_setup_top_and_footer_buttons()
 
-	# O ponteiro deve estar SEMPRE no 1 ao abrir o mapa
-	_select_point(0)
+	if hotspots_container != null:
+		hotspots_container.resized.connect(_update_hotspot_positions)
 
-	if MobileScreenAction.is_mobile_runtime():
-		# No mobile, o toque direto no mapa seleciona e confirma; sem botões dock.
-		if btn_confirm != null:
-			btn_confirm.visible = false
-		if btn_back != null:
-			btn_back.visible = false
-		var click_zones := get_node_or_null("%ClickZones") as Control
-		if click_zones != null:
-			click_zones.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	else:
-		var primary_text: String = "VOLTAR AO MENU" if is_opened_from_menu() else "AVANÇAR"
-		_mobile_action_button = MobileScreenAction.add_primary_action(
-			self, primary_text, Callable(self, "_on_confirm_pressed"), Color(0.90, 0.67, 0.25, 1.0), btn_confirm
-		)
-		MobileScreenAction.add_secondary_action(
-			self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back
-		)
+	if settings_panel != null:
+		settings_panel.visible = false
+		settings_panel.set("settings_origin", "map_menu")
+		if settings_panel.has_signal("closed"):
+			settings_panel.connect("closed", Callable(self, "_on_settings_closed"))
 
-	if notice_label != null:
-		notice_label.visible = false
+	# Seleciona inicialmente a Fase 1
+	_select_stage(0, false)
 
-	get_tree().root.size_changed.connect(_setup_scaling)
+	# Atualiza o layout responsivo no próximo frame
+	await get_tree().process_frame
+	_update_hotspot_positions()
 
 
-func _setup_scaling() -> void:
-	if map_container == null:
-		return
-
-	var vp_size: Vector2 = get_viewport_rect().size
-	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
-		vp_size = Vector2(1280.0, 720.0)
-
-	var scale_factor: float
-	scale_factor = minf(vp_size.x / 1920.0, vp_size.y / 1080.0)
-	if MobileScreenAction.is_mobile_runtime():
-		var dark_base := get_node_or_null("DarkBase") as ColorRect
-		if dark_base != null:
-			dark_base.color = Color(0.035, 0.05, 0.09, 1.0)
-		map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
-		map_container.size = Vector2(1920.0, 1080.0)
-		var scale_x: float = maxf(vp_size.x / 1920.0, 0.01)
-		var scale_y: float = maxf(vp_size.y / 1080.0, 0.01)
-		map_container.scale = Vector2(scale_x, scale_y)
-		map_container.position = Vector2.ZERO
-		return
-
-	if scale_factor <= 0.0:
-		scale_factor = 1.0
-	scale_factor = maxf(scale_factor, 0.01)
-
-	map_container.custom_minimum_size = Vector2(1920.0, 1080.0)
-	map_container.size = Vector2(1920.0, 1080.0)
-	map_container.scale = Vector2(scale_factor, scale_factor)
-
-	var scaled_width: float = 1920.0 * scale_factor
-	var scaled_height: float = 1080.0 * scale_factor
-	map_container.position = Vector2(
-		(vp_size.x - scaled_width) * 0.5,
-		(vp_size.y - scaled_height) * 0.5
-	)
+func _init_audio() -> void:
+	if ResourceLoader.exists(SFX_MOVE_PATH):
+		_sfx_move = load(SFX_MOVE_PATH) as AudioStream
+	if ResourceLoader.exists(SFX_CONFIRM_PATH):
+		_sfx_confirm = load(SFX_CONFIRM_PATH) as AudioStream
+	if ResourceLoader.exists(SFX_CANCEL_PATH):
+		_sfx_cancel = load(SFX_CANCEL_PATH) as AudioStream
 
 
 func _load_background_image() -> void:
 	if background_texture == null:
 		return
-
-	var tex: Texture2D = null
 	if ResourceLoader.exists(MAP_IMAGE_PATH):
-		tex = load(MAP_IMAGE_PATH) as Texture2D
+		background_texture.texture = load(MAP_IMAGE_PATH) as Texture2D
 	elif ResourceLoader.exists(FALLBACK_MAP_IMAGE_PATH):
-		tex = load(FALLBACK_MAP_IMAGE_PATH) as Texture2D
+		background_texture.texture = load(FALLBACK_MAP_IMAGE_PATH) as Texture2D
 
-	var map_img: Image = null
-	if tex != null:
-		map_img = tex.get_image()
+
+func _setup_top_and_footer_buttons() -> void:
+	if btn_back != null:
+		btn_back.pressed.connect(_on_back_pressed)
+	if btn_pause != null:
+		btn_pause.pressed.connect(_on_pause_pressed)
+	if btn_play_stage != null:
+		btn_play_stage.pressed.connect(_on_play_stage_pressed)
+
+
+func _build_stage_hotspots() -> void:
+	if hotspots_container == null:
+		return
+
+	for child in hotspots_container.get_children():
+		child.queue_free()
+	_hotspot_nodes.clear()
+
+	for i in range(STAGE_CONFIGS.size()):
+		var cfg := STAGE_CONFIGS[i]
+		var idx := i
+		var is_unlocked := is_stage_unlocked(idx)
+
+		var point_instance: Control = MapStagePointScene.instantiate()
+		point_instance.name = "StagePoint_%s" % cfg["id"]
+		hotspots_container.add_child(point_instance)
+		_hotspot_nodes.append(point_instance)
+
+		if point_instance.has_method("setup"):
+			point_instance.setup(idx, str(cfg["id"]), str(cfg["title"]), str(cfg.get("tag", cfg["title"])), is_unlocked)
+
+		if point_instance.has_signal("stage_clicked"):
+			point_instance.connect("stage_clicked", Callable(self, "_on_hotspot_clicked"))
+
+
+func _update_hotspot_positions() -> void:
+	if hotspots_container == null:
+		return
+	var c_size := hotspots_container.size
+	if c_size.x <= 0 or c_size.y <= 0:
+		c_size = Vector2(1280, 720)
+
+	for i in range(_hotspot_nodes.size()):
+		var node := _hotspot_nodes[i]
+		if node == null or not is_instance_valid(node):
+			continue
+		var cfg := STAGE_CONFIGS[i]
+		var ratio: Vector2 = cfg["pos_ratio"]
+		var half_size: Vector2 = node.size * 0.5
+		if half_size == Vector2.ZERO:
+			half_size = Vector2(55, 55)
+		node.position = Vector2(ratio.x * c_size.x - half_size.x, ratio.y * c_size.y - half_size.y)
+
+
+func _on_hotspot_clicked(index: int) -> void:
+	if _is_transitioning or _is_in_settings:
+		return
+
+	if index == _selected_index:
+		# Se já está selecionada e clica nela novamente, inicia a fase
+		_on_play_stage_pressed()
 	else:
-		for path_to_try in [MAP_IMAGE_PATH, FALLBACK_MAP_IMAGE_PATH]:
-			var global_p := ProjectSettings.globalize_path(path_to_try)
-			if FileAccess.file_exists(global_p):
-				map_img = Image.load_from_file(global_p)
-				if map_img != null:
-					tex = ImageTexture.create_from_image(map_img)
-					tex.resource_path = path_to_try
-					break
-
-	if tex != null:
-		background_texture.texture = tex
-
-	if map_img != null:
-		if point1_cover != null:
-			point1_cover.texture = _generate_patch_texture(map_img, POINT_1_PATCH_RECT)
-		if point2_cover != null:
-			point2_cover.texture = _generate_patch_texture(map_img, POINT_2_PADLOCK_RECT)
-		if point3_cover != null:
-			point3_cover.texture = _generate_patch_texture(map_img, POINT_3_PADLOCK_RECT)
+		_select_stage(index, true)
 
 
-func _generate_patch_texture(source_img: Image, rect: Rect2i) -> ImageTexture:
-	var w: int = rect.size.x
-	var h: int = rect.size.y
-	var patch := Image.create(w, h, false, Image.FORMAT_RGBA8)
+func _select_stage(index: int, play_sound: bool = true) -> void:
+	if index < 0 or index >= STAGE_CONFIGS.size():
+		return
+	_selected_index = index
+	var cfg := STAGE_CONFIGS[_selected_index]
+	var is_unlocked := is_stage_unlocked(_selected_index)
 
-	for y in range(h):
-		var src_y: int = clampi(rect.position.y + y, 0, source_img.get_height() - 1)
-		var left_x: int = clampi(rect.position.x - 1, 0, source_img.get_width() - 1)
-		var right_x: int = clampi(rect.position.x + w, 0, source_img.get_width() - 1)
-		var c_left: Color = source_img.get_pixel(left_x, src_y)
-		var c_right: Color = source_img.get_pixel(right_x, src_y)
+	# Atualiza os marcadores no mapa
+	for i in range(_hotspot_nodes.size()):
+		var node := _hotspot_nodes[i]
+		if node != null and node.has_method("set_selected"):
+			node.set_selected(i == _selected_index)
 
-		for x in range(w):
-			var t: float = float(x) / float(maxi(1, w - 1))
-			var col: Color = c_left.lerp(c_right, t)
-			patch.set_pixel(x, y, col)
+	# Atualiza card de seleção no rodapé
+	if stage_number_label != null:
+		stage_number_label.text = str(cfg["id"])
+	if stage_title_label != null:
+		stage_title_label.text = str(cfg["title"])
 
-	return ImageTexture.create_from_image(patch)
+	# Atualiza status
+	if map_status_label != null:
+		if is_unlocked:
+			map_status_label.text = "%s · SELECIONADA" % str(cfg["title"])
+			map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+		else:
+			map_status_label.text = "%s · AINDA BLOQUEADA" % str(cfg["title"])
+			map_status_label.modulate = Color(1.0, 0.45, 0.45, 0.9)
+
+	# Configura botão JOGAR FASE
+	if btn_play_stage != null:
+		btn_play_stage.set("disabled", not is_unlocked)
+
+	if play_sound:
+		_play_sfx(_sfx_move if is_unlocked else _sfx_cancel)
+
+
+func is_stage_unlocked(index: int) -> bool:
+	if index == 0:
+		return true # Fase 1: O Reencontro (sempre desbloqueada)
+	if index == 1:
+		return true # B: Garagem (Bônus 1 disponível inicialmente para teste)
+
+	var session := _get_game_session()
+	if session == null:
+		return false
+
+	match index:
+		2: # FASE 2 (HAPPEN)
+			return session.has_method("is_stage_2_unlocked") and session.is_stage_2_unlocked()
+		3: # FASE 3 (METRÔ)
+			var max_stage: int = session.max_unlocked_stage if "max_unlocked_stage" in session else 1
+			return max_stage >= 3
+		_:
+			return false
+
+
+func _on_play_stage_pressed() -> void:
+	if _is_transitioning or _is_in_settings:
+		return
+	if not is_stage_unlocked(_selected_index):
+		_play_sfx(_sfx_cancel)
+		return
+
+	_is_transitioning = true
+	_play_sfx(_sfx_confirm)
+
+	var session := _get_game_session()
+	if session != null:
+		session.set_meta("selected_stage_index", _selected_index)
+		if not ("selected_character_id" in session) or str(session.selected_character_id).is_empty():
+			session.selected_character_id = "guilherme"
+		if not ("difficulty_id" in session) or str(session.difficulty_id).is_empty():
+			session.difficulty_id = "normal"
+
+	var cfg := STAGE_CONFIGS[_selected_index]
+	var target_scene: String = str(cfg.get("scene", ""))
+
+	# Para a fase 1, direciona para o primeiro mapa (ou loading se novo)
+	if _selected_index == 0:
+		if session != null and "has_played_intro" in session and not session.has_played_intro and _entry_context != "continue":
+			target_scene = "res://scenes/ui/loading_screen.tscn"
+		else:
+			target_scene = "res://scenes/levels/map_1.tscn"
+	elif _selected_index == 1:
+		# BÔNUS: Vai diretamente para a garagem bonus1
+		target_scene = "res://scenes/levels/bonus_garage.tscn"
+
+	await get_tree().create_timer(0.2).timeout
+	var err := get_tree().change_scene_to_file(target_scene)
+	if err != OK:
+		_is_transitioning = false
+		printerr("Erro ao transicionar para a fase selecionada: ", err)
+
+
+func _on_back_pressed() -> void:
+	if _is_transitioning or _is_in_settings:
+		return
+	_is_transitioning = true
+	_play_sfx(_sfx_cancel)
+	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+
+func _on_pause_pressed() -> void:
+	if _is_transitioning or _is_in_settings:
+		return
+	_play_sfx(_sfx_confirm)
+	_open_settings()
+
+
+func _open_settings() -> void:
+	_is_in_settings = true
+	if settings_panel != null:
+		settings_panel.visible = true
+		settings_panel.set("settings_origin", "map_menu")
+
+
+func _on_settings_closed(_origin: String) -> void:
+	_is_in_settings = false
+	if settings_panel != null:
+		settings_panel.visible = false
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _is_transitioning or _is_in_settings:
+		return
+
+	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
+		_safe_handle_input()
+		_on_back_pressed()
+	elif event.is_action_pressed("ui_right") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_RIGHT or event.keycode == KEY_D)):
+		_safe_handle_input()
+		_navigate_stages(1)
+	elif event.is_action_pressed("ui_left") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_LEFT or event.keycode == KEY_A)):
+		_safe_handle_input()
+		_navigate_stages(-1)
+	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)):
+		_safe_handle_input()
+		_on_play_stage_pressed()
+
+
+func _navigate_stages(delta: int) -> void:
+	var next_idx := (_selected_index + delta) % STAGE_CONFIGS.size()
+	if next_idx < 0:
+		next_idx += STAGE_CONFIGS.size()
+	_select_stage(next_idx, true)
+
+
+func _safe_handle_input() -> void:
+	if get_viewport() != null:
+		get_viewport().set_input_as_handled()
 
 
 func _get_game_session() -> Node:
@@ -216,329 +353,7 @@ func _get_game_session() -> Node:
 	return null
 
 
-func _setup_progression_display() -> void:
-	var session = _get_game_session()
-	var is_stage_2: bool = false
-	var is_stage_3: bool = false
-	if session != null:
-		if session.has_method("is_stage_2_unlocked"):
-			is_stage_2 = session.is_stage_2_unlocked()
-		var max_stage: int = session.max_unlocked_stage if "max_unlocked_stage" in session else 1
-		is_stage_3 = max_stage >= 3
-
-	# Padlock da Fase 2 é removido/coberto se Fase 2 estiver desbloqueada
-	if point2_cover != null:
-		point2_cover.visible = is_stage_2
-
-	# Padlock da Fase 3 é removido/coberto se Fase 3 estiver desbloqueada
-	if point3_cover != null:
-		point3_cover.visible = is_stage_3
-
-
-func is_point_unlocked(point_idx: int) -> bool:
-	if point_idx == 0:
-		return true
-	var session = _get_game_session()
-	if session == null:
-		return false
-	match point_idx:
-		1: # Bônus
-			var bonus_ok: bool = session.has_method("is_bonus_unlocked") and session.is_bonus_unlocked()
-			var stage2_ok: bool = session.has_method("is_stage_2_unlocked") and session.is_stage_2_unlocked()
-			return bonus_ok or stage2_ok
-		2: # Ponto 2
-			var stage2_ok: bool = session.has_method("is_stage_2_unlocked") and session.is_stage_2_unlocked()
-			return stage2_ok
-		3: # Ponto 3
-			var max_stage: int = session.max_unlocked_stage if "max_unlocked_stage" in session else 1
-			return max_stage >= 3
-		_:
-			return false
-
-
-func is_opened_from_menu() -> bool:
-	return _entry_context == "browse"
-
-
-func advance_trail() -> bool:
-	return _try_navigate(1)
-
-
-func retreat_trail() -> bool:
-	return _try_navigate(-1)
-
-
-func _try_navigate(step: int) -> bool:
-	var target_idx = _selected_point_index + step
-	if target_idx < 0 or target_idx >= STAGE_POINTS.size():
-		return false
-
-	if not is_point_unlocked(target_idx):
-		_play_sound(_sfx_cancel)
-		return false
-
-	_select_point(target_idx)
-	_play_sound(_sfx_move)
-	return true
-
-
-func select_point(idx: int) -> bool:
-	if idx < 0 or idx >= STAGE_POINTS.size():
-		return false
-	if not is_point_unlocked(idx):
-		_play_sound(_sfx_cancel)
-		return false
-	_select_point(idx)
-	return true
-
-
-func _select_point(idx: int) -> void:
-	_selected_point_index = clampi(idx, 0, STAGE_POINTS.size() - 1)
-
-	# Se for ponto 0 (Ponto 1), a seta original de P1 permanece visível (não coberta)
-	if point1_cover != null:
-		point1_cover.visible = (_selected_point_index != 0)
-
-	if arrow_p1 != null:
-		arrow_p1.visible = (_selected_point_index == 0)
-	if arrow_bonus != null:
-		arrow_bonus.visible = (_selected_point_index == 1)
-	if arrow_p2 != null:
-		arrow_p2.visible = (_selected_point_index == 2)
-	if arrow_p3 != null:
-		arrow_p3.visible = (_selected_point_index == 3)
-
-	var active_arrow: Node2D = null
-	match _selected_point_index:
-		0: active_arrow = arrow_p1
-		1: active_arrow = arrow_bonus
-		2: active_arrow = arrow_p2
-		3: active_arrow = arrow_p3
-
-	if active_arrow != null:
-		_start_arrow_bobbing(active_arrow)
-
-	if _mobile_action_button != null and _selected_point_index < STAGE_POINTS.size():
-		var pt_name: String = str(STAGE_POINTS[_selected_point_index]["name"])
-		if is_opened_from_menu():
-			MobileScreenAction.set_action_state(_mobile_action_button, "VOLTAR AO MENU", false)
-		else:
-			MobileScreenAction.set_action_state(_mobile_action_button, "AVANÇAR - " + pt_name, false)
-
-
-func _start_arrow_bobbing(arrow_node: Node2D) -> void:
-	if _bob_tween != null and _bob_tween.is_valid():
-		_bob_tween.kill()
-
-	var base_y: float = arrow_node.position.y
-	_bob_tween = create_tween().set_loops()
-	_bob_tween.tween_property(arrow_node, "position:y", base_y - 4.0, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_bob_tween.tween_property(arrow_node, "position:y", base_y + 2.0, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-
-
-func _setup_buttons() -> void:
-	if btn_back != null:
-		btn_back.pressed.connect(_on_back_pressed)
-		btn_back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	if btn_confirm != null:
-		if is_opened_from_menu():
-			btn_confirm.text = "VOLTAR AO MENU"
-		btn_confirm.pressed.connect(_on_confirm_pressed)
-		btn_confirm.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		_on_back_pressed()
-
-
-func _input(event: InputEvent) -> void:
-	if _is_transitioning:
-		return
-	if event is InputEventScreenTouch and event.pressed:
-		var local_pos: Vector2 = _get_map_coordinates(event.position)
-		_handle_point_click(local_pos, true)
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var local_pos: Vector2 = _get_map_coordinates(event.position)
-		_handle_point_click(local_pos, MobileScreenAction.is_mobile_runtime())
-
-
-func _get_map_coordinates(screen_pos: Vector2) -> Vector2:
-	if map_container == null:
-		return screen_pos
-	var s: Vector2 = map_container.scale
-	if s.x <= 0.001 or s.y <= 0.001:
-		return screen_pos
-	return (screen_pos - map_container.position) / s
-
-
-func _handle_point_click(pos: Vector2, is_touch: bool = false) -> void:
-	# Quando o mapa é aberto a partir do menu, qualquer clique/toque retorna ao Menu Principal
-	if is_opened_from_menu():
-		_return_to_main_menu()
-		return
-
-	# Em fluxo de campanha, continuar, novo jogo, etc.: segue o processo canônico do game
-	for i in range(STAGE_POINTS.size()):
-		var rect: Rect2 = STAGE_POINTS[i]["click_rect"]
-		if rect.has_point(pos):
-			if is_point_unlocked(i):
-				if is_touch or MobileScreenAction.is_mobile_runtime() or _selected_point_index == i:
-					_select_point(i)
-					_on_confirm_pressed()
-				else:
-					_select_point(i)
-					_play_sound(_sfx_move)
-			else:
-				_play_sound(_sfx_cancel)
-			return
-
-	# Em modo touch ou mobile, tocar em área livre da tela:
-	if is_touch or MobileScreenAction.is_mobile_runtime():
-		if _entry_context == "campaign" and is_point_unlocked(_selected_point_index):
-			_on_confirm_pressed()
-		else:
-			_on_back_pressed()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if _is_transitioning:
-		return
-
-	# Quando aberto através do Menu Principal, qualquer ação/tecla retorna ao Menu
-	if is_opened_from_menu():
-		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("ui_accept") \
-			or (event is InputEventKey and event.pressed and not event.echo):
-			_safe_handle_input()
-			_return_to_main_menu()
-		return
-
-	# Em fluxo de jogo normal / campanha:
-	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
-		_safe_handle_input()
-		_on_back_pressed()
-	elif event.is_action_pressed("ui_right") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_RIGHT or event.keycode == KEY_D or event.keycode == KEY_DOWN or event.keycode == KEY_S)):
-		_safe_handle_input()
-		advance_trail()
-	elif event.is_action_pressed("ui_left") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_LEFT or event.keycode == KEY_A or event.keycode == KEY_UP or event.keycode == KEY_W)):
-		_safe_handle_input()
-		retreat_trail()
-	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE)):
-		_safe_handle_input()
-		_on_confirm_pressed()
-
-
-func _return_to_main_menu() -> void:
-	if _is_transitioning:
-		return
-	_is_transitioning = true
-	_play_sound(_sfx_cancel)
-	_safe_handle_input()
-	var err := get_tree().change_scene_to_file(MAIN_MENU_SCENE)
-	if err != OK:
-		_is_transitioning = false
-		printerr("Erro ao retornar do mapa para o menu principal: ", err)
-
-
-func _on_back_pressed() -> void:
-	if is_opened_from_menu():
-		_return_to_main_menu()
-		return
-
-	if _is_transitioning:
-		return
-	_is_transitioning = true
-	_play_sound(_sfx_cancel)
-	_safe_handle_input()
-
-	# Navegação inversa conforme o contexto de entrada (GAME_RULES.md §1.4):
-	# - Campanha: retorna à tela de dificuldade
-	# - Outros fluxos: retorna ao menu principal
-	var back_scene: String = MAIN_MENU_SCENE
-	if _entry_context == "campaign":
-		back_scene = DIFFICULTY_SELECT_SCENE
-
-	var err := get_tree().change_scene_to_file(back_scene)
-	if err != OK:
-		_is_transitioning = false
-		printerr("Erro ao retornar do mapa: ", err)
-
-
-func _on_confirm_pressed() -> void:
-	if is_opened_from_menu():
-		_return_to_main_menu()
-		return
-
-	if _is_transitioning:
-		return
-	if not is_point_unlocked(_selected_point_index):
-		_play_sound(_sfx_cancel)
-		return
-	_is_transitioning = true
-	_play_sound(_sfx_confirm)
-	_safe_handle_input()
-
-	var session = _get_game_session()
-	if session != null:
-		if not ("selected_character_id" in session) or session.selected_character_id == "":
-			session.selected_character_id = "guilherme"
-		if not ("difficulty_id" in session) or session.difficulty_id == "":
-			session.difficulty_id = "normal"
-		session.set_meta("selected_stage_index", _selected_point_index)
-
-	var target_scene: String = str(STAGE_POINTS[_selected_point_index]["scene"])
-	var err := get_tree().change_scene_to_file(target_scene)
-	if err != OK:
-		_is_transitioning = false
-		printerr("Erro ao transicionar para a fase: ", err)
-
-
-func _safe_handle_input() -> void:
-	if get_viewport() != null:
-		get_viewport().set_input_as_handled()
-
-
-func _play_sound(stream: AudioStream) -> void:
+func _play_sfx(stream: AudioStream) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
 		audio_player.play()
-
-
-func _generate_audio_effects() -> void:
-	if ResourceLoader.exists("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"):
-		_sfx_confirm = load("res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3")
-	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_confirm.mp3"):
-		_sfx_confirm = load("res://assets/audio/sfx/sfx_menu_confirm.mp3")
-	else:
-		_sfx_confirm = _create_wav(1040.0, 0.12, 0.40)
-
-	if ResourceLoader.exists("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"):
-		_sfx_cancel = load("res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3")
-	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_denied.mp3"):
-		_sfx_cancel = load("res://assets/audio/sfx/sfx_menu_denied.mp3")
-	else:
-		_sfx_cancel = _create_wav(160.0, 0.14, 0.40)
-
-	if ResourceLoader.exists("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"):
-		_sfx_move = load("res://assets/audio/sfx/Mover Cursor_sfx_move.mp3")
-	elif ResourceLoader.exists("res://assets/audio/sfx/sfx_menu_move.mp3"):
-		_sfx_move = load("res://assets/audio/sfx/sfx_menu_move.mp3")
-	else:
-		_sfx_move = _create_wav(720.0, 0.05, 0.35)
-
-
-func _create_wav(freq: float, duration: float, volume: float) -> AudioStreamWAV:
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_8_BITS
-	wav.mix_rate = 22050
-	var sample_count: int = int(22050.0 * duration)
-	var data := PackedByteArray()
-	data.resize(sample_count)
-	for i in range(sample_count):
-		var t: float = float(i) / 22050.0
-		var envelope: float = 1.0 - (float(i) / float(sample_count))
-		var sample: float = sin(t * freq * TAU) * volume * envelope
-		var byte_val: int = clampi(int(sample * 127.0 + 128.0), 0, 255)
-		data[i] = byte_val
-	wav.data = data
-	return wav

@@ -152,19 +152,15 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 
 	var continue_label := Label.new()
 	continue_label.name = "ContinuePrompt"
-	if is_mobile:
-		continue_label.text = "►"
-		var arrow_settings := LabelSettings.new()
-		arrow_settings.font = ARCADE_FONT
-		arrow_settings.font_size = 22
-		arrow_settings.font_color = Color(1.0, 0.92, 0.25, 1.0)
-		arrow_settings.shadow_size = 1
-		arrow_settings.shadow_color = Color(0.0, 0.0, 0.0, 0.90)
-		arrow_settings.shadow_offset = Vector2(1, 1)
-		continue_label.label_settings = arrow_settings
-	else:
-		continue_label.text = "TOQUE OU PRESSIONE ENTER PARA CONTINUAR"
-		continue_label.label_settings = create_prompt_settings(false)
+	continue_label.text = "►"
+	var arrow_settings := LabelSettings.new()
+	arrow_settings.font = ARCADE_FONT
+	arrow_settings.font_size = 22 if is_mobile else 26
+	arrow_settings.font_color = Color(1.0, 0.92, 0.25, 1.0)
+	arrow_settings.shadow_size = 1
+	arrow_settings.shadow_color = Color(0.0, 0.0, 0.0, 0.90)
+	arrow_settings.shadow_offset = Vector2(1, 1)
+	continue_label.label_settings = arrow_settings
 	continue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	continue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	continue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -178,6 +174,7 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 		"speaker_label": speaker_label,
 		"dialogue_label": dialogue_label,
 		"continue_label": continue_label,
+		"prompt_label": continue_label,
 		"text_vbox": vbox
 	}
 

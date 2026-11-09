@@ -189,7 +189,7 @@ func _show_dialogue(speaker: String, text: String, portrait_path: String) -> voi
 
 	if prompt_label != null:
 		prompt_label.visible = false
-		prompt_label.text = "[Toque para continuar]" if _is_mobile_runtime() else "[Pressione Espaço/Enter]"
+		prompt_label.text = "►"
 
 	if dialogue_label != null:
 		dialogue_label.text = text

@@ -1,13 +1,16 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=10 format=3]
 
-[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu_script"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/menu_states/menu_state_vf.webp" id="2_menu_bg"]
-[ext_resource type="Texture2D" path="res://assets/ui/shared/menu_brush_highlight.webp" id="3_brush_highlight"]
-[ext_resource type="Texture2D" path="res://assets/ui/shared/menu_chevron_left.webp" id="4_chev_left"]
-[ext_resource type="Texture2D" path="res://assets/ui/shared/menu_chevron_right.webp" id="5_chev_right"]
-
-[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
-blend_mode = 1
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/locadora.webp" id="2_locadora_bg"]
+[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="3_arcade_font"]
+[ext_resource type="FontFile" path="res://assets/fonts/barlow_condensed_extrabold_italic.ttf" id="4_barlow_font"]
+[ext_resource type="FontFile" path="res://assets/fonts/press_start_2p.ttf" id="5_pixel_font"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/arcade_button.tscn" id="6_arcade_btn"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_play.png" id="7_play_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_coin.png" id="8_coin_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_gear.png" id="9_gear_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_exit.png" id="10_exit_icon"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/settings_panel.tscn" id="11_settings_panel"]
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -16,18 +19,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_main_menu_script")
+script = ExtResource("1_main_menu")
 
-[node name="DarkBase" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.01, 0.01, 0.03, 1)
-
-[node name="AspectWrapper" type="AspectRatioContainer" parent="."]
+[node name="BackgroundImage" type="TextureRect" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -35,127 +29,140 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-ratio = 1.777778
-stretch_mode = 2
+texture = ExtResource("2_locadora_bg")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="BackgroundSlot" type="TextureRect" parent="AspectWrapper"]
-unique_name_in_owner = true
+[node name="VignetteOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.015, 0.02, 0.05, 0.45)
+
+[node name="MainLayout" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 72
+theme_override_constants/margin_top = 48
+theme_override_constants/margin_right = 72
+theme_override_constants/margin_bottom = 32
+
+[node name="ContentHBox" type="HBoxContainer" parent="MainLayout"]
 layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("2_menu_bg")
-expand_mode = 1
-stretch_mode = 5
+size_flags_vertical = 3
 
-[node name="SelectorOverlay" type="Control" parent="AspectWrapper"]
-unique_name_in_owner = true
+[node name="BrandColumn" type="VBoxContainer" parent="MainLayout/ContentHBox"]
 layout_mode = 2
-mouse_filter = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
 
-[node name="BrushHighlight" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
-unique_name_in_owner = true
-material = SubResource("CanvasItemMaterial_add")
-layout_mode = 0
-offset_left = 668.0
-offset_top = 489.0
-offset_right = 1252.0
-offset_bottom = 549.0
-mouse_filter = 2
-texture = ExtResource("3_brush_highlight")
-expand_mode = 1
-
-[node name="LeftChevron" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 615.0
-offset_top = 492.0
-offset_right = 671.0
-offset_bottom = 546.0
-mouse_filter = 2
-texture = ExtResource("4_chev_left")
-expand_mode = 1
-
-[node name="RightChevron" type="TextureRect" parent="AspectWrapper/SelectorOverlay"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 1256.0
-offset_top = 492.0
-offset_right = 1312.0
-offset_bottom = 546.0
-mouse_filter = 2
-texture = ExtResource("5_chev_right")
-expand_mode = 1
-
-[node name="MenuHitboxes" type="Control" parent="AspectWrapper"]
-unique_name_in_owner = true
+[node name="SpacerTop" type="Control" parent="MainLayout/ContentHBox/BrandColumn"]
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 
-[node name="BtnNewGame" type="Button" parent="AspectWrapper/MenuHitboxes"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.345
-anchor_top = 0.444
-anchor_right = 0.655
-anchor_bottom = 0.518
-flat = true
+[node name="BrandTitle" type="Label" parent="MainLayout/ContentHBox/BrandColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.91, 1)
+theme_override_colors/font_shadow_color = Color(0.937, 0.141, 0.224, 1)
+theme_override_constants/shadow_offset_x = 4
+theme_override_constants/shadow_offset_y = 4
+theme_override_fonts/font = ExtResource("3_arcade_font")
+theme_override_font_sizes/font_size = 76
+text = "Saka's"
 
-[node name="BtnContinue" type="Button" parent="AspectWrapper/MenuHitboxes"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.345
-anchor_top = 0.528
-anchor_right = 0.655
-anchor_bottom = 0.602
-flat = true
+[node name="BrandSubtitle" type="Label" parent="MainLayout/ContentHBox/BrandColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.788, 0.157, 1)
+theme_override_colors/font_shadow_color = Color(0.067, 0.075, 0.137, 1)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_fonts/font = ExtResource("4_barlow_font")
+theme_override_font_sizes/font_size = 36
+text = "A ÚLTIMA FICHA"
 
-[node name="BtnCharSelect" type="Button" parent="AspectWrapper/MenuHitboxes"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.345
-anchor_top = 0.606
-anchor_right = 0.655
-anchor_bottom = 0.680
-disabled = true
-flat = true
+[node name="SpacerBottom" type="Control" parent="MainLayout/ContentHBox/BrandColumn"]
+layout_mode = 2
+size_flags_vertical = 3
 
-[node name="BtnMap" type="Button" parent="AspectWrapper/MenuHitboxes"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.345
-anchor_top = 0.685
-anchor_right = 0.655
-anchor_bottom = 0.758
-flat = true
+[node name="ButtonsColumn" type="VBoxContainer" parent="MainLayout/ContentHBox"]
+layout_mode = 2
+alignment = 1
 
-[node name="BtnSettings" type="Button" parent="AspectWrapper/MenuHitboxes"]
+[node name="ButtonsContainer" type="VBoxContainer" parent="MainLayout/ContentHBox/ButtonsColumn"]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.345
-anchor_top = 0.762
-anchor_right = 0.655
-anchor_bottom = 0.832
-flat = true
+custom_minimum_size = Vector2(410, 0)
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
 
-[node name="BtnQuit" type="Button" parent="AspectWrapper/MenuHitboxes"]
+[node name="BtnPlay" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.345
-anchor_top = 0.836
-anchor_right = 0.655
-anchor_bottom = 0.906
-flat = true
+custom_minimum_size = Vector2(410, 68)
+layout_mode = 2
+button_text = "JOGAR"
+icon_texture = ExtResource("7_play_icon")
+is_primary = true
+custom_font_size = 28
 
-[node name="BtnCredits" type="Button" parent="AspectWrapper/MenuHitboxes"]
+[node name="BtnContinue" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(410, 62)
+layout_mode = 2
+button_text = "CONTINUAR"
+icon_texture = ExtResource("8_coin_icon")
+custom_font_size = 26
+
+[node name="BtnSettings" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(410, 62)
+layout_mode = 2
+button_text = "CONFIGURAÇÕES"
+icon_texture = ExtResource("9_gear_icon")
+custom_font_size = 26
+
+[node name="BtnQuit" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(410, 62)
+layout_mode = 2
+button_text = "SAIR"
+icon_texture = ExtResource("10_exit_icon")
+is_danger = true
+custom_font_size = 26
+
+[node name="FooterBar" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -42.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/margin_bottom = 14
+
+[node name="SloganLabel" type="Label" parent="FooterBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.94, 0.75, 0.8)
+theme_override_colors/font_shadow_color = Color(0.04, 0.04, 0.08, 0.95)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("5_pixel_font")
+theme_override_font_sizes/font_size = 12
+text = "COCA, AMIZADE E MUITA PORRADA!"
+horizontal_alignment = 1
+
+[node name="SettingsPanel" parent="." instance=ExtResource("11_settings_panel")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-flat = true
 
 [node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
-volume_db = -6.0
+bus = &"Master"

@@ -387,8 +387,8 @@ func test_manual_advance_and_no_timer_skips() -> void:
 	)
 	var early_counter: Label = nar.get_node_or_null("%SceneCounterLabel")
 	assert_test(
-		early_counter != null and early_counter.text == "02" and not early_counter.text.contains("CENA"),
-		"Moldura apresenta somente o número do evento, sem o termo CENA"
+		early_counter == null or not early_counter.visible or early_counter.text.is_empty(),
+		"Número da cena na história inicial permanece oculto/vazio conforme diretriz de imersão"
 	)
 	# Aguarda a transição da imagem da primeira cena narrativa.
 	await create_timer(0.40).timeout
@@ -445,20 +445,21 @@ func test_official_dialogue_frame_and_typography() -> void:
 	assert_test(key_badge != null, "KeyBadge (ícone da tecla ENTER) existe no painel")
 
 	var key_lbl: Label = nar.get_node_or_null("%KeyBadgeLabel")
-	assert_test(key_lbl != null and key_lbl.text == "ENTER", "KeyBadge exibe 'ENTER' com estilo arcade")
+	assert_test(key_lbl != null and (key_lbl.text == "►" or key_lbl.text == "ENTER"), "KeyBadge exibe indicador de avanço estilizado")
 
 	var prompt_lbl: Label = nar.get_node_or_null("%PromptLabel")
 	assert_test(
 		prompt_lbl != null
-		and prompt_lbl.text == "ENTER"
+		and prompt_lbl.text == "►"
 		and prompt_lbl.get_theme_font_size("font_size") >= 16,
-		"Prompt de ENTER tem tamanho padronizado e não depende de glifo decorativo"
+		"Prompt de avanço utiliza a flechinha '►' padronizada"
 	)
 
 	var counter_lbl: Label = nar.get_node_or_null("%SceneCounterLabel")
-	if counter_lbl != null:
-		counter_lbl.text = "02"
-		assert_test(not counter_lbl.text.contains("CENA"), "Moldura não exibe o termo CENA no contador")
+	assert_test(
+		counter_lbl == null or not counter_lbl.visible or counter_lbl.text.is_empty(),
+		"SceneCounterLabel permanece desativado na história inicial"
+	)
 
 	root.remove_child(nar)
 	nar.free()

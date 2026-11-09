@@ -1,0 +1,168 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/components/settings_panel.gd" id="1_settings_script"]
+[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="2_arcade_font"]
+[ext_resource type="FontFile" path="res://assets/fonts/barlow_condensed_bold.ttf" id="3_barlow_font"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/arcade_button.tscn" id="4_arcade_btn_scene"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_exit.png" id="5_exit_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_back.png" id="6_back_icon"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icon_button"]
+bg_color = Color(0.09, 0.082, 0.239, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.439, 0.435, 0.949, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0.012, 0.016, 0.043, 0.8)
+shadow_size = 4
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.043, 0.059, 0.145, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.424, 0.459, 0.902, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.65)
+shadow_size = 12
+shadow_offset = Vector2(8, 10)
+
+[node name="SettingsPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings_script")
+
+[node name="DimOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.05, 0.82)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(620, 440)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 32
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/PanelContainer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 22
+
+[node name="HeaderHBox" type="HBoxContainer" parent="CenterContainer/PanelContainer/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BtnTopBack" type="Button" parent="CenterContainer/PanelContainer/Margin/VBox/HeaderHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_icon_button")
+icon = ExtResource("6_back_icon")
+icon_alignment = 1
+expand_icon = true
+
+[node name="HeaderTitles" type="VBoxContainer" parent="CenterContainer/PanelContainer/Margin/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/PanelContainer/Margin/VBox/HeaderHBox/HeaderTitles"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.29, 1)
+theme_override_colors/font_shadow_color = Color(0.07, 0.08, 0.14, 1)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 28
+text = "CONFIGURAÇÕES ARCADE"
+
+[node name="OriginIndicator" type="Label" parent="CenterContainer/PanelContainer/Margin/VBox/HeaderHBox/HeaderTitles"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.6, 0.75, 0.85)
+theme_override_fonts/font = ExtResource("3_barlow_font")
+theme_override_font_sizes/font_size = 18
+text = "ORIGEM: MENU PRINCIPAL"
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/PanelContainer/Margin/VBox"]
+layout_mode = 2
+
+[node name="VolumeSection" type="VBoxContainer" parent="CenterContainer/PanelContainer/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="VolumeHeader" type="HBoxContainer" parent="CenterContainer/PanelContainer/Margin/VBox/VolumeSection"]
+layout_mode = 2
+
+[node name="VolumeTitle" type="Label" parent="CenterContainer/PanelContainer/Margin/VBox/VolumeSection/VolumeHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_barlow_font")
+theme_override_font_sizes/font_size = 24
+text = "🔊 VOLUME GERAL (MASTER)"
+
+[node name="VolumeValueLabel" type="Label" parent="CenterContainer/PanelContainer/Margin/VBox/VolumeSection/VolumeHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.14, 0.91, 1, 1)
+theme_override_fonts/font = ExtResource("2_arcade_font")
+theme_override_font_sizes/font_size = 22
+text = "100%"
+
+[node name="VolumeSlider" type="HSlider" parent="CenterContainer/PanelContainer/Margin/VBox/VolumeSection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="Spacer" type="Control" parent="CenterContainer/PanelContainer/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnBack" parent="CenterContainer/PanelContainer/Margin/VBox" instance=ExtResource("4_arcade_btn_scene")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(340, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+button_text = "VOLTAR"
+icon_texture = ExtResource("5_exit_icon")
+is_danger = true
+custom_font_size = 24
+

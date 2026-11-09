@@ -43,17 +43,52 @@ def ensure_godot_web_export():
     pck_path = PUBLIC_DIR / "index.pck"
     wasm_path = PUBLIC_DIR / "index.wasm"
     preset_path = ROOT_DIR / "export_presets.cfg"
+    project_path = ROOT_DIR / "project.godot"
+
     presets_newer = (
         pck_path.exists()
         and preset_path.exists()
         and preset_path.stat().st_mtime > pck_path.stat().st_mtime
     )
-    needs_export = not pck_path.exists() or not wasm_path.exists() or presets_newer or "--force-export" in sys.argv
+    project_newer = (
+        pck_path.exists()
+        and project_path.exists()
+        and project_path.stat().st_mtime > pck_path.stat().st_mtime
+    )
+
+    sources_newer = False
+    if pck_path.exists():
+        pck_mtime = pck_path.stat().st_mtime
+        for check_dir in [ROOT_DIR / "scenes", ROOT_DIR / "scripts", ROOT_DIR / "resources"]:
+            if check_dir.exists():
+                for root, _, files in os.walk(check_dir):
+                    for f in files:
+                        fp = Path(root) / f
+                        if fp.suffix in ('.tscn', '.gd', '.tres') and fp.stat().st_mtime > pck_mtime:
+                            sources_newer = True
+                            break
+                    if sources_newer:
+                        break
+            if sources_newer:
+                break
+
+    needs_export = (
+        not pck_path.exists()
+        or not wasm_path.exists()
+        or presets_newer
+        or project_newer
+        or sources_newer
+        or "--force-export" in sys.argv
+    )
 
     if needs_export:
         print_header("0. EXPORTANDO PROJETO BASE GODOT WEB (godot_console --headless)")
         if presets_newer:
             print("  export_presets.cfg foi modificado. Re-exportando index.pck e index.wasm...")
+        elif project_newer:
+            print("  project.godot foi modificado. Re-exportando index.pck e index.wasm...")
+        elif sources_newer:
+            print("  Arquivos fonte (.tscn / .gd / .tres) mais recentes que o pacote Web. Re-exportando...")
         else:
             print("  index.pck ou index.wasm ausentes/forçados. Disparando exportação automática do Godot...")
         cmd = ["godot_console.exe", "--headless", "--export-release", "Web", "public/index.html"]
@@ -166,13 +201,16 @@ def deploy_to_vercel():
             print("  O jogo Beat 'em Up Sakas está atualizado e no ar na Vercel.")
             print("  Todos os pacotes modulares foram publicados e validados com folga.")
         else:
-            print(f"\n[AVISO] Vercel CLI retornou código {res.returncode}.")
-            print("Se for a primeira vez usando a CLI ou seu token expirou, execute no terminal:")
+            print(f"\n[AVISO CRÍTICO] Vercel CLI retornou código de erro {res.returncode}.")
+            print("Sua sessão da Vercel expirou ou precisa de autenticação.")
+            print("Para autenticar, abra o terminal e execute:")
             print("  vercel login")
             print("Depois execute novamente:")
-            print("  python tools/deploy_web.py")
+            print("  tools\\deploy_web.bat\n")
+            sys.exit(res.returncode)
     except Exception as e:
         print(f"  [ERRO] Exceção ao executar o Vercel CLI: {e}")
+        sys.exit(1)
 
 
 def main():

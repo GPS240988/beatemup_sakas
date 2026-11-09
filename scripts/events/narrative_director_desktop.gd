@@ -110,8 +110,8 @@ func _prepare_dialogue_preview(ev: Resource) -> void:
 		_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_dialogue_label.add_theme_font_size_override("font_size", _dialogue_label.label_settings.font_size)
 	if _scene_counter_label != null:
-		_scene_counter_label.visible = true
-		_scene_counter_label.text = "%02d" % (current_event_index + 1)
+		_scene_counter_label.visible = false
+		_scene_counter_label.text = ""
 
 	_configure_desktop_advance_prompt()
 	var is_mobile: bool = _is_mobile_runtime()
@@ -133,24 +133,25 @@ func _show_current_text_block(ev: Resource) -> void:
 	if str(ev.get("id")) == "arcade_machine":
 		return
 	if _scene_counter_label != null:
-		_scene_counter_label.text = "%02d" % (current_event_index + 1)
+		_scene_counter_label.visible = false
+		_scene_counter_label.text = ""
 	if _key_badge != null:
 		_key_badge.visible = false
 	if _prompt_label != null:
-		_prompt_label.text = "ENTER"
-		_prompt_label.add_theme_font_size_override("font_size", 16)
+		_prompt_label.text = "►"
+		_prompt_label.add_theme_font_size_override("font_size", 22)
 
 
 func _configure_desktop_advance_prompt() -> void:
 	# Evita fontes/ícones diferentes entre execução nativa e navegador desktop.
-	# O glifo decorativo ❯ foi removido porque pode variar conforme o renderer web.
+	# Padronizado para flecha arcade '►' unificada entre mobile e desktop.
 	if _key_badge != null:
 		_key_badge.visible = false
 	if _key_badge_label != null:
-		_key_badge_label.text = "ENTER"
+		_key_badge_label.text = "►"
 	if _prompt_label != null:
-		_prompt_label.text = "ENTER"
-		_prompt_label.add_theme_font_size_override("font_size", 16)
+		_prompt_label.text = "►"
+		_prompt_label.add_theme_font_size_override("font_size", 22)
 
 
 func _apply_responsive_layout() -> void:
