@@ -42,11 +42,20 @@ def print_header(title: str):
 def ensure_godot_web_export():
     pck_path = PUBLIC_DIR / "index.pck"
     wasm_path = PUBLIC_DIR / "index.wasm"
-    needs_export = not pck_path.exists() or not wasm_path.exists() or "--force-export" in sys.argv
+    preset_path = ROOT_DIR / "export_presets.cfg"
+    presets_newer = (
+        pck_path.exists()
+        and preset_path.exists()
+        and preset_path.stat().st_mtime > pck_path.stat().st_mtime
+    )
+    needs_export = not pck_path.exists() or not wasm_path.exists() or presets_newer or "--force-export" in sys.argv
 
     if needs_export:
         print_header("0. EXPORTANDO PROJETO BASE GODOT WEB (godot_console --headless)")
-        print("  index.pck ou index.wasm ausentes. Disparando exportação automática do Godot...")
+        if presets_newer:
+            print("  export_presets.cfg foi modificado. Re-exportando index.pck e index.wasm...")
+        else:
+            print("  index.pck ou index.wasm ausentes/forçados. Disparando exportação automática do Godot...")
         cmd = ["godot_console.exe", "--headless", "--export-release", "Web", "public/index.html"]
         print(f"  Executando: {' '.join(cmd)} ...")
         res = subprocess.run(cmd, cwd=ROOT_DIR)

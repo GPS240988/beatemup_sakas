@@ -10,9 +10,9 @@ const STORY_INTERLUDE_SCENE_PATH: String = "res://scenes/story/story_intro_fase1
 
 func _advance_to_next_map() -> void:
 	var should_show_interlude: bool = (
-		map_group == "fase1"
+		(map_group == "fase1" or map_group.is_empty())
 		and map_index == 2
-		and next_map_scene_path == MAP_3_SCENE_PATH
+		and (next_map_scene_path == MAP_3_SCENE_PATH or next_map_scene_path == STORY_INTERLUDE_SCENE_PATH)
 	)
 
 	if not should_show_interlude:

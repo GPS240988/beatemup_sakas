@@ -88,7 +88,7 @@ func mount_pack(pack_id: String) -> bool:
 
 	for path in search_paths:
 		if FileAccess.file_exists(path):
-			var success: bool = ProjectSettings.load_resource_pack(path, false)
+			var success: bool = ProjectSettings.load_resource_pack(path, true)
 			if success:
 				_pack_states[pack_id] = PackState.MOUNTED
 				if not _mounted_packs.has(pack_id):
