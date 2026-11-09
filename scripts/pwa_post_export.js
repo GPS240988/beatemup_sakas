@@ -188,6 +188,30 @@ function updateHtmlFileSizes(filePath) {
 	}
 }
 
+function enrichManifest() {
+	const manifestPath = path.join(PUBLIC_DIR, 'index.manifest.json');
+	if (!fs.existsSync(manifestPath)) return;
+	try {
+		const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+		manifest.name = "Beat 'em Up Sakas — A Última Ficha";
+		manifest.short_name = "Sakas Arcade";
+		manifest.description = "Beat 'em Up retrô Neo-16-bit ambientado na São Paulo dos anos 90.";
+		manifest.theme_color = "#060814";
+		manifest.background_color = "#060814";
+		manifest.display = "standalone";
+		manifest.orientation = "landscape";
+		if (Array.isArray(manifest.icons)) {
+			for (const icon of manifest.icons) {
+				icon.purpose = "any maskable";
+			}
+		}
+		fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+		console.log('[PWA Build] index.manifest.json enriquecido com metadados premium.');
+	} catch (e) {
+		console.warn('[PWA Build] Aviso ao enriquecer manifest:', e.message);
+	}
+}
+
 function main() {
 	console.log('[PWA Build] Iniciando automação pós-exportação / deploy...');
 
@@ -214,6 +238,7 @@ function main() {
 	updateHtmlMetaTag(path.join(PUBLIC_DIR, 'mobile_shell.html'), version);
 	updateHtmlMetaTag(path.join(PUBLIC_DIR, 'index.html'), version);
 	updateHtmlFileSizes(path.join(PUBLIC_DIR, 'index.html'));
+	enrichManifest();
 
 	console.log('[PWA Build] Automação concluída com sucesso!');
 }

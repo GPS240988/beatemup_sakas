@@ -160,6 +160,10 @@ func _activate_option(index: int) -> void:
 			var session = get_node_or_null("/root/GameSession")
 			if session != null and session.has_method("reset_session"):
 				session.reset_session()
+			# Dispara prefetch/stream da história em segundo plano durante a seleção de personagem
+			var pack_mgr = get_node_or_null("/root/PackManager")
+			if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+				pack_mgr.ensure_pack_loaded_async("story_cinematics")
 			await get_tree().create_timer(0.25).timeout
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 

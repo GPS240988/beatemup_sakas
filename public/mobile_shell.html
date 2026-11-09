@@ -3,9 +3,10 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<meta name="theme-color" content="#060814">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<title>$GODOT_PROJECT_NAME</title>
-	<meta name="sakas-build-id" content="802fa39d">
-	<meta name="sakas-build-id" content="initial">
 	$GODOT_HEAD_INCLUDE
 	<style>
 		html, body, #canvas {
@@ -21,9 +22,14 @@
 			width: 100vw;
 			height: 100vh;
 			overflow: hidden;
-			background: #000;
+			background: #04060d;
+			color: #fff;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+			user-select: none;
+			-webkit-user-select: none;
+			touch-action: none;
+			overscroll-behavior: none;
 		}
-		body { touch-action: none; overscroll-behavior: none; }
 		#canvas {
 			display: block;
 			position: fixed;
@@ -33,49 +39,13 @@
 			touch-action: none;
 			outline: none;
 		}
-		/* dvh acompanha a área realmente visível no Safari/Chrome mobile,
-		   inclusive quando as barras do navegador aparecem ou desaparecem. */
 		@supports (height: 100dvh) {
 			html, body, #canvas { height: 100dvh; }
 		}
-		#rotate-overlay {
-			display: none;
-			position: fixed;
-			inset: 0;
-			z-index: 9999;
-			align-items: center;
-			justify-content: center;
-			flex-direction: column;
-			gap: 0.8rem;
-			padding: 2rem;
-			box-sizing: border-box;
-			background: #080b12;
-			color: #f2e6c8;
-			font-family: Arial, sans-serif;
-			text-align: center;
-		}
-		#rotate-overlay .icon { font-size: clamp(3rem, 14vw, 5rem); line-height: 1; }
-		#rotate-overlay strong { font-size: clamp(1.1rem, 5vw, 1.5rem); letter-spacing: 0.08em; }
-		#rotate-overlay span:last-child { max-width: 24rem; color: #b8c0ce; font-size: 0.95rem; line-height: 1.5; }
-		@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
-			#canvas { visibility: hidden; }
-			#rotate-overlay { display: flex; }
-		}
-		#load-error {
-			display: none;
-			position: fixed;
-			inset: auto 1rem 1rem;
-			z-index: 10000;
-			padding: 1rem;
-			border: 1px solid #9b3943;
-			border-radius: 0.5rem;
-			background: #5b3943;
-			color: #fff;
-			font: 14px/1.4 Arial, sans-serif;
-			white-space: pre-wrap;
-		}
 
-		/* Tela de Carregamento Inicial (Dark Arcade Sakas) */
+		/* =========================================================================
+		   TELA DE CARREGAMENTO ARCADE (NEO-16-BIT / A ÚLTIMA FICHA)
+		   ========================================================================= */
 		#loading-screen {
 			position: fixed;
 			inset: 0;
@@ -84,223 +54,445 @@
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
-			background: radial-gradient(circle at center, #141b2d 0%, #080b12 75%, #030408 100%);
+			background: radial-gradient(circle at center, #10162a 0%, #060914 70%, #020308 100%);
 			color: #f2e6c8;
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			user-select: none;
-			transition: opacity 0.4s ease-out;
+			transition: opacity 0.45s ease-out;
+		}
+		.loading-brand {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			margin-bottom: 2rem;
 		}
 		.loading-title {
-			font-size: clamp(1.8rem, 5vw, 3rem);
+			font-size: clamp(2.2rem, 6vw, 3.8rem);
 			font-weight: 900;
-			letter-spacing: 0.15em;
-			color: #fff;
+			font-style: italic;
+			letter-spacing: 0.12em;
+			color: #ffffff;
 			text-transform: uppercase;
-			text-shadow: 0 0 10px rgba(255, 60, 90, 0.8), 0 0 25px rgba(255, 30, 70, 0.5);
-			margin-bottom: 0.2rem;
+			text-shadow: 0 0 14px rgba(255, 30, 92, 0.9), 0 0 28px rgba(206, 20, 45, 0.6), 3px 3px 0 #9f0924;
+			line-height: 1;
+			margin-bottom: 0.35rem;
 		}
 		.loading-subtitle {
 			font-size: clamp(0.9rem, 2.5vw, 1.3rem);
-			font-weight: 700;
-			letter-spacing: 0.3em;
-			color: #e5b958;
+			font-weight: 800;
+			font-style: italic;
+			letter-spacing: 0.28em;
+			color: #ffad1e;
 			text-transform: uppercase;
-			text-shadow: 0 0 8px rgba(229, 185, 88, 0.6);
-			margin-bottom: 2rem;
+			text-shadow: 0 0 10px rgba(255, 173, 30, 0.7), 2px 2px 0 #732204;
 		}
 		.progress-container {
-			width: min(80vw, 420px);
+			width: min(84vw, 440px);
 			height: 18px;
-			background: rgba(10, 14, 24, 0.85);
-			border: 2px solid #00d2e0;
+			background: rgba(5, 7, 18, 0.9);
+			border: 2px solid #00f0ff;
 			border-radius: 9px;
 			overflow: hidden;
-			box-shadow: 0 0 14px rgba(0, 210, 224, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.6);
+			box-shadow: 0 0 16px rgba(0, 240, 255, 0.35), inset 0 2px 4px rgba(0, 0, 0, 0.8);
 			position: relative;
-			margin-bottom: 0.9rem;
+			margin-bottom: 0.8rem;
 		}
 		.progress-bar {
 			height: 100%;
 			width: 0%;
-			background: linear-gradient(90deg, #e54260 0%, #e5b958 50%, #00d2e0 100%);
+			background: linear-gradient(90deg, #ff1e5c 0%, #ffad1e 55%, #00f0ff 100%);
 			border-radius: 7px;
-			transition: width 0.15s ease-out;
-			box-shadow: 0 0 10px rgba(0, 210, 224, 0.8);
+			transition: width 0.12s ease-out;
+			box-shadow: 0 0 12px rgba(0, 240, 255, 0.7);
 		}
 		.loading-status {
-			font-size: 0.9rem;
-			font-weight: 600;
-			letter-spacing: 0.12em;
+			font-size: clamp(0.8rem, 2vw, 0.95rem);
+			font-weight: 700;
+			letter-spacing: 0.1em;
 			color: #8ed6de;
 			text-transform: uppercase;
-			text-shadow: 0 0 6px rgba(0, 210, 224, 0.5);
+			text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+			margin-bottom: 0.4rem;
 		}
 		.loading-tip {
-			margin-top: 1.5rem;
-			font-size: 0.8rem;
-			color: #7a889b;
+			font-size: clamp(0.75rem, 1.8vw, 0.88rem);
+			color: #7b869d;
+			font-style: italic;
+			letter-spacing: 0.04em;
+		}
+
+		/* =========================================================================
+		   ORIENTAÇÃO LANDSCAPE OBRIGATÓRIA ("GIRE O CELULAR")
+		   ========================================================================= */
+		#rotate-overlay {
+			display: none;
+			position: fixed;
+			inset: 0;
+			z-index: 10000;
+			align-items: center;
+			justify-content: center;
+			flex-direction: column;
+			gap: 1rem;
+			padding: 2rem;
+			box-sizing: border-box;
+			background: radial-gradient(circle at center, #121528 0%, #070914 80%, #020306 100%);
+			color: #fff7e6;
+			text-align: center;
+		}
+		#rotate-overlay .phone-rotate-icon {
+			font-size: clamp(3.2rem, 15vw, 5.2rem);
+			line-height: 1;
+			color: #ffad1e;
+			filter: drop-shadow(0 0 14px rgba(255, 173, 30, 0.6));
+			animation: rotate-phone-pulse 1.8s ease-in-out infinite;
+		}
+		#rotate-overlay strong {
+			font-size: clamp(1.2rem, 5vw, 1.6rem);
+			font-weight: 900;
+			font-style: italic;
+			letter-spacing: 0.12em;
+			color: #ffffff;
+			text-shadow: 0 0 10px rgba(255, 30, 92, 0.7), 2px 2px 0 #9f0924;
+		}
+		#rotate-overlay span:last-child {
+			max-width: 24rem;
+			color: #a8b3ca;
+			font-size: 0.95rem;
+			line-height: 1.5;
+		}
+		@keyframes rotate-phone-pulse {
+			0%, 100% { transform: rotate(0deg) scale(1); }
+			45%, 55% { transform: rotate(90deg) scale(1.08); }
+		}
+		@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+			#canvas { visibility: hidden; }
+			#rotate-overlay { display: flex; }
+		}
+
+		/* =========================================================================
+		   BANNER DE INSTALAÇÃO PWA (OPCIONAL E NÃO-INTRUSIVO)
+		   ========================================================================= */
+		.pwa-install-banner {
+			position: fixed;
+			bottom: 16px;
+			left: 50%;
+			transform: translateX(-50%);
+			z-index: 9990;
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			padding: 10px 16px;
+			background: rgba(12, 14, 30, 0.94);
+			border: 2px solid #ffad1e;
+			border-radius: 8px;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 173, 30, 0.35);
+			backdrop-filter: blur(8px);
+			max-width: min(92vw, 480px);
+			box-sizing: border-box;
+		}
+		.banner-icon {
+			width: 40px;
+			height: 40px;
+			border-radius: 6px;
+			border: 1px solid rgba(255, 255, 255, 0.2);
+			flex-shrink: 0;
+		}
+		.banner-text {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+			flex: 1;
+		}
+		.banner-text strong {
+			font-size: 0.85rem;
+			font-weight: 800;
 			letter-spacing: 0.05em;
+			color: #ffffff;
+		}
+		.banner-text small {
+			font-size: 0.72rem;
+			color: #a6b2c9;
+		}
+		.banner-actions {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.banner-btn-install {
+			padding: 6px 14px;
+			background: linear-gradient(135deg, #ffad1e, #d48006);
+			border: none;
+			border-radius: 4px;
+			color: #0c0904;
+			font-size: 0.75rem;
+			font-weight: 900;
+			letter-spacing: 0.08em;
+			cursor: pointer;
+			box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+		}
+		.banner-btn-close {
+			background: transparent;
+			border: none;
+			color: #7b869d;
+			font-size: 1.1rem;
+			cursor: pointer;
+			padding: 4px;
+			line-height: 1;
+		}
+
+		/* =========================================================================
+		   MODAL DE ERRO E RETRY
+		   ========================================================================= */
+		#load-error {
+			display: none;
+			position: fixed;
+			inset: auto 1.5rem 1.5rem;
+			z-index: 10001;
+			padding: 1.2rem 1.4rem;
+			border: 2px solid #ff1e5c;
+			border-radius: 8px;
+			background: rgba(22, 6, 12, 0.96);
+			color: #fff;
+			font-size: 0.9rem;
+			line-height: 1.4;
+			box-shadow: 0 6px 24px rgba(0, 0, 0, 0.85);
+		}
+		.error-actions {
+			margin-top: 0.8rem;
+			display: flex;
+			gap: 10px;
+		}
+		.btn-retry {
+			padding: 6px 16px;
+			background: #ff1e5c;
+			color: #fff;
+			border: none;
+			border-radius: 4px;
+			font-weight: 800;
+			font-size: 0.8rem;
+			cursor: pointer;
 		}
 	</style>
+	<meta name="sakas-build-id" content="dfdfb95c">
 </head>
 <body>
 	<canvas id="canvas" width="1280" height="720" tabindex="0">
 		Seu navegador não oferece suporte ao elemento canvas.
 	</canvas>
+
+	<!-- Loader Inicial Arcade -->
 	<div id="loading-screen" role="status" aria-live="polite">
-		<div class="loading-title">SAKA'S</div>
-		<div class="loading-subtitle">A ÚLTIMA FICHA</div>
+		<div class="loading-brand">
+			<div class="loading-title">SAKA'S</div>
+			<div class="loading-subtitle">A ÚLTIMA FICHA</div>
+		</div>
 		<div class="progress-container">
 			<div id="progress-bar" class="progress-bar"></div>
 		</div>
-		<div id="loading-status" class="loading-status">CARREGANDO... 0%</div>
-		<div class="loading-tip">Insira sua ficha e prepare-se para a luta!</div>
+		<div id="loading-status" class="loading-status">CARREGANDO MOTOR ARCADE... 0%</div>
+		<div class="loading-tip">“Coca, Amizade e muita porrada!” · Vila Prudente 199X</div>
 	</div>
+
+	<!-- Overlay de Orientação Obrigatória -->
 	<div id="rotate-overlay" role="status" aria-live="polite">
-		<span class="icon" aria-hidden="true">↻</span>
+		<span class="phone-rotate-icon" aria-hidden="true">↻</span>
 		<strong>GIRE O CELULAR</strong>
-		<span>O Sakas foi feito para jogar com a tela na horizontal. Vire o aparelho para continuar.</span>
+		<span>Sakas foi desenhado para ser jogado na horizontal com máxima imersão arcade.</span>
 	</div>
-	<div id="load-error" role="alert"></div>
-	<script src="$GODOT_URL"></script>
+
+	<!-- Banner Opcional de Instalação PWA -->
+	<div id="pwa-install-banner" class="pwa-install-banner" style="display:none;">
+		<img src="index.144x144.png" alt="Sakas" class="banner-icon" />
+		<div class="banner-text">
+			<strong>INSTALAR SAKAS NO CELULAR</strong>
+			<small>Jogue em tela cheia sem barras do navegador</small>
+		</div>
+		<div class="banner-actions">
+			<button id="btn-pwa-install" class="banner-btn-install">INSTALAR</button>
+			<button id="btn-pwa-close" class="banner-btn-close" aria-label="Fechar">✕</button>
+		</div>
+	</div>
+
+	<!-- Painel de Erro / Recuperação -->
+	<div id="load-error">
+		<div id="error-message"></div>
+		<div class="error-actions">
+			<button id="btn-retry" class="btn-retry" onclick="location.reload()">TENTAR NOVAMENTE</button>
+		</div>
+	</div>
+
+	<script src="index.js"></script>
 	<script>
-		const engine = new Engine($GODOT_CONFIG);
-
 		const loadingScreen = document.getElementById('loading-screen');
-		const progressBar = document.getElementById('progress-bar');
 		const loadingStatus = document.getElementById('loading-status');
-		const mobileDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+		const progressBar = document.getElementById('progress-bar');
+		const installBanner = document.getElementById('pwa-install-banner');
+		const btnInstall = document.getElementById('btn-pwa-install');
+		const btnCloseBanner = document.getElementById('btn-pwa-close');
 
-		// O manifesto do PWA já declara orientation=landscape. Em navegadores
-		// comuns, o bloqueio é solicitado no primeiro gesto permitido pelo browser.
-		async function requestLandscape(fromUserGesture = false) {
-			if (!mobileDevice) return;
+		const IND_CONFIG = {
+			"args": [],
+			"canvasResizePolicy": 2,
+			"ensureCrossOriginIsolationHeaders": true,
+			"executable": "index",
+			"experimentalVK": false,
+			"fileSizes": {},
+			"focusCanvasOnStart": true,
+			"gdextensionLibs": []
+		};
+		const engine = new Engine(IND_CONFIG);
+		window.godotEngine = engine;
 
-			if (fromUserGesture && !document.fullscreenElement && document.documentElement.requestFullscreen) {
-				try {
-					await document.documentElement.requestFullscreen();
-				} catch (_error) {
-					// Alguns navegadores não permitem fullscreen; tentamos o lock mesmo assim.
-				}
-			}
-
-			try {
-				if (screen.orientation && typeof screen.orientation.lock === 'function') {
-					await screen.orientation.lock('landscape');
-				}
-			} catch (_error) {
-				// A política do navegador pode exigir instalação PWA ou gesto do usuário.
-			}
+		// =========================================================================
+		// PERSISTÊNCIA AUTOMÁTICA DE DADOS (STORAGE PERSIST)
+		// =========================================================================
+		if (navigator.storage && navigator.storage.persist) {
+			navigator.storage.persist().then((persistent) => {
+				console.log('[PWA Storage] Armazenamento persistente:', persistent ? 'Concedido' : 'Padrão');
+			}).catch(() => {});
 		}
 
-		// Em PWA instalado, o lock do manifesto atua na abertura. Esta tentativa
-		// adicional cobre navegadores que já permitam a API sem gesto.
-		if (mobileDevice) {
-			void requestLandscape(false);
-			document.addEventListener('pointerdown', () => requestLandscape(true), { once: true, passive: true });
-		}
+		// =========================================================================
+		// STREAMING DE PACOTES SOB DEMANDA (ON-DEMAND PCK STREAMING)
+		// Permite ao Godot solicitar e montar pacotes .pck em runtime via copyToFS
+		// =========================================================================
+		window.sakasPacks = {};
 
-		// Tenta fechar a janela no browser. Se window.close() for bloqueado pela
-		// política do navegador, mostra uma tela final em vez de deixar o jogo parado.
-		window.sakasQuitGame = function () {
+		window.sakasStreamPack = async function(packId, fileName) {
+			if (!window.sakasPacks[packId]) {
+				window.sakasPacks[packId] = { status: 'loading', loaded: 0, total: 0, percent: 0, error: null };
+			}
+			const packObj = window.sakasPacks[packId];
+			if (packObj.status === 'ready') return;
+
 			try {
-				window.close();
-			} catch (_error) {
-				// Continua para a tela de encerramento abaixo.
+				const url = 'packs/' + fileName;
+				const response = await fetch(url);
+				if (!response.ok) {
+					throw new Error('Falha HTTP ' + response.status + ' ao transferir ' + fileName);
+				}
+
+				const contentLength = response.headers.get('content-length');
+				const total = contentLength ? parseInt(contentLength, 10) : 0;
+				packObj.total = total;
+
+				const reader = response.body.getReader();
+				const chunks = [];
+				let loaded = 0;
+
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					chunks.push(value);
+					loaded += value.length;
+					packObj.loaded = loaded;
+					if (total > 0) {
+						packObj.percent = Math.floor((loaded / total) * 100);
+					}
+				}
+
+				const fullBuffer = new Uint8Array(loaded);
+				let offset = 0;
+				for (const chunk of chunks) {
+					fullBuffer.set(chunk, offset);
+					offset += chunk.length;
+				}
+
+				// Escreve diretamente no sistema de arquivos virtual do Godot (Emscripten MEMFS)
+				if (window.godotEngine) {
+					window.godotEngine.copyToFS('packs/' + fileName, fullBuffer.buffer);
+				}
+				packObj.status = 'ready';
+				packObj.percent = 100;
+				console.log('[Sakas Stream] Pacote copiado para o sistema de arquivos virtual:', packId, fileName);
+			} catch (err) {
+				console.error('[Sakas Stream] Erro no carregamento de pacote:', packId, err);
+				packObj.status = 'error';
+				packObj.error = String(err && err.message ? err.message : err);
 			}
-			if (!window.closed) {
-				document.body.innerHTML = `
-					<main style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;box-sizing:border-box;background:radial-gradient(circle at center,#141b2d 0%,#080b12 75%,#030408 100%);color:#f2e6c8;font-family:Arial,sans-serif;text-align:center">
-						<strong style="font-size:clamp(28px,8vw,44px);letter-spacing:.16em;color:#fff;text-shadow:0 0 16px rgba(255,60,90,.55)">SAKA'S</strong>
-						<span style="font-size:clamp(16px,4vw,22px);font-weight:700;letter-spacing:.12em;color:#e5b958">JOGO ENCERRADO</span>
-						<span style="max-width:28rem;color:#b8c0ce;font-size:15px;line-height:1.5">A sessão foi encerrada. Você já pode fechar esta aba ou janela.</span>
-					</main>`;
-				document.body.style.cssText = 'margin:0;overflow:hidden;background:#030408';
-			}
-			return true;
 		};
 
-		// --- SAKAS PWA AUTO-UPDATE MANAGER (GODOT WEB / MOBILE) ---
-		(function initPwaUpdateManager() {
+		window.sakasGetPackStatus = function(packId) {
+			const p = window.sakasPacks && window.sakasPacks[packId];
+			if (!p) return JSON.stringify({ status: 'unloaded' });
+			return JSON.stringify(p);
+		};
+
+		window.sakasResetPack = function(packId) {
+			if (window.sakasPacks && window.sakasPacks[packId]) {
+				delete window.sakasPacks[packId];
+			}
+		};
+
+		// =========================================================================
+		// DESBLOQUEIO WEB AUDIO E FULLSCREEN NO PRIMEIRO GESTO
+		// =========================================================================
+		(function() {
+			let unlocked = false;
+			function unlockOnUserGesture() {
+				// Desbloqueia AudioContext
+				try {
+					if (window.GodotAudio && window.GodotAudio.ctx && window.GodotAudio.ctx.state === 'suspended') {
+						window.GodotAudio.ctx.resume().then(() => {
+							console.log('[WebAudio] Contexto de áudio ativado com sucesso.');
+						}).catch(() => {});
+					}
+				} catch (_e) {}
+
+				// Tenta travar em landscape se suportado pela plataforma
+				try {
+					if (screen.orientation && screen.orientation.lock) {
+						screen.orientation.lock('landscape').catch(() => {});
+					}
+				} catch (_e) {}
+			}
+
+			['pointerdown', 'touchstart', 'mousedown', 'keydown', 'click'].forEach(evt => {
+				window.addEventListener(evt, unlockOnUserGesture, { capture: true, passive: true });
+				document.addEventListener(evt, unlockOnUserGesture, { capture: true, passive: true });
+			});
+		})();
+
+		// =========================================================================
+		// GESTÃO DO SERVICE WORKER & DETECÇÃO DE ATUALIZAÇÕES
+		// =========================================================================
+		(function() {
 			if (!('serviceWorker' in navigator)) return;
 
-			let refreshing = false;
-			let engineRunning = false;
-			let updateToast = null;
-
-			function showUpdateToast() {
-				if (updateToast) return;
-				updateToast = document.createElement('div');
-				updateToast.id = 'sakas-update-toast';
-				updateToast.setAttribute('role', 'alert');
-				updateToast.innerHTML = `
-					<span>NOVA VERSÃO DISPONÍVEL!</span>
-					<button id="sakas-update-btn">ATUALIZAR AGORA</button>
-				`;
-				updateToast.style.cssText = `
-					position: fixed;
-					top: 14px;
-					left: 50%;
-					transform: translateX(-50%);
-					z-index: 99999;
-					display: flex;
-					align-items: center;
-					gap: 12px;
-					padding: 8px 16px;
-					background: rgba(14, 20, 32, 0.95);
-					border: 1px solid #e5b958;
-					border-radius: 8px;
-					box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-					color: #f2e6c8;
-					font-family: Arial, sans-serif;
-					font-size: 13px;
-					font-weight: bold;
-					letter-spacing: 0.05em;
-				`;
-				const btn = updateToast.querySelector('#sakas-update-btn');
-				btn.style.cssText = `
-					background: #e5b958;
-					color: #080b12;
-					border: none;
-					padding: 4px 10px;
-					border-radius: 4px;
-					font-weight: bold;
-					cursor: pointer;
-					font-size: 12px;
-				`;
-				btn.addEventListener('click', () => {
-					window.location.reload();
-				});
-				document.body.appendChild(updateToast);
-			}
-
-			function safeReload(targetVersion) {
-				if (refreshing) return;
-				const reloadedVersion = sessionStorage.getItem('sakas_reloaded_version');
-				if (targetVersion && reloadedVersion === targetVersion) {
-					console.log('[PWA] Já recarregado nesta sessão para a versão:', targetVersion);
-					return;
-				}
-				refreshing = true;
-				sessionStorage.setItem('sakas_reloaded_version', targetVersion || 'updated');
-				console.log('[PWA] Recarregando para aplicar nova versão publicada...');
-				window.location.reload();
-			}
-
-			navigator.serviceWorker.addEventListener('controllerchange', () => {
-				console.log('[PWA] Novo Service Worker assumiu o controle.');
-				if (!engineRunning) {
-					safeReload();
-				} else {
-					showUpdateToast();
+			let deferredInstallPrompt = null;
+			window.addEventListener('beforeinstallprompt', (e) => {
+				e.preventDefault();
+				deferredInstallPrompt = e;
+				if (!sessionStorage.getItem('sakas_install_dismissed') && installBanner) {
+					installBanner.style.display = 'flex';
 				}
 			});
 
+			if (btnInstall) {
+				btnInstall.addEventListener('click', async () => {
+					if (deferredInstallPrompt) {
+						deferredInstallPrompt.prompt();
+						const choice = await deferredInstallPrompt.userChoice;
+						if (choice.outcome === 'accepted') {
+							console.log('[PWA] Instalação aceita pelo usuário');
+						}
+						deferredInstallPrompt = null;
+						if (installBanner) installBanner.style.display = 'none';
+					} else {
+						// Instrução iOS Safari
+						alert('Para instalar no iPhone/iPad: Toque em Compartilhar (⎋) na barra do Safari e selecione "Adicionar à Tela de Início" (⊞).');
+					}
+				});
+			}
+
+			if (btnCloseBanner) {
+				btnCloseBanner.addEventListener('click', () => {
+					sessionStorage.setItem('sakas_install_dismissed', '1');
+					if (installBanner) installBanner.style.display = 'none';
+				});
+			}
+
 			async function checkForPublishedRelease(registration) {
 				try {
-					if (registration) {
-						registration.update().catch(() => {});
-					}
+					if (registration) registration.update().catch(() => {});
 					const resp = await fetch('version.json?_t=' + Date.now(), {
 						cache: 'no-store',
 						headers: { 'Accept': 'application/json' }
@@ -314,117 +506,41 @@
 					const currentVersion = localMeta ? localMeta.getAttribute('content') : '';
 
 					if (currentVersion && currentVersion !== 'initial' && serverVersion !== currentVersion) {
-						console.log(`[PWA] Atualização detectada: ${serverVersion} (local: ${currentVersion})`);
+						console.log(`[PWA] Nova versão detectada: ${serverVersion} (local: ${currentVersion})`);
 						if (registration && registration.waiting) {
 							registration.waiting.postMessage('SKIP_WAITING');
 							registration.waiting.postMessage('claim');
-						} else if (registration) {
-							registration.update().then((reg) => {
-								if (reg && reg.waiting) {
-									reg.waiting.postMessage('SKIP_WAITING');
-									reg.waiting.postMessage('claim');
-								}
-							});
 						}
 					}
-				} catch (_e) {
-					// Offline: falha de rede silenciosa esperada
-				}
-			}
-
-			function checkWaitingWorker(registration) {
-				if (!registration) return;
-				if (registration.waiting) {
-					console.log('[PWA] Worker em espera detectado. Solicitando ativação...');
-					registration.waiting.postMessage('SKIP_WAITING');
-					registration.waiting.postMessage('claim');
-				}
-				registration.addEventListener('updatefound', () => {
-					const newWorker = registration.installing;
-					if (!newWorker) return;
-					newWorker.addEventListener('statechange', () => {
-						if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-							console.log('[PWA] Nova versão instalada no cache. Ativando...');
-							newWorker.postMessage('SKIP_WAITING');
-							newWorker.postMessage('claim');
-						}
-					});
-				});
+				} catch (_e) {}
 			}
 
 			navigator.serviceWorker.getRegistration().then((reg) => {
-				if (reg) {
-					checkWaitingWorker(reg);
-					checkForPublishedRelease(reg);
-				}
+				if (reg) checkForPublishedRelease(reg);
 			});
-
-			let lastForegroundCheck = Date.now();
-			function onForegroundResume() {
-				const now = Date.now();
-				if (now - lastForegroundCheck > 45000) {
-					lastForegroundCheck = now;
-					navigator.serviceWorker.getRegistration().then((reg) => {
-						if (reg) {
-							checkForPublishedRelease(reg);
-						}
-					});
-				}
-			}
-
-			document.addEventListener('visibilitychange', () => {
-				if (document.visibilityState === 'visible') {
-					onForegroundResume();
-				}
-			});
-			window.addEventListener('focus', onForegroundResume);
-
-			window.sakasNotifyGameStarted = function() {
-				engineRunning = true;
-			};
-
-			// Desbloqueio universal de Web Audio no primeiro gesto do usuário (Autoplay Policy)
-			(function() {
-				function unlockWebAudio() {
-					try {
-						if (window.GodotAudio && window.GodotAudio.ctx && window.GodotAudio.ctx.state === 'suspended') {
-							window.GodotAudio.ctx.resume().then(function() {
-								console.log('[WebAudio] Contexto de áudio do Godot ativado com sucesso!');
-							}).catch(function() {});
-						}
-					} catch (_err) {}
-				}
-				['pointerdown', 'touchstart', 'mousedown', 'keydown', 'click'].forEach(function(evt) {
-					window.addEventListener(evt, unlockWebAudio, { capture: true, passive: true });
-					document.addEventListener(evt, unlockWebAudio, { capture: true, passive: true });
-				});
-			})();
 		})();
 
-		const modularPacks = [
-			'packs/pack_audio_bgm.pck',
-			'packs/pack_story_cinematics.pck',
-			'packs/pack_stage1.pck'
-		];
-
-		// Rastreamento de progresso unificado (motor + todos os pacotes modulares)
+		// =========================================================================
+		// BOOT ULTRA-RÁPIDO DO JOGO (SOMENTE WASM + INDEX.PCK)
+		// Os pacotes pesados adicionais são transmitidos sob demanda no gameplay!
+		// =========================================================================
 		engine.config.onProgress = function(current, total) {
 			if (total > 0) {
 				const percent = Math.min(100, Math.floor((current / total) * 100));
 				if (progressBar) progressBar.style.width = percent + '%';
-				if (loadingStatus) loadingStatus.textContent = 'CARREGANDO... ' + percent + '%';
+				if (loadingStatus) {
+					const mbCurrent = (current / (1024 * 1024)).toFixed(1);
+					const mbTotal = (total / (1024 * 1024)).toFixed(1);
+					loadingStatus.textContent = `PREPARANDO A LOCADORA... ${mbCurrent} MB / ${mbTotal} MB (${percent}%)`;
+				}
 			} else {
-				if (loadingStatus) loadingStatus.textContent = 'INICIALIZANDO MOTOR...';
+				if (loadingStatus) loadingStatus.textContent = 'INICIALIZANDO MOTOR ARCADE...';
 			}
 		};
 
 		const executable = (engine.config && engine.config.executable) ? engine.config.executable : 'index';
 		const mainPack = (engine.config && engine.config.mainPack) ? engine.config.mainPack : (executable + '.pck');
 
-		// Sequencia canonica do Godot 4 Web:
-		// 1. Inicializa o ambiente WebAssembly (index.wasm ou tmp_js_export)
-		// 2. Pre-carrega o pacote principal e todos os pacotes modulares (.pck) em paralelo
-		// 3. Executa engine.start() somente apos todos estarem montados na memoria virtual
 		Promise.all([
 			engine.init(executable),
 			engine.preloadFile(mainPack, mainPack).catch((err) => {
@@ -432,32 +548,28 @@
 					return engine.preloadFile('index.pck', 'index.pck');
 				}
 				throw err;
-			}),
-			...modularPacks.map(p => engine.preloadFile(p, p).catch(err => {
-				console.warn('[Modular PCK] Aviso ao pre-carregar pacote:', p, err);
-			}))
+			})
 		]).then(() => {
-			if (loadingStatus) loadingStatus.textContent = 'INICIANDO MOTOR...';
+			if (loadingStatus) loadingStatus.textContent = 'ENTRANDO NA LOCADORA...';
 			engine.config.args = ['--main-pack', mainPack].concat(engine.config.args || []);
 			return engine.start();
 		}).then(() => {
-			if (window.sakasNotifyGameStarted) {
-				window.sakasNotifyGameStarted();
-			}
+			window.godotEngine = engine;
 			if (loadingScreen) {
 				loadingScreen.style.opacity = '0';
 				setTimeout(() => {
 					if (loadingScreen.parentNode) {
 						loadingScreen.parentNode.removeChild(loadingScreen);
 					}
-				}, 450);
+				}, 480);
 			}
 		}).catch((error) => {
 			console.error(error);
 			if (loadingScreen) loadingScreen.style.display = 'none';
-			const message = document.getElementById('load-error');
-			message.textContent = error instanceof Error ? error.message : String(error);
-			message.style.display = 'block';
+			const errBox = document.getElementById('load-error');
+			const errMsg = document.getElementById('error-message');
+			if (errMsg) errMsg.textContent = 'Erro ao inicializar o jogo: ' + (error instanceof Error ? error.message : String(error));
+			if (errBox) errBox.style.display = 'block';
 		});
 	</script>
 </body>

@@ -144,29 +144,55 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    - `GameOverLayer`: Camada arcade (`CanvasLayer` layer = 90) com imagem de fim de jogo `game_over.webp`. Fade in cinematográfico de aproximadamente 5.0 segundos com bloqueio estrito de reinício (`_can_restart = false`). Comando `[R]` liberado apenas após o término do fade in, reiniciando o primeiro mapa da fase correspondente com quantidade de continues ZERADA (`current_continues = 0`) e sem labels de instrução redundantes (legenda nativa na imagem).
    - Suíte de validação: `tests/arcade_hud_migration_test.gd`, `tests/player_hud_test.gd` e `tests/game_over_flow_test.gd`.
 
-### 1.5. Arquitetura Modular Multi-PCK e Orçamento de Armazenamento
+### 1.5. Arquitetura Modular Multi-PCK, Fast Boot e Streaming sob Demanda
 STATUS: IMPLEMENTED
 
 1. **Princípio Arquitetural e Orçamento Rígido**:
-   - Para permitir escalabilidade contínua de fases, músicas e cinemáticas sem ultrapassar as travas das CDNs (Vercel Hobby 100 MB por arquivo) e eliminar consumo de Git LFS no GitHub, o jogo adota a arquitetura modular **Multi-PCK** no Godot Engine 4.x.
-   - **Teto Orçamentário Mandatório**: Nenhum arquivo .pck individual pode ultrapassar **45.0 MB** (>55% de margem contra a trava de 100 MB).
-   - Todos os pacotes pesados adicionais (public/packs/*.pck) e binários web são estritamente ignorados pelo .gitignore, consumindo **0 bytes de Git LFS**.
+   - Para permitir escalabilidade contínua de fases, músicas e cinemáticas sem ultrapassar as travas das CDNs (Vercel Hobby 100 MB por arquivo) e eliminar consumo de Git LFS no GitHub, o jogo adota a arquitetura modular **Multi-PCK com Streaming sob Demanda** no Godot Engine 4.7.2 Web (WebAssembly/Emscripten).
+   - **Teto Orçamentário Mandatório**: Nenhum arquivo `.pck` individual pode ultrapassar **45.0 MB** (>55% de margem contra a trava de 100 MB).
+   - Todos os pacotes pesados adicionais (`public/packs/*.pck`) e binários web são estritamente ignorados pelo `.gitignore`, consumindo **0 bytes de Git LFS**.
 2. **Catálogo Canônico de Pacotes**:
-   - index.pck (Core Base): Motor, scripts, UI principal, shaders, SFX e atores base (~50 MB).
-   - packs/pack_audio_bgm.pck: Faixas de áudio BGM de alta fidelidade (~16 MB).
-   - packs/pack_story_cinematics.pck: Cinemáticas e telas de diálogo ilustradas em Full HD (~36 MB).
-   - packs/pack_stage1.pck: Mapas 1 a 4, Garagem Bônus e backgrounds do Estágio 1 (~19 MB).
-3. **Autoload PackManager (scripts/core/pack_manager.gd)**:
-   - Inicializado antes dos demais sistemas no project.godot.
-   - Monta dinamicamente pacotes locais ou pré-carregados na raiz virtual 
-es:// através de ProjectSettings.load_resource_pack(path, false).
-   - Transparência total: código existente continua consumindo caminhos canônicos (
-es://...) sem qualquer alteração.
-4. **Pipeline DevOps e Automação de Build**:
-   - 	ools/pack_builder.gd: Construtor headless automatizado via PCKPacker C++ nativo. Empacota fontes brutos, arquivos .import e seus derivados importados (.ctex, .mp3str), gera public/packs/manifest.json e falha preventivamente se qualquer pacote exceder 45 MB.
-   - 	ools/deploy_web.py: Script de orquestração que empacota os módulos, valida a integridade binária, carimba versão no Service Worker (scripts/pwa_post_export.js) e dispara o deploy seguro para a Vercel.
-5. **Suíte de Validação**:
-   - 	ests/test_modular_packs.gd (30/30 testes passando).
+   - `index.pck` (Core Base): Motor, scripts essenciais, UI principal, shaders, SFX e atores base (~58.7 MB).
+   - `packs/pack_audio_bgm.pck`: Faixas de áudio BGM de alta fidelidade (~37.7 MB).
+   - `packs/pack_story_cinematics.pck`: Cinemáticas e telas de diálogo ilustradas em Full HD (~36.2 MB).
+   - `packs/pack_stage1.pck`: Mapas 1 a 4, Garagem Bônus e backgrounds do Estágio 1 (~23.0 MB).
+3. **Fast Boot e Desacoplamento da Inicialização Web**:
+   - No carregamento inicial do navegador (`public/index.html`), o motor carrega **estritamente** o núcleo base (`index.wasm` + `index.pck`), somando ~96 MB de transferência inicial (redução de ~38% em relação aos ~155 MB anteriores).
+   - O jogador atinge a tela inicial e o Menu Principal em poucos segundos, sem download antecipado das fases subsequentes ou de toda a trilha sonora.
+4. **Autoload PackManager (`scripts/core/pack_manager.gd`)**:
+   - Inicializado antes dos demais sistemas no `project.godot`.
+   - **Máquina de Estados de Ciclo de Vida do Pacote**:
+     - `UNLOADED`: Pacote não carregado nem baixado.
+     - `QUEUED`: Enfileirado para download.
+     - `DOWNLOADING`: Download de chunks em andamento via rede.
+     - `VERIFYING`: Dados recebidos, validação de integridade.
+     - `MOUNTED`: Pacote montado com sucesso na árvore virtual `res://`.
+     - `ERROR`: Falha de download ou montagem (permite repetição/retry).
+   - **Sinais de Telemetria e Progresso**:
+     - `pack_mounted(pack_id)`: Disparado ao concluir a montagem.
+     - `pack_progress(pack_id, loaded, total, pct)`: Informa bytes transferidos, tamanho total e porcentagem em tempo real.
+     - `pack_error(pack_id, reason)`: Disparado em caso de erro na transferência ou montagem.
+     - `all_critical_packs_ready`: Sinaliza a prontidão de todos os pacotes marcados como críticos.
+   - **Ponte de Streaming Web (JavaScript <-> Emscripten Virtual FS)**:
+     - No ambiente Web, `ensure_pack_loaded_async(pack_id)` aciona `window.sakasStreamPack(packId, fileName)`.
+     - A rotina em JS utiliza `fetch()` com `ReadableStream` para descarregar o `.pck` em chunks progressivos.
+     - Ao concluir o download, o buffer é gravado diretamente no sistema de arquivos virtual do Emscripten (MEMFS) via `window.godotEngine.copyToFS('packs/' + fileName, buffer)`.
+     - O GDScript então monta o arquivo na árvore do motor via `ProjectSettings.load_resource_pack("packs/" + fileName, true)`.
+     - Transparência total: o código existente continua consumindo caminhos canônicos (`res://...`) sem qualquer alteração.
+   - **Execução Desktop e Editor**:
+     - No editor Godot ou builds desktop, `ensure_pack_loaded_async()` resolve imediatamente sem rede, verificando a presença local do arquivo ou montando diretamente via filesystem.
+5. **Gatilhos de Carregamento Contextual na UI**:
+   - `MainMenu` (`scripts/ui/main_menu.gd`): Ao acionar a opção "JOGAR", dispara o streaming em segundo plano de `story_cinematics`.
+   - `LoadingScreen` (`scripts/ui/loading_screen.gd`): Assegura `stage1`, `audio_bgm` e `story_cinematics` antes de permitir o avanço para a fase.
+   - `MapMenu` (`scripts/ui/map_menu.gd`): Ao clicar em "JOGAR FASE", verifica se `stage1` e `audio_bgm` estão montados. Caso não estejam, bloqueia a transição, exibe o progresso em MB/porcentagem no `MapStatusLabel` e permite nova tentativa se houver falha de rede.
+6. **Pipeline DevOps e Automação de Build**:
+   - `tools/pack_builder.gd`: Construtor headless automatizado via `PCKPacker` C++ nativo. Empacota fontes brutos, arquivos `.import` e seus derivados importados (`.ctex`, `.mp3str`), gera `public/packs/manifest.json` e falha preventivamente se qualquer pacote exceder 45 MB.
+   - `scripts/pwa_post_export.js`: Automação Node.js executada pós-exportação que sincroniza o hash de versão do commit Git (`CACHE_VERSION`), injeta metadados PWA em `index.manifest.json` e atualiza os tamanhos em `fileSizes` no `index.html`.
+   - `tools/deploy_web.py`: Script de orquestração que empacota os módulos, valida a integridade binária, carimba versão no Service Worker e dispara o deploy seguro para a Vercel.
+7. **Suítes de Validação Automatizadas**:
+   - `tests/test_pack_manager_lifecycle.gd`: Validação do ciclo de vida, sinais e métodos de `PackManager` (18/18 testes passando).
+   - `tests/test_runtime_pck_mount.gd`: Validação de montagem em tempo de execução e acessibilidade de recursos `res://`.
+   - `tests/test_arcade_map_menu.gd`: Validação do fluxo de seleção de fase, UI arcade e streaming do mapa (27/27 testes passando).
 
 ---
 
@@ -843,6 +869,25 @@ MapX (Node2D, script: base_level.gd)
    - *Integração do Pause*:
      - O botão de pause congela a `SceneTree` (`get_tree().paused = true`), suspende os controles virtuais para evitar acionamentos acidentais e exibe o `PauseMenu`. Ao despausar, os controles touch são reativados suavemente.
      - O botão de pause é exclusivo de telas de gameplay (não aparece em menus nem telas estáticas).
+
+6. **Arquitetura PWA Premium Mobile & Web Streaming (Vercel CDN + WebAssembly)**:
+   - *Execução Web Direct & Zero Barreiras*: O jogo é plenamente acessível pelo link da Vercel em smartphones Android e iOS sem necessidade de instalação obrigatória de aplicativo, mantendo fluidez a 60 FPS no navegador.
+   - *Orientação Mandatória Horizontal (Landscape)*:
+     - Detecção instantânea via CSS `@media (orientation: portrait)` e listener em `screen.orientation`.
+     - Ao detectar modo retrato, o canvas do jogo é coberto por um overlay arcade escurecido com mensagem pulsante *"Gire o celular para jogar na horizontal"* (`#rotate-overlay`), impedindo distorções, cortes verticais ou touch desalinhado.
+   - *Banner de Instalação PWA Não-Intrusivo*:
+     - No Android: intercepta o evento nativo `beforeinstallprompt`, suprime pop-ups agressivos do navegador e renderiza um botão flutuante arcade discreto (`#pwa-install-banner`) com opção de instalação rápida ou dispensa (`DISPENSAR`), persistida em `localStorage`.
+     - No iOS Safari: exibe guia ilustrado e contextual orientando o usuário a tocar em *"Compartilhar"* (ícone de seta para cima) e selecionar *"Adicionar à Tela de Início"*.
+   - *Desbloqueio Universal de Áudio Web/Mobile (`unlockOnUserGesture`)*:
+     - Contorna as políticas restritivas de *Autoplay* dos navegadores móveis (Safari iOS e Chrome Mobile).
+     - Monitora eventos `touchstart`, `touchend` e `click` na janela; no primeiro toque, executa `AudioContext.resume()` no motor de áudio WebAudio e libera o pipeline de som do Godot sem telas mudas.
+   - *Persistência Garantida de Savegames (`navigator.storage.persist()`)*:
+     - Na inicialização do runtime web, a API de armazenamento solicita persistência permanente (`navigator.storage.persist()`).
+     - Blindagem dos saves locais em `user://` (`savegame.json`, desbloqueios de mapas, configurações de volume e recordes) contra o expurgo automático de cache por falta de espaço no navegador.
+   - *Estratégia Híbrida de Cache do Service Worker (`public/index.service.worker.js`)*:
+     - **Network-First para Navegação**: Requisições de página (`/`, `index.html`) sempre buscam primeiro a rede com fallback para cache. Isso garante que qualquer novo deploy na Vercel seja identificado de imediato pelo jogador, evitando que o celular fique preso em versões antigas.
+     - **Cache-First para Binários e Assets**: Arquivos estáticos imutáveis (`.wasm`, `.pck`, `.webp`, `.ttf`, `.mp3`) utilizam cache local prioritário, reduzindo drasticamente o consumo do plano de dados móvel do jogador.
+     - **Versionamento Canônico**: O Service Worker utiliza `CACHE_VERSION` vinculado ao hash do commit Git (ex: `dfdfb95c`), sincronizado automaticamente via `scripts/pwa_post_export.js`.
 
 ---
 

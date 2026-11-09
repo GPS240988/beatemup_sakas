@@ -94,6 +94,10 @@ func _ready() -> void:
 	if hotspots_container != null:
 		hotspots_container.resized.connect(_update_hotspot_positions)
 
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_signal("pack_progress"):
+		pack_mgr.pack_progress.connect(_on_pack_progress)
+
 	if settings_panel != null:
 		settings_panel.visible = false
 		settings_panel.set("settings_origin", "map_menu")
@@ -246,6 +250,16 @@ func is_stage_unlocked(index: int) -> bool:
 			return false
 
 
+func _on_pack_progress(_pack_id: String, loaded: int, total: int, pct: float) -> void:
+	if map_status_label != null and _is_transitioning:
+		var mb_loaded := float(loaded) / (1024.0 * 1024.0)
+		var mb_total := float(total) / (1024.0 * 1024.0)
+		if mb_total > 0.0:
+			map_status_label.text = "BAIXANDO FASE... %.1f MB / %.1f MB (%d%%)" % [mb_loaded, mb_total, int(pct)]
+		else:
+			map_status_label.text = "BAIXANDO RECURSOS... %d%%" % int(pct)
+
+
 func _on_play_stage_pressed() -> void:
 	if _is_transitioning or _is_in_settings:
 		return
@@ -263,6 +277,26 @@ func _on_play_stage_pressed() -> void:
 			session.selected_character_id = "guilherme"
 		if not ("difficulty_id" in session) or str(session.difficulty_id).is_empty():
 			session.difficulty_id = "normal"
+
+	# Streaming inteligente sob demanda: assegura os pacotes necessários
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+		if _selected_index == 0:
+			if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("audio_bgm"):
+				if map_status_label != null:
+					map_status_label.text = "CARREGANDO RECURSOS DA FASE 1..."
+					map_status_label.modulate = Color(0, 0.94, 1, 1)
+				var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
+				var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
+				if not ok_stage1 or not ok_bgm:
+					_is_transitioning = false
+					if map_status_label != null:
+						map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."
+						map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
+					return
+		elif _selected_index == 1:
+			if not pack_mgr.is_pack_mounted("audio_bgm"):
+				await pack_mgr.ensure_pack_loaded_async("audio_bgm")
 
 	var cfg := STAGE_CONFIGS[_selected_index]
 	var target_scene: String = str(cfg.get("scene", ""))

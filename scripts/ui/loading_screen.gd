@@ -47,6 +47,13 @@ func _ready() -> void:
 		)
 	_start_prompt_pulse()
 
+	# Inicia streaming dos pacotes necessários da Fase 1 em segundo plano
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+		pack_mgr.ensure_pack_loaded_async("story_cinematics")
+		pack_mgr.ensure_pack_loaded_async("stage1")
+		pack_mgr.ensure_pack_loaded_async("audio_bgm")
+
 
 func _load_background_image() -> void:
 	if background_texture == null:
@@ -163,6 +170,13 @@ func _on_continue_pressed() -> void:
 	_is_transitioning = true
 
 	_play_sound(_sfx_start)
+
+	# Garante que os pacotes necessários estejam montados antes de avançar
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+		await pack_mgr.ensure_pack_loaded_async("story_cinematics")
+		await pack_mgr.ensure_pack_loaded_async("stage1")
+		await pack_mgr.ensure_pack_loaded_async("audio_bgm")
 
 	# Garante que a sessão permaneça válida antes de carregar a fase
 	var session = get_node_or_null("/root/GameSession")

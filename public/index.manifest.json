@@ -1,1 +1,30 @@
-{"background_color":"#000000","display":"standalone","icons":[{"sizes":"144x144","src":"index.144x144.png","type":"image/png"},{"sizes":"180x180","src":"index.180x180.png","type":"image/png"},{"sizes":"512x512","src":"index.512x512.png","type":"image/png"}],"name":"Beat Em Up - Sakas","orientation":"landscape","start_url":"./index.html"}
+{
+  "background_color": "#060814",
+  "display": "standalone",
+  "icons": [
+    {
+      "sizes": "144x144",
+      "src": "index.144x144.png",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "sizes": "180x180",
+      "src": "index.180x180.png",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "sizes": "512x512",
+      "src": "index.512x512.png",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "name": "Beat 'em Up Sakas — A Última Ficha",
+  "orientation": "landscape",
+  "start_url": "./index.html",
+  "short_name": "Sakas Arcade",
+  "description": "Beat 'em Up retrô Neo-16-bit ambientado na São Paulo dos anos 90.",
+  "theme_color": "#060814"
+}
