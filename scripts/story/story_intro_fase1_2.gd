@@ -1,7 +1,9 @@
+class_name StoryIntroFase1_2
 extends Control
 
-## Apresenta a arte narrativa entre map_1 e map_2.
+## Apresenta a arte narrativa entre map_1 e map_2 (Fase 1: Entrada da Locadora).
 ## A interferência CRT é aplicada exclusivamente à região do vidro do fliperama.
+## Ao concluir ou ao toque/tecla de avanço, transiciona suavemente para map_2.tscn.
 
 const MAP_2_SCENE_PATH: String = "res://scenes/levels/map_2.tscn"
 const CRT_SHADER: Shader = preload("res://shaders/crt_screen_flicker.gdshader")
@@ -23,8 +25,6 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_presentation()
-	# Esta interlúdio é uma imagem única com avanço automático; não há botão
-	# inferior no mobile. O toque na arte continua permitindo pular a espera.
 	call_deferred("_play_presentation")
 
 
@@ -36,6 +36,11 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		_transition_to_map_2()
 	elif event is InputEventScreenTouch and event.pressed:
+		_transition_to_map_2()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_accept") or event.is_action_pressed("attack") or event.is_action_pressed("jump") or event.is_action_pressed("ui_cancel"):
 		_transition_to_map_2()
 
 
@@ -93,11 +98,11 @@ func _play_presentation() -> void:
 	fade_in_tweener.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await fade_in.finished
 
-	if not is_inside_tree():
+	if not is_inside_tree() or _transition_started:
 		return
 
 	await get_tree().create_timer(presentation_duration, true).timeout
-	if not is_inside_tree():
+	if not is_inside_tree() or _transition_started:
 		return
 
 	_transition_to_map_2()
@@ -107,6 +112,11 @@ func _transition_to_map_2() -> void:
 	if _transition_started:
 		return
 	_transition_started = true
+
+	# Limpa inputs antes da troca de cena para evitar ataques acidentais no início do mapa
+	Input.action_release("attack")
+	Input.action_release("jump")
+	Input.action_release("ui_accept")
 
 	var fade_out := create_tween()
 	fade_out.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)

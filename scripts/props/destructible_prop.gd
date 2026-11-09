@@ -291,6 +291,14 @@ func destroy_prop() -> void:
 	elif visual_root != null:
 		visual_root.visible = false
 
+	# Garante que os destroços no chão fiquem em z_index rebaixado para que
+	# nenhum item dropado, jogador ou inimigo fique oculto atrás do sprite quebrado
+	if visual_root != null:
+		visual_root.z_index = -1
+	var stage_sprite := _resolve_stage_sprite()
+	if stage_sprite != null:
+		stage_sprite.z_index = -1
+
 	# 7. Finaliza estado DESTROYED
 	current_state = PropState.DESTROYED
 	is_destroyed = true
@@ -378,7 +386,11 @@ func _spawn_drop() -> void:
 	var drop_inst := drop_item_scene.instantiate() as Node2D
 	if drop_inst == null:
 		return
-	drop_inst.global_position = global_position
+	# Em perspectiva arcade 2.5D, projeta o drop ligeiramente à frente no chão (Y + 24)
+	# e com z_index = 1 para garantir que o item fique 100% visível sobre o chão e na frente dos destroços
+	var drop_offset := Vector2(0.0, 24.0)
+	drop_inst.global_position = global_position + drop_offset
+	drop_inst.z_index = 1
 	var parent := get_parent()
 	if parent != null:
 		parent.add_child.call_deferred(drop_inst)
@@ -392,6 +404,11 @@ func reset_prop() -> void:
 	is_destroyed = false
 	current_state = PropState.ACTIVE
 	last_impact_position = Vector2.ZERO
+	if visual_root != null:
+		visual_root.z_index = 0
+	var stage_sprite := _resolve_stage_sprite()
+	if stage_sprite != null:
+		stage_sprite.z_index = 0
 
 	if collision_shape != null:
 		collision_shape.set_deferred("disabled", false)

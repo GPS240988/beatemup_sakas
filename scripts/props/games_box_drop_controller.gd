@@ -100,7 +100,10 @@ func _spawn_drops() -> void:
 			String(config.get("dialogue", ""))
 		)
 
-		# Os dois itens ficam no mesmo plano do chão, próximos e lado a lado.
-		var world_position: Vector2 = box.global_position + config.get("offset", Vector2.ZERO)
+		# Os dois itens ficam no mesmo plano do chão, próximos e lado a lado,
+		# projetados ligeiramente à frente (+24px no eixo Y) e com z_index = 1
+		# para jamais serem ocultados pelos destroços da caixa quebrada.
+		var world_position: Vector2 = box.global_position + config.get("offset", Vector2.ZERO) + Vector2(0.0, 24.0)
+		drop.z_index = 1
 		drop_parent.add_child(drop)
 		drop.global_position = world_position

@@ -29,6 +29,7 @@ var _visuals: Node2D = null
 
 func _ready() -> void:
 	y_sort_enabled = true
+	z_index = 1
 	add_to_group("health_pickups")
 	add_to_group("dropped_items")
 	add_to_group(INTERACTIVE_PICKUPS_GROUP)

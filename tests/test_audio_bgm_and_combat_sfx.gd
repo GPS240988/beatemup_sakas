@@ -8,6 +8,7 @@ const GameSessionClass = preload("res://scripts/core/game_session.gd")
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 const BaseLevelClass = preload("res://scripts/levels/base_level.gd")
 const MainMenuClass = preload("res://scripts/ui/main_menu.gd")
+const TitleScreenClass = preload("res://scripts/ui/title_screen.gd")
 const ContinueScreenClass = preload("res://scripts/ui/continue_screen.gd")
 const MapMenuClass = preload("res://scripts/ui/map_menu.gd")
 const LoadingScreenClass = preload("res://scripts/ui/loading_screen.gd")
@@ -58,17 +59,32 @@ func _test_bgm_files_existence_and_format() -> void:
 	print("\n--- 1. Testando Integridade dos Arquivos BGM ---")
 	var bgm_1_2: String = "res://assets/audio/bgm/M_1_2 - Estágio 1.mp3"
 	var bgm_3_4: String = "res://assets/audio/bgm/M_3_4 - Estágio 1.mp3"
+	var bgm_bonus: String = "res://assets/audio/bgm/bonus_1.mp3"
+	var bgm_menu: String = "res://assets/audio/bgm/Menu.mp3"
+	var bgm_historia: String = "res://assets/audio/bgm/Historia.mp3"
 
 	_assert(ResourceLoader.exists(bgm_1_2), "BGM Estágio 1 (Map 1 e 2) existe no disco")
 	_assert(ResourceLoader.exists(bgm_3_4), "BGM Estágio 1 (Map 3 e 4) existe no disco")
+	_assert(ResourceLoader.exists(bgm_bonus), "BGM Fase Bônus (bonus_1.mp3) existe no disco")
+	_assert(ResourceLoader.exists(bgm_menu), "BGM Menu Principal (Menu.mp3) existe no disco")
+	_assert(ResourceLoader.exists(bgm_historia), "BGM História (Historia.mp3) existe no disco")
 
 	var stream_1_2 := load(bgm_1_2) as AudioStreamMP3
 	var stream_3_4 := load(bgm_3_4) as AudioStreamMP3
+	var stream_bonus := load(bgm_bonus) as AudioStreamMP3
+	var stream_menu := load(bgm_menu) as AudioStreamMP3
+	var stream_historia := load(bgm_historia) as AudioStreamMP3
 
 	_assert(stream_1_2 != null, "BGM Map 1 e 2 carrega como AudioStreamMP3 válido")
 	_assert(stream_3_4 != null, "BGM Map 3 e 4 carrega como AudioStreamMP3 válido")
+	_assert(stream_bonus != null, "BGM Fase Bônus carrega como AudioStreamMP3 válido")
+	_assert(stream_menu != null, "BGM Menu Principal carrega como AudioStreamMP3 válido")
+	_assert(stream_historia != null, "BGM História carrega como AudioStreamMP3 válido")
 	_assert(stream_1_2 != null and stream_1_2.get_length() > 100.0, "BGM Map 1 e 2 tem duração de faixa completa (>100s)")
 	_assert(stream_3_4 != null and stream_3_4.get_length() > 100.0, "BGM Map 3 e 4 tem duração de faixa completa (>100s)")
+	_assert(stream_bonus != null and stream_bonus.get_length() > 30.0, "BGM Fase Bônus tem duração válida (>30s)")
+	_assert(stream_menu != null and stream_menu.get_length() > 60.0, "BGM Menu Principal tem duração de faixa completa (>60s)")
+	_assert(stream_historia != null and stream_historia.get_length() > 60.0, "BGM História tem duração de faixa completa (>60s)")
 
 
 func _test_sfx_files_existence_and_format() -> void:
@@ -172,10 +188,17 @@ func _test_base_level_bgm_mapping() -> void:
 	var target_4: String = level_4.BGM_STAGE_1_2 if level_4.map_index in [1, 2] else level_4.BGM_STAGE_3_4
 	_assert(target_4 == "res://assets/audio/bgm/M_3_4 - Estágio 1.mp3", "Map 4 mapeia para M_3_4 - Estágio 1.mp3")
 
+	var level_bonus := BaseLevelClass.new()
+	level_bonus.map_index = 5
+	level_bonus.map_group = "bonus1"
+	var target_bonus: String = level_bonus.BGM_BONUS_1 if (level_bonus.map_index == 5 or level_bonus.map_group == "bonus1") else ""
+	_assert(target_bonus == "res://assets/audio/bgm/bonus_1.mp3", "Fase Bônus (Map 5 / bonus1) mapeia para bonus_1.mp3")
+
 	level_1.free()
 	level_2.free()
 	level_3.free()
 	level_4.free()
+	level_bonus.free()
 
 
 func _test_combat_feedback_sfx_execution() -> void:
@@ -301,6 +324,8 @@ func _test_ui_menus_sfx_integration() -> void:
 	loading_screen._generate_audio_effects()
 	_assert(loading_screen._sfx_start != null, "LoadingScreen carrega SFX de início/confirmação")
 	_assert(loading_screen._sfx_cancel != null, "LoadingScreen carrega SFX de cancelamento")
+	_assert(TitleScreenClass.BGM_MENU == "res://assets/audio/bgm/Menu.mp3", "TitleScreen mapeia BGM_MENU para Menu.mp3")
+	_assert(MainMenuClass.BGM_MENU == "res://assets/audio/bgm/Menu.mp3", "MainMenu mapeia BGM_MENU para Menu.mp3")
 	loading_screen.free()
 
 
@@ -310,6 +335,7 @@ func _test_narrative_director_sfx_integration() -> void:
 	director._generate_sound_effects()
 	_assert(director._sfx_deep_hum != null, "NarrativeDirector carrega deep_intro_hum")
 	_assert(director._sfx_glitch != null, "NarrativeDirector carrega glitch_static")
+	_assert(director.BGM_HISTORIA == "res://assets/audio/bgm/Historia.mp3", "NarrativeDirector mapeia BGM_HISTORIA para Historia.mp3")
 	director.free()
 
 

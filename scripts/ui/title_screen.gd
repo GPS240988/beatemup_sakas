@@ -6,6 +6,7 @@ extends Control
 ## Pressione qualquer tecla ou toque para prosseguir ao Menu Principal.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
+const BGM_MENU: String = "res://assets/audio/bgm/Menu.mp3"
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
 
 @onready var background_image: TextureRect = %BackgroundImage
@@ -29,6 +30,11 @@ func _ready() -> void:
 
 	if touch_button != null:
 		touch_button.pressed.connect(_on_touch_activated)
+
+	# Reproduz a música do Menu logo na abertura do jogo
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("play_bgm"):
+		session.play_bgm(BGM_MENU, -4.0, 1.2)
 
 	_start_cinematic_fadein()
 
@@ -122,6 +128,11 @@ func _handle_activation() -> void:
 	if background_image != null:
 		background_image.modulate.a = 1.0
 	_is_loaded = true
+
+	# Assegura a continuidade da música do Menu caso tenha ocorrido bloqueio de autoplay no browser
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("play_bgm"):
+		session.play_bgm(BGM_MENU, -4.0, 0.5)
 
 	_start_game()
 

@@ -15,6 +15,7 @@ const NarrativeDirectorClass = preload("res://scripts/events/narrative_director.
 
 const BGM_STAGE_1_2: String = "res://assets/audio/bgm/M_1_2 - Estágio 1.mp3"
 const BGM_STAGE_3_4: String = "res://assets/audio/bgm/M_3_4 - Estágio 1.mp3"
+const BGM_BONUS_1: String = "res://assets/audio/bgm/bonus_1.mp3"
 
 # Spawn seguro da onda de reforços do Mapa 1. A faixa Y 650..715 corresponde
 # ao corredor inferior contínuo da map_1_navpoly.tres.
@@ -230,10 +231,11 @@ func _ready() -> void:
 			hud.label_level_name.text = "%s (Mapa %d/4)" % [map_name, map_index]
 
 	# Disparo da abertura narrativa cinemática (Novo Jogo -> Mapa 1)
-	_check_and_trigger_opening_narrative()
+	var narrative_active: bool = _check_and_trigger_opening_narrative()
 
-	# Inicialização da trilha sonora (BGM) correspondente ao mapa
-	_setup_level_bgm()
+	# Inicialização da trilha sonora (BGM) correspondente ao mapa (se não houver narrativa ativa)
+	if not narrative_active:
+		_setup_level_bgm()
 
 
 var _level_bgm_player: AudioStreamPlayer = null
@@ -242,12 +244,17 @@ var _level_bgm_player: AudioStreamPlayer = null
 ## Configura a trilha sonora (BGM) do nível conforme o mapa atual:
 ## Map 1 e Map 2 -> M_1_2 - Estágio 1
 ## Map 3 e Map 4 -> M_3_4 - Estágio 1
+## Bonus Stage (Map 5 / bonus1) -> bonus_1.mp3 (fade-in gradual)
 func _setup_level_bgm() -> void:
 	var target_bgm: String = ""
+	var fade_in: float = 0.0
 	if map_index in [1, 2]:
 		target_bgm = BGM_STAGE_1_2
 	elif map_index in [3, 4]:
 		target_bgm = BGM_STAGE_3_4
+	elif map_index == 5 or map_group == "bonus1" or map_name.to_lower().contains("bonus") or map_name.to_lower().contains("garagem"):
+		target_bgm = BGM_BONUS_1
+		fade_in = 3.5
 
 	if target_bgm.is_empty():
 		return
@@ -255,7 +262,7 @@ func _setup_level_bgm() -> void:
 	# Tenta delegar ao GameSession (Autoload) para que a música não reinicie entre map_1 e map_2
 	var gs: Node = get_node_or_null("/root/GameSession")
 	if gs != null and gs.has_method("play_bgm"):
-		gs.call("play_bgm", target_bgm)
+		gs.call("play_bgm", target_bgm, -4.0, fade_in)
 		return
 
 	# Fallback autônomo (testes isolados de cena sem autoload carregado)
@@ -271,17 +278,26 @@ func _setup_level_bgm() -> void:
 			if stream is AudioStreamMP3:
 				(stream as AudioStreamMP3).loop = true
 			_level_bgm_player.stream = stream
-			_level_bgm_player.volume_db = -4.0
-			_level_bgm_player.play()
+			if fade_in > 0.0:
+				_level_bgm_player.volume_db = -40.0
+				_level_bgm_player.play()
+				var tw: Tween = create_tween()
+				tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+				tw.tween_property(_level_bgm_player, "volume_db", -4.0, fade_in).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			else:
+				_level_bgm_player.volume_db = -4.0
+				_level_bgm_player.play()
 
 
-func _check_and_trigger_opening_narrative() -> void:
+func _check_and_trigger_opening_narrative() -> bool:
 	if stage_number != 1 or section_number != 1 or Engine.is_editor_hint():
-		return
+		return false
 
 	var session = get_node_or_null("/root/GameSession")
 	if session != null and "has_played_intro" in session and not session.has_played_intro:
 		_trigger_opening_narrative()
+		return true
+	return false
 
 
 func _trigger_opening_narrative() -> void:
@@ -293,6 +309,8 @@ func _trigger_opening_narrative() -> void:
 		nar_director = NarrativeDirectorClass.new()
 	nar_director.name = "NarrativeDirector"
 	add_child(nar_director)
+	nar_director.sequence_completed.connect(func(_id): _setup_level_bgm())
+	nar_director.sequence_skipped.connect(func(_id): _setup_level_bgm())
 	nar_director.play_sequence_from_path("res://resources/story/story_intro_map1.tres")
 
 

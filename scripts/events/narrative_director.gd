@@ -48,6 +48,8 @@ const SPEAKER_NAME_OUTLINE_COLOR: Color = Color(0.09, 0.07, 0.11, 1.0)
 const DIALOGUE_TEXT_COLOR: Color = Color(0.95, 0.94, 0.90, 1.0)
 const DIALOGUE_GOLD: Color = Color(0.92, 0.72, 0.36, 1.0)
 
+const BGM_HISTORIA: String = "res://assets/audio/bgm/Historia.mp3"
+
 # Preenchimento cinematográfico das laterais quando a arte não ocupa toda a largura.
 # Mantemos o matte quase preto para preservar o foco na pixel art original.
 const CINEMATIC_MATTE_COLOR: Color = Color(0.012, 0.013, 0.018, 1.0)
@@ -315,6 +317,11 @@ func play_sequence(sequence: Resource) -> void:
 	# Bloqueia movimentação e combate do jogador durante a cena
 	_set_gameplay_suspended(true)
 
+	# Interrompe BGM anterior (Menu) para o início solene do prólogo
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("stop_bgm"):
+		session.stop_bgm()
+
 	visible = true
 	if _fade_overlay != null:
 		_fade_overlay.modulate.a = 1.0 # Inicia totalmente em preto
@@ -371,6 +378,12 @@ func _process_current_event() -> void:
 	var zoom_start: float = maxf(float(ev.get("zoom_start")), 0.01)
 	var zoom_end: float = maxf(float(ev.get("zoom_end")), 0.01)
 	var glitch_frames: int = int(ev.get("glitch_frames"))
+
+	# Inicia a trilha sonora "Historia.mp3" quando o primeiro diálogo da história começa (CENA 02: the_four)
+	if ev_id == "the_four":
+		var session = get_node_or_null("/root/GameSession")
+		if session != null and session.has_method("play_bgm"):
+			session.play_bgm(BGM_HISTORIA, -4.0, 2.0)
 
 	_play_audio_by_name(sound_name)
 
@@ -849,7 +862,6 @@ func advance_or_skip_text() -> void:
 			_crt_continue_button.visible = false
 			_crt_continue_button.disabled = true
 		_crt_advance_locked = false
-		_play_sound(_sfx_advance)
 		_advance_to_next_event()
 		return
 
@@ -857,7 +869,6 @@ func advance_or_skip_text() -> void:
 		return
 
 	var texts: Array = ev.get("texts")
-	_play_sound(_sfx_advance)
 
 	# Avança para o próximo bloco de diálogo da mesma cena
 	if current_text_index + 1 < texts.size():

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://igj2to84hmep"]
 
-[ext_resource type="Script" uid="uid://bxe7s51a7y1j6" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base"]
+[ext_resource type="Script" path="res://scripts/levels/map_2_story_transition.gd" id="1_map2_transition"]
 [ext_resource type="Texture2D" uid="uid://o78q2ivl8thb" path="res://assets/backgrounds/maps/fase1/Fase1_2.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="PackedScene" uid="uid://cxvd6h0452i8y" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
@@ -39,7 +39,7 @@ size = Vector2(129.5, 246)
 size = Vector2(93, 89)
 
 [node name="Map2" type="Node2D" unique_id=1948904586]
-script = ExtResource("1_mobile_base")
+script = ExtResource("1_map2_transition")
 section_number = 2
 map_name = "Fase 1 - Seção 2: Balcão da Locadora"
 map_index = 2
@@ -129,7 +129,7 @@ shape = SubResource("RectangleShape2D_right_glass")
 y_sort_enabled = true
 
 [node name="GamesBox" parent="World/Props/Destructibles" unique_id=388001449 instance=ExtResource("11_hiphc")]
-position = Vector2(1853, 709)
+position = Vector2(1628, 566)
 max_health = 70.0
 drops_item = true
 drop_item_scene = ExtResource("12_coca_pickup")

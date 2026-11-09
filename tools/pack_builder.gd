@@ -20,8 +20,11 @@ const PACK_DEFINITIONS: Dictionary = {
 		"file_name": "pack_audio_bgm.pck",
 		"description": "Trilhas Sonoras BGM (Fase 1)",
 		"sources": [
+			"res://assets/audio/bgm/Menu.mp3",
+			"res://assets/audio/bgm/Historia.mp3",
 			"res://assets/audio/bgm/M_1_2 - Estágio 1.mp3",
-			"res://assets/audio/bgm/M_3_4 - Estágio 1.mp3"
+			"res://assets/audio/bgm/M_3_4 - Estágio 1.mp3",
+			"res://assets/audio/bgm/bonus_1.mp3"
 		],
 		"dirs": []
 	},
@@ -42,8 +45,11 @@ const PACK_DEFINITIONS: Dictionary = {
 	},
 	"stage1": {
 		"file_name": "pack_stage1.pck",
-		"description": "Cenários e Backgrounds do Estágio 1",
-		"sources": [],
+		"description": "Cenários, Vídeos e Backgrounds do Estágio 1",
+		"sources": [
+			"res://assets/videos/stage1/video_fase1_3_andre.ogv",
+			"res://assets/videos/stage1/video_fase1_3_juliana.ogv"
+		],
 		"dirs": [
 			"res://assets/backgrounds/maps"
 		]

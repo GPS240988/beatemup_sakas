@@ -534,11 +534,13 @@ func delete_save_slot(slot: int) -> bool:
 
 var _bgm_player: AudioStreamPlayer = null
 var _current_bgm_path: String = ""
+var _bgm_tween: Tween = null
 
 
 ## Reproduz a música de fundo (BGM) especificada.
 ## Se a faixa solicitada já estiver tocando, mantém a reprodução contínua sem interrupção.
-func play_bgm(bgm_path: String, volume_db: float = -4.0) -> void:
+## Permite fade_in_duration opcional (em segundos) para introdução suave/progressiva do volume.
+func play_bgm(bgm_path: String, volume_db: float = -4.0, fade_in_duration: float = 0.0) -> void:
 	if _current_bgm_path == bgm_path and _bgm_player != null and _bgm_player.playing:
 		return
 
@@ -549,6 +551,10 @@ func play_bgm(bgm_path: String, volume_db: float = -4.0) -> void:
 		_bgm_player.bus = &"Master"
 		add_child(_bgm_player)
 
+	if _bgm_tween != null and _bgm_tween.is_valid():
+		_bgm_tween.kill()
+		_bgm_tween = null
+
 	if bgm_path.is_empty() or not ResourceLoader.exists(bgm_path):
 		stop_bgm()
 		return
@@ -558,13 +564,23 @@ func play_bgm(bgm_path: String, volume_db: float = -4.0) -> void:
 		if stream is AudioStreamMP3:
 			(stream as AudioStreamMP3).loop = true
 		_bgm_player.stream = stream
-		_bgm_player.volume_db = volume_db
-		_bgm_player.play()
+		if fade_in_duration > 0.0:
+			_bgm_player.volume_db = -40.0
+			_bgm_player.play()
+			_bgm_tween = create_tween()
+			_bgm_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			_bgm_tween.tween_property(_bgm_player, "volume_db", volume_db, fade_in_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		else:
+			_bgm_player.volume_db = volume_db
+			_bgm_player.play()
 		_current_bgm_path = bgm_path
 
 
 ## Interrompe a reprodução de BGM atual
 func stop_bgm() -> void:
+	if _bgm_tween != null and _bgm_tween.is_valid():
+		_bgm_tween.kill()
+		_bgm_tween = null
 	if _bgm_player != null and _bgm_player.playing:
 		_bgm_player.stop()
 	_current_bgm_path = ""

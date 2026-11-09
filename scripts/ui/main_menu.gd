@@ -7,6 +7,7 @@ const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
 const CREDITS_SCENE: String = "res://scenes/ui/credits.tscn"
 const CONTINUE_SCENE: String = "res://scenes/ui/continue_screen.tscn"
 const MAP_MENU_SCENE: String = "res://scenes/ui/map_menu.tscn"
+const BGM_MENU: String = "res://assets/audio/bgm/Menu.mp3"
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
 
 const BASE_WIDTH: float = 1920.0
@@ -56,6 +57,11 @@ func _ready() -> void:
 	_buttons = [btn_new_game, btn_continue, btn_char_select, btn_map, btn_settings, btn_quit]
 	_generate_audio_effects()
 	_setup_hitboxes()
+
+	# Garante a reprodução contínua da BGM do Menu
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("play_bgm"):
+		session.play_bgm(BGM_MENU, -4.0, 1.0)
 
 	# Chevrons (< e >) eliminados permanentemente tanto no PC quanto no Mobile
 	if left_chevron != null:
