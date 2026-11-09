@@ -20,7 +20,7 @@ Atue como engenheiro sênior especialista em DevOps, sênior Backend, sênior Fr
 `STATUS: IMPLEMENTED`
 
 ### 1.1. Propósito e Gênero
-Beat 'em up 2.5D arcade clássico inspirado nos títulos dos anos 90, com ambientação urbana em Vila Prudente, São Paulo (ruas, locadoras de videogame, bares e becos), estética Pixel Art HD, profundidade no eixo Y e física determinística em Godot Engine 4.x (`4.7.2.stable`).
+Beat 'em up 2.5D arcade clássico inspirado nos títulos dos anos 90, ambientado em Vila Prudente, São Paulo. A década de 1990 é a identidade visual de origem dos protagonistas; a narrativa estabelece que passado e presente podem ocupar os mesmos espaços após o despertar da máquina arcade. Essa coexistência temporal deve ser representada sem apagar a geografia reconhecível do bairro nem transformar a ambientação em cyberpunk genérico. O jogo mantém estética Pixel Art HD, profundidade no eixo Y e física determinística em Godot Engine 4.x (`4.7.2.stable`).
 
 ### 1.2. Personas Integradas de Desenvolvimento
 1. **Direção de Arte e Design de Personagens**:
@@ -33,6 +33,18 @@ Beat 'em up 2.5D arcade clássico inspirado nos títulos dos anos 90, com ambien
 2. **Engenharia de Software e DevOps Sênior**:
    - GDScript fortemente tipado, desacoplamento por composição e componentes modulares.
    - Garantia de 60 FPS contínuos em Desktop e Mobile, ausência de vazamento de memória e suíte automatizada de testes headless (`godot_console.exe --headless -s tests/...`).
+
+### 1.2.1. Contrato de Direção de Arte — Vila Prudente Temporal
+`STATUS: PLANNED`
+
+- **Documento visual de referência:** `Direcao_de_Arte.md`.
+- **Hierarquia narrativa:** a Vila Prudente de meados dos anos 1990 é a base visual; elementos contemporâneos são interferências temporais pontuais, introduzidas conforme o roteiro e a geografia de cada cenário.
+- **Coexistência de épocas:** passado e presente podem dividir o mesmo espaço físico. Manter pontos de referência reconhecíveis e usar justaposição, sobreposição parcial e glitches localizados, sem transformar toda a cidade em cenário futurista ou cyberpunk.
+- **Linguagem unificada:** todos os elementos, antigos ou atuais, devem compartilhar a estética artesanal Neo-16-bit/Pixel Art HD, com clusters deliberados, contornos coerentes, paletas controladas e filtro `nearest`.
+- **Controle de composição:** cenário, NPCs, letreiros e efeitos temporais não podem competir com os atores, itens ou faixa caminhável de combate.
+- **Identidade dos atores:** referências, anatomia, roupas, proporções e canvas dos protagonistas/inimigos permanecem subordinados ao contrato de sprites deste documento. Ilustrações conceituais não autorizam substituir os designs oficiais.
+- **Separação de responsabilidades:** `Direcao_de_Arte.md` define conceito e critérios visuais; este `GAME_RULES.md` continua soberano para dimensões, origem física, Y-Sort, colisões, estrutura de cena, importação, performance e testes.
+- **Status:** a premissa temporal já está presente na abertura narrativa; a aplicação visual em novos ou revisados assets de gameplay deve ser validada no Godot antes de ser registrada como `IMPLEMENTED`.
 
 ### 1.3. Pipeline Arquitetural do Mundo
 ```text
@@ -595,7 +607,7 @@ MapX (Node2D, script: base_level.gd)
   - **Padrão Oficial de Apresentação Arcade (Neo-16-bit Urbano)**:
     - *Referência Visual Obrigatória*: Baseado na composição canônica de `assets/backgrounds/referencia_introducao.webp`.
     - *Enquadramento e Área Segura*: O palco de arte (`ArtStage`) ocupa os 74% superiores da tela com modo `STRETCH_KEEP_ASPECT_CENTERED` e `TEXTURE_FILTER_NEAREST`. As imagens mantêm 100% da proporção original sem corte de personagens nas bordas. Camada de fundo ambiente (`AmbientBackground`) preenche aspectos de tela variáveis sem barras vazias. A moldura inferior nunca encobre rostos, mãos, pés ou silhuetas essenciais.
-    - *Moldura Oficial Cyber-Brawler Glassmorphism*: Painel em azul-marinho profundo/violeta `#0C0C18` (94% opacidade) com borda neon rosa/magenta `#FF2A6D` (3px), cantoneiras metálicas em ciano `#05D9E8` e magenta, barra de status de transmissão, badge superior flutuante para o orador e sombra projetada neon.
+    - *Moldura Oficial Arcade Cinematográfica*: Painel em azul-marinho profundo/violeta `#0C0C18` (94% opacidade) com borda rosa/magenta `#FF2A6D` (3px), cantoneiras em ciano `#05D9E8` e magenta, identificação do orador e sombra projetada discreta. Não exibir barra de status de transmissão, indicador fictício de conexão ou rótulo técnico decorativo.
     - *Tipografia e Quebra de Linha Estrita*: Emprego de `assets/fonts/arcade_bold.ttf` com autowrap inteligente (`AUTOWRAP_WORD_SMART`), margens internas seguras (32px laterais, 16px no container de texto) e entrelinha formatada, garantindo que qualquer texto atual ou futuro quebre de linha antes de tocar ou ultrapassar os limites da moldura. Textos em 24px com sombra sólida preta e alto contraste.
     - *Avanço Estritamente Manual*: Nenhuma fala desaparece ou avança por temporizador automático. A narrativa permanece em tela até confirmação deliberada do jogador ([Enter], [Espaço], Gamepad A, toque no botão `AVANÇAR ❯` ou toque de tela).
     - *Proteção e Isolamento de Input*: Transições sóbrias (~0.32s) com flag `_is_transitioning` impedem múltiplos saltos por repetição de tecla (`echo`). Ao concluir a sequência, ações pendentes (`jump`, `attack`, `attack_punch`, `ui_accept`) são liberadas via `Input.action_release()` antes da carga de `map_1.tscn`, eliminando sangramento de comandos para o primeiro frame de gameplay.
@@ -608,8 +620,8 @@ MapX (Node2D, script: base_level.gd)
       3. *CENA 03 (Os Que Não Estão)*: Imagem `assets/story/map_1/missing_friends.webp` com efeito analógico de `glitch` (3 frames) e revelação dos desaparecidos (Alessandro e Fernando).
       4. *CENA 04 (A Sala Secreta)*: Imagem `assets/story/map_1/secret_room.webp`, descoberta da sala secreta atrás da estante e da máquina de arcade.
       5. *CENA 05 (A Máquina - Revelação)*: Imagem `assets/story/map_1/arcade_machine.webp`, close da máquina acendendo, revelação das mensagens de tela arcade ("INSERT COIN" → "4 PLAYERS DETECTED" → "CONTINUE?").
-      6. *CENA 06 (Passado e Presente - Revelação Central)*: Imagem `assets/story/map_1/past_present.webp`, telas mostrando lugares conhecidos com passado e presente ocupando o mesmo espaço físico.
-      7. *CENA 07 (Retorno à Locadora)*: Imagem `assets/story/map_1/street_memory.webp`, transição com a identificação "MAPA 1 — A LOCADORA" e entrada suave no gameplay de `map_1.tscn`.
+      6. *CENA 06 (Passado e Presente - Revelação Central)*: Imagem `assets/story/map_1/past_present.webp`, mostrando lugares conhecidos com passado e presente ocupando o mesmo espaço físico. A geografia deve continuar reconhecível; a década de 1990 funciona como base, enquanto elementos atuais aparecem por justaposição ou sobreposição parcial, com glitch curto e localizado. Não introduzir portal, arquitetura futurista genérica ou explicação visual que não esteja no roteiro.
+      7. *CENA 07 (Retorno à Locadora)*: Imagem `assets/story/map_1/street_memory.webp`, transição com a identificação "MAPA 1 — A LOCADORA" e entrada suave no gameplay de `map_1.tscn`. A locadora permanece como âncora visual; sinais de mudança temporal devem ser coerentes com a cena e não antecipar indiscriminadamente elementos de fases futuras.
   - **Diretor de Apresentação (`NarrativeDirector`)**:
     - Instanciado em `CanvasLayer` superior (layer = 120), preservando a cena de gameplay intacta ao fundo.
     - Suporte integral a Teclado, Gamepad, Mouse e Toque Mobile (`InputEventScreenTouch`).

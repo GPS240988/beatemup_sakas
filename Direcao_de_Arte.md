@@ -1,161 +1,288 @@
-# Sakas — Direção de Arte Unificada (Piloto)
+# Sakas — Direção de Arte: Vila Prudente Temporal
 
-**Status:** proposta para aprovação visual; ainda não incorporada ao repositório remoto.  
-**Objetivo:** definir um contrato visual repetível para personagens, inimigos, cenários, efeitos de combate e HUD, antes de produzir o restante dos assets.  
-**Referência de teste:** `Sakas_Cenario_Teste_01.png` (mockup conceitual gerado nesta etapa; não é asset final de produção).
+**Versão:** 2.0 — consolidação da identidade visual  
+**Data:** 09/11/2026  
+**Status:** proposta consolidada para aprovação de produção  
+**Escopo:** personagens, inimigos, cenários, props, efeitos, cinemáticas e interface do Beat 'em Up Sakas.
 
----
-
-## 1. Decisão de direção artística
-
-### Nome de trabalho
-**Neo-16-bit urbano brasileiro — beat ’em up 2.5D**
-
-### Intenção
-Um beat ’em up com leitura imediata de arcade dos anos 1990, pixel art HD deliberada, identidade urbana de São Paulo/Vila Prudente e profundidade de jogo 2.5D. A riqueza vem de silhuetas, clusters de pixels, contraste e composição — não de filtros que transformam ilustrações suaves em “pixel art”.
-
-### Regras que todos os assets devem compartilhar
-
-1. **Pixel art nativa:** cada pixel/cluster tem intenção; contornos nítidos, sem antialiasing acidental, blur, granulação fotográfica ou gradientes contínuos. Não aplicar filtro de pixelização como substituto do redesenho.
-2. **Silhueta primeiro:** protagonista, inimigos, golpes, itens e efeitos devem continuar legíveis em tamanho de jogo e em escala de cinza.
-3. **Luz coerente:** luz ambiente fria de noite urbana; fontes quentes vindas de vitrines e postes; cores de neon como recortes/acento, não como iluminação uniforme em tudo. No personagem, manter volumes e sombras consistentes com a luz predominante da cena.
-4. **Paleta controlada:** herói: alvo inicial de 24–36 cores úteis; inimigos: paleta equivalente; cenário: paleta mais ampla, mas organizada por planos e materiais; efeitos: poucas cores muito contrastantes. Os números são limites iniciais para revisão, não uma regra que obrigue cores desnecessárias.
-5. **Contorno e sombra:** contorno externo escuro coerente e sem variações aleatórias de espessura; sombras em blocos bem definidos; evitar pillow shading (escurecer igualmente todas as bordas) e banding acidental.
-6. **Proporções preservadas:** a anatomia e os elementos identificadores do personagem não mudam de um frame para outro. Dobrar o corpo durante um golpe é permitido; esticar/achatar a arte inteira para simular movimento, não.
-7. **Canvas e chão consistentes:** quadros animados da mesma família usam o mesmo canvas e ponto de referência; os pés de apoio não deslizam verticalmente entre frames sem uma intenção de movimento clara. Sombras de contato e colisores são tratados no Godot, não pintados na textura do personagem.
-8. **2.5D de gameplay:** a profundidade vem do deslocamento no eixo Y, da ordenação dos atores, da perspectiva, das camadas e das sombras. Os sprites mantêm uma vista consistente de beat ’em up, com o corpo em 3/4 lateral suficiente para ler rosto, tronco e membros.
-9. **Legibilidade de combate:** evitar detalhes de fundo mais contrastantes que os lutadores; manter uma faixa de gameplay no chão visualmente calma. O flash de impacto pode ser a forma mais brilhante por um instante.
-10. **Uso em Godot:** texturas de pixel art importadas com filtro nearest/sem suavização; conferir escala inteira sempre que viável, sem alterar a origem física do ator para compensar quadros mal desenhados.
-
-### Contexto visual
-Vila Prudente, São Paulo, início/meados dos anos 1990: locadoras de VHS e videogames, fachadas de comércio de bairro, calçadas de concreto, postes, fios aéreos, portões, grafites, orelhões, cartazes e pequenos letreiros. Usar referências culturais brasileiras como detalhe ambiental, sem transformar a cena em uma coleção de clichês ou de marcas reais.
+> **Documento de direção artística.** Os contratos de implementação, dimensões de sprites, âncoras físicas, ordenação, importação, desempenho e arquitetura do Godot continuam subordinados ao `GAME_RULES.md`. Em caso de divergência, não se deve alterar uma regra técnica por conveniência artística: a direção de arte deve se adaptar ao contrato do motor.
 
 ---
 
-## 2. Bloco de estilo compartilhado
+## 1. Conceito central
 
-**Cole este bloco no final de cada prompt de asset.** Ele é o “style lock” que mantém a linguagem visual constante.
+### Vila Prudente Temporal — Neo-16-bit Urban Brazilian Beat 'em Up
 
-> **STYLE LOCK — SAKAS:** Create authentic, hand-crafted HD pixel art for a 2.5D side-scrolling arcade beat ’em up set in 1990s Vila Prudente, São Paulo, Brazil. Use crisp deliberate pixel clusters, clean hard pixel edges, a controlled palette, strong readable silhouettes, dark consistent outlines, and clearly grouped highlights and shadows. Preserve a coherent 16-bit arcade visual language across characters, environments, props, combat effects and UI. The scene is viewed from a consistent three-quarter side beat-’em-up camera, with gameplay depth on the vertical screen axis. Use cool deep blue/purple urban ambience with restrained warm shop/streetlamp light and small cyan/magenta neon accents. Pixel art must be authored as pixel art, not smooth digital painting run through a pixelation filter. No anti-aliased edges, no soft blur, no photographic textures, no vector gradients, no painterly brushwork, no 3D rendering, no subpixel smearing, no random stray pixels, no inconsistent anatomy, no unreadable micro-detail. At the intended in-game size, the subject must remain immediately readable.
+**Premissa:** a Vila Prudente dos anos 1990 é a realidade visual de origem dos quatro protagonistas. Após o despertar da máquina arcade na sala secreta da locadora, passado e presente começam a ocupar simultaneamente os mesmos espaços. A cidade não vira uma paisagem futurista genérica: lugares familiares permanecem reconhecíveis, mas recebem sinais de outra época.
 
----
+A fusão temporal não é um anacronismo aleatório. É uma manifestação narrativa ligada à revelação central da abertura — **“Passado e Presente”** — e deve ser percebida pelo contraste entre elementos de épocas diferentes dentro da mesma geografia.
 
-## 3. Prompt 01 — Personagem jogador (Guilherme)
+### Regra de ouro
 
-**Uso:** criar uma imagem-mestre do jogador para aprovar o estilo antes de produzir animações. Anexar a imagem atual de Guilherme como referência obrigatória.
+**Os anos 90 são a identidade original; o presente é a interferência; a estética arcade Neo-16-bit é a linguagem visual que unifica ambos.**
 
-> Use the supplied current Guilherme player sprite as a STRICT identity and costume reference. Redesign it into authentic hand-crafted HD pixel art while preserving the same recognizable face, hair, skin tone, shirt, pants, shoes, body type, and character identity. Create one complete full-body neutral combat/idle pose, facing right in the established three-quarter side beat-’em-up view. Keep both feet visible and firmly placed on a clear shared ground baseline. Use a stable, believable anatomy and a strong silhouette; hands, elbows, knees and shoes must remain readable at normal gameplay scale. Simplify tiny fabric seams and facial details into intentional pixel clusters rather than smooth shading. Use a small coherent character palette, dark clean outline, 2–3 readable value groups per material, and consistent light direction. Transparent background, no floor, no shadow baked into the sprite, no weapon unless it exists in the supplied reference, no text, no UI, no extra poses, no sheet, no frame border. Center the character on a consistent production canvas and leave safe transparent margins around hair, hands and shoes. Do not make the character taller, thinner, more muscular or more realistic than the reference. Apply the SAKAS STYLE LOCK.
+A modernidade deve ser filtrada pela gramática visual dos arcades dos anos 1990, com inspiração em Capcom CPS2 e SNK Neo Geo. Essas referências orientam densidade, contraste, cor, silhueta e acabamento; não são uma obrigação de copiar sprites, personagens ou layouts de jogos existentes.
 
-**Validação:** comparar lado a lado com a referência aprovada; confirmar rosto, roupa, proporções e paleta. A imagem-mestre só é aprovada se parecer o mesmo Guilherme, refeito em pixel art — não um personagem novo inspirado nele.
+### O que a direção de arte não deve fazer
 
----
-
-## 4. Prompt 02 — Inimigo básico
-
-**Uso:** substituir o inimigo geométrico provisório por um personagem que pertença ao mesmo elenco visual.
-
-> Create one full-body basic street-thug enemy for the Sakas 2.5D beat-’em-up. The enemy is a working-class São Paulo street tough from the mid-1990s, wearing a worn burgundy/brown jacket, dark trousers and practical boots; make the costume distinct from Guilherme’s but believable for the same neighborhood and era. Neutral ready-to-fight pose, facing left toward the player, in the exact same three-quarter side beat-’em-up camera and apparent scale as the approved Guilherme master sprite. Use the same pixel cluster size, outline weight, palette discipline, lighting logic, shading density and level of anatomical stylization as the approved hero. Give the enemy a distinct readable silhouette (different shoulder line, hair shape and stance) without caricature or excessive detail. Keep feet on the same ground baseline and body proportions stable. Transparent background; one character only; no shadow baked into sprite; no weapons, text, UI, background, sheet or decorative frame unless specifically requested. Apply the SAKAS STYLE LOCK and use the approved hero image as the direct visual style reference.
-
-**Validação:** colocar o inimigo e o jogador lado a lado no mesmo zoom. Se um parecer pintado e o outro parecer pixel art, ou se a densidade de pixels/contorno for diferente, reprovar e corrigir antes de produzir animações.
+- Não transformar toda a cidade em cyberpunk, ficção científica genérica ou neon permanente.
+- Não trocar a identidade nostálgica da locadora por uma ambientação contemporânea dominante.
+- Não inserir smartphones, fachadas atuais, carros modernos ou transporte elevado em todos os cenários apenas para provar que existe uma fusão temporal.
+- Não tratar a imagem conceitual gerada por IA como cenário final, modelo anatômico ou referência canônica de personagem.
+- Não inventar fatos da história, locais, marcas, veículos ou marcos urbanos que não tenham sido aprovados para a cena.
 
 ---
 
-## 5. Prompt 03 — Cenário de gameplay (background sem personagens)
+## 2. Hierarquia temporal e narrativa
 
-**Uso:** criar o primeiro fundo real do protótipo visual. O resultado deve servir ao gameplay, não ser apenas uma ilustração bonita.
+### 2.1. Passado: identidade-base
 
-> Create a wide 16:9 side-scrolling gameplay background for a 2.5D beat-’em-up, set outside a neighborhood VHS and videogame rental shop in Vila Prudente, São Paulo, around 1994–1997. Include a recognizable Brazilian street facade, metal shutters, hand-painted neighborhood signage, overhead utility wires, a streetlight, concrete sidewalk, cracked asphalt, a bus-stop or public-phone detail, a few posters, and a shop window with VHS tapes and 1990s game boxes. Keep the architecture grounded and lived-in, not cyberpunk fantasy. Use deep navy and violet night ambience, warm amber light spilling from the shop, and restrained cyan/magenta neon accents. Arrange the composition in distinct parallax-friendly depth bands: distant rooftops/sky, building facade, sidewalk props, and foreground pavement. Leave the lower 35–40% relatively calm and open as the playable floor lane; keep large props away from the central combat area. The pavement must provide a continuous clear ground plane with a readable perspective; avoid strong high-contrast cracks directly beneath where fighters will stand. No characters, enemies, hit effects, HUD, dialogue, logos or readable text. Draw it as authentic crisp pixel art with intentional clusters and controlled shading, suitable for later splitting into separate layers. Apply the SAKAS STYLE LOCK.
+A base visual é a Vila Prudente de meados dos anos 1990, com referências de bairro brasileiro vivido e reconhecível:
 
-**Validação:** confirmar que a faixa de combate fica limpa, que a perspectiva permite andar em profundidade e que personagens de alto contraste continuam mais legíveis que os detalhes do cenário. Exportar planos separados se o mockup for aprovado.
+- Locadora de VHS e videogames como âncora emocional e visual.
+- Máquinas arcade, televisores CRT, fitas VHS, caixas de jogos, cartazes e letreiros de comércio local.
+- Fachadas, bares, padarias, calçadas de concreto, portões metálicos, muros, grafites, postes, orelhões e fiação aérea.
+- Veículos compatíveis com a época, usados como contexto urbano e não como decoração excessiva.
+- Roupas, penteados, objetos e hábitos cotidianos coerentes com os personagens e o período.
 
----
+A ambientação deve parecer vivida, brasileira e específica. Evitar uma coleção de clichês visuais ou uma rua composta apenas por placas chamativas.
 
-## 6. Prompt 04 — Efeito de impacto de golpe
+### 2.2. Presente: interferência temporal
 
-**Uso:** fixar a gramática visual de socos e golpes pesados. Começar por um único quadro de referência; a animação será desenhada depois.
+Elementos contemporâneos podem surgir na mesma rua e no mesmo enquadramento dos elementos antigos, desde que tenham função narrativa e respeitem a geografia do local:
 
-> Create one isolated hit-impact effect for a heavy punch in the Sakas 2.5D pixel-art beat-’em-up. Show a compact, asymmetrical starburst made of hard-edged pixel clusters: a bright warm yellow/cream core, orange and red outer shards, and a few short cyan-blue fragments as secondary contrast. The impact should communicate a strong arcade hit instantly, with jagged directional shapes pointing away from the contact point and a small number of detached square pixels. Keep the silhouette compact enough to sit between two fighters without obscuring their faces or bodies. Transparent background, centered contact origin, no character, no fist, no speed-line background, no text, no glow blur, no lens flare, no gradient haze, no border. Use a small palette and the same outline/cluster language as the approved hero and enemy. Apply the SAKAS STYLE LOCK.
+- Fachadas e equipamentos comerciais atuais ao lado, atrás ou parcialmente sobrepostos às estruturas antigas.
+- Veículos contemporâneos dividindo a via com carros da década de 1990.
+- Pedestres com roupas atuais e smartphones, em contraste com NPCs e protagonistas de aparência noventista.
+- Infraestrutura urbana contemporânea — inclusive transporte elevado — somente quando for geograficamente coerente e aprovada para aquele cenário.
+- Letreiros, mobiliário urbano e tecnologia atuais tratados com a mesma densidade de pixel e acabamento dos elementos antigos.
 
-**Validação:** verificar legibilidade em tamanho pequeno e sobre fundo claro/escuro. A energia visual deve vir dos clusters e do contraste, não de blur. A posição de origem deve ser fácil de alinhar ao ponto de contato no Godot.
+A presença moderna deve ser seletiva. Em cada cenário, definir quais elementos pertencem ao passado, quais pertencem ao presente e qual é o sinal visual que revela a sobreposição.
 
----
+### 2.3. Gramática visual da sobreposição
 
-## 7. Prompt 05 — Recorte de HUD arcade
+A fusão temporal deve ser compreendida sem depender de texto explicativo:
 
-**Uso:** definir o visual do HUD sem gerar uma tela inteira. A tipografia e os números finais deverão ser implementados como UI no Godot, não depender do texto gerado na imagem.
+1. **Geografia constante:** o jogador reconhece a rua, fachada, esquina ou estabelecimento antes e depois da interferência.
+2. **Contraste de época:** objetos, fachadas, veículos e pessoas revelam que dois períodos ocupam o mesmo espaço.
+3. **Sobreposição controlada:** usar justaposição, duplicação parcial de contornos, letreiros em duas versões, reflexos divergentes ou pequenas áreas de dupla exposição. Não duplicar tudo.
+4. **Glitch como pontuação:** glitches curtos e localizados marcam a fratura temporal em momentos narrativos. Não usar distorção constante como filtro de tela.
+5. **Continuidade do lugar:** mudanças visuais não devem destruir os pontos de referência que permitem reconhecer o local.
 
-> Create a clean horizontal crop of a retro 16-bit arcade beat-’em-up HUD for Sakas, designed to occupy the top edge of a 16:9 gameplay screen. On the left, reserve a compact portrait frame and the player name “GUILHERME”, then a segmented warm amber/yellow health bar and a smaller cyan energy bar. On the right, create a mirrored enemy panel with a portrait placeholder and a segmented red health bar. In the center, leave a compact area for a stage label and timer. Use dark navy panels, crisp pixel-font lettering, pixel-perfect borders, restrained cyan/magenta accents and high contrast. The crop must be straight-on, flat and readable, with consistent border thickness and pixel scale; it must feel native to the same game as the approved character sprites and background. Transparent or solid near-black background, no gameplay scene, no full characters, no extra decorations, no 3D bevels, no smooth gradients, no glossy mobile-game UI. Treat the exact text as layout guidance only; keep the layout spacious enough for real Godot labels to replace generated lettering. Apply the SAKAS STYLE LOCK.
+O roteiro não exige explicar a mecânica temporal como portal, viagem convencional ou tecnologia futurista. A direção de arte deve preservar o mistério e representar o fenômeno como coexistência espacial de épocas.
 
-**Validação:** testar a 100% do tamanho previsto na janela de jogo. Nome, barras e retratos precisam continuar legíveis sem ocupar área excessiva da arena; os textos finais serão elementos Godot separados.
+### 2.4. Progressão visual
 
----
+| Momento | Leitura visual desejada |
+|---|---|
+| Locadora e cotidiano inicial | Predomínio dos anos 90; tecnologia atual ausente ou não enfatizada. |
+| Sala secreta e máquina arcade | A estética noventista permanece; CRT, luz e glitch anunciam a ruptura. |
+| Cena 06 — Passado e Presente | Revelação explícita da mesma geografia ocupada por duas épocas. |
+| Cena 07 — Retorno à Locadora | O lugar familiar continua reconhecível, mas há sinais de que o mundo mudou. |
+| Gameplay e fases seguintes | A interferência aparece conforme o roteiro e o cenário exigirem; não é obrigatório que todos os mapas tenham a mesma intensidade temporal. |
 
-## 8. Prompt 06 — Primeiro cenário integrado de teste (os cinco elementos juntos)
-
-**Uso:** gerar um mockup de aprovação visual para avaliar a coerência do conjunto. **Não usar a imagem integrada como asset final:** personagens, HUD e efeitos devem ser exportados separadamente após aprovação.
-
-> Create a wide 16:9 gameplay screenshot concept for “Beat ’em Up Sakas”, a 1990s-inspired 2.5D pixel-art arcade brawler set in Vila Prudente, São Paulo. Use a nighttime street outside a Brazilian VHS and videogame rental shop as the test environment: metal shutter with local graffiti, concrete storefront, VHS/game displays, overhead cables, a streetlight, cracked sidewalk and wet asphalt with restrained colored reflections. In the lower-middle gameplay lane, show the approved Guilherme design (white T-shirt, blue/dark jeans, sneakers; preserve the supplied character reference when provided) landing a powerful straight punch on one basic thug in a burgundy jacket. The player and enemy must share the exact same pixel scale, outline weight, shading density, lighting, anatomy style and ground plane. Put one compact hard-edged yellow/orange/cyan pixel impact burst exactly at the contact point. Include a restrained arcade HUD along the top edge: player portrait/name and amber/cyan bars on the left; stage and timer in the center; enemy portrait and red health bar on the right. Keep all five visual elements distinct and readable; the fighters are the highest-priority focal points, the impact is briefly brightest, and the background is less contrasty in the combat lane. Authentic hand-crafted pixel clusters, consistent 16-bit arcade language, no smooth illustrated characters, no geometric placeholder enemies, no antialiasing, no motion blur, no photographic textures, no 3D render, no unreadable tiny signage, no extra fighters or floating UI. Apply the SAKAS STYLE LOCK.
-
-**Validação:** avaliar primeiro o conjunto em escala de jogo, depois cada elemento isolado. O mockup atual `Sakas_Cenario_Teste_01.png` serve como primeira referência composicional; deve-se gerar uma segunda versão usando as imagens aprovadas de Guilherme e do inimigo quando estiverem disponíveis.
-
----
-
-## 9. Texto proposto para incorporar ao `GAME_RULES.md`
-
-Copiar esta seção para o bloco de direção artística existente e depois harmonizar/remover regras duplicadas.
-
-```md
-## Art Direction Lock — Neo-16-bit Urban Brazilian Pixel Art
-
-### Visual Identity
-The game uses handcrafted HD pixel art for a 2.5D arcade beat-'em-up set in 1990s Vila Prudente, São Paulo, Brazil. Characters, enemies, environments, props, hit effects, and HUD must share one visual language. Pixel art must be authored through deliberate pixel clusters; smooth illustrations processed with a pixelation filter are not an acceptable substitute.
-
-### Pixel and Palette Rules
-- Use crisp hard pixel edges; disable texture filtering/smoothing for pixel-art textures.
-- No accidental anti-aliasing, blur, photographic grain, painterly brushwork, continuous gradient shading, or subpixel smearing.
-- Use controlled palettes, coherent outline weight, clustered highlights/shadows, and a consistent dominant light direction. Neon hues are accents, not a substitute for form shading.
-- Avoid pillow shading, accidental banding, isolated stray pixels, and micro-details that disappear at gameplay scale.
-- Judge every asset at its actual in-game size as well as in an enlarged inspection view.
-
-### Character Consistency
-- Maintain approved character identity, costume, face, body proportions, palette, outline, and shading across all animations.
-- All frames in an animation family use the same canvas dimensions and ground reference.
-- Grounded moves keep supporting feet on a stable baseline unless intentional motion (jump, fall, recoil) requires otherwise.
-- Do not stretch the full sprite or move the physical actor to hide inconsistencies between frames.
-- Player and enemies must share the same stylization, apparent pixel scale, shading density, and camera perspective while remaining distinct by silhouette and costume.
-
-### 2.5D Environment and Composition
-- Use a consistent three-quarter side beat-'em-up camera; gameplay depth is expressed along the screen's vertical axis.
-- Separate background, architecture, playable floor, and foreground elements when parallax or actor occlusion requires it.
-- Preserve a readable continuous combat lane. Background contrast and detail must not overpower fighters, attack tells, items, or hit effects.
-- Use Brazilian urban references from 1990s São Paulo with restraint and contextual consistency.
-
-### Combat Effects and HUD
-- Hit effects use crisp, compact pixel shapes and a limited high-contrast palette; no soft glow is required for impact readability.
-- HUD elements use pixel-font styling, consistent borders and spacing, and remain legible at the target resolution.
-- Keep text, portraits, health bars, timers, and effects as separate editable game elements wherever practical; do not bake gameplay UI into the stage background.
-
-### Asset Approval Gate
-A visual asset is not approved until it passes: (1) identity/style comparison against the approved references; (2) readability at gameplay scale; (3) pixel-edge and palette review; (4) composition/ground-line review; and (5) an in-engine check with nearest filtering and the real HUD/combat lane. A cohesive pilot scene containing one player, one enemy, one environment slice, one impact effect, and the HUD must be approved before producing the full asset set.
-```
+A progressão acima é uma diretriz de representação. Ela não autoriza alterar o roteiro, a ordem das fases ou a geografia estabelecida.
 
 ---
 
-## 10. Checklist de aprovação do piloto
+## 3. Linguagem visual compartilhada — Pixel Art HD Neo-16-bit
 
-- [ ] Guilherme continua imediatamente reconhecível em relação à referência original.
-- [ ] Herói e inimigo parecem pertencer ao mesmo jogo e à mesma escala de pixel.
-- [ ] O cenário remete a Vila Prudente dos anos 1990 sem competir com o combate.
-- [ ] Existe uma faixa de chão contínua e legível para caminhar em profundidade.
-- [ ] O impacto tem silhueta clara em tamanho pequeno e fundo transparente limpo.
-- [ ] O HUD pode ser reconstruído com nós/controles Godot independentes.
-- [ ] Os sprites não dependem de blur, antialiasing ou brilho suave para parecerem acabados.
-- [ ] A cena é revisada no Godot com o filtro nearest e a escala final de gameplay.
-- [ ] A decisão visual é registrada antes de iniciar a produção em massa.
+### 3.1. Pixel grid e densidade coerentes
 
-## 11. Notas de produção
+- Produzir pixel art deliberada, com clusters legíveis e bordas nítidas. Não converter uma pintura suave em pixel art apenas com filtro.
+- Manter densidade aparente de pixels, peso de contorno e nível de detalhe coerentes entre personagens, inimigos, cenário, props e efeitos.
+- Não impor um tamanho de pixel absoluto idêntico a todos os arquivos: sprites, fundos e objetos têm dimensões e funções diferentes. A consistência deve ser julgada na escala real de gameplay.
+- Evitar *mixels*, bordas suavizadas acidentais, antialiasing, blur, granulação fotográfica, smear de subpixel, ruído aleatório e microdetalhes que desaparecem na tela.
+- Usar filtro `nearest`/sem suavização para texturas de pixel art. Priorizar escala inteira quando viável, sem deformar ou reposicionar a origem física do ator para compensar o desenho.
+- Glitch, zoom ou deslocamentos cinematográficos podem existir como efeitos controlados, desde que não introduzam borrão persistente nem prejudiquem a leitura do pixel art.
 
-- Os prompts de personagem/inimigo devem sempre receber as referências visuais aprovadas como imagens anexadas. Sem referência, um gerador pode inventar outro design, mesmo quando o texto pede consistência.
-- Imagens integradas geradas por IA servem como estudo de direção e composição. Não substituem spritesheets bem alinhados, transparência validada, slices e assets de HUD editáveis.
-- Não aplicar alterações em massa nos assets existentes antes de aprovar o piloto no jogo.
-- O mockup de teste pode conter texto imperfeito ou detalhes inventados. Refazer nomes, placares, números, logos e sinalização em ferramentas de produção ou diretamente no Godot.
+### 3.2. Clusters, contornos e volumes
+
+- Cada cluster deve descrever forma, material, iluminação ou textura; evitar pixels isolados sem função.
+- Contornos externos escuros de peso consistente nos personagens e objetos interativos, normalmente na faixa visual de 1–2 pixels conforme a escala final.
+- Elementos distantes podem usar contornos mais suaves ou menos contrastados para reforçar profundidade.
+- Organizar luz e sombra em grupos de valores claros; evitar *pillow shading*, banding involuntário e contorno com espessura aleatória.
+- Anatomia, mãos, cotovelos, joelhos, calçados e direção do golpe precisam ser legíveis no tamanho de jogo.
+
+### 3.3. Paleta e iluminação
+
+A paleta deve unir a cidade noturna e a distinção temporal sem transformar todo o cenário em neon:
+
+- **Base urbana:** azul-marinho, azul profundo, violeta e cinzas frios.
+- **Passado e memória:** âmbar, amarelo de sódio, ocres, marrons e luz quente de vitrines.
+- **Presente:** ciano, azul mais frio e brancos de iluminação comercial, usados seletivamente.
+- **Fratura temporal:** magenta, rosa elétrico e pequenos highlights quase brancos, restritos aos pontos de interferência.
+- **Combate:** personagens e sinais de ataque devem ter contraste suficiente para dominar a faixa jogável.
+
+Orçamento inicial de cores, sujeito a revisão no conjunto final:
+
+- Herói ou inimigo: aproximadamente 24–36 cores úteis por personagem.
+- Módulo de cenário: aproximadamente 32–64 cores organizadas por materiais e planos.
+- Efeitos: paleta curta e de alto contraste.
+
+Esses números são metas de controle, não limites matemáticos que obriguem a remover cores necessárias. Cores compartilhadas entre materiais devem ser reaproveitadas quando isso preservar a leitura.
+
+### 3.4. Dithering e superfícies
+
+- Usar dithering manual em clusters para asfalto molhado, sombras, reflexos e transições de material.
+- Reflexos de postes e vitrines devem seguir a geometria da superfície e a direção da luz; evitar gradientes digitais contínuos.
+- Não espalhar reflexos coloridos por toda a faixa de combate. O chão precisa continuar legível para os pés dos atores e para a profundidade 2.5D.
+
+---
+
+## 4. Personagens e inimigos
+
+### 4.1. Identidade canônica
+
+- As referências aprovadas de Guilherme, Gabriel, André e Juliana são a fonte primária de rosto, cabelo, roupa, anatomia, proporção e identidade.
+- Não redesenhar um protagonista como personagem novo apenas porque uma referência genérica de beat 'em up parece mais atraente.
+- Cada personagem deve manter características reconhecíveis em idle, caminhada, ataque, dano, queda, recuperação e vitória.
+- A expressão pode variar com a ação; a identidade, a roupa e as proporções fundamentais não.
+- Não substituir automaticamente os personagens oficiais por lutadores genéricos de jaqueta de couro ou por capangas encapuzados usados em ilustrações conceituais.
+
+### 4.2. Inimigos
+
+- O inimigo básico deve preservar a identidade visual definida para o elenco do Sakas, incluindo a referência de jaqueta vinho/marrom quando aplicável.
+- Diferenciar arquétipos por silhueta, postura, cabelo, roupa e comportamento, não apenas por troca de cor.
+- A presença de capuzes, máscaras, smartphones ou roupas contemporâneas depende do arquétipo e do momento narrativo; não padronizar todos os inimigos como gangue moderna.
+- Heróis e inimigos devem compartilhar escala aparente, linguagem de clusters, contorno, densidade de sombra e perspectiva.
+
+### 4.3. Contrato técnico
+
+As dimensões de canvas, escala de importação, âncora dos pés, tolerâncias de animação e exceções para poses deitadas permanecem exatamente como definidas no `GAME_RULES.md`. Este documento não redefine dimensões, colisores, origem física ou Y-Sort.
+
+---
+
+## 5. Cenários 2.5D e composição de gameplay
+
+### 5.1. Câmera e leitura espacial
+
+- Manter a câmera consistente de beat 'em up lateral em 3/4, com profundidade de gameplay no eixo vertical da tela.
+- O eixo Y representa a profundidade caminhável; a perspectiva arquitetônica deve reforçar essa leitura, não competir com ela.
+- A faixa jogável deve ter piso contínuo, perspectiva compreensível e contraste moderado.
+- Como ponto de partida para prompts, reservar aproximadamente os 35–40% inferiores para o plano de chão e a circulação dos atores. Ajustar essa proporção à câmera e ao layout real de cada mapa.
+- Evitar rachaduras, poças, faixas de pedestre, brilhos ou texturas de alto contraste diretamente sob os pés dos lutadores.
+- Elementos grandes não devem bloquear a leitura de golpes, inimigos, pickups ou caminhos.
+
+### 5.2. Planos e oclusão
+
+Separar os elementos conforme a estrutura e a necessidade de cada mapa:
+
+- Fundo distante: céu, horizonte, prédios distantes e silhuetas urbanas.
+- Plano intermediário: fachadas, lojas, muros e elementos arquitetônicos.
+- Props de fundo: vitrines, placas, postes, mobiliário e detalhes sem colisão de gameplay.
+- Mundo caminhável: piso, props sólidos, props destrutíveis e atores.
+- Primeiro plano: elementos que podem passar visualmente à frente dos atores, sem alterar colisão ou navegação.
+
+A implementação deve respeitar a árvore de cena e os valores de ordenação descritos no `GAME_RULES.md` (incluindo `Background/Far/Mid/BackProps`, `World`, `Foreground` e Y-Sort). Não compensar uma arte mal recortada alterando `z_index` ou a posição física do personagem.
+
+### 5.3. Cenário de gameplay versus ilustração narrativa
+
+- **Background de gameplay:** não deve conter protagonistas, inimigos, HUD, hit effects ou textos de diálogo fundidos na imagem. Deve permitir separação em planos e uso no motor.
+- **Ilustração cinematográfica:** pode conter personagens e composição narrativa, desde que respeite a identidade oficial e a área segura definida para a apresentação.
+- **Mockup integrado:** serve para avaliar atmosfera e hierarquia visual; não substitui assets separados, spritesheets alinhados ou elementos de UI construídos no Godot.
+
+### 5.4. Marcas, letreiros e geografia
+
+- A paisagem de bairro é mais importante do que logotipos comerciais.
+- Preferir letreiros genéricos ou nomes ficcionais quando a marca real não for essencial ao roteiro.
+- Marcas reais só devem aparecer quando sua presença for deliberada, contextual e aprovada; não aceitar texto inventado ou deformado por gerador de imagem como asset final.
+- Não inserir uma estação, monotrilho, loja ou marco urbano apenas porque combina com a estética. Confirmar primeiro a coerência geográfica e narrativa da cena.
+- Refazer textos, placas, números, logotipos e sinalização em ferramentas de produção ou diretamente no Godot quando a precisão for necessária.
+
+---
+
+## 6. Efeitos, HUD e interface
+
+### 6.1. Efeitos de combate
+
+- Impactos devem ter silhueta compacta, direcional e legível, com clusters rígidos e paleta de alto contraste.
+- A energia vem da forma, da direção e da alternância de valores; blur, lens flare ou glow suave não são necessários para comunicar impacto.
+- O efeito não deve encobrir rosto, tronco ou leitura do golpe por tempo excessivo.
+- A origem do efeito deve ser fácil de posicionar no ponto de contato pelo Godot.
+
+### 6.2. HUD
+
+- A HUD oficial definida no `GAME_RULES.md` prevalece sobre qualquer HUD sugerida por prompt ou mockup.
+- Retratos, nomes, barras, cronômetro, contador de combo e textos devem permanecer elementos independentes/editáveis do Godot sempre que aplicável.
+- Não gerar uma tela completa e usar a imagem como HUD final.
+- Tipografia e números finais devem ser implementados com os recursos/fontes do projeto, não depender de texto gerado por IA.
+- A estética arcade pode usar azul-marinho, ciano, magenta e dourado, mas a interface deve preservar hierarquia, legibilidade e espaço para o gameplay.
+
+### 6.3. Molduras narrativas
+
+- A moldura da abertura deve preservar a linguagem arcade Neo-16-bit e os parâmetros funcionais já definidos no `GAME_RULES.md`.
+- Não acrescentar barras de status de transmissão, indicadores fictícios de conexão ou rótulos técnicos decorativos que não façam parte do roteiro.
+- A moldura não pode encobrir rostos, mãos, pés ou silhuetas essenciais da ilustração.
+- Glitches e transições temporais pertencem à imagem ou ao efeito de transição; não devem transformar o painel de diálogo em uma interface cyberpunk genérica.
+
+---
+
+## 7. Style lock — bloco compartilhado para prompts
+
+Usar este bloco ao final dos prompts de arte. Completar o prompt principal com a época, o tipo de asset e sua função específica.
+
+> **SAKAS STYLE LOCK — VILA PRUDENTE TEMPORAL:** Create authentic, handcrafted HD pixel art for a 2.5D side-scrolling arcade beat 'em up set in Vila Prudente, São Paulo, Brazil. The 1990s are the visual and emotional baseline; contemporary details may intrude into the same recognizable locations only when the narrative calls for the temporal overlap. Render past and present through one coherent Neo-16-bit arcade visual language inspired by the visual grammar of Capcom CPS2 and SNK Neo Geo. Use deliberate pixel clusters, crisp hard edges, controlled indexed-style palettes, readable silhouettes, consistent outlines, grouped highlights and shadows, and a coherent three-quarter side beat-'em-up camera. Use deep navy and violet night ambience, warm amber storefront/streetlamp light, restrained cyan accents for contemporary elements, and localized magenta/white glitches for temporal fractures. Keep the playable floor lane continuous and visually calm. No accidental anti-aliasing, blur, photographic texture, smooth digital gradients, painterly brushwork, 3D rendering, subpixel smearing, random stray pixels, unreadable micro-detail, invented character designs, or generic cyberpunk overload. Pixel art must be authored as pixel art, not a smooth illustration processed through a pixelation filter. Judge the result at intended in-game size.
+
+---
+
+## 8. Prompts-base de produção
+
+Os prompts abaixo não substituem referências anexadas. Quando houver personagem ou asset aprovado, a imagem de referência correspondente é obrigatória.
+
+### 8.1. Personagem — Guilherme
+
+> Use the supplied approved Guilherme sprite as a STRICT identity, anatomy, and costume reference. Recreate the same recognizable character as handcrafted HD Neo-16-bit pixel art for the Sakas 2.5D beat-'em-up. Preserve face, hair, skin tone, clothing, shoes, body type, proportions, and identity exactly as shown in the reference. Create one complete neutral combat/idle pose, facing right in the established three-quarter side beat-'em-up view. Keep both feet visible on the same clear ground baseline. Use readable hands, elbows, knees and shoes, deliberate pixel clusters, a stable outline, controlled character palette, and consistent light direction. Transparent background; one character only; no floor, baked shadow, weapon, text, HUD, extra pose, spritesheet, or decorative frame. Respect the actor canvas, foot origin and import scale from `GAME_RULES.md`. Apply the SAKAS STYLE LOCK.
+
+### 8.2. Inimigo básico
+
+> Create one basic street-thug enemy for the Sakas 2.5D beat-'em-up, grounded in mid-1990s Vila Prudente. Use the approved enemy reference if supplied; otherwise follow the canonical burgundy/brown jacket identity, dark trousers and practical footwear. Do not turn the enemy into a generic modern masked/hooded fighter. Create one neutral ready-to-fight pose facing left toward the player, using the same apparent pixel scale, camera, outline weight, cluster density, anatomy stylization and ground baseline as the approved hero. Give the enemy a distinct but believable silhouette. Transparent background; one character only; no baked shadow, background, UI, text, weapon or sheet. Respect the actor contract in `GAME_RULES.md`. Apply the SAKAS STYLE LOCK.
+
+### 8.3. Background de gameplay — rua e locadora
+
+> Create a wide 16:9 side-scrolling gameplay background for a 2.5D beat-'em-up outside a Brazilian VHS and videogame rental shop in Vila Prudente, São Paulo, around the mid-1990s. Preserve a lived-in neighborhood atmosphere: recognizable local storefront, metal shutters, concrete sidewalk, overhead utility wires, streetlight, posters, a few period-appropriate urban props and a shop window with VHS tapes and 1990s game boxes. Keep the architecture grounded, not cyberpunk. Use deep navy/violet night ambience and warm amber light from the shop and streetlights, with restrained neon accents. Separate distant skyline, facade, sidewalk props and foreground pavement into parallax-friendly layers. Keep a continuous, readable playable floor lane across the lower part of the composition. No characters, enemies, NPCs, HUD, dialogue, hit effects, baked logos or generated readable text. Make the background suitable for splitting into editable layers. Apply the SAKAS STYLE LOCK.
+
+### 8.4. Cena narrativa — sobreposição temporal
+
+> Create a cinematic 16:9 Neo-16-bit pixel-art illustration for the central temporal revelation in Sakas. Show one recognizable Vila Prudente street location as two eras occupying the same physical space: the mid-1990s version remains the visual foundation, while selected contemporary storefront details, vehicles, street furniture or pedestrians overlap or replace specific parts of the same geography. Preserve recognizable landmarks and spatial continuity. Use controlled partial double exposure, duplicated sign contours or a brief localized magenta glitch to communicate temporal interference; do not turn the whole image into a portal, fantasy world or generic cyberpunk city. Keep era-specific objects visually distinguishable but rendered with the same pixel density, cluster language and outline quality. No invented story text or interface. Use the exact approved location references when provided. Apply the SAKAS STYLE LOCK.
+
+### 8.5. Efeito de impacto
+
+> Create one isolated, compact heavy-hit effect for the Sakas Neo-16-bit beat-'em-up. Use a hard-edged asymmetrical starburst with a bright warm yellow/cream core, orange/red shards and a few cyan fragments as secondary contrast. The direction of the clusters must communicate force immediately without obscuring the fighters. Transparent background, centered contact origin, no character, fist, text, border, blur, lens flare or gradient haze. Apply the SAKAS STYLE LOCK.
+
+### 8.6. Referência de HUD
+
+> Create a clean horizontal crop of a 16-bit arcade beat-'em-up HUD for visual reference only. Use dark navy panels, crisp pixel borders, restrained cyan/magenta accents and clear empty areas for portrait, player name, segmented bars, stage and timer. Do not invent final labels, numbers, icons or game rules. Keep all elements separable and editable; final UI must be implemented using the official Godot nodes, textures and typography from `GAME_RULES.md`. Apply the SAKAS STYLE LOCK.
+
+---
+
+## 9. Gate de aprovação de assets
+
+Um asset só está pronto para produção depois de passar por todas as verificações aplicáveis:
+
+- [ ] Identidade: corresponde às referências aprovadas de personagem, local ou objeto.
+- [ ] Época: a presença de elementos dos anos 90 e/ou contemporâneos tem justificativa narrativa e geográfica.
+- [ ] Silhueta: personagem, inimigo, item, golpe ou objeto permanece legível no tamanho real de gameplay.
+- [ ] Pixel art: clusters, contornos, paleta e iluminação são coerentes; não há blur ou antialiasing acidental.
+- [ ] Perspectiva: câmera e plano de chão são compatíveis com a profundidade 2.5D.
+- [ ] Ancoragem: pés e base dos props respeitam o contrato de origem física e Y-Sort do `GAME_RULES.md`.
+- [ ] Composição: cenário não compete com os lutadores nem polui a faixa de combate.
+- [ ] Modularidade: o asset está separado em camadas ou elementos quando o gameplay exige parallax, oclusão ou interação.
+- [ ] Integridade: textos, marcas e detalhes legíveis foram revisados; não há erros de geração tratados como informação canônica.
+- [ ] Godot: foi conferido em cena real, com filtro nearest, escala final, HUD e atores.
+- [ ] Performance: resolução, transparência, quantidade de camadas e tamanho do arquivo são compatíveis com o orçamento do projeto.
+
+Aprovar um piloto integrado — um protagonista, um inimigo, uma fatia de cenário, um efeito de impacto e a HUD oficial — antes de produzir em massa uma nova família de assets.
+
+---
+
+## 10. Notas de produção e autoridade dos documentos
+
+1. `Direcao_de_Arte.md` define conceito, linguagem visual, regras de composição e critérios de aprovação artística.
+2. `GAME_RULES.md` define arquitetura, contratos técnicos, dimensões, escalas, âncoras, física, ordenação, importação, desempenho, UI funcional e testes.
+3. O roteiro e os recursos `StoryEvent`/`StorySequence` definem o que acontece e em que ordem. A direção de arte não altera o cânone narrativo.
+4. Uma referência conceitual gerada por IA serve para atmosfera e composição. Não substitui spritesheets, transparência limpa, assets separados, texto revisado ou validação no motor.
+5. Não aplicar alterações em massa aos assets existentes antes de aprovar o piloto no jogo.
+6. Não declarar uma regra visual como implementada apenas porque está documentada. Registrar a validação real e atualizar o status correspondente.
+7. Ao criar um novo cenário, definir explicitamente: época-base, sinais de presente (se houver), ponto de referência geográfico, intensidade da interferência temporal e camadas necessárias ao gameplay.
+
