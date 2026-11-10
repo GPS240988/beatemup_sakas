@@ -52,7 +52,7 @@ func _run_tests() -> void:
 	var brand_col = menu.get_node_or_null("MainLayout/ContentHBox/BrandColumn")
 	_assert(brand_col != null, "BrandColumn deve existir no lado esquerdo do menu")
 	if brand_col != null and guilherme_char != null:
-		_assert(guilherme_char.get_parent() == brand_col, "GuilhermeDrawingCharacter deve ser filho de BrandColumn (lado esquerdo)")
+		_assert(brand_col.is_ancestor_of(guilherme_char), "GuilhermeDrawingCharacter deve estar dentro de BrandColumn (lado esquerdo)")
 
 	# 4. Verificação de botões e integridade funcional
 	var btn_play = menu.get_node_or_null("%BtnPlay")

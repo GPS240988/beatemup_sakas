@@ -6,6 +6,9 @@ extends Node
 ## coordenando com o CombatDirector para registro automático de combatentes.
 
 const SpawnPointClass = preload("res://scripts/spawning/spawn_point.gd")
+const BEBADO_SCENE: PackedScene = preload("res://scenes/actors/enemies/bebado_enemy.tscn")
+const BASIC_ENEMY_SCENE: PackedScene = preload("res://scenes/actors/enemies/basic_enemy.tscn")
+const BOSS_ALESSANDRO_SCENE: PackedScene = preload("res://scenes/actors/enemies/boss_alessandro.tscn")
 
 signal entity_spawned(entity: Node, point_id: String, spawn_type: int)
 signal reinforcement_spawned(enemy: CharacterBody2D, point_id: String)
@@ -153,3 +156,21 @@ func _on_entity_created(entity: Node, point_id: String, spawn_type: int) -> void
 		var enemy := entity as CharacterBody2D
 		if enemy != null and combat_director != null:
 			combat_director.register_enemy(enemy)
+
+
+## Retorna a PackedScene de um inimigo pelo tipo/identificador
+static func get_enemy_scene(enemy_type: String) -> PackedScene:
+	match enemy_type.to_lower():
+		"bebado", "drunk", "drunkard":
+			return BEBADO_SCENE
+		"boss", "alessandro":
+			return BOSS_ALESSANDRO_SCENE
+		_:
+			return BASIC_ENEMY_SCENE
+
+
+## Spawna um inimigo pelo tipo ("bebado", "basic", "boss") em um SpawnPoint
+func spawn_enemy_by_type(enemy_type: String, point_id: String, target_parent: Node = null) -> CharacterBody2D:
+	var scn: PackedScene = get_enemy_scene(enemy_type)
+	var entity := spawn_at_point(point_id, scn, target_parent)
+	return entity as CharacterBody2D

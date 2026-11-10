@@ -18,6 +18,7 @@ signal spawned(entity: Node)
 @export var spawn_type: SpawnType = SpawnType.ENEMY
 @export var spawn_group: String = "enemies"
 @export var default_scene: PackedScene = null
+@export var enemy_type: String = ""
 @export var is_active: bool = true
 
 ## Variante de paleta de cores a aplicar nos inimigos spawnados neste ponto.
@@ -37,6 +38,8 @@ func spawn(scene_to_spawn: PackedScene = null, target_parent: Node = null) -> No
 		return null
 
 	var scene: PackedScene = scene_to_spawn if scene_to_spawn != null else default_scene
+	if scene == null and not enemy_type.is_empty():
+		scene = SpawnDirector.get_enemy_scene(enemy_type)
 	if scene == null:
 		push_warning("SpawnPoint [%s]: Nenhuma PackedScene fornecida para spawn." % point_id)
 		return null

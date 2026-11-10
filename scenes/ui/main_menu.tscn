@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/locadora.webp" id="2_locadora_bg"]
@@ -13,6 +13,32 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/components/settings_panel.tscn" id="11_settings_panel"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="12_guilherme_idle"]
 [ext_resource type="Shader" path="res://shaders/character_sketch_draw.gdshader" id="13_sketch_shader"]
+[ext_resource type="Script" path="res://scripts/ui/components/menu_character_slot.gd" id="14_slot_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/menu_character_slot.tscn" id="15_slot_scene"]
+
+[sub_resource type="Gradient" id="Gradient_aura"]
+offsets = PackedFloat32Array(0, 0.65, 1)
+colors = PackedColorArray(1, 1, 1, 0.55, 1, 1, 1, 0.15, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_aura"]
+gradient = SubResource("Gradient_aura")
+width = 160
+height = 200
+fill = 1
+fill_from = Vector2(0.5, 0.7)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="Gradient" id="Gradient_shadow"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(0.02, 0.03, 0.06, 0.85, 0.02, 0.03, 0.06, 0.45, 0.02, 0.03, 0.06, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_shadow"]
+gradient = SubResource("Gradient_shadow")
+width = 140
+height = 40
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sketch"]
 shader = ExtResource("13_sketch_shader")
@@ -98,17 +124,156 @@ theme_override_fonts/font = ExtResource("4_barlow_font")
 theme_override_font_sizes/font_size = 36
 text = "A ÚLTIMA FICHA"
 
-[node name="GuilhermeDrawingCharacter" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn"]
+[node name="CharactersLineup" type="HBoxContainer" parent="MainLayout/ContentHBox/BrandColumn"]
 unique_name_in_owner = true
-texture_filter = 1
-material = SubResource("ShaderMaterial_sketch")
-custom_minimum_size = Vector2(240, 340)
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="SlotGuilherme" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 340)
+layout_mode = 2
+script = ExtResource("14_slot_script")
+
+[node name="CharacterAura" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
+modulate = Color(0.26, 0.96, 0.69, 0.15)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -80.0
+offset_top = -220.0
+offset_right = 80.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_aura")
+expand_mode = 1
+
+[node name="CharacterShadow" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -70.0
+offset_top = -32.0
+offset_right = 70.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 0
+pivot_offset = Vector2(70, 20)
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_shadow")
+expand_mode = 1
+
+[node name="SpriteContainer" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(120, 330)
+mouse_filter = 2
+
+[node name="GuilhermeDrawingCharacter" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/SpriteContainer"]
+unique_name_in_owner = true
+texture_filter = 1
+material = SubResource("ShaderMaterial_sketch")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("12_guilherme_idle")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="DustContainer" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -60.0
+offset_top = -28.0
+offset_right = 60.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="DustLeft" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -3.0
+offset_right = 6.0
+offset_bottom = 3.0
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.85, 0.88, 0.92, 0.7)
+
+[node name="DustRight" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -6.0
+offset_top = -3.0
+offset_bottom = 3.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.85, 0.88, 0.92, 0.7)
+
+[node name="DustCenter" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -4.0
+offset_top = -2.0
+offset_right = 4.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.85, 0.88, 0.92, 0.7)
+
+[node name="SlotGabriel" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" instance=ExtResource("15_slot_scene")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="SlotAndre" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" instance=ExtResource("15_slot_scene")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="SlotJuliana" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" instance=ExtResource("15_slot_scene")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
 
 [node name="SpacerBottom" type="Control" parent="MainLayout/ContentHBox/BrandColumn"]
 layout_mode = 2

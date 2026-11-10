@@ -18,6 +18,8 @@ const SFX_DENIED_PATH := "res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
 const ArcadeButtonClass = preload("res://scripts/ui/components/arcade_button.gd")
 const SettingsPanelClass = preload("res://scripts/ui/components/settings_panel.gd")
+const MenuCharacterDataClass = preload("res://scripts/ui/menu_character_data.gd")
+const MenuCharacterSlotClass = preload("res://scripts/ui/components/menu_character_slot.gd")
 
 @onready var background_image: TextureRect = %BackgroundImage
 @onready var buttons_container: VBoxContainer = %ButtonsContainer
@@ -27,6 +29,11 @@ const SettingsPanelClass = preload("res://scripts/ui/components/settings_panel.g
 @onready var btn_quit: Button = %BtnQuit
 @onready var settings_panel: Control = %SettingsPanel
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
+@onready var characters_lineup: HBoxContainer = %CharactersLineup
+@onready var slot_guilherme: Control = %SlotGuilherme
+@onready var slot_gabriel: Control = %SlotGabriel
+@onready var slot_andre: Control = %SlotAndre
+@onready var slot_juliana: Control = %SlotJuliana
 @onready var guilherme_drawing_character: TextureRect = %GuilhermeDrawingCharacter
 
 var _buttons: Array[Button] = []
@@ -49,7 +56,8 @@ func _ready() -> void:
 	if settings_panel != null:
 		settings_panel.visible = false
 		settings_panel.settings_origin = "main_menu"
-		settings_panel.closed.connect(_on_settings_closed)
+		if not settings_panel.closed.is_connected(_on_settings_closed):
+			settings_panel.closed.connect(_on_settings_closed)
 
 	# Assegura a reprodução contínua da BGM do Menu
 	var session = get_node_or_null("/root/GameSession")
@@ -59,17 +67,21 @@ func _ready() -> void:
 	if _is_mobile_runtime():
 		_apply_mobile_fullscreen()
 
+	_setup_characters_lineup()
 	_start_portrait_drawing_animation()
 
 	# Aguarda frame para resolução correta de layout e atribuição de foco inicial
-	await get_tree().process_frame
-	if not _is_mobile_runtime() and _buttons.size() > 0:
-		_focus_button(0, false)
+	if get_tree() != null:
+		await get_tree().process_frame
+		if not _is_mobile_runtime() and _buttons.size() > 0:
+			_focus_button(0, false)
 
-	# Debounce de entrada para evitar que a tecla Enter da tela de abertura vaze
-	# e acione imediatamente a primeira opção do menu
-	await get_tree().create_timer(0.2).timeout
-	_accept_input = true
+		# Debounce de entrada para evitar que a tecla Enter da tela de abertura vaze
+		# e acione imediatamente a primeira opção do menu
+		await get_tree().create_timer(0.2).timeout
+		_accept_input = true
+	else:
+		_accept_input = true
 
 
 func _init_audio() -> void:
@@ -253,33 +265,50 @@ func _play_sfx(stream: AudioStream) -> void:
 		audio_player.play()
 
 
+func _setup_characters_lineup() -> void:
+	if slot_guilherme != null:
+		var guilherme_data = MenuCharacterDataClass.create_guilherme()
+		if slot_guilherme.has_method("apply_character_data"):
+			slot_guilherme.apply_character_data(guilherme_data)
+		else:
+			slot_guilherme.set("character_data", guilherme_data)
+
+	if slot_gabriel != null and slot_gabriel.has_method("apply_character_data"):
+		var gabriel_data = MenuCharacterDataClass.create_gabriel()
+		slot_gabriel.call("apply_character_data", gabriel_data)
+
+	if slot_andre != null and slot_andre.has_method("apply_character_data"):
+		var andre_data = MenuCharacterDataClass.create_andre()
+		slot_andre.call("apply_character_data", andre_data)
+
+	if slot_juliana != null and slot_juliana.has_method("apply_character_data"):
+		var juliana_data = MenuCharacterDataClass.create_juliana()
+		slot_juliana.call("apply_character_data", juliana_data)
+
+
 func _start_portrait_drawing_animation() -> void:
-	if guilherme_drawing_character == null:
-		return
+	if slot_guilherme != null and slot_guilherme.has_method("start_presentation"):
+		slot_guilherme.call("start_presentation", true)
+	elif guilherme_drawing_character != null and guilherme_drawing_character.material is ShaderMaterial:
+		var mat := guilherme_drawing_character.material as ShaderMaterial
+		if mat != null:
+			guilherme_drawing_character.material = mat.duplicate()
+			(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", 0.0)
 
-	# Assegura que o material é único para esta instância
-	var mat := guilherme_drawing_character.material as ShaderMaterial
-	if mat == null:
-		return
-	guilherme_drawing_character.material = mat.duplicate()
-	var unique_mat := guilherme_drawing_character.material as ShaderMaterial
-	unique_mat.set_shader_parameter("draw_progress", 0.0)
+		if _portrait_draw_tween != null and _portrait_draw_tween.is_valid():
+			_portrait_draw_tween.kill()
 
-	# Animação do traçado: varredura do lápis desenhando Guilherme da cabeça aos pés
-	if _portrait_draw_tween != null and _portrait_draw_tween.is_valid():
-		_portrait_draw_tween.kill()
-
-	_portrait_draw_tween = create_tween()
-	_portrait_draw_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_portrait_draw_tween.tween_method(
-		func(prog: float):
-			if is_instance_valid(guilherme_drawing_character) and guilherme_drawing_character.material != null:
-				(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", prog),
-		0.0,
-		1.0,
-		1.8
-	)
-	_portrait_draw_tween.finished.connect(_on_portrait_draw_completed)
+		_portrait_draw_tween = create_tween()
+		_portrait_draw_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		_portrait_draw_tween.tween_method(
+			func(prog: float):
+				if is_instance_valid(guilherme_drawing_character) and guilherme_drawing_character.material != null:
+					(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", prog),
+			0.0,
+			1.0,
+			1.8
+		)
+		_portrait_draw_tween.finished.connect(_on_portrait_draw_completed)
 
 
 func _on_portrait_draw_completed() -> void:
