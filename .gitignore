@@ -93,3 +93,6 @@ public/*.pck
 public/*.wasm
 public/packs/*.pck
 .vercel
+
+# Bibliotecas externas (uso local, não rastreadas pelo Git)
+libs/

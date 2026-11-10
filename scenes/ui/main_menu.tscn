@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/locadora.webp" id="2_locadora_bg"]
@@ -11,6 +11,17 @@
 [ext_resource type="Texture2D" path="res://assets/ui/menu/icon_gear.png" id="9_gear_icon"]
 [ext_resource type="Texture2D" path="res://assets/ui/menu/icon_exit.png" id="10_exit_icon"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/settings_panel.tscn" id="11_settings_panel"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="12_guilherme_idle"]
+[ext_resource type="Shader" path="res://shaders/character_sketch_draw.gdshader" id="13_sketch_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sketch"]
+shader = ExtResource("13_sketch_shader")
+shader_parameter/draw_progress = 0.0
+shader_parameter/pencil_lead_color = Color(0.18, 0.16, 0.24, 1)
+shader_parameter/sketch_highlight_color = Color(0.92, 0.76, 0.42, 1)
+shader_parameter/line_density = 60.0
+shader_parameter/lead_edge_width = 0.08
+shader_parameter/transition_width = 0.1
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -86,6 +97,18 @@ theme_override_constants/shadow_offset_y = 3
 theme_override_fonts/font = ExtResource("4_barlow_font")
 theme_override_font_sizes/font_size = 36
 text = "A ÚLTIMA FICHA"
+
+[node name="GuilhermeDrawingCharacter" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn"]
+unique_name_in_owner = true
+texture_filter = 1
+material = SubResource("ShaderMaterial_sketch")
+custom_minimum_size = Vector2(240, 340)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 3
+texture = ExtResource("12_guilherme_idle")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="SpacerBottom" type="Control" parent="MainLayout/ContentHBox/BrandColumn"]
 layout_mode = 2

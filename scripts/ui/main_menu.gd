@@ -27,12 +27,15 @@ const SettingsPanelClass = preload("res://scripts/ui/components/settings_panel.g
 @onready var btn_quit: Button = %BtnQuit
 @onready var settings_panel: Control = %SettingsPanel
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
+@onready var guilherme_drawing_character: TextureRect = %GuilhermeDrawingCharacter
 
 var _buttons: Array[Button] = []
 var _current_index: int = 0
 var _is_transitioning: bool = false
 var _is_in_settings: bool = false
 var _accept_input: bool = false
+
+var _portrait_draw_tween: Tween
 
 var _sfx_move: AudioStream
 var _sfx_confirm: AudioStream
@@ -55,6 +58,8 @@ func _ready() -> void:
 
 	if _is_mobile_runtime():
 		_apply_mobile_fullscreen()
+
+	_start_portrait_drawing_animation()
 
 	# Aguarda frame para resolução correta de layout e atribuição de foco inicial
 	await get_tree().process_frame
@@ -246,3 +251,39 @@ func _play_sfx(stream: AudioStream) -> void:
 	if audio_player != null and stream != null:
 		audio_player.stream = stream
 		audio_player.play()
+
+
+func _start_portrait_drawing_animation() -> void:
+	if guilherme_drawing_character == null:
+		return
+
+	# Assegura que o material é único para esta instância
+	var mat := guilherme_drawing_character.material as ShaderMaterial
+	if mat == null:
+		return
+	guilherme_drawing_character.material = mat.duplicate()
+	var unique_mat := guilherme_drawing_character.material as ShaderMaterial
+	unique_mat.set_shader_parameter("draw_progress", 0.0)
+
+	# Animação do traçado: varredura do lápis desenhando Guilherme da cabeça aos pés
+	if _portrait_draw_tween != null and _portrait_draw_tween.is_valid():
+		_portrait_draw_tween.kill()
+
+	_portrait_draw_tween = create_tween()
+	_portrait_draw_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_portrait_draw_tween.tween_method(
+		func(prog: float):
+			if is_instance_valid(guilherme_drawing_character) and guilherme_drawing_character.material != null:
+				(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", prog),
+		0.0,
+		1.0,
+		1.8
+	)
+	_portrait_draw_tween.finished.connect(_on_portrait_draw_completed)
+
+
+func _on_portrait_draw_completed() -> void:
+	if not is_instance_valid(guilherme_drawing_character):
+		return
+	if guilherme_drawing_character.material != null:
+		(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", 1.0)

@@ -44,7 +44,8 @@ Beat 'em up 2.5D arcade clássico inspirado nos títulos dos anos 90, ambientado
 - **Controle de composição:** cenário, NPCs, letreiros e efeitos temporais não podem competir com os atores, itens ou faixa caminhável de combate.
 - **Identidade dos atores:** referências, anatomia, roupas, proporções e canvas dos protagonistas/inimigos permanecem subordinados ao contrato de sprites deste documento. Ilustrações conceituais não autorizam substituir os designs oficiais.
 - **Separação de responsabilidades:** `Direcao_de_Arte.md` define conceito e critérios visuais; este `GAME_RULES.md` continua soberano para dimensões, origem física, Y-Sort, colisões, estrutura de cena, importação, performance e testes.
-- **Status:** a premissa temporal já está presente na abertura narrativa; a aplicação visual em novos ou revisados assets de gameplay deve ser validada no Godot antes de ser registrada como `IMPLEMENTED`.
+- **Pipeline de Arte Procedural Offline (p5.brush):** A biblioteca `p5.brush` (isolada em `libs/p5.brush/` e excluída do Git/Vercel) atua como bancada externa para geração procedural de texturas analógicas, hachuras, VFX de pincelada e backgrounds estilizados, convertidos para PNG/WebP antes de ingressar no Godot. O uso em runtime no motor é expressamente proibido; shaders dedicados (`shaders/sketch_portrait_draw.gdshader`) replicam o efeito visual de traçado em tempo real na interface do jogo.
+- **Status:** a premissa temporal já está presente na abertura narrativa; o pipeline de estilização offline e o shader de desenho de portraits no menu principal estão implementados e validados (`STATUS: IMPLEMENTED`). Demais assets de gameplay continuam em validação progressiva.
 
 ### 1.3. Pipeline Arquitetural do Mundo
 ```text

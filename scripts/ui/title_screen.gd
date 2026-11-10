@@ -16,7 +16,6 @@ const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd
 var _is_transitioning: bool = false
 var _is_loaded: bool = false
 var _fade_tween: Tween
-var _mobile_action_button: Button
 
 
 func _ready() -> void:

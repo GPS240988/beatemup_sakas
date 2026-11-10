@@ -286,3 +286,89 @@ Aprovar um piloto integrado — um protagonista, um inimigo, uma fatia de cenár
 6. Não declarar uma regra visual como implementada apenas porque está documentada. Registrar a validação real e atualizar o status correspondente.
 7. Ao criar um novo cenário, definir explicitamente: época-base, sinais de presente (se houver), ponto de referência geográfico, intensidade da interferência temporal e camadas necessárias ao gameplay.
 
+---
+
+## 11. Pipeline de Arte Procedural e Estilização Analógica — Integração p5.brush
+
+### 11.1. Filosofia: Mídias Tradicionais como Suporte à Pixel Art Neo-16-bit
+
+O Beat 'em Up Sakas combina a precisão técnica da Pixel Art HD (Capcom CPS2 / SNK Neo Geo) com a organicidade da arte analógica tradicional. A biblioteca procedural **`p5.brush`** (localizada em `libs/p5.brush/`, isolada de Git e deploy Vercel) funciona como uma **bancada de artesão digital offline** para gerar texturas em alta resolução, efeitos de hachura, campos de fluxo orgânico, aguadas e decalques urbanos que são posteriormente rasterizados em PNG/WebP e importados no Godot Engine com filtro `nearest`.
+
+> **DIRETRIZ DE ARQUITETURA**: O `p5.brush` **não é executado em runtime no Godot nem na Web**. Seu papel é gerar assets estáticos e spritesheets offline com qualidade analógica superior, eliminando o aspecto artificial ou vetorial frio de geradores convencionais.
+
+### 11.2. Mapeamento das 10 Possibilidades Artísticas para o Sakas
+
+#### 1. Backgrounds de Fase com Textura Artesanal
+- **Conceito**: Enriquecer as camadas estáticas de fundo (skyline, prédios distantes, paredes de tijolo da Vila Prudente) com aguadas de aquarela e hachuras finas a nanquim, criando profundidade atmosférica sem poluir o primeiro plano.
+- **Brushes sugeridos**: `charcoal` (contornos e ranhuras), `wash()` (manchas de umidade e atmosfera urbana), `hatch()` (sombreamento tonal cruzado).
+- **Regra de Composição**: A textura analógica deve ficar restrita aos planos de fundo e paralaxe intermediário. A faixa caminhável e os atores mantêm bordas pixel art 100% nítidas.
+
+#### 2. VFX Procedurais para Golpes e Impactos
+- **Conceito**: Criar faíscas assimétricas, slashes em meia-lua, ondas de choque e rascunhos de energia com traço dinâmico de pincel, gerando spritesheets para o sistema `CombatFeedback`.
+- **Brushes sugeridos**: `marker` (pinceladas cortantes com afinamento dinâmico de pressão), `rotring` (linhas precisas de energia estática), `spray` (faíscas e partículas dispersas).
+- **Parâmetros**: Variação de pressão `[2.0, 0.4]` para golpes que começam densos e terminam pontiagudos; scatter moderado para vibração visual.
+
+#### 3. Flow Fields para Efeitos Atmosféricos Urbanos
+- **Conceito**: Utilizar campos vetoriais matemáticos (`brush.field()`) para orientar o fluxo orgânico de fumaça de bueiros, névoa noturna, vapor de escapamentos, chuva de vento e poeira de asfalto.
+- **Campos nativos**: `waves` (ondulações de vapor e calor sobre o asfalto), `spiral` (redemoinhos de folhas e vento sujo), `seabed` (turbulência leve para neblina baixa).
+- **Exportação**: Texturas semi-transparentes em looping ou overlays estáticos com gradiente alfa suave.
+
+#### 4. Molduras e Elementos de UI Neo-16-bit Hand-Drawn
+- **Conceito**: Desenhar as molduras decorativas das caixas narrativas, painéis de menu e cards de personagens com micro-ondulações manuais sutis (`brush.wiggle(2)`), conferindo calor artesanal às interfaces.
+- **Brushes sugeridos**: `pen` (traçado limpo de caneta-tinteiro com leve variação de espessura), `cpencil` (detalhes e biséis em tom âmbar/dourado `#eac16c`).
+- **Paleta de Interface**: Dourado nobre (`#eac16c`), âmbar escuro (`#b58a3f`), base em azul-petróleo/grafite (`#12131d`).
+
+#### 5. Efeitos de Dano e Marcas Procedurais no Cenário
+- **Conceito**: Gerar decalques de impacto, rachaduras em concreto, vidros estilhaçados e lascas de madeira para os objetos destrutíveis (props como caixas de jogos, orelhões, tambores).
+- **Brushes sugeridos**: `charcoal` (fissuras profundas), `hatchStyle("dense")` (zonas de esfarelamento de argamassa), `spray` (detritos microscópicos).
+- **Aplicação**: Texturas de overlay modular aplicáveis sobre `destructible_prop.gd` via sub-regiões de atlas.
+
+#### 6. Texturas de Papel, Cartões e Fichas de Arcade
+- **Conceito**: Fundos de pergaminho, fichas de locadora em papel cartão envelhecido, encartes de fitas VHS e formulários de save game com fibras visíveis.
+- **Brushes sugeridos**: `2H` (linhas ultra-finas de fibra celulósica), `wash()` sépia/ocre (`#d7c3a3` com opacidade 80–120), `fillBleed()` para manchas de café/umidade nas bordas.
+
+#### 7. Overlays de Iluminação e Clima da Vila Prudente
+- **Conceito**: Camadas estáticas de iluminação com atmosfera crepuscular e noturna — o azul-marinho profundo do céu contrastando com os cones de luz amarelada dos postes de vapor de sódio e reflexos de neon em poças d'água.
+- **Técnica**: `brush.wash()` com gradiente radial simulando dispersão luminescente sobre a pixel art, preservando a legibilidade dos atores no piso.
+
+#### 8. Retratos Estilizados e Concept Art dos Protagonistas
+- **Conceito**: Portraits ilustrados para menus, tela de seleção e encerramentos, começando com o traçado a lápis/grafite e preenchimento gradual em aquarela/cores canônicas.
+- **Brushes sugeridos**: `HB` / `2B` (traçado anatômico e contorno de silhueta), `cpencil` (meios-tons da pele e tecidos), `rotring` (detalhes dos olhos e cabelos).
+- **Caso Canônico**: Retrato de Guilherme no Menu Principal com shader de revelação procedural em tempo real que replica o ato do traçado analógico.
+
+#### 9. Variação Procedural de Grafites e Decalques Urbanos
+- **Conceito**: Produção em lote de 10 a 30 pichações, tags e grafites típicos da São Paulo dos anos 90 (`randomSeed()`), variando traço, densidade de tinta e escorrimento sem repetição visual nas paredes das fases 1-1 a 1-4.
+- **Brushes sugeridos**: `marker2` (ponta chanfrada clássica de street art), `spray` (halo de aerógrafo nos contornos).
+
+#### 10. Tipografia Expressiva e Letreiros de Bairro
+- **Conceito**: Criação de logotipos, títulos de fases, letreiros de comércio ("Bar do Zé", "Locadora Sakas", "Pizzaria") e advertências urbanas com tipografia manual expressiva.
+- **Brushes sugeridos**: `flowLine()` com spline cúbica para letras caligráficas retrô e `mass()` para preenchimento consistente de caracteres com textura interna.
+
+### 11.3. Matriz de Brushes p5.brush vs. Aplicações no Sakas
+
+| Brush p5 | Natureza do Traço | Aplicação Primária no Sakas | Arquitetura Destino |
+|---|---|---|---|
+| `2B` | Grafite macio, denso | Contornos de concept art e portraits | Cutscenes / Menus |
+| `HB` | Grafite médio equilibrado | Linhas guias e rascunhos de anatomia | UI Concept / Mockups |
+| `2H` | Grafite rígido, cinza claro | Fibras de papel, ranhuras microscópicas | Telas de Pause / Save slots |
+| `cpencil` | Lápis de cor com textura | Detalhes de iluminação quente (âmbar) | Biséis e molduras de UI |
+| `pen` | Caneta de tinta nanquim | Bordas nítidas de caixas de diálogo | StandardDialogueBox / UI |
+| `rotring` | Caneta técnica de precisão | Efeitos de corte de energia e HUD | CombatFeedback / VFX |
+| `spray` | Aerógrafo / dispersão | Fumaça, partículas, pó e luz difusa | Spritesheets de impacto |
+| `marker` | Marcador chanfrado largo | Traços de slash dinâmico de golpes | Especial e combos pesados |
+| `marker2` | Marcador largo com vazamento | Grafites, tags urbanas e letreiros | Backgrounds de fases |
+| `charcoal` | Carvão mineral rústico | Sombras profundas, fissuras e desgaste | Props e paredes destruídas |
+| `wash()` | Aguada de aquarela fluida | Manchas atmosféricas e iluminação noturna | Overlays de cenário |
+| `hatch()` | Hachura geométrica densa | Sombreamento tonal Neo-16-bit | Texturas de fundo |
+
+### 11.4. Protocolo de Exportação e Validação de Assets no Godot
+
+1. **Desenvolvimento do Sketch**: O script gerador deve residir exclusivamente no diretório `libs/p5.brush/` (ou em `tools/` caso seja utilitário de automação em Python/Node).
+2. **Resolução de Renderização**: Gerar em canvas proporcional de 2× a 4× em relação ao target do jogo (ex: 2560×1440 para telas 16:9 de 1280×720), assegurando detalhe no traço analógico.
+3. **Conversão e Otimização**: Salvar como PNG RGBA (32-bit com transparência) ou WebP com compressão sem perdas (lossless).
+4. **Importação no Godot**:
+   - Texturas de Pixel Art: `texture_filter = NEAREST` (evita blur).
+   - Overlays e Iluminação: `texture_filter = LINEAR` apenas quando houver gradiente suave de luz intencional.
+5. **Critério de Inviolabilidade**: O asset gerado não pode alterar o contrato de colisão, origem dos pés dos atores nem poluir a faixa de combate definida no `GAME_RULES.md`.
+
+

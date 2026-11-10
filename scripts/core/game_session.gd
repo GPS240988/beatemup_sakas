@@ -354,18 +354,17 @@ func has_save_in_slot(slot: int) -> bool:
 ## Retorna os metadados do save no slot ou dicionário vazio se inexistente.
 ## Se o arquivo principal estiver corrompido, tenta recuperar do .bak automaticamente.
 func get_save_info(slot: int) -> Dictionary:
+	var path: String = SAVE_PATH_TEMPLATE % slot
 	if not has_save_in_slot(slot):
 		# Tenta recuperação pelo backup antes de desistir
-		var bak_path: String = (SAVE_PATH_TEMPLATE % slot) + ".bak"
+		var bak_path: String = path + ".bak"
 		if FileAccess.file_exists(bak_path):
 			var recovered := _parse_save_file(bak_path)
 			if not recovered.is_empty():
 				# Restaura o backup como arquivo principal
-				var path: String = SAVE_PATH_TEMPLATE % slot
 				DirAccess.rename_absolute(bak_path, path)
 				return recovered
 		return {}
-	var path: String = SAVE_PATH_TEMPLATE % slot
 	var result := _parse_save_file(path)
 	if result.is_empty():
 		# Arquivo principal corrompido; tenta backup

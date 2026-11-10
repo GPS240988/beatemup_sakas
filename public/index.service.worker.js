@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = 'fb14ad83';
+const CACHE_VERSION = '806bda86';
 /** @type {string} */
 const CACHE_PREFIX = 'Beat Em Up - Sak-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
