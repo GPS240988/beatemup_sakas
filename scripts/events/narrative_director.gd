@@ -680,7 +680,7 @@ func _show_current_text_block(ev: Resource) -> void:
 	var compact_dialogue_ui: bool = ultra_compact or viewport_size.x < 760.0 or viewport_size.y < 540.0
 	var is_mob := _is_mobile_runtime()
 	var is_narration: bool = speaker_name.strip_edges().to_upper() in ["NARRAÇÃO", "NARRACAO"]
-	var portrait_side: float = 88.0 if is_mob else (40.0 if ultra_compact else (56.0 if compact_dialogue_ui else 72.0))
+	var portrait_side: float = 96.0 if is_mob else (40.0 if ultra_compact else (56.0 if compact_dialogue_ui else 72.0))
 
 	# Narração não usa avatar: reduz a altura do cabeçalho sem perder destaque.
 	# Isso reserva espaço para a frase em duas linhas e mantém o rodapé dentro da moldura.
@@ -693,7 +693,7 @@ func _show_current_text_block(ev: Resource) -> void:
 
 	if _speaker_portrait != null:
 		if is_mob:
-			_speaker_portrait.custom_minimum_size = Vector2(88, 88)
+			_speaker_portrait.custom_minimum_size = Vector2(96, 96)
 			_speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			_speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -741,7 +741,9 @@ func _show_current_text_block(ev: Resource) -> void:
 	if _dialogue_frame != null:
 		var content_margin := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin") as MarginContainer
 		if content_margin != null:
-			var m_side: int = 24 if is_mob else 32
+			var aspect_ratio: float = viewport_size.x / maxf(viewport_size.y, 1.0)
+			var is_ultrawide: bool = is_mob and aspect_ratio >= 1.95
+			var m_side: int = 36 if is_ultrawide else (28 if is_mob else 32)
 			var m_top: int = 12 if is_mob else 14
 			var m_bottom: int = 10 if is_mob else 12
 			content_margin.add_theme_constant_override("margin_left", m_side)
@@ -1095,7 +1097,7 @@ func _load_texture_to_rect(path: String) -> void:
 	if _image_rect != null:
 		_image_rect.texture = tex
 		_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_image_rect.stretch_mode = TextureRect.STRETCH_SCALE if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	# Não criamos uma segunda cópia da imagem.
@@ -1129,7 +1131,7 @@ func _configure_visual_layout() -> void:
 
 	if _image_rect != null:
 		_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_image_rect.stretch_mode = TextureRect.STRETCH_SCALE if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if _is_mobile_runtime() else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_image_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -1176,10 +1178,9 @@ func _apply_responsive_layout() -> void:
 	var dialogue_top: float
 
 	if _is_mobile_runtime() and not is_portrait:
-		# Mobile landscape: a ilustração ocupa o viewport; o painel fica compacto na faixa inferior (74% a 98.5%)
-		# garantindo que quase três quartos da tela fiquem visíveis para a imagem e personagens.
-		art_bottom = 1.0
-		dialogue_top = 0.74
+		# Mobile landscape: a arte ocupa 68% da altura; a caixa de diálogo ocupa 32% (faixa 0.68 a 0.995).
+		art_bottom = 0.68
+		dialogue_top = 0.68
 	elif is_portrait:
 		# Celular vertical: arte na metade superior (58%) e painel na inferior (40%).
 		art_bottom = 0.58
@@ -1211,11 +1212,20 @@ func _apply_responsive_layout() -> void:
 	_dialogue_area.anchor_left = 0.0
 	_dialogue_area.anchor_top = dialogue_top
 	_dialogue_area.anchor_right = 1.0
-	_dialogue_area.anchor_bottom = 0.985 if _is_mobile_runtime() else 0.99
+	_dialogue_area.anchor_bottom = 0.995 if _is_mobile_runtime() else 0.99
 	_dialogue_area.offset_top = 0.0
-	_dialogue_area.offset_bottom = -6.0
-	_dialogue_area.offset_left = 12.0 if _is_mobile_runtime() else 0.0
-	_dialogue_area.offset_right = -12.0 if _is_mobile_runtime() else 0.0
+	_dialogue_area.offset_bottom = -4.0 if _is_mobile_runtime() else -6.0
+
+	var margin_h: float = 0.0
+	if _is_mobile_runtime():
+		var is_ultrawide: bool = aspect_ratio >= 1.95
+		margin_h = 18.0
+		if is_ultrawide:
+			var ultrawide_extra: float = maxf(0.0, viewport_size.x - (viewport_size.y * (16.0 / 9.0)))
+			margin_h = clampf(ultrawide_extra * 0.25 + 24.0, 36.0, 84.0)
+
+	_dialogue_area.offset_left = margin_h
+	_dialogue_area.offset_right = -margin_h
 	_dialogue_area.add_theme_constant_override("margin_left", 0)
 	_dialogue_area.add_theme_constant_override("margin_right", 0)
 
@@ -1240,11 +1250,12 @@ func _apply_dialogue_density() -> void:
 	var ultra_compact: bool = viewport_size.y > 0.0 and viewport_size.y < 420.0
 	var compact: bool = is_mobile or ultra_compact or (viewport_size.x > 0.0 and viewport_size.x < 760.0)
 
-	# Dimensões equilibradas para que avatar, texto e rodapé NUNCA ultrapassem a moldura
-	# Preserva estritamente os tamanhos canônicos da StandardDialogueBox, sem regressão de tamanho
-	var portrait_side: float = 34.0 if ultra_compact else (88.0 if is_mobile else 56.0)
-	var speaker_size: int = 28 if ultra_compact else 32
-	var dialogue_size: int = 26 if ultra_compact else 30
+	# Dimensões e tipografia ampliadas no Mobile:
+	# Mobile: texto 34px, orador 36px, portrait 96x96
+	# Desktop: 100% inalterado (30px dialogue, 32px speaker, 56px portrait)
+	var portrait_side: float = 40.0 if ultra_compact else (96.0 if is_mobile else 56.0)
+	var speaker_size: int = 24 if ultra_compact else (36 if is_mobile else 32)
+	var dialogue_size: int = 22 if ultra_compact else (34 if is_mobile else 30)
 
 	var has_portrait: bool = _speaker_portrait != null and _speaker_portrait.visible and _speaker_portrait.texture != null
 	var spk_min_h: float = portrait_side if has_portrait else 32.0
@@ -1296,9 +1307,11 @@ func _apply_dialogue_density() -> void:
 	if _dialogue_frame != null:
 		var content_margin := _dialogue_frame.get_node_or_null("FrameContent/ContentMargin") as MarginContainer
 		if content_margin != null:
-			var m_side: int = 20 if ultra_compact else 32
-			var m_top: int = 10 if ultra_compact else (12 if compact else 14)
-			var m_bottom: int = 8 if ultra_compact else (10 if compact else 12)
+			var aspect_ratio: float = viewport_size.x / maxf(viewport_size.y, 1.0)
+			var is_ultrawide: bool = is_mobile and aspect_ratio >= 1.95
+			var m_side: int = 20 if ultra_compact else (36 if is_ultrawide else (28 if is_mobile else 32))
+			var m_top: int = 8 if ultra_compact else (12 if is_mobile else 14)
+			var m_bottom: int = 8 if ultra_compact else (10 if is_mobile else 12)
 			content_margin.add_theme_constant_override("margin_left", m_side)
 			content_margin.add_theme_constant_override("margin_right", m_side)
 			content_margin.add_theme_constant_override("margin_top", m_top)
@@ -1343,10 +1356,18 @@ func _align_dialogue_area_to_image() -> void:
 		return
 
 	if _is_mobile_runtime():
+		var viewport_size: Vector2 = _root_control.size
+		var aspect_ratio: float = viewport_size.x / maxf(viewport_size.y, 1.0)
+		var is_ultrawide: bool = aspect_ratio >= 1.95
+		var margin_h: float = 18.0
+		if is_ultrawide:
+			var ultrawide_extra: float = maxf(0.0, viewport_size.x - (viewport_size.y * (16.0 / 9.0)))
+			margin_h = clampf(ultrawide_extra * 0.25 + 24.0, 36.0, 84.0)
+
 		_dialogue_area.anchor_left = 0.0
 		_dialogue_area.anchor_right = 1.0
-		_dialogue_area.offset_left = 12.0
-		_dialogue_area.offset_right = -12.0
+		_dialogue_area.offset_left = margin_h
+		_dialogue_area.offset_right = -margin_h
 		return
 
 	if _art_stage == null or _image_rect == null or _image_rect.texture == null:
@@ -1586,10 +1607,10 @@ func _setup_mobile_dialogue_layout() -> void:
 	if content_margin == null:
 		return
 
-	content_margin.add_theme_constant_override("margin_left", 22)
-	content_margin.add_theme_constant_override("margin_right", 22)
-	content_margin.add_theme_constant_override("margin_top", 8)
-	content_margin.add_theme_constant_override("margin_bottom", 8)
+	content_margin.add_theme_constant_override("margin_left", 28)
+	content_margin.add_theme_constant_override("margin_right", 28)
+	content_margin.add_theme_constant_override("margin_top", 12)
+	content_margin.add_theme_constant_override("margin_bottom", 10)
 
 	var old_vbox := content_margin.get_node_or_null("VBox") as VBoxContainer
 	if old_vbox != null:
@@ -1605,7 +1626,7 @@ func _setup_mobile_dialogue_layout() -> void:
 			var prev_parent = _speaker_portrait.get_parent()
 			if prev_parent != null:
 				prev_parent.remove_child(_speaker_portrait)
-			_speaker_portrait.custom_minimum_size = Vector2(88, 88)
+			_speaker_portrait.custom_minimum_size = Vector2(96, 96)
 			_speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			_speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

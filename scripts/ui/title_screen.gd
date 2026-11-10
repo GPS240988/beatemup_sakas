@@ -105,12 +105,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventKey and event.pressed and not event.is_echo():
+		if get_viewport() != null:
+			get_viewport().set_input_as_handled()
 		_handle_activation()
 	elif event is InputEventMouseButton and event.pressed:
+		if get_viewport() != null:
+			get_viewport().set_input_as_handled()
 		_handle_activation()
 	elif event is InputEventJoypadButton and event.pressed:
+		if get_viewport() != null:
+			get_viewport().set_input_as_handled()
 		_handle_activation()
 	elif event is InputEventScreenTouch and event.pressed:
+		if get_viewport() != null:
+			get_viewport().set_input_as_handled()
 		_handle_activation()
 
 

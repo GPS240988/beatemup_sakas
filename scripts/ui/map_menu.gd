@@ -45,8 +45,8 @@ const STAGE_CONFIGS: Array[Dictionary] = [
 		"title": "HAPPEN",
 		"tag": "HAPPEN",
 		"pos_ratio": Vector2(0.46, 0.29),
-		"scene": "res://scenes/levels/map_2.tscn",
-		"loading_scene": "res://scenes/levels/map_2.tscn"
+		"scene": "",
+		"loading_scene": ""
 	},
 	{
 		"id": "03",
@@ -188,8 +188,10 @@ func _on_hotspot_clicked(index: int) -> void:
 		return
 
 	if index == _selected_index:
-		# Se já está selecionada e clica nela novamente, inicia a fase
-		_on_play_stage_pressed()
+		if is_stage_unlocked(index):
+			_on_play_stage_pressed()
+		else:
+			_play_sfx(_sfx_cancel)
 	else:
 		_select_stage(index, true)
 
@@ -236,18 +238,8 @@ func is_stage_unlocked(index: int) -> bool:
 	if index == 1:
 		return true # B: Garagem (Bônus 1 disponível inicialmente para teste)
 
-	var session := _get_game_session()
-	if session == null:
-		return false
-
-	match index:
-		2: # FASE 2 (HAPPEN)
-			return session.has_method("is_stage_2_unlocked") and session.is_stage_2_unlocked()
-		3: # FASE 3 (METRÔ)
-			var max_stage: int = session.max_unlocked_stage if "max_unlocked_stage" in session else 1
-			return max_stage >= 3
-		_:
-			return false
+	# O Estágio 2 (HAPPEN) e estágios posteriores permanecem bloqueados no mapa
+	return false
 
 
 func _on_pack_progress(_pack_id: String, loaded: int, total: int, pct: float) -> void:

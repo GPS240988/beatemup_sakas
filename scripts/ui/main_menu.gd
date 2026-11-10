@@ -32,6 +32,7 @@ var _buttons: Array[Button] = []
 var _current_index: int = 0
 var _is_transitioning: bool = false
 var _is_in_settings: bool = false
+var _accept_input: bool = false
 
 var _sfx_move: AudioStream
 var _sfx_confirm: AudioStream
@@ -60,6 +61,11 @@ func _ready() -> void:
 	if not _is_mobile_runtime() and _buttons.size() > 0:
 		_focus_button(0, false)
 
+	# Debounce de entrada para evitar que a tecla Enter da tela de abertura vaze
+	# e acione imediatamente a primeira opção do menu
+	await get_tree().create_timer(0.2).timeout
+	_accept_input = true
+
 
 func _init_audio() -> void:
 	if ResourceLoader.exists(SFX_MOVE_PATH):
@@ -79,6 +85,7 @@ func _setup_buttons() -> void:
 			continue
 		var idx := i
 		btn.mouse_entered.connect(func(): _on_button_hovered(idx))
+		btn.focus_entered.connect(func(): _on_button_focus_entered(idx))
 		btn.pressed.connect(func(): _on_button_pressed(idx))
 
 
@@ -104,6 +111,14 @@ func _focus_button(index: int, play_sound: bool = true) -> void:
 		_play_sfx(_sfx_move)
 
 
+func _on_button_focus_entered(index: int) -> void:
+	if _is_mobile_runtime() or _is_in_settings or _is_transitioning:
+		return
+	if _current_index != index:
+		_current_index = index
+		_play_sfx(_sfx_move)
+
+
 func _on_button_hovered(index: int) -> void:
 	if _is_mobile_runtime() or _is_in_settings or _is_transitioning:
 		return
@@ -114,11 +129,12 @@ func _on_button_hovered(index: int) -> void:
 func _on_button_pressed(index: int) -> void:
 	if _is_transitioning or _is_in_settings:
 		return
+	_current_index = index
 	_activate_option(index)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _is_transitioning or _is_in_settings:
+	if _is_transitioning or _is_in_settings or not _accept_input:
 		return
 
 	if event.is_action_pressed("ui_down") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_S or event.keycode == KEY_DOWN)):
@@ -129,7 +145,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_navigate_selection(-1)
 	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER or event.keycode == KEY_SPACE)):
 		_safe_handle_input()
-		_activate_option(_current_index)
+		var active_idx := _current_index
+		var focused_ctrl = get_viewport().gui_get_focus_owner()
+		for i in range(_buttons.size()):
+			if _buttons[i] == focused_ctrl:
+				active_idx = i
+				break
+		_activate_option(active_idx)
 	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_safe_handle_input()
 		_return_to_title_screen()

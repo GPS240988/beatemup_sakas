@@ -251,8 +251,6 @@ func _apply_desktop_presentation_mode() -> void:
 	_image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
-	if _is_mobile_runtime():
-		_image_rect.stretch_mode = TextureRect.STRETCH_SCALE
-	else:
-		# COVERED preenche o palco sem barras laterais ou faixa inferior vazia.
-		_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	# COVERED preenche o palco sem barras laterais ou faixas vazias,
+	# mantendo o aspect ratio original (sem distorção) em desktop e mobile.
+	_image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED

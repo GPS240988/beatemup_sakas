@@ -757,6 +757,7 @@ func _try_aerial_attack() -> void:
 	if melee_attack.execute_attack(facing_direction):
 		if anim_sprite != null:
 			anim_sprite.play("jump_atk")
+		CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_JUMPKICK, 0.5, 0.03)
 		state_changed.emit("Ataque Aéreo")
 
 

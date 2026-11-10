@@ -48,7 +48,8 @@ const PACK_DEFINITIONS: Dictionary = {
 		"description": "Cenários, Vídeos e Backgrounds do Estágio 1",
 		"sources": [
 			"res://assets/videos/stage1/video_fase1_3_andre.ogv",
-			"res://assets/videos/stage1/video_fase1_3_juliana.ogv"
+			"res://assets/videos/stage1/video_fase1_3_juliana.ogv",
+			"res://assets/videos/stage1/video_fase1_4_alessandro.ogv"
 		],
 		"dirs": [
 			"res://assets/backgrounds/maps"

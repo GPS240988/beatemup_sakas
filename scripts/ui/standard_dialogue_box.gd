@@ -12,10 +12,10 @@ const DEFAULT_GABRIEL_PORTRAIT: Texture2D = preload("res://assets/ui/hud/portrai
 
 const GOLD_SPEAKER_COLOR: Color = Color(0.94, 0.75, 0.39, 1.0)
 const OUTLINE_SPEAKER_COLOR: Color = Color(0.04, 0.035, 0.045, 1.0)
-const DIALOGUE_TEXT_COLOR: Color = Color(0.96, 0.95, 0.90, 1.0)
+const DIALOGUE_TEXT_COLOR: Color = Color(0.97, 0.94, 0.85, 1.0)
 const OUTLINE_DIALOGUE_COLOR: Color = Color(0.035, 0.035, 0.045, 1.0)
 const SHADOW_COLOR: Color = Color(0.0, 0.0, 0.0, 0.95)
-const DIM_BACKGROUND_COLOR: Color = Color(0.012, 0.015, 0.028, 0.86)
+const DIM_BACKGROUND_COLOR: Color = Color(0.047, 0.075, 0.129, 0.95)
 
 const TYPEWRITER_SPEED_CPS: float = 40.0 # Caracteres por segundo
 
@@ -35,9 +35,9 @@ static func create_dialogue_stylebox() -> StyleBoxTexture:
 static func create_speaker_settings(is_mobile: bool = false) -> LabelSettings:
 	var settings := LabelSettings.new()
 	settings.font = ARCADE_FONT
-	settings.font_size = 26 if is_mobile else 32
+	settings.font_size = 36 if is_mobile else 32
 	settings.font_color = GOLD_SPEAKER_COLOR
-	settings.outline_size = 3 if is_mobile else 4
+	settings.outline_size = 4 if is_mobile else 4
 	settings.outline_color = OUTLINE_SPEAKER_COLOR
 	settings.shadow_size = 2
 	settings.shadow_color = SHADOW_COLOR
@@ -49,14 +49,14 @@ static func create_speaker_settings(is_mobile: bool = false) -> LabelSettings:
 static func create_dialogue_settings(is_mobile: bool = false) -> LabelSettings:
 	var settings := LabelSettings.new()
 	settings.font = ARCADE_FONT
-	settings.font_size = 24 if is_mobile else 30
+	settings.font_size = 34 if is_mobile else 30
 	settings.font_color = DIALOGUE_TEXT_COLOR
-	settings.outline_size = 2 if is_mobile else 3
+	settings.outline_size = 3 if is_mobile else 3
 	settings.outline_color = OUTLINE_DIALOGUE_COLOR
 	settings.shadow_size = 2
 	settings.shadow_color = SHADOW_COLOR
 	settings.shadow_offset = Vector2(2, 2)
-	settings.line_spacing = 6 if is_mobile else 8
+	settings.line_spacing = 8 if is_mobile else 8
 	return settings
 
 
@@ -113,7 +113,7 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 	var portrait := TextureRect.new()
 	portrait.name = "Portrait"
 	portrait.texture = DEFAULT_GABRIEL_PORTRAIT
-	portrait.custom_minimum_size = Vector2(72, 72) if is_mobile else Vector2(110, 110)
+	portrait.custom_minimum_size = Vector2(96, 96) if is_mobile else Vector2(110, 110)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

@@ -53,7 +53,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	var art_stage := Control.new()
 	art_stage.name = "ArtStage"
 	art_stage.anchor_top = 0.0
-	art_stage.anchor_bottom = 0.74
+	art_stage.anchor_bottom = 0.68 if is_mobile else 0.74
 	art_stage.anchor_left = 0.0
 	art_stage.anchor_right = 1.0
 	art_stage.clip_contents = true
@@ -65,7 +65,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	image_rect.name = "ImageDisplay"
 	image_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	image_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	image_rect.stretch_mode = TextureRect.STRETCH_SCALE if is_mobile else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	image_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if is_mobile else TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	image_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	image_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art_stage.add_child(image_rect)
@@ -234,8 +234,8 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	# Área de Diálogo com Moldura Oficial Arcade
 	var dialogue_area := MarginContainer.new()
 	dialogue_area.name = "DialogueArea"
-	dialogue_area.anchor_top = 0.74 if is_mobile else 0.735
-	dialogue_area.anchor_bottom = 0.985 if is_mobile else 0.99
+	dialogue_area.anchor_top = 0.68 if is_mobile else 0.735
+	dialogue_area.anchor_bottom = 0.995 if is_mobile else 0.99
 	dialogue_area.anchor_left = 0.0
 	dialogue_area.anchor_right = 1.0
 	dialogue_area.add_theme_constant_override("margin_left", 0)
@@ -259,6 +259,31 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 	frame_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	frame_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dialogue_frame.add_child(frame_content)
+
+	# Detalhes de realce âmbar Neo-16-bit
+	var top_accent := ColorRect.new()
+	top_accent.name = "TopAccentBar"
+	top_accent.offset_left = 42.0
+	top_accent.offset_top = 0.0
+	top_accent.offset_right = 150.0
+	top_accent.offset_bottom = 3.0
+	top_accent.color = Color(0.918, 0.757, 0.424, 1.0) # #eac16c
+	top_accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame_content.add_child(top_accent)
+
+	var bottom_accent := ColorRect.new()
+	bottom_accent.name = "BottomAccentBar"
+	bottom_accent.anchor_left = 1.0
+	bottom_accent.anchor_top = 1.0
+	bottom_accent.anchor_right = 1.0
+	bottom_accent.anchor_bottom = 1.0
+	bottom_accent.offset_left = -102.0
+	bottom_accent.offset_top = -3.0
+	bottom_accent.offset_right = -42.0
+	bottom_accent.offset_bottom = 0.0
+	bottom_accent.color = Color(0.710, 0.541, 0.247, 1.0) # #b58a3f
+	bottom_accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame_content.add_child(bottom_accent)
 
 	var content_margin := MarginContainer.new()
 	content_margin.name = "ContentMargin"
@@ -288,7 +313,7 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 
 	var speaker_portrait := TextureRect.new()
 	speaker_portrait.name = "SpeakerPortrait"
-	speaker_portrait.custom_minimum_size = Vector2(88, 88) if is_mobile else Vector2(72, 72)
+	speaker_portrait.custom_minimum_size = Vector2(96, 96) if is_mobile else Vector2(72, 72)
 	speaker_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED

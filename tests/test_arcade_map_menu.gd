@@ -74,6 +74,8 @@ func _run_tests() -> void:
 	# 4. Desbloqueio inicial
 	_assert(map_menu.is_stage_unlocked(0) == true, "Fase 01 deve estar desbloqueada inicialmente")
 	_assert(map_menu.is_stage_unlocked(1) == true, "Fase B (BÔNUS / GARAGEM) deve estar desbloqueada inicialmente")
+	_assert(map_menu.is_stage_unlocked(2) == false, "Fase 02 (HAPPEN) deve estar bloqueada no mapa")
+	_assert(map_menu.is_stage_unlocked(3) == false, "Fase 03 (METRÔ) deve estar bloqueada no mapa")
 
 	# 5. Seleção da Fase Bônus (índice 1)
 	map_menu._select_stage(1, false)
@@ -90,6 +92,18 @@ func _run_tests() -> void:
 		_assert(stage_number_lbl.text == "01", "Número da fase deve retornar a '01'")
 	if stage_title_lbl != null:
 		_assert(stage_title_lbl.text == "O REENCONTRO", "Título da fase deve retornar a 'O REENCONTRO'")
+
+	# 6.1. Seleção da Fase 2 (índice 2) — deve estar bloqueada
+	map_menu._select_stage(2, false)
+	_assert(map_menu.get("_selected_index") == 2, "Índice selecionado deve ser 2 após _select_stage(2)")
+	_assert(map_menu.is_stage_unlocked(2) == false, "Estágio 2 selecionado deve reportar is_stage_unlocked == false")
+	if btn_play_stage != null:
+		_assert(btn_play_stage.get("disabled") == true, "Botão JOGAR FASE deve estar desabilitado para o Estágio 2")
+	if map_status_lbl != null:
+		_assert("BLOQUEADA" in map_status_lbl.text, "Status label deve indicar que a fase está bloqueada")
+
+	# Retorna para Fase 01
+	map_menu._select_stage(0, false)
 
 	# 7. Verificação dos alvos de roteamento das fases
 	var configs: Array = map_menu.STAGE_CONFIGS
