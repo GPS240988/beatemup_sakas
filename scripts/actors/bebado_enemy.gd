@@ -298,9 +298,9 @@ func _end_dodge() -> void:
 	bebado_state = BebadoState.NONE
 	velocity = Vector2.ZERO
 
-	# Restaura a Hurtbox
+	# A Hurtbox permanece disponível para ataques, mas só monitora contato no crawl.
 	if hurtbox_area != null:
-		hurtbox_area.set_deferred("monitoring", true)
+		hurtbox_area.set_deferred("monitoring", false)
 		hurtbox_area.set_deferred("monitorable", true)
 
 	current_state = State.FLANKING
