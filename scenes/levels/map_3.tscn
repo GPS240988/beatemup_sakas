@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
 [ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
 [ext_resource type="PackedScene" path="res://scenes/props/destructible_trash_bin_old.tscn" id="11_trash_old"]
+[ext_resource type="PackedScene" uid="uid://bebado000001" path="res://scenes/actors/enemies/bebado_enemy.tscn" id="12_bebado_scene"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top_wall"]
 size = Vector2(2049, 40)
@@ -36,6 +37,7 @@ reinforcement_waves_enabled = true
 reinforcement_delay_seconds = 1.5
 reinforcement_count = 3
 reinforcement_archetypes = Array[int]([1, 3, 1])
+reinforcement_enemy_scene = ExtResource("12_bebado_scene")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1213665637]
 position = Vector2(640, 380)
@@ -99,14 +101,17 @@ position = Vector2(200, 695)
 [node name="Enemies" type="Node2D" parent="World/Actors" unique_id=1050301857]
 y_sort_enabled = true
 
-[node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=413214446 instance=ExtResource("4_enemy_scene")]
-position = Vector2(600, 695)
+[node name="BebadoEnemy1" parent="World/Actors/Enemies" unique_id=901234567 instance=ExtResource("12_bebado_scene")]
+position = Vector2(450, 690)
 
-[node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=230391789 instance=ExtResource("4_enemy_scene")]
-position = Vector2(950, 685)
+[node name="BebadoEnemy2" parent="World/Actors/Enemies" unique_id=901234568 instance=ExtResource("12_bebado_scene")]
+position = Vector2(1100, 680)
 
-[node name="BasicEnemy3" parent="World/Actors/Enemies" unique_id=28047705 instance=ExtResource("4_enemy_scene")]
-position = Vector2(1300, 700)
+[node name="BebadoEnemy3" parent="World/Actors/Enemies" unique_id=901234569 instance=ExtResource("12_bebado_scene")]
+position = Vector2(700, 685)
+
+[node name="BebadoEnemy4" parent="World/Actors/Enemies" unique_id=901234570 instance=ExtResource("12_bebado_scene")]
+position = Vector2(1450, 695)
 
 [node name="NPCs" type="Node2D" parent="World/Actors" unique_id=1682871073]
 y_sort_enabled = true

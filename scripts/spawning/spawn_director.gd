@@ -166,7 +166,7 @@ static func get_enemy_scene(enemy_type: String) -> PackedScene:
 		"boss", "alessandro":
 			return BOSS_ALESSANDRO_SCENE
 		_:
-			return BASIC_ENEMY_SCENE
+			return BEBADO_SCENE
 
 
 ## Spawna um inimigo pelo tipo ("bebado", "basic", "boss") em um SpawnPoint

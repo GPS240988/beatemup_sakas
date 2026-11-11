@@ -32,14 +32,24 @@ enum BebadoState {
 
 ## Parâmetros de Rastejamento
 @export_group("Rastejamento (Crawl)")
-@export var crawl_duration: float = 2.0
-@export var crawl_speed: float = 85.0
+@export var crawl_duration: float = 2.5
+@export var crawl_speed: float = 110.0
 @export var crawl_after_downed_chance: float = 0.55
+@export var crawl_spontaneous_chance: float = 0.50  # chance por segundo de entrar em crawl espontâneo na batalha
+@export var crawl_spontaneous_min_interval: float = 6.0
+@export var crawl_spontaneous_max_interval: float = 12.0
 
 ## Parâmetros Contextuais
 @export_group("Comportamento Bêbado")
 @export var drink_cooldown_time: float = 10.0
 @export var drink_heal_amount: float = 8.0
+
+## Esquiva - chance de "miss" (mesmo mecanismo de texto do CocaPickup)
+@export_group("Esquiva (Miss)")
+@export var miss_text: String = "MISS"
+@export var miss_font_size: int = 24
+@export var miss_color: Color = Color(1.0, 1.0, 0.25, 1.0)  # amarelo arcade
+@export var miss_outline_color: Color = Color(0.02, 0.02, 0.02, 1.0)
 
 var bebado_state: BebadoState = BebadoState.NONE
 
@@ -48,10 +58,40 @@ var _dodge_timer: float = 0.0
 var _dodge_velocity: Vector2 = Vector2.ZERO
 
 var _crawl_timer: float = 0.0
-var _crawl_cooldown: float = 4.0
+var _crawl_enter_timer: float = 0.0
+var _crawl_cooldown: float = 5.0
+var _crawl_damage: float = 12.0
+var _crawl_contact_active: bool = false
+var _next_spontaneous_crawl_time: float = 0.0  # timer para crawl espontâneo
+var _crawl_enter_done: bool = false
 
 var _drink_cooldown: float = 5.0
 var _drink_timer: float = 0.0
+
+const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
+
+func _notification(what: int) -> void:
+	match str(what):
+		"NOTIFICATION_EXIT_TREE":
+			# Desconecta sinal ao sair da árvore para evitar erros de Lambda
+			if hurtbox_area != null and has_method("body_entered"):
+				hurtbox_area.body_entered.disconnect(_on_hurtbox_body_entered)
+
+
+
+
+
+## Finaliza o estado de rastejamento e retorna ao combate normal
+func end_crawl() -> void:
+	_ensure_internal_refs()
+	_activate_crawl_contact_damage(false)
+	_set_crawling_hurtbox(false)
+	bebado_state = BebadoState.NONE
+	velocity = Vector2.ZERO
+
+	current_state = State.GETUP
+	_state_timer = 0.32
+	_play_anim("getup")
 
 var _attack_variant: int = 0
 var _default_hurtbox_size: Vector2 = Vector2(50, 160)
@@ -77,9 +117,23 @@ func _ready() -> void:
 
 	super._ready()
 
+	# Conecta sinal de contato da hurtbox para dano por rastejamento
+	if hurtbox_area != null:
+		hurtbox_area.body_entered.connect(_on_hurtbox_body_entered)
+
+	# Vida base aumentada considerando dificuldade (GameSession: normal=1.0, dificil=2.1)
+	var base_health: float = 120.0
+	var health_mult: float = 1.0
+	var session = get_node_or_null("/root/GameSession") as GameSessionClass
+	if session != null:
+		var diff_data: Dictionary = session.DIFFICULTIES.get(session.difficulty_id, {})
+		health_mult = float(diff_data.get("enemy_health_mult", 1.0))
 	if health_component != null:
-		health_component.max_health = 90.0
-		health_component.current_health = 90.0
+		health_component.max_health = base_health * health_mult
+		health_component.current_health = base_health * health_mult
+
+	# Inicializa timer de crawl espontâneo (primeiro crawl após um intervalo aleatório)
+	_next_spontaneous_crawl_time = randf_range(crawl_spontaneous_min_interval, crawl_spontaneous_max_interval)
 
 	if melee_attack != null:
 		melee_attack.damage = 16.0
@@ -141,6 +195,18 @@ func _physics_process(delta: float) -> void:
 	if _can_attempt_drink():
 		start_drink()
 		return
+
+	# Verifica crawl espontâneo (variante de batalha: não só quando derrubado)
+	if bebado_state == BebadoState.NONE and current_state == State.FLANKING and _crawl_cooldown <= 0.0:
+		if player_target != null and is_instance_valid(player_target):
+			var dist: float = global_position.distance_to(player_target.global_position)
+			# Só entra em crawl espontâneo se estiver a uma distância razoável do jogador
+			if dist > 120.0 and dist < 400.0:
+				_next_spontaneous_crawl_time -= delta
+				if _next_spontaneous_crawl_time <= 0.0:
+					start_crawl()
+					_next_spontaneous_crawl_time = randf_range(crawl_spontaneous_min_interval, crawl_spontaneous_max_interval)
+					return
 
 	# Executa IA padrão
 	super._physics_process(delta)
@@ -213,11 +279,8 @@ func start_dodge() -> void:
 	_play_anim("dodge")
 	CombatFeedback.spawn_dust(self, global_position)
 
-	# I-Frames rápidos durante a esquiva (desativa hurtbox no primeiro terço)
-	if hurtbox_area != null:
-		hurtbox_area.set_deferred("monitoring", false)
-		hurtbox_area.set_deferred("monitorable", false)
-
+	# Efeito visual MISS 100% para indicar que o Bêbado desviou de um golpe
+	_spawn_miss_text()
 
 func _process_bebado_dodge(delta: float) -> void:
 	_dodge_timer -= delta
@@ -247,10 +310,11 @@ func _end_dodge() -> void:
 	_play_anim("idle")
 
 
-## Inicia o rastejamento no solo
+## Inicia o rastejamento no solo (transição crawl_enter -> crawl)
 func start_crawl() -> void:
 	_ensure_internal_refs()
 	bebado_state = BebadoState.CRAWLING
+	_crawl_enter_timer = 0.35  # duração da animação de entrada no chão
 	_crawl_timer = crawl_duration
 	_crawl_cooldown = 5.0
 
@@ -258,10 +322,20 @@ func start_crawl() -> void:
 
 	# Rebaixa a hurtbox para rente ao solo
 	_set_crawling_hurtbox(true)
-	_play_anim("crawl")
+	_activate_crawl_contact_damage(true)
+	_play_anim("crawl_enter")
 
 
 func _process_bebado_crawl(delta: float) -> void:
+	# Fase de entrada (crawl_enter) antes de começar a rastejar
+	if _crawl_enter_timer > 0.0:
+		_crawl_enter_timer -= delta
+		velocity = Vector2.ZERO
+		if _crawl_enter_timer <= 0.0:
+			_play_anim("crawl")
+			_activate_crawl_contact_damage(true)
+		return
+
 	_crawl_timer -= delta
 
 	if player_target != null and is_instance_valid(player_target):
@@ -282,6 +356,7 @@ func _process_bebado_crawl(delta: float) -> void:
 func _end_crawl() -> void:
 	_ensure_internal_refs()
 	_set_crawling_hurtbox(false)
+	_activate_crawl_contact_damage(false)
 	bebado_state = BebadoState.NONE
 	velocity = Vector2.ZERO
 
@@ -351,24 +426,36 @@ func _end_drink() -> void:
 	current_state = State.FLANKING
 
 
-## Sobrescreve gatilho de ataque para alternar entre Garrafada e Chute
+## Sobrescreve gatilho de ataque para alternar entre Jab, Hook e Soco (variação de socos do Bêbado)
 func _trigger_attack() -> void:
 	if melee_attack == null:
 		return
 
 	current_state = State.ATTACKING
-	_attack_variant = (_attack_variant + 1) % 2
+	_attack_variant = (_attack_variant + 1) % 4
 
 	match _attack_variant:
-		0: # Garrafada contundente (soco frontal)
-			_play_anim("punch")
-			melee_attack.damage = 16.0
+		0: # Jab: soco reto rápido, baixo dano
+			_play_anim("attack_jab")
+			melee_attack.damage = 12.0
 			melee_attack.impact_profile = "punch"
 			melee_attack.preferred_regions = ["head", "upper_torso"]
+			melee_attack.hitbox_offset_y = -100.0
+		1: # Hook: golpe curvo, dano médio
+			_play_anim("attack_hook")
+			melee_attack.damage = 16.0
+			melee_attack.impact_profile = "punch"
+			melee_attack.preferred_regions = ["upper_torso", "head"]
 			melee_attack.hitbox_offset_y = -95.0
-		1: # Chute cambaleante
+		2: # Soco estendido (garrafada), dano médio-alto
+			_play_anim("attack_punch")
+			melee_attack.damage = 18.0
+			melee_attack.impact_profile = "punch"
+			melee_attack.preferred_regions = ["head", "upper_torso"]
+			melee_attack.hitbox_offset_y = -90.0
+		3: # Chute cambaleante ocasional, dano alto
 			_play_anim("kick")
-			melee_attack.damage = 20.0
+			melee_attack.damage = 22.0
 			melee_attack.impact_profile = "kick"
 			melee_attack.preferred_regions = ["lower_torso", "legs"]
 			melee_attack.hitbox_offset_y = -70.0
@@ -392,8 +479,94 @@ func _on_damaged_info(info: RefCounted) -> void:
 	if bebado_state != BebadoState.NONE:
 		bebado_state = BebadoState.NONE
 		_set_crawling_hurtbox(false)
+		_activate_crawl_contact_damage(false)
 		if hurtbox_area != null:
 			hurtbox_area.set_deferred("monitoring", true)
 			hurtbox_area.set_deferred("monitorable", true)
 
 	super._on_damaged_info(info)
+
+
+## Ativa/desativa dano por contato durante o rastejamento (Bêbado rastejando causa dano ao encostar)
+func _activate_crawl_contact_damage(active: bool) -> void:
+	_crawl_contact_active = active
+	if hurtbox_area != null:
+		# Durante o crawl, a hurtbox fica baixa e ampla para colidir com o jogador no chão
+		hurtbox_area.set_deferred("monitoring", active)
+		hurtbox_area.set_deferred("monitorable", active)
+
+
+## Sobrescreve recebimento de dano: durante o CRAWLING, o Bêbado é invulnerável a socos e chutes.
+## Só ataques especiais (impact_profile == "special") conseguem atingi-lo rastejando.
+func take_damage(damage_input: Variant) -> bool:
+	# Durante o rastejamento, ignora dano de ataques normais (soco/chute)
+	if bebado_state == BebadoState.CRAWLING:
+		var info: RefCounted = null
+		if damage_input != null and damage_input.get("impact_profile") != null:
+			var profile: String = str(damage_input.get("impact_profile"))
+			if profile != "special":
+				return false  # Socos e chutes não atingem o Bêbado rastejando
+		if damage_input != null and damage_input.get("damage_type") != null:
+			var dtype: String = str(damage_input.get("damage_type"))
+			if dtype != "special":
+				return false
+		# Se chegou aqui, é ataque especial: permite o dano
+		return super.take_damage(damage_input)
+
+	return super.take_damage(damage_input)
+
+
+## Mostra o texto "miss" sobre a cabeça do Bêbado quando ele esquiva de um golpe
+## (mesmo mecanismo de fonte e animação usado pelo CocaPickup._spawn_heal_feedback)
+func _spawn_miss_text() -> void:
+	var head_marker := get_node_or_null("ImpactZones/Head") as Node2D
+	var spawn_pos: Vector2 = Vector2(0.0, -220.0)
+	if head_marker != null:
+		spawn_pos = to_local(head_marker.global_position) + Vector2(0.0, -28.0)
+
+	var feedback := Label.new()
+	feedback.name = "MissFeedback"
+	feedback.text = miss_text
+	feedback.add_theme_font_override("font", ARCADE_FONT)
+	feedback.add_theme_font_size_override("font_size", miss_font_size)
+	feedback.add_theme_color_override("font_color", miss_color)
+	feedback.add_theme_color_override("font_outline_color", miss_outline_color)
+	feedback.add_theme_constant_override("outline_size", 6)
+	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	feedback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	feedback.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	feedback.size = Vector2(200.0, 42.0)
+	feedback.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	feedback.z_index = 100
+	feedback.z_as_relative = false
+	feedback.process_mode = Node.PROCESS_MODE_ALWAYS
+	feedback.add_to_group("pickup_feedback_labels")
+
+	var spawn_position := spawn_pos - Vector2(feedback.size.x * 0.5, feedback.size.y * 0.5)
+	feedback.position = spawn_position
+	add_child(feedback)
+	var feedback_start_y: float = feedback.position.y
+
+	var tween := feedback.create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.tween_property(feedback, "modulate:a", 1.0, 0.12)
+	tween.parallel().tween_property(feedback, "position:y", feedback_start_y - 42.0, 0.95).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(0.28)
+	tween.tween_property(feedback, "modulate:a", 0.0, 0.22)
+	tween.tween_callback(feedback.queue_free)
+
+
+## Sinal de contato do rastejamento: chamado quando a hurtbox colide com o jogador durante o crawl
+func _on_hurtbox_body_entered(body: Node) -> void:
+	# Verificação rigorosa de contato durante o rastejamento
+	if _crawl_contact_active and body.is_in_group("player") and body != null and is_instance_valid(body):
+		var health: HealthComponent = body.get_node_or_null("HealthComponent") as HealthComponent
+		if health != null and not health.is_dead:
+			health.take_damage(_crawl_damage)
+			# Empurra levemente o jogador na direção oposta ao bêbado
+			var push_dir: Vector2 = (body.global_position - global_position).normalized()
+			if push_dir == Vector2.ZERO:
+				push_dir = Vector2(facing_direction, 0.0)
+			if body.has_method("take_knockback"):
+				body.take_knockback(push_dir * 120.0, 0.15)

@@ -64,7 +64,7 @@ static func create_gabriel() -> RefCounted:
 	data.scale_multiplier = 1.03
 	data.enter_delay = 0.18
 	data.flip_h = false
-	data.is_active = false # Inativo nesta fase, pronto para expansão
+	data.is_active = true # Inativo nesta fase, pronto para expansão
 	return data
 
 
@@ -86,7 +86,7 @@ static func create_andre() -> RefCounted:
 	data.scale_multiplier = 1.10
 	data.enter_delay = 0.36
 	data.flip_h = false
-	data.is_active = false # Inativo nesta fase, pronto para expansão
+	data.is_active = true # Inativo nesta fase, pronto para expansão
 	return data
 
 
@@ -108,5 +108,5 @@ static func create_juliana() -> RefCounted:
 	data.scale_multiplier = 0.96
 	data.enter_delay = 0.54
 	data.flip_h = false
-	data.is_active = false # Inativo nesta fase, pronto para expansão
+	data.is_active = true # Inativo nesta fase, pronto para expansão
 	return data

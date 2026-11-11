@@ -33,4 +33,3 @@ func _advance_to_next_map() -> void:
 	next_map_scene_path = STORY_INTERLUDE_SCENE_PATH
 	super._advance_to_next_map()
 	next_map_scene_path = original_next_scene
-

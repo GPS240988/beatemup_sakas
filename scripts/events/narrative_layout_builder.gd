@@ -494,4 +494,3 @@ static func build_and_bind(director: CanvasLayer, is_mobile: bool) -> void:
 			root_control.resized.connect(director._on_narrative_layout_resized)
 		if art_stage != null and not art_stage.resized.is_connected(director._on_narrative_layout_resized):
 			art_stage.resized.connect(director._on_narrative_layout_resized)
-
