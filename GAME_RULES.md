@@ -358,7 +358,6 @@ MapX (Node2D, script: base_level.gd)
 
 ## 8. ENEMY CONTRACT
 `STATUS: IMPLEMENTED`
-
 - **Identidade e Cenas**: `basic_enemy.tscn` (Capangas comuns) e `boss_alessandro.tscn` (Chefe de Fase).
 - **Grupos Canônicos**: Pertencem estritamente aos grupos `"enemies"`, `"actors"` e `"damageable"`.
 - **Arquétipos Táticos de Inimigos (`Archetype`)**:
@@ -621,7 +620,7 @@ MapX (Node2D, script: base_level.gd)
     - *Desktop*: Margens de 18px laterais, 12px superior e 10px inferior.
     - *Mobile*: Margens ampliadas de 22px laterais, 10px superior e 8px inferior, garantindo recuo seguro para que o nome do orador e o corpo da fala nunca sobreponham as cantoneiras desenhadas na textura 9-patch.
   - *Efeito Máquina de Escrever (Typewriter Effect)*: Toda fala deve exibir o texto progressivamente a uma velocidade uniforme de 40 caracteres por segundo (`StandardDialogueBox.TYPEWRITER_SPEED_CPS`).
-    - *Skip Imediato*: Se o jogador pressionar qualquer tecla de confirmação ([Enter], [Espaço], [A] do Gamepad) ou tocar na tela durante a digitação, o efeito é cancelado instantaneamente (`visible_characters = -1`), revelando a frase inteira de uma só vez.
+    - *Skip Imediato em Diálogos Interativos*: Se o jogador pressionar qualquer tecla de confirmação ([Enter], [Espaço], [A] do Gamepad) ou tocar na tela durante a digitação, o efeito é cancelado instantaneamente (`visible_characters = -1`), revelando a frase inteira de uma só vez. **Exceção obrigatória:** em interlúdios cinematográficos de transição entre mapas, o Typewriter não pode ser acelerado nem pulado por input; o texto termina automaticamente e permanece visível conforme o contrato da Seção 36.
     - *Avanço / Fechamento*: O próximo comando de confirmação após o término da digitação fecha o diálogo ou avança para o próximo bloco de texto.
   - *Camada Z-Index e CanvasLayer*: As interfaces de diálogo e inspeção devem residir em `CanvasLayer` com `layer = 125` (ou z-index 100+ no mundo), garantindo prioridade visual absoluta sobre o Y-sort e todos os atores/props 2.5D do cenário de Vila Prudente.
   - *Inspeção Sem Tela Preta (Dimming Translúcido)*: Coleta de cartas mágicas ou itens dropados de caixas destroçadas congelam a partida com `get_tree().paused = true`, utilizam fundo translúcido `Color(0.012, 0.015, 0.028, 0.86)` mantendo o cenário e iluminação visíveis ao fundo, e exibem a arte ampliada central com pop-in fluído (`scale` de 0.08 a 1.0 via `TRANS_BACK`). Proibido fade para tela preta durante inspeção in-game.
@@ -636,7 +635,7 @@ MapX (Node2D, script: base_level.gd)
     - *Enquadramento e Área Segura*: O palco de arte (`ArtStage`) ocupa os 74% superiores da tela com modo `STRETCH_KEEP_ASPECT_CENTERED` e `TEXTURE_FILTER_NEAREST`. As imagens mantêm 100% da proporção original sem corte de personagens nas bordas. Camada de fundo ambiente (`AmbientBackground`) preenche aspectos de tela variáveis sem barras vazias. A moldura inferior nunca encobre rostos, mãos, pés ou silhuetas essenciais.
     - *Moldura Oficial Arcade Cinematográfica*: Painel em azul-marinho profundo/violeta `#0C0C18` (94% opacidade) com borda rosa/magenta `#FF2A6D` (3px), cantoneiras em ciano `#05D9E8` e magenta, identificação do orador e sombra projetada discreta. Não exibir barra de status de transmissão, indicador fictício de conexão ou rótulo técnico decorativo.
     - *Tipografia e Quebra de Linha Estrita*: Emprego de `assets/fonts/arcade_bold.ttf` com autowrap inteligente (`AUTOWRAP_WORD_SMART`), margens internas seguras (32px laterais, 16px no container de texto) e entrelinha formatada, garantindo que qualquer texto atual ou futuro quebre de linha antes de tocar ou ultrapassar os limites da moldura. Textos em 24px com sombra sólida preta e alto contraste.
-    - *Avanço Estritamente Manual*: Nenhuma fala desaparece ou avança por temporizador automático. A narrativa permanece em tela até confirmação deliberada do jogador ([Enter], [Espaço], Gamepad A, toque no botão `AVANÇAR ❯` ou toque de tela).
+    - *Avanço Estritamente Manual da Abertura e Narrativas Interativas*: Nenhuma fala desaparece ou avança por temporizador automático. A narrativa permanece em tela até confirmação deliberada do jogador ([Enter], [Espaço], Gamepad A, toque no botão `AVANÇAR ❯` ou toque de tela). As cinemáticas obrigatórias entre mapas seguem a exceção definida na Seção 36.
     - *Proteção e Isolamento de Input*: Transições sóbrias (~0.32s) com flag `_is_transitioning` impedem múltiplos saltos por repetição de tecla (`echo`). Ao concluir a sequência, ações pendentes (`jump`, `attack`, `attack_punch`, `ui_accept`) são liberadas via `Input.action_release()` antes da carga de `map_1.tscn`, eliminando sangramento de comandos para o primeiro frame de gameplay.
   - **Recursos Declarativos e Modelo Narração vs. Revelação**:
     - `StoryEvent` (`scripts/events/story_event.gd`): Especifica `id`, `event_type` (`narration`, `revelation`, `dialogue`), `image_path`, blocos de `texts`, `speaker`, `entry_effect` (`fade_in`, `slow_zoom`, `crossfade`, `glitch`), `exit_effect`, `transition_duration` (0.32s), `safe_framing`, `zoom_start`, `zoom_end`, `glitch_frames` e identificador de áudio.
@@ -718,7 +717,6 @@ MapX (Node2D, script: base_level.gd)
 
 ## 20. Z-INDEX RULES
 `STATUS: IMPLEMENTED`
-
 | Camada Estrutural | Nó da Cena | Valor de `z_index` | Comportamento |
 |---|---|:---:|---|
 | Planos Distantes | `Background` | `-10` | Renderizado atrás de todo o mundo de jogo. |
@@ -1077,7 +1075,6 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
 - **Validação de SpriteFrames**: Checa nomes canônicos, contagem exata de quadros (incluindo 6 quadros em `heavy`), flags de loop e taxas de FPS.
 - **Estabilidade Geométrica da Cena**: Verifica nós visuais, ausência de deslocamento de compensação física e integridade de escalas no ataque e flip.
 - **Revisão Visual Complementar**: Folha de contato / verificação manual no Godot para validação estética de poses e fluidez cinética.
-
 ---
 
 ## 33. MAP PROGRESSION & LEVEL TRANSITION ARCHITECTURE
@@ -1162,6 +1159,49 @@ Todo e qualquer item dropado no jogo (consumíveis de cura, colecionáveis narra
 - **Camada Visual Dianteira (Z-Index)**:
   - O botão de prompt `PickUpHint` deve configurar `z_index = 100` e `z_as_relative = false` e posicionar-se acima do topo do sprite normalizado, impedindo que o Y-Sort do chão o oculte atrás de fragmentos de caixas ou mobílias.
 
+---
 
+## 36. INTER-MAP CINEMATIC TRANSITION & INPUT LOCK CONTRACT
+`STATUS: IMPLEMENTED WITH LIMITATION`
 
+Esta seção define o comportamento obrigatório e uniforme de toda apresentação narrativa que conecta dois mapas, seções ou etapas consecutivas da campanha. Ela prevalece sobre as regras genéricas de avanço manual da Seção 16.
 
+### 1. Escopo e identificação
+- Aplica-se a qualquer interlúdio de progressão executado antes de carregar o próximo mapa, independentemente de utilizar vídeo, imagem estática, sequência de imagens, crossfade, animação ou diálogo.
+- Inclui as cenas atuais `story_intro_fase1_2.tscn`, `story_intro_fase1_3.tscn` e `story_intro_fase1_4.tscn`, além de futuras cenas equivalentes.
+- A regra vale para Desktop, Web e Mobile; não pode haver uma versão pulável em uma plataforma e obrigatória em outra.
+- A abertura narrativa inicial do jogo e diálogos comuns de gameplay continuam seguindo seus próprios contratos, salvo quando forem explicitamente classificados como interlúdio obrigatório entre mapas.
+
+### 2. Bloqueio integral de entrada do jogador
+- **A apresentação é obrigatória e não pode ser pulada, acelerada ou encerrada manualmente.**
+- Durante toda a cena — do início do fade-in até a conclusão da troca de mapa — nenhuma entrada do jogador pode alterar o roteiro, avançar falas, trocar vídeos ou antecipar a transição.
+- Bloquear e consumir, no mínimo: clique do mouse, toque na tela, Enter, Espaço, ESC, confirmação do Gamepad, `ui_accept`, `ui_cancel`, ataque, ataque especial, pulo, defesa, reinício e comandos de movimento.
+- A captura deve ocorrer antes que os eventos cheguem a `_gui_input()` ou `_unhandled_input()`; o padrão recomendado é tratar o evento em `_input(event)` e chamar `get_viewport().set_input_as_handled()` somente após validar que o viewport existe.
+- Não basta definir `mouse_filter = MOUSE_FILTER_STOP`: isso não bloqueia, por si só, teclado, gamepad ou ações globais.
+- Remover ou proteger callbacks herdados que chamem rotinas como `_skip_or_advance()`, `advance_or_skip_text()`, `skip_sequence()` ou equivalentes. Nenhum botão, prompt, seta ou rótulo visual de "Pular", "Avançar" ou "Continuar" pode sugerir uma interação proibida.
+- O efeito Typewriter deve terminar sem intervenção do jogador. Se o vídeo terminar antes da digitação, revelar automaticamente o restante do texto; se o texto terminar primeiro, mantê-lo visível enquanto a mídia continua.
+
+### 3. Progressão sincronizada com a mídia
+- **Interlúdio com imagem estática:** a cena permanece pelo tempo configurado em sua propriedade de apresentação (por exemplo, `presentation_duration`), respeitando fade-in e fade-out. O temporizador é a única autoridade para concluir uma apresentação exclusivamente visual.
+- **Interlúdio com vídeo:** configurar `VideoStreamPlayer.loop = false` e avançar somente pelo sinal `VideoStreamPlayer.finished`. É proibido trocar de mapa, encerrar o vídeo ou iniciar o próximo vídeo como consequência de clique, toque, tecla ou ação do controle.
+- **Sequência com vários vídeos:** cada vídeo deve terminar naturalmente antes do próximo começar. Depois de cada clipe, manter um intervalo de leitura configurável; o padrão é **1,2 segundo**. Após o último clipe, executar o fade-out e carregar o mapa de destino.
+- **Diálogo associado à mídia:** manter o texto completo disponível para leitura enquanto a apresentação prossegue. Quando aplicável, o intervalo de leitura após o fim do vídeo deve ocorrer com o texto já integralmente revelado.
+- **Idempotência:** usar uma trava de transição (por exemplo, `_transition_started`) para garantir que o sinal `finished`, a rotina de fallback ou qualquer callback interno não dispare a troca de cena mais de uma vez.
+
+### 4. Isolamento dos comandos na entrada do próximo mapa
+- Antes de carregar o próximo mapa, liberar explicitamente ações que possam permanecer pressionadas, incluindo movimento, ataque, ataque especial, pulo, defesa, reinício, `ui_accept` e `ui_cancel`, usando `Input.action_release()` para as ações existentes no projeto.
+- A troca de cena só pode ocorrer após a conclusão da apresentação, do intervalo de leitura configurado e do fade-out.
+- O primeiro frame de gameplay do mapa seguinte não pode herdar ataque, pulo, confirmação, movimento ou qualquer outro comando usado durante a cinemática.
+- Em falha de carregamento de imagem/vídeo, registrar erro explícito e executar um caminho de contingência controlado para o mapa de destino; nunca deixar a campanha presa indefinidamente nem interpretar mídia ausente como reprodução concluída com sucesso.
+
+### 5. Validação obrigatória
+- Testar separadamente teclado, gamepad, mouse e toque em Desktop/Web/Mobile, incluindo Enter, Espaço, ESC, clique e múltiplos toques.
+- Confirmar que o Typewriter não é acelerado por input, que nenhum prompt de avanço aparece e que cada vídeo só progride após seu sinal `finished`.
+- Em sequências com mais de um clipe, comprovar a ordem integral, o intervalo de leitura configurado e a transição única para o mapa correto.
+- Verificar que as ações de gameplay são liberadas antes da troca de cena e que nenhum comando é executado no primeiro frame do mapa seguinte.
+- Cobrir também recursos ausentes/inválidos e chamadas duplicadas de conclusão nos testes headless focados da cena.
+
+### 6. Estado real da implementação no repositório
+- `story_intro_fase1_2.gd` já consome eventos em `_input()` e conclui a apresentação de imagem pelo temporizador automático, sem permitir avanço do jogador.
+- **Limitação atual:** os scripts-base `story_intro_fase1_3.gd` e `story_intro_fase1_4.gd` ainda possuem caminhos de avanço/pulo por `_gui_input()` e `_unhandled_input()`. As duas cenas de vídeo precisam receber a mesma proteção e progressão automática descritas nesta seção antes que o contrato possa ser marcado como integralmente implementado.
+- Os vídeos de André e Juliana (`assets/videos/stage1/video_fase1_3_andre.ogv` e `video_fase1_3_juliana.ogv`) e o vídeo de Alessandro (`video_fase1_4_alessandro.ogv`) devem seguir o mesmo contrato; os arquivos de mídia não devem ser alterados para implementar o bloqueio de input.

@@ -65,9 +65,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("2_locadora_bg")
 expand_mode = 1
-stretch_mode = 6
+stretch_mode = 0
 
 [node name="VignetteOverlay" type="ColorRect" parent="." unique_id=1937743270]
 layout_mode = 1
@@ -128,6 +129,8 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
 size_flags_horizontal = 3
+visible = false
+process_mode = 4
 
 [node name="SlotGuilherme" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" unique_id=256161542]
 unique_name_in_owner = true

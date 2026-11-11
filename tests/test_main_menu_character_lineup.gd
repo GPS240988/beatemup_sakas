@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Valida a formação escalonada, as quatro texturas e a âncora de chão do menu.
+## Valida os quatro protagonistas, a formação assimétrica e a hierarquia de profundidade.
 
 var passed: int = 0
 var failed: int = 0
@@ -36,41 +36,52 @@ func _run_tests() -> void:
 		{"node": "SlotAndre", "id": "andre", "path": "characters/andre/idle.png"},
 		{"node": "SlotJuliana", "id": "juliana", "path": "characters/juliana/idle.png"}
 	]
-	var measured_positions: Array[Vector2] = []
 
+	var slots: Dictionary = {}
 	for entry in expected:
-		var slot := menu.get_node_or_null("%" + String(entry["node"])) as Control
-		_assert(slot != null, "%s existe" % String(entry["node"]))
+		var node_name: String = String(entry["node"])
+		var slot := menu.get_node_or_null("%" + node_name) as Control
+		_assert(slot != null, "%s existe" % node_name)
 		if slot == null:
 			continue
 
-		_assert(slot.visible, "%s está visível" % String(entry["node"]))
+		slots[node_name] = slot
+		_assert(slot.visible, "%s está visível" % node_name)
 		var data = slot.get("character_data")
-		_assert(data != null, "%s recebeu dados" % String(entry["node"]))
+		_assert(data != null, "%s recebeu dados" % node_name)
 		if data != null:
-			_assert(data.get("id") == entry["id"], "%s usa dados do personagem correto" % String(entry["node"]))
+			_assert(data.get("id") == entry["id"], "%s usa dados do personagem correto" % node_name)
 
 		var texture := slot.get("character_texture") as TextureRect
-		_assert(texture != null and texture.texture != null, "%s carregou idle.png" % String(entry["node"]))
+		_assert(texture != null and texture.texture != null, "%s carregou idle.png" % node_name)
 		if texture != null and texture.texture != null:
-			_assert(String(texture.texture.resource_path).ends_with(String(entry["path"])), "%s aponta para o idle correto" % String(entry["node"]))
-			_assert(texture.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "%s preserva filtro nearest" % String(entry["node"]))
+			_assert(String(texture.texture.resource_path).ends_with(String(entry["path"])), "%s aponta para o idle correto" % node_name)
+			_assert(texture.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "%s preserva filtro nearest" % node_name)
 
 		var visual := slot.get("sprite_container") as Control
-		_assert(visual != null, "%s tem SpriteContainer" % String(entry["node"]))
+		_assert(visual != null, "%s tem SpriteContainer" % node_name)
 		if visual != null:
-			_assert(is_equal_approx(visual.pivot_offset.y, visual.size.y), "%s tem pivô na linha dos pés" % String(entry["node"]))
-			_assert(visual.position == Vector2.ZERO, "%s não usa deslocamento vertical para respirar" % String(entry["node"]))
+			_assert(is_equal_approx(visual.pivot_offset.y, visual.size.y), "%s tem pivô na linha dos pés" % node_name)
+			_assert(visual.position == Vector2.ZERO, "%s não usa deslocamento vertical para respirar" % node_name)
 
-		measured_positions.append(slot.position)
+	_assert(slots.size() == 4, "quatro slots independentes foram configurados")
+	if slots.size() == 4:
+		var andre: Control = slots["SlotAndre"]
+		var guilherme: Control = slots["SlotGuilherme"]
+		var juliana: Control = slots["SlotJuliana"]
+		var gabriel: Control = slots["SlotGabriel"]
 
-	_assert(measured_positions.size() == 4, "quatro posições de personagem foram calculadas")
-	if measured_positions.size() == 4:
-		var has_depth_stagger: bool = false
-		for i in range(1, measured_positions.size()):
-			if not is_equal_approx(measured_positions[i].y, measured_positions[0].y):
-				has_depth_stagger = true
-		_assert(has_depth_stagger, "formação usa profundidade em vez de uma fila nivelada")
+		_assert(andre.position.x < guilherme.position.x, "André ocupa o flanco esquerdo")
+		_assert(guilherme.position.x < juliana.position.x, "Juliana fica no flanco direito intermediário")
+		_assert(juliana.position.x < gabriel.position.x, "Gabriel ocupa o flanco posterior direito")
+		_assert(andre.z_index < juliana.z_index, "André permanece no plano posterior")
+		_assert(gabriel.z_index < juliana.z_index, "Gabriel permanece atrás de Juliana")
+		_assert(juliana.z_index < guilherme.z_index, "Guilherme é desenhado no primeiro plano")
+		var andre_ground_y: float = andre.position.y + (andre.size.y * andre.scale.y)
+		var juliana_ground_y: float = juliana.position.y + (juliana.size.y * juliana.scale.y)
+		var guilherme_ground_y: float = guilherme.position.y + (guilherme.size.y * guilherme.scale.y)
+		_assert(andre_ground_y < juliana_ground_y, "André tem linha de chão posterior")
+		_assert(juliana_ground_y < guilherme_ground_y, "Guilherme tem linha de chão frontal")
 
 	var btn_play := menu.get_node_or_null("%BtnPlay")
 	var btn_continue := menu.get_node_or_null("%BtnContinue")

@@ -1,9 +1,8 @@
 class_name MenuCharacterSlot
 extends Control
 
-## Slot de Personagem do Menu Principal (Sakas Neo-16-bit).
-## O SpriteContainer tem pivô no centro inferior; a respiração altera apenas a escala
-## em torno desse pivô. A linha dos pés e a sombra permanecem fixas no chão.
+## Slot de personagem do menu principal (Sakas Neo-16-bit).
+## A respiração escala o corpo pelo pivô inferior; pés e sombra mantêm o contato com o chão.
 
 signal draw_completed(character_id: String)
 
@@ -57,7 +56,7 @@ func _ensure_node_refs() -> void:
 func _update_ground_pivot() -> void:
 	if sprite_container == null:
 		return
-	# Centro inferior: escalar o corpo não desloca o ponto de contato dos pés.
+	# Centro inferior: respirar não altera a coordenada de contato dos pés.
 	sprite_container.pivot_offset = Vector2(sprite_container.size.x * 0.5, sprite_container.size.y)
 	sprite_container.position = Vector2.ZERO
 
@@ -81,9 +80,11 @@ func apply_character_data(data: RefCounted) -> void:
 			push_warning("MenuCharacterSlot: sprite idle não encontrado: %s" % tex_path)
 		character_texture.flip_h = character_data.get("flip_h")
 
+	# O briefing pede silhuetas limpas: sem aura pulsante nem poeira de entrada.
 	if character_aura != null:
-		character_aura.modulate = character_data.get("accent_color")
-		character_aura.modulate.a = character_data.get("aura_alpha_min")
+		character_aura.visible = false
+	if dust_container != null:
+		dust_container.visible = false
 
 	if character_shadow != null:
 		character_shadow.modulate.a = character_data.get("shadow_alpha_max")
@@ -134,7 +135,6 @@ func _on_draw_finished() -> void:
 	if character_texture != null and character_texture.material is ShaderMaterial:
 		(character_texture.material as ShaderMaterial).set_shader_parameter("draw_progress", 1.0)
 
-	_play_dust_pop()
 	start_idle_loop()
 	draw_completed.emit(character_data.get("id"))
 
@@ -146,7 +146,6 @@ func start_idle_loop() -> void:
 	_is_looping_idle = true
 	_start_breathe_tween()
 	_start_shadow_tween()
-	_start_aura_tween()
 
 
 func _start_breathe_tween() -> void:
@@ -191,43 +190,6 @@ func _start_shadow_tween() -> void:
 	_shadow_tween.parallel().tween_property(character_shadow, "modulate:a", alpha_min, half_duration)
 	_shadow_tween.tween_property(character_shadow, "scale:x", scale_max, half_duration)
 	_shadow_tween.parallel().tween_property(character_shadow, "modulate:a", alpha_max, half_duration)
-
-
-func _start_aura_tween() -> void:
-	if character_aura == null:
-		return
-
-	if _aura_tween != null and _aura_tween.is_valid():
-		_aura_tween.kill()
-
-	var duration: float = character_data.get("breathe_duration") * 1.3
-	var half_duration: float = duration * 0.5
-	_aura_tween = create_tween().set_loops()
-	_aura_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_aura_tween.tween_property(character_aura, "modulate:a", character_data.get("aura_alpha_max"), half_duration)
-	_aura_tween.tween_property(character_aura, "modulate:a", character_data.get("aura_alpha_min"), half_duration)
-
-
-func _play_dust_pop() -> void:
-	if dust_container == null:
-		return
-
-	for i in range(dust_container.get_child_count()):
-		var dust := dust_container.get_child(i) as Control
-		if dust == null:
-			continue
-		dust.visible = true
-		dust.modulate.a = 0.7
-		dust.scale = Vector2(0.5, 0.5)
-		var target_x: float = -28.0 if i == 0 else (28.0 if i == 1 else 0.0)
-		var dust_tween := create_tween()
-		dust_tween.set_parallel(true)
-		dust_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		dust_tween.tween_property(dust, "position:x", dust.position.x + target_x, 0.45)
-		dust_tween.tween_property(dust, "position:y", dust.position.y - 8.0, 0.45)
-		dust_tween.tween_property(dust, "scale", Vector2(1.2, 1.2), 0.45)
-		dust_tween.tween_property(dust, "modulate:a", 0.0, 0.45)
-		dust_tween.chain().tween_callback(func(): dust.visible = false)
 
 
 func _stop_all_tweens() -> void:

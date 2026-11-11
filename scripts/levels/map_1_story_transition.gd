@@ -6,8 +6,14 @@ extends "res://scripts/levels/mobile_base_level.gd"
 
 const MAP_2_SCENE_PATH: String = "res://scenes/levels/map_2.tscn"
 const STORY_INTERLUDE_SCENE_PATH: String = "res://scenes/story/story_intro_fase1_2.tscn"
+const OPENING_SEQUENCE_PATH: String = "res://resources/story/story_intro_map1.tres"
+const NARRATIVE_DIRECTOR_SCENE_PATH: String = "res://scenes/ui/narrative_director.tscn"
+const Map1NarrativeDirectorClass = preload("res://scripts/events/narrative_director.gd")
+const Map1OpeningDialogueEventClass = preload("res://scripts/events/map1_opening_dialogue.gd")
 
 var _mobile_reinforcement_spawn_positions: Array[Vector2] = []
+var _opening_flow_pending: bool = false
+var _opening_tree_was_paused: bool = false
 
 
 ## Desktop conserva exatamente o cálculo original de entrada fora da câmera.
@@ -143,6 +149,88 @@ func get_offscreen_spawn_position(index: int = 0, total: int = 1) -> Vector2:
 	_mobile_reinforcement_spawn_positions.append(player_nav_position)
 	return player_nav_position
 
+
+
+
+## Executa a abertura como evento bloqueante do Mapa 1.
+## A árvore é pausada antes do primeiro frame de gameplay: NPCs, inimigos,
+## jogador, diretores e demais atores não processam enquanto a abertura ocorre.
+## O NarrativeDirector recebe PROCESS_MODE_ALWAYS para continuar a cinemática.
+func _trigger_opening_narrative() -> void:
+	if _opening_flow_pending or not is_inside_tree():
+		return
+
+	_opening_flow_pending = true
+	var tree: SceneTree = get_tree()
+	_opening_tree_was_paused = tree.paused
+	tree.paused = true
+
+	if not ResourceLoader.exists(OPENING_SEQUENCE_PATH):
+		push_warning(
+			"Map1: sequência de abertura não encontrada: " + OPENING_SEQUENCE_PATH
+		)
+		_show_opening_dialogue()
+		return
+
+	var narrative_director: NarrativeDirector = null
+	var narrative_scene: PackedScene = (
+		load(NARRATIVE_DIRECTOR_SCENE_PATH) as PackedScene
+	)
+	if narrative_scene != null:
+		narrative_director = narrative_scene.instantiate() as NarrativeDirector
+	else:
+		narrative_director = Map1NarrativeDirectorClass.new() as NarrativeDirector
+
+	if narrative_director == null:
+		push_warning("Map1: não foi possível instanciar o NarrativeDirector.")
+		_show_opening_dialogue()
+		return
+
+	narrative_director.name = "NarrativeDirector"
+	narrative_director.process_mode = Node.PROCESS_MODE_ALWAYS
+
+	# sequence_skipped é emitido antes do fade. Usamos somente
+	# sequence_completed para abrir o diálogo depois que a locadora estiver visível.
+	narrative_director.sequence_completed.connect(
+		_on_opening_narrative_completed,
+		CONNECT_ONE_SHOT
+	)
+	add_child(narrative_director)
+	narrative_director.play_sequence_from_path(OPENING_SEQUENCE_PATH)
+
+
+func _on_opening_narrative_completed(_sequence_id: String) -> void:
+	_show_opening_dialogue()
+
+
+func _show_opening_dialogue() -> void:
+	if not _opening_flow_pending or not is_inside_tree():
+		return
+
+	var dialogue_event := (
+		Map1OpeningDialogueEventClass.new() as Map1OpeningDialogueEvent
+	)
+	if dialogue_event == null:
+		push_warning("Map1: não foi possível instanciar o diálogo inicial.")
+		_release_opening_flow()
+		return
+
+	dialogue_event.process_mode = Node.PROCESS_MODE_ALWAYS
+	dialogue_event.dialogue_closed.connect(_on_opening_dialogue_closed)
+	add_child(dialogue_event)
+
+
+func _on_opening_dialogue_closed() -> void:
+	_release_opening_flow()
+
+
+func _release_opening_flow() -> void:
+	_opening_flow_pending = false
+	if get_tree() != null:
+		get_tree().paused = _opening_tree_was_paused
+
+	# A música e o processamento do mapa começam somente após fechar a fala.
+	super._setup_level_bgm()
 
 func _advance_to_next_map() -> void:
 	var should_show_interlude: bool = (

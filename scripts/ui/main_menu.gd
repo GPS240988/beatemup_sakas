@@ -120,7 +120,7 @@ func _is_mobile_runtime() -> bool:
 func _apply_mobile_fullscreen() -> void:
 	if background_image != null:
 		background_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		background_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		background_image.stretch_mode = TextureRect.STRETCH_SCALE
 		background_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 

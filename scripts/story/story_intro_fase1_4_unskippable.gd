@@ -1,0 +1,58 @@
+extends "res://scripts/story/story_intro_fase1_4.gd"
+
+## Variante obrigatória da cinemática de apresentação do chefe Alessandro.
+## O mapa 4 só é carregado após o término natural do vídeo.
+
+@export_range(0.0, 5.0, 0.1) var post_video_hold_duration: float = 1.2
+
+
+func _input(_event: InputEvent) -> void:
+	# Consome teclado, gamepad, mouse e toque antes que GUI/unhandled_input
+	# do script-base consiga avançar ou encerrar a cinemática.
+	var viewport: Viewport = get_viewport()
+	if viewport != null:
+		viewport.set_input_as_handled()
+
+
+func _show_prompt() -> void:
+	# Não há prompt de avanço manual em uma apresentação obrigatória.
+	var prompt_label: Label = _dialogue_ui.get("prompt_label") as Label
+	if prompt_label != null:
+		prompt_label.visible = false
+
+
+func _on_video_finished() -> void:
+	if _transition_started:
+		return
+
+	_complete_dialogue_for_video_end()
+	await _wait_after_video()
+	if not is_inside_tree() or _transition_started:
+		return
+
+	_release_pending_gameplay_inputs()
+	_transition_to_map_4()
+
+
+func _complete_dialogue_for_video_end() -> void:
+	var dialogue_label: Label = _dialogue_ui.get("dialogue_label") as Label
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	if dialogue_label != null:
+		dialogue_label.visible_characters = dialogue_label.text.length()
+	_is_typing = false
+
+
+func _wait_after_video() -> void:
+	if post_video_hold_duration > 0.0:
+		await get_tree().create_timer(post_video_hold_duration, true).timeout
+
+
+func _release_pending_gameplay_inputs() -> void:
+	for action: String in [
+		"move_left", "move_right", "move_up", "move_down",
+		"attack", "attack_punch", "attack_special", "special",
+		"attack_aerial", "jump", "guard", "restart",
+		"ui_accept", "ui_cancel"
+	]:
+		Input.action_release(action)
