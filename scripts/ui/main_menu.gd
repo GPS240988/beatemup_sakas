@@ -4,7 +4,7 @@ extends Control
 ## Menu Principal Arcade — Beat 'em Up Sakas
 ## Design System Neo-16-bit Urban Arcade (Vila Prudente Temporal).
 ## 4 Opções Canônicas: JOGAR (Novo Jogo), CONTINUAR (Mapa direto), CONFIGURAÇÕES e SAIR.
-## Utiliza o cenário cinematográfico da locadora (locadora.webp) e botões ArcadeButton customizados.
+## Elenco em formação escalonada, com hierarquia de profundidade e pés ancorados.
 
 const TITLE_SCREEN_SCENE: String = "res://scenes/ui/title_screen.tscn"
 const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
@@ -14,6 +14,9 @@ const BGM_MENU: String = "res://assets/audio/bgm/Menu.mp3"
 const SFX_MOVE_PATH := "res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"
 const SFX_CONFIRM_PATH := "res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"
 const SFX_DENIED_PATH := "res://assets/audio/sfx/Opção Bloqueada_sfx_denied.mp3"
+
+const CHARACTER_SLOT_SIZE: Vector2 = Vector2(220.0, 300.0)
+const FORMATION_DESIGN_WIDTH: float = 690.0
 
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
 const ArcadeButtonClass = preload("res://scripts/ui/components/arcade_button.gd")
@@ -29,7 +32,7 @@ const MenuCharacterSlotClass = preload("res://scripts/ui/components/menu_charact
 @onready var btn_quit: Button = %BtnQuit
 @onready var settings_panel: Control = %SettingsPanel
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
-@onready var characters_lineup: HBoxContainer = %CharactersLineup
+@onready var characters_lineup: Control = %CharactersLineup
 @onready var slot_guilherme: Control = %SlotGuilherme
 @onready var slot_gabriel: Control = %SlotGabriel
 @onready var slot_andre: Control = %SlotAndre
@@ -41,8 +44,6 @@ var _current_index: int = 0
 var _is_transitioning: bool = false
 var _is_in_settings: bool = false
 var _accept_input: bool = false
-
-var _portrait_draw_tween: Tween
 
 var _sfx_move: AudioStream
 var _sfx_confirm: AudioStream
@@ -59,7 +60,7 @@ func _ready() -> void:
 		if not settings_panel.closed.is_connected(_on_settings_closed):
 			settings_panel.closed.connect(_on_settings_closed)
 
-	# Assegura a reprodução contínua da BGM do Menu
+	# Assegura a reprodução contínua da BGM do Menu.
 	var session = get_node_or_null("/root/GameSession")
 	if session != null and session.has_method("play_bgm"):
 		session.play_bgm(BGM_MENU, -4.0, 1.0)
@@ -70,14 +71,20 @@ func _ready() -> void:
 	_setup_characters_lineup()
 	_start_portrait_drawing_animation()
 
-	# Aguarda frame para resolução correta de layout e atribuição de foco inicial
+	if characters_lineup != null:
+		if not characters_lineup.resized.is_connected(_layout_character_formation):
+			characters_lineup.resized.connect(_layout_character_formation)
+		call_deferred("_layout_character_formation")
+
+	# Aguarda frame para resolução correta de layout e atribuição de foco inicial.
 	if get_tree() != null:
 		await get_tree().process_frame
+		_layout_character_formation()
 		if not _is_mobile_runtime() and _buttons.size() > 0:
 			_focus_button(0, false)
 
 		# Debounce de entrada para evitar que a tecla Enter da tela de abertura vaze
-		# e acione imediatamente a primeira opção do menu
+		# e acione imediatamente a primeira opção do menu.
 		await get_tree().create_timer(0.2).timeout
 		_accept_input = true
 	else:
@@ -193,20 +200,20 @@ func _activate_option(index: int) -> void:
 		return
 
 	match index:
-		0: # JOGAR — Inicia nova campanha com reset apropriado
+		0: # JOGAR — Inicia nova campanha com reset apropriado.
 			_is_transitioning = true
 			_play_sfx(_sfx_confirm)
 			var session = get_node_or_null("/root/GameSession")
 			if session != null and session.has_method("reset_session"):
 				session.reset_session()
-			# Dispara prefetch/stream da história em segundo plano durante a seleção de personagem
+			# Dispara prefetch/stream da história em segundo plano durante a seleção de personagem.
 			var pack_mgr = get_node_or_null("/root/PackManager")
 			if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
 				pack_mgr.ensure_pack_loaded_async("story_cinematics")
 			await get_tree().create_timer(0.25).timeout
 			get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
 
-		1: # CONTINUAR — Abre diretamente o mapa com a progressão atual
+		1: # CONTINUAR — Abre diretamente o mapa com a progressão atual.
 			_is_transitioning = true
 			_play_sfx(_sfx_confirm)
 			var session = get_node_or_null("/root/GameSession")
@@ -217,11 +224,11 @@ func _activate_option(index: int) -> void:
 			await get_tree().create_timer(0.25).timeout
 			get_tree().change_scene_to_file(MAP_MENU_SCENE)
 
-		2: # CONFIGURAÇÕES — Abre o painel integrado funcional
+		2: # CONFIGURAÇÕES — Abre o painel integrado funcional.
 			_play_sfx(_sfx_confirm)
 			_open_settings()
 
-		3: # SAIR — Encerra o jogo no Desktop ou invoca saída Web
+		3: # SAIR — Encerra o jogo no Desktop ou invoca saída Web.
 			_is_transitioning = true
 			_play_sfx(_sfx_confirm)
 			await get_tree().create_timer(0.2).timeout
@@ -242,7 +249,7 @@ func _on_settings_closed(_origin: String) -> void:
 	_is_in_settings = false
 	if settings_panel != null:
 		settings_panel.visible = false
-	# Devolve o foco ao botão de Configurações
+	# Devolve o foco ao botão de Configurações.
 	if btn_settings != null and not _is_mobile_runtime():
 		btn_settings.grab_focus()
 
@@ -266,53 +273,72 @@ func _play_sfx(stream: AudioStream) -> void:
 
 
 func _setup_characters_lineup() -> void:
-	if slot_guilherme != null:
-		var guilherme_data = MenuCharacterDataClass.create_guilherme()
-		if slot_guilherme.has_method("apply_character_data"):
-			slot_guilherme.apply_character_data(guilherme_data)
-		else:
-			slot_guilherme.set("character_data", guilherme_data)
-
+	if slot_guilherme != null and slot_guilherme.has_method("apply_character_data"):
+		slot_guilherme.call("apply_character_data", MenuCharacterDataClass.create_guilherme())
 	if slot_gabriel != null and slot_gabriel.has_method("apply_character_data"):
-		var gabriel_data = MenuCharacterDataClass.create_gabriel()
-		slot_gabriel.call("apply_character_data", gabriel_data)
-
+		slot_gabriel.call("apply_character_data", MenuCharacterDataClass.create_gabriel())
 	if slot_andre != null and slot_andre.has_method("apply_character_data"):
-		var andre_data = MenuCharacterDataClass.create_andre()
-		slot_andre.call("apply_character_data", andre_data)
-
+		slot_andre.call("apply_character_data", MenuCharacterDataClass.create_andre())
 	if slot_juliana != null and slot_juliana.has_method("apply_character_data"):
-		var juliana_data = MenuCharacterDataClass.create_juliana()
-		slot_juliana.call("apply_character_data", juliana_data)
+		slot_juliana.call("apply_character_data", MenuCharacterDataClass.create_juliana())
 
 
 func _start_portrait_drawing_animation() -> void:
-	if slot_guilherme != null and slot_guilherme.has_method("start_presentation"):
-		slot_guilherme.call("start_presentation", true)
-	elif guilherme_drawing_character != null and guilherme_drawing_character.material is ShaderMaterial:
-		var mat := guilherme_drawing_character.material as ShaderMaterial
-		if mat != null:
-			guilherme_drawing_character.material = mat.duplicate()
-			(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", 0.0)
-
-		if _portrait_draw_tween != null and _portrait_draw_tween.is_valid():
-			_portrait_draw_tween.kill()
-
-		_portrait_draw_tween = create_tween()
-		_portrait_draw_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_portrait_draw_tween.tween_method(
-			func(prog: float):
-				if is_instance_valid(guilherme_drawing_character) and guilherme_drawing_character.material != null:
-					(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", prog),
-			0.0,
-			1.0,
-			1.8
-		)
-		_portrait_draw_tween.finished.connect(_on_portrait_draw_completed)
+	var presentation_slots: Array[Control] = [slot_guilherme, slot_gabriel, slot_andre, slot_juliana]
+	for slot in presentation_slots:
+		if slot != null and slot.has_method("start_presentation"):
+			slot.call("start_presentation", true)
 
 
-func _on_portrait_draw_completed() -> void:
-	if not is_instance_valid(guilherme_drawing_character):
+func _layout_character_formation() -> void:
+	if characters_lineup == null:
 		return
-	if guilherme_drawing_character.material != null:
-		(guilherme_drawing_character.material as ShaderMaterial).set_shader_parameter("draw_progress", 1.0)
+
+	var available_width: float = characters_lineup.size.x
+	if available_width <= 1.0:
+		return
+
+	# A formação reduz proporcionalmente quando a coluna perde largura (janelas/mobile).
+	var fit_scale: float = minf(1.0, available_width / FORMATION_DESIGN_WIDTH)
+	var content_width: float = FORMATION_DESIGN_WIDTH * fit_scale
+	var left_offset: float = maxf(0.0, (available_width - content_width) * 0.5)
+	var lineup_height: float = characters_lineup.size.y
+	if lineup_height <= 1.0:
+		return
+
+	# Formação em zigue-zague: dois personagens na linha posterior e dois à frente.
+	# O deslocamento no eixo Y representa profundidade 2.5D; cada sprite continua
+	# ancorado no próprio plano de chão, sem flutuar durante a respiração.
+	var rear_ground_y: float = lineup_height - (42.0 * fit_scale)
+	var front_ground_y: float = lineup_height - (3.0 * fit_scale)
+
+	_place_character_slot(slot_gabriel, 0.0, 0.82, rear_ground_y, 0, fit_scale, left_offset)
+	_place_character_slot(slot_guilherme, 150.0, 1.00, front_ground_y, 2, fit_scale, left_offset)
+	_place_character_slot(slot_andre, 380.0, 0.90, rear_ground_y, 1, fit_scale, left_offset)
+	_place_character_slot(slot_juliana, 510.0, 0.80, front_ground_y, 3, fit_scale, left_offset)
+
+
+func _place_character_slot(
+	slot: Control,
+	design_x: float,
+	depth_scale: float,
+	ground_y: float,
+	depth_order: int,
+	fit_scale: float,
+	left_offset: float
+) -> void:
+	if slot == null:
+		return
+
+	var final_scale: float = depth_scale * fit_scale
+	slot.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	slot.custom_minimum_size = CHARACTER_SLOT_SIZE
+	slot.size = CHARACTER_SLOT_SIZE
+	slot.pivot_offset = Vector2.ZERO
+	slot.scale = Vector2.ONE * final_scale
+	slot.position = Vector2(
+		left_offset + (design_x * fit_scale),
+		ground_y - (CHARACTER_SLOT_SIZE.y * final_scale)
+	)
+	slot.z_index = depth_order
+	slot.visible = true

@@ -32,6 +32,7 @@ enum BebadoState {
 
 ## Parâmetros de Rastejamento
 @export_group("Rastejamento (Crawl)")
+@export_range(0.05, 0.95, 0.05) var crawl_low_health_threshold: float = 0.50
 @export var crawl_duration: float = 2.5
 @export var crawl_speed: float = 110.0
 @export var crawl_contact_damage_cooldown: float = 0.65
@@ -65,6 +66,8 @@ var _crawl_damage: float = 12.0
 var _crawl_contact_active: bool = false
 var _crawl_contact_last_hit_ms: Dictionary = {}
 var _next_spontaneous_crawl_time: float = 0.0  # timer para crawl espontâneo
+var _spontaneous_crawl_pending: bool = false
+var _low_health_crawl_used: bool = false
 var _crawl_enter_done: bool = false
 
 var _drink_cooldown: float = 5.0
@@ -211,12 +214,16 @@ func _physics_process(delta: float) -> void:
 			pass
 
 	# Verifica oportunidade contextual de beber
+	# O crawl espontaneo nao depende do estado FLANKING nem da distancia.
+	if _update_spontaneous_crawl(delta):
+		return
+
 	if _can_attempt_drink():
 		start_drink()
 		return
 
 	# Verifica crawl espontâneo (variante de batalha: não só quando derrubado)
-	if bebado_state == BebadoState.NONE and current_state == State.FLANKING and _crawl_cooldown <= 0.0:
+	if false:
 		if player_target != null and is_instance_valid(player_target):
 			var dist: float = global_position.distance_to(player_target.global_position)
 			# Só entra em crawl espontâneo se estiver a uma distância razoável do jogador
@@ -238,6 +245,62 @@ func _physics_process(delta: float) -> void:
 
 ## Verifica se o Bêbado pode tentar esquivar de um golpe recebido.
 ## A chance é rolada em take_damage(), nunca apenas pela proximidade do jogador.
+
+## Decide o crawl espontaneo durante a batalha, sem interromper acoes criticas.
+## Abaixo do limiar de vida, deixa a decisao pendente ate o primeiro estado seguro.
+func _update_spontaneous_crawl(delta: float) -> bool:
+	if health_component == null or health_component.is_dead or current_state == State.DEAD:
+		return false
+	if player_target == null or not is_instance_valid(player_target):
+		return false
+
+	var player_health := player_target.get_node_or_null("HealthComponent") as HealthComponent
+	if player_health != null and player_health.is_dead:
+		return false
+
+	var health_ratio: float = health_component.current_health / maxf(health_component.max_health, 1.0)
+	var low_health_trigger: bool = (
+		health_ratio <= clampf(crawl_low_health_threshold, 0.05, 0.95)
+		and not _low_health_crawl_used
+	)
+	if low_health_trigger:
+		_spontaneous_crawl_pending = true
+
+	# Primeira tentativa apos 6-12 s; se falhar, tenta novamente a cada segundo.
+	if not _spontaneous_crawl_pending:
+		_next_spontaneous_crawl_time -= delta
+		if _next_spontaneous_crawl_time <= 0.0:
+			if randf() <= clampf(crawl_spontaneous_chance, 0.0, 1.0):
+				_spontaneous_crawl_pending = true
+			else:
+				_next_spontaneous_crawl_time = 1.0
+
+	if not _spontaneous_crawl_pending or _crawl_cooldown > 0.0:
+		return false
+
+	# Nao interrompe ataque, preparacao, hitstun, queda ou levantamento.
+	if not current_state in [
+		State.IDLE,
+		State.WAITING,
+		State.FLANKING,
+		State.ALIGNING_DEPTH,
+		State.APPROACHING,
+		State.RECOVERY
+	]:
+		return false
+
+	start_crawl()
+	if low_health_trigger:
+		_low_health_crawl_used = true
+	_spontaneous_crawl_pending = false
+	_reset_spontaneous_crawl_timer()
+	return true
+
+
+func _reset_spontaneous_crawl_timer() -> void:
+	var minimum_interval: float = maxf(1.0, crawl_spontaneous_min_interval)
+	var maximum_interval: float = maxf(minimum_interval, crawl_spontaneous_max_interval)
+	_next_spontaneous_crawl_time = randf_range(minimum_interval, maximum_interval)
 func _can_attempt_dodge() -> bool:
 	if bebado_state != BebadoState.NONE or _dodge_cooldown > 0.0:
 		return false
@@ -311,6 +374,8 @@ func _end_dodge() -> void:
 ## Inicia o rastejamento no solo (transição crawl_enter -> crawl)
 func start_crawl() -> void:
 	_ensure_internal_refs()
+	if current_state == State.DEAD or (health_component != null and health_component.is_dead):
+		return
 	bebado_state = BebadoState.CRAWLING
 	_crawl_enter_timer = 0.35  # duração da animação de entrada no chão
 	_crawl_timer = crawl_duration

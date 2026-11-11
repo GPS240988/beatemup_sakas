@@ -1,9 +1,9 @@
 class_name MenuCharacterSlot
 extends Control
 
-## Slot de Personagem do Menu Principal (Sakas Neo-16-bit)
-## Controla o desenho inicial, respiração (idle), sombra de contato no chão,
-## aura discreta e efeitos de impacto (dust pop), mantendo nitidez absoluta de pixel art.
+## Slot de Personagem do Menu Principal (Sakas Neo-16-bit).
+## O SpriteContainer tem pivô no centro inferior; a respiração altera apenas a escala
+## em torno desse pivô. A linha dos pés e a sombra permanecem fixas no chão.
 
 signal draw_completed(character_id: String)
 
@@ -48,6 +48,19 @@ func _ensure_node_refs() -> void:
 	if dust_container == null:
 		dust_container = get_node_or_null("DustContainer") as Control
 
+	if sprite_container != null:
+		if not sprite_container.resized.is_connected(_update_ground_pivot):
+			sprite_container.resized.connect(_update_ground_pivot)
+		_update_ground_pivot()
+
+
+func _update_ground_pivot() -> void:
+	if sprite_container == null:
+		return
+	# Centro inferior: escalar o corpo não desloca o ponto de contato dos pés.
+	sprite_container.pivot_offset = Vector2(sprite_container.size.x * 0.5, sprite_container.size.y)
+	sprite_container.position = Vector2.ZERO
+
 
 func apply_character_data(data: RefCounted) -> void:
 	character_data = data
@@ -59,30 +72,29 @@ func apply_character_data(data: RefCounted) -> void:
 
 	visible = true
 
-	# Carrega e associa a textura do personagem
 	if character_texture != null:
 		character_texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		var tex_path: String = character_data.get("texture_path")
 		if ResourceLoader.exists(tex_path):
 			character_texture.texture = load(tex_path) as Texture2D
+		else:
+			push_warning("MenuCharacterSlot: sprite idle não encontrado: %s" % tex_path)
 		character_texture.flip_h = character_data.get("flip_h")
 
-	# Configura a aura sutil com a cor de destaque do personagem
 	if character_aura != null:
 		character_aura.modulate = character_data.get("accent_color")
 		character_aura.modulate.a = character_data.get("aura_alpha_min")
 
-	# Configura a sombra de contato
 	if character_shadow != null:
 		character_shadow.modulate.a = character_data.get("shadow_alpha_max")
 		character_shadow.pivot_offset = character_shadow.size * 0.5
 		character_shadow.scale = Vector2(character_data.get("shadow_scale_x_max"), 1.0)
 
-	# Assegura que o container do sprite tenha o pivô exatamente nos pés
 	if sprite_container != null:
-		sprite_container.pivot_offset = Vector2(sprite_container.size.x * 0.5, sprite_container.size.y)
+		_update_ground_pivot()
 		var scale_mult: float = character_data.get("scale_multiplier")
 		sprite_container.scale = Vector2.ONE * scale_mult
+		sprite_container.position = Vector2.ZERO
 
 
 func start_presentation(start_drawing: bool = true) -> void:
@@ -92,12 +104,10 @@ func start_presentation(start_drawing: bool = true) -> void:
 	_stop_all_tweens()
 
 	if start_drawing and character_texture != null and character_texture.material is ShaderMaterial:
-		# Duplica o material para ser exclusivo deste slot
 		var mat := (character_texture.material as ShaderMaterial).duplicate() as ShaderMaterial
 		character_texture.material = mat
 		mat.set_shader_parameter("draw_progress", 0.0)
 
-		# Animação de entrada e desenho a lápis da cabeça aos pés
 		var delay: float = character_data.get("enter_delay")
 		_enter_tween = create_tween()
 		_enter_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -146,23 +156,19 @@ func _start_breathe_tween() -> void:
 	if _breathe_tween != null and _breathe_tween.is_valid():
 		_breathe_tween.kill()
 
-	var dur: float = character_data.get("breathe_duration")
-	var half_dur := dur * 0.5
-	var y_offset: float = character_data.get("breathe_y_offset")
-	var scale_mult: float = character_data.get("scale_multiplier")
-	var scale_y: float = character_data.get("breathe_scale_y") * scale_mult
-	var base_scale := scale_mult
+	_update_ground_pivot()
+	var duration: float = character_data.get("breathe_duration")
+	var half_duration: float = duration * 0.5
+	var base_scale: Vector2 = sprite_container.scale
+	var inhale_scale: Vector2 = Vector2(
+		base_scale.x * float(character_data.get("breathe_scale_x")),
+		base_scale.y * float(character_data.get("breathe_scale_y"))
+	)
 
 	_breathe_tween = create_tween().set_loops()
 	_breathe_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-
-	# Fase 1: Inalação / Expansão sutil para cima
-	_breathe_tween.tween_property(sprite_container, "position:y", y_offset, half_dur)
-	_breathe_tween.parallel().tween_property(sprite_container, "scale:y", scale_y, half_dur)
-
-	# Fase 2: Exalação / Retorno suave à base
-	_breathe_tween.tween_property(sprite_container, "position:y", 0.0, half_dur)
-	_breathe_tween.parallel().tween_property(sprite_container, "scale:y", base_scale, half_dur)
+	_breathe_tween.tween_property(sprite_container, "scale", inhale_scale, half_duration)
+	_breathe_tween.tween_property(sprite_container, "scale", base_scale, half_duration)
 
 
 func _start_shadow_tween() -> void:
@@ -172,8 +178,8 @@ func _start_shadow_tween() -> void:
 	if _shadow_tween != null and _shadow_tween.is_valid():
 		_shadow_tween.kill()
 
-	var dur: float = character_data.get("breathe_duration")
-	var half_dur := dur * 0.5
+	var duration: float = character_data.get("breathe_duration")
+	var half_duration: float = duration * 0.5
 	var scale_min: float = character_data.get("shadow_scale_x_min")
 	var scale_max: float = character_data.get("shadow_scale_x_max")
 	var alpha_min: float = character_data.get("shadow_alpha_min")
@@ -181,14 +187,10 @@ func _start_shadow_tween() -> void:
 
 	_shadow_tween = create_tween().set_loops()
 	_shadow_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-
-	# Quando o corpo sobe: sombra encolhe e clareia discretamente
-	_shadow_tween.tween_property(character_shadow, "scale:x", scale_min, half_dur)
-	_shadow_tween.parallel().tween_property(character_shadow, "modulate:a", alpha_min, half_dur)
-
-	# Quando o corpo desce: sombra expande e fixa no solo
-	_shadow_tween.tween_property(character_shadow, "scale:x", scale_max, half_dur)
-	_shadow_tween.parallel().tween_property(character_shadow, "modulate:a", alpha_max, half_dur)
+	_shadow_tween.tween_property(character_shadow, "scale:x", scale_min, half_duration)
+	_shadow_tween.parallel().tween_property(character_shadow, "modulate:a", alpha_min, half_duration)
+	_shadow_tween.tween_property(character_shadow, "scale:x", scale_max, half_duration)
+	_shadow_tween.parallel().tween_property(character_shadow, "modulate:a", alpha_max, half_duration)
 
 
 func _start_aura_tween() -> void:
@@ -198,20 +200,18 @@ func _start_aura_tween() -> void:
 	if _aura_tween != null and _aura_tween.is_valid():
 		_aura_tween.kill()
 
-	var dur: float = character_data.get("breathe_duration") * 1.3
-	var half_dur := dur * 0.5
-
+	var duration: float = character_data.get("breathe_duration") * 1.3
+	var half_duration: float = duration * 0.5
 	_aura_tween = create_tween().set_loops()
 	_aura_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_aura_tween.tween_property(character_aura, "modulate:a", character_data.get("aura_alpha_max"), half_dur)
-	_aura_tween.tween_property(character_aura, "modulate:a", character_data.get("aura_alpha_min"), half_dur)
+	_aura_tween.tween_property(character_aura, "modulate:a", character_data.get("aura_alpha_max"), half_duration)
+	_aura_tween.tween_property(character_aura, "modulate:a", character_data.get("aura_alpha_min"), half_duration)
 
 
 func _play_dust_pop() -> void:
 	if dust_container == null:
 		return
 
-	# Anima pequenos pontos de poeira nos pés (impacto inicial da aterrissagem)
 	for i in range(dust_container.get_child_count()):
 		var dust := dust_container.get_child(i) as Control
 		if dust == null:

@@ -1,43 +1,71 @@
 extends SceneTree
 
-const MenuCharacterSlotClass = preload("res://scripts/ui/components/menu_character_slot.gd")
 const MenuCharacterDataClass = preload("res://scripts/ui/menu_character_data.gd")
 
+var passed: int = 0
+var failed: int = 0
+
+
 func _init() -> void:
-	print("\n========================================================")
-	print(" TESTE: MENU_CHARACTER_SLOT E MENU_CHARACTER_DATA")
-	print("========================================================")
+	call_deferred("_run_tests")
 
-	var scn = load("res://scenes/ui/components/menu_character_slot.tscn") as PackedScene
-	assert(scn != null, "A cena menu_character_slot.tscn deve carregar sem erros")
-	print("  [OK] Cena menu_character_slot.tscn carregada com sucesso")
 
-	var slot = scn.instantiate()
-	assert(slot != null, "A cena deve instanciar como MenuCharacterSlot")
-	print("  [OK] Instanciado como MenuCharacterSlot")
+func _run_tests() -> void:
+	var packed: PackedScene = load("res://scenes/ui/components/menu_character_slot.tscn") as PackedScene
+	_assert(packed != null, "menu_character_slot.tscn carrega")
+	if packed == null:
+		_finish_test()
+		return
 
-	var data = MenuCharacterDataClass.create_guilherme()
-	assert(data.id == "guilherme", "ID do Guilherme deve ser guilherme")
-	assert(data.is_active == true, "Guilherme deve ser ativo")
-	print("  [OK] MenuCharacterData.create_guilherme() validado")
-
-	var gabriel = MenuCharacterDataClass.create_gabriel()
-	assert(gabriel.is_active == false, "Gabriel deve iniciar inativo para expansão futura")
-	var andre = MenuCharacterDataClass.create_andre()
-	assert(andre.is_active == false, "André deve iniciar inativo para expansão futura")
-	var juliana = MenuCharacterDataClass.create_juliana()
-	assert(juliana.is_active == false, "Juliana deve iniciar inativo para expansão futura")
-	print("  [OK] Os outros 3 slots (Gabriel, André, Juliana) configurados e inativos")
-
+	var slot := packed.instantiate() as Control
+	_assert(slot != null, "MenuCharacterSlot instancia")
+	if slot == null:
+		_finish_test()
+		return
 	root.add_child(slot)
-	slot.apply_character_data(data)
-	assert(slot.visible == true, "Slot do Guilherme deve estar visível")
-	assert(slot.character_texture.texture != null, "Textura de Guilherme deve estar carregada")
-	print("  [OK] apply_character_data() aplicou Guilherme com sucesso")
+	await process_frame
 
-	slot.start_presentation(true)
-	print("  [OK] start_presentation() executado com sucesso")
+	var characters := [
+		{"data": MenuCharacterDataClass.create_guilherme(), "id": "guilherme", "path": "characters/guilherme/idle.png"},
+		{"data": MenuCharacterDataClass.create_gabriel(), "id": "gabriel", "path": "characters/gabriel/idle.png"},
+		{"data": MenuCharacterDataClass.create_andre(), "id": "andre", "path": "characters/andre/idle.png"},
+		{"data": MenuCharacterDataClass.create_juliana(), "id": "juliana", "path": "characters/juliana/idle.png"}
+	]
+
+	for entry in characters:
+		var data = entry["data"]
+		_assert(data.get("is_active") == true, "%s está ativo" % String(entry["id"]))
+		slot.call("apply_character_data", data)
+		var texture := slot.get("character_texture") as TextureRect
+		_assert(slot.visible, "%s pode ser exibido" % String(entry["id"]))
+		_assert(texture != null and texture.texture != null, "%s carrega a textura" % String(entry["id"]))
+		if texture != null and texture.texture != null:
+			_assert(String(texture.texture.resource_path).ends_with(String(entry["path"])), "%s aponta para o idle correto" % String(entry["id"]))
+
+		var visual := slot.get("sprite_container") as Control
+		_assert(visual != null, "%s tem visual" % String(entry["id"]))
+		if visual != null:
+			_assert(is_equal_approx(visual.pivot_offset.y, visual.size.y), "%s ancora os pés no pivô inferior" % String(entry["id"]))
+			slot.call("start_idle_loop")
+			await create_timer(0.12).timeout
+			_assert(visual.position == Vector2.ZERO, "%s respira sem subir/descer os pés" % String(entry["id"]))
+			_assert(slot.get("_is_looping_idle") == true, "%s mantém o loop idle" % String(entry["id"]))
 
 	slot.queue_free()
-	print("\n>> TODOS OS TESTES DO SLOT PASSARAM COM SUCESSO! <<\n")
-	quit(0)
+	_finish_test()
+
+
+func _assert(condition: bool, message: String) -> void:
+	if condition:
+		passed += 1
+		print("  [OK] %s" % message)
+	else:
+		failed += 1
+		printerr("  [FAIL] %s" % message)
+
+
+func _finish_test() -> void:
+	print("\n========================================================")
+	print(" SLOT: %d passaram | %d falharam" % [passed, failed])
+	print("========================================================\n")
+	quit(0 if failed == 0 else 1)

@@ -1,79 +1,85 @@
 extends SceneTree
 
-## Teste de Validação da Nova Arquitetura de Lineup de Personagens e Animação Idle (Guilherme + 4 Slots)
-
-const MenuCharacterSlotClass = preload("res://scripts/ui/components/menu_character_slot.gd")
+## Valida a formação escalonada, as quatro texturas e a âncora de chão do menu.
 
 var passed: int = 0
 var failed: int = 0
 
-func _init() -> void:
-	print("\n========================================================")
-	print(" TESTE: LINEUP DE PERSONAGENS E IDLE ANIMADO DO MENU")
-	print("========================================================")
 
-	var scn = load("res://scenes/ui/main_menu.tscn") as PackedScene
-	_assert(scn != null, "Cena main_menu.tscn deve carregar sem erros")
-	if scn == null:
+func _init() -> void:
+	call_deferred("_run_tests")
+
+
+func _run_tests() -> void:
+	var scene: PackedScene = load("res://scenes/ui/main_menu.tscn") as PackedScene
+	_assert(scene != null, "main_menu.tscn carrega")
+	if scene == null:
 		_finish_test()
 		return
 
-	var menu = scn.instantiate() as Control
-	_assert(menu != null, "main_menu.tscn deve instanciar com sucesso")
+	var menu := scene.instantiate() as Control
+	_assert(menu != null, "MainMenu instancia")
 	if menu == null:
 		_finish_test()
 		return
 
 	root.add_child(menu)
-	if not menu.is_node_ready():
-		menu._ready()
+	await process_frame
+	await process_frame
 
-	# 1. Verifica container de lineup
-	var lineup = menu.get_node_or_null("%CharactersLineup") as HBoxContainer
-	_assert(lineup != null, "CharactersLineup (%CharactersLineup) deve existir no menu")
+	var lineup := menu.get_node_or_null("%CharactersLineup") as Control
+	_assert(lineup != null, "CharactersLineup usa layout livre para formação")
 
-	# 2. Verifica Slot do Guilherme
-	var slot_guilherme = menu.get_node_or_null("%SlotGuilherme") as Control
-	_assert(slot_guilherme != null, "SlotGuilherme (%SlotGuilherme) deve existir")
-	if slot_guilherme != null:
-		_assert(slot_guilherme.visible == true, "SlotGuilherme deve estar visível")
-		_assert(slot_guilherme.get("character_data") != null, "SlotGuilherme deve ter character_data associado")
-		_assert(slot_guilherme.get("character_data").get("id") == "guilherme", "ID do personagem deve ser 'guilherme'")
-		_assert(slot_guilherme.get("character_shadow") != null, "SlotGuilherme deve possuir sombra de contato")
-		_assert(slot_guilherme.get("character_aura") != null, "SlotGuilherme deve possuir aura sutil")
-		_assert(slot_guilherme.get("character_texture") != null, "SlotGuilherme deve possuir textura do personagem")
-		_assert((slot_guilherme.get("character_texture") as CanvasItem).texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "Filtro da textura deve ser NEAREST (pixel art nítida)")
+	var expected := [
+		{"node": "SlotGuilherme", "id": "guilherme", "path": "characters/guilherme/idle.png"},
+		{"node": "SlotGabriel", "id": "gabriel", "path": "characters/gabriel/idle.png"},
+		{"node": "SlotAndre", "id": "andre", "path": "characters/andre/idle.png"},
+		{"node": "SlotJuliana", "id": "juliana", "path": "characters/juliana/idle.png"}
+	]
+	var measured_positions: Array[Vector2] = []
 
-	# 3. Verifica os outros 3 slots (preparados para expansão futura, mas inativos/ocultos)
-	var slot_gabriel = menu.get_node_or_null("%SlotGabriel") as Control
-	var slot_andre = menu.get_node_or_null("%SlotAndre") as Control
-	var slot_juliana = menu.get_node_or_null("%SlotJuliana") as Control
+	for entry in expected:
+		var slot := menu.get_node_or_null("%" + String(entry["node"])) as Control
+		_assert(slot != null, "%s existe" % String(entry["node"]))
+		if slot == null:
+			continue
 
-	_assert(slot_gabriel != null, "SlotGabriel deve existir para expansão futura")
-	_assert(slot_andre != null, "SlotAndre deve existir para expansão futura")
-	_assert(slot_juliana != null, "SlotJuliana deve existir para expansão futura")
+		_assert(slot.visible, "%s está visível" % String(entry["node"]))
+		var data = slot.get("character_data")
+		_assert(data != null, "%s recebeu dados" % String(entry["node"]))
+		if data != null:
+			_assert(data.get("id") == entry["id"], "%s usa dados do personagem correto" % String(entry["node"]))
 
-	if slot_gabriel != null:
-		_assert(slot_gabriel.visible == false, "SlotGabriel deve estar invisível nesta fase (sem placeholders)")
-	if slot_andre != null:
-		_assert(slot_andre.visible == false, "SlotAndre deve estar invisível nesta fase (sem placeholders)")
-	if slot_juliana != null:
-		_assert(slot_juliana.visible == false, "SlotJuliana deve estar invisível nesta fase (sem placeholders)")
+		var texture := slot.get("character_texture") as TextureRect
+		_assert(texture != null and texture.texture != null, "%s carregou idle.png" % String(entry["node"]))
+		if texture != null and texture.texture != null:
+			_assert(String(texture.texture.resource_path).ends_with(String(entry["path"])), "%s aponta para o idle correto" % String(entry["node"]))
+			_assert(texture.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "%s preserva filtro nearest" % String(entry["node"]))
 
-	# 4. Verifica animação de idle no SlotGuilherme
-	if slot_guilherme != null:
-		slot_guilherme.start_idle_loop()
-		_assert(slot_guilherme.get("_is_looping_idle") == true, "SlotGuilherme deve estar em loop de respiração idle")
+		var visual := slot.get("sprite_container") as Control
+		_assert(visual != null, "%s tem SpriteContainer" % String(entry["node"]))
+		if visual != null:
+			_assert(is_equal_approx(visual.pivot_offset.y, visual.size.y), "%s tem pivô na linha dos pés" % String(entry["node"]))
+			_assert(visual.position == Vector2.ZERO, "%s não usa deslocamento vertical para respirar" % String(entry["node"]))
 
-	# 5. Verifica botões canônicos
-	var btn_play = menu.get_node_or_null("%BtnPlay")
-	var btn_continue = menu.get_node_or_null("%BtnContinue")
-	var btn_settings = menu.get_node_or_null("%BtnSettings")
-	var btn_quit = menu.get_node_or_null("%BtnQuit")
-	_assert(btn_play != null and btn_play.visible, "Botão JOGAR deve existir e estar visível")
-	_assert(btn_continue != null and btn_continue.visible, "Botão CONTINUAR deve existir e estar visível")
-	_assert(btn_settings != null and btn_settings.visible, "Botão CONFIGURAÇÕES deve existir e estar visível")
-	_assert(btn_quit != null and btn_quit.visible, "Botão SAIR deve existir e estar visível")
+		measured_positions.append(slot.position)
+
+	_assert(measured_positions.size() == 4, "quatro posições de personagem foram calculadas")
+	if measured_positions.size() == 4:
+		var has_depth_stagger: bool = false
+		for i in range(1, measured_positions.size()):
+			if not is_equal_approx(measured_positions[i].y, measured_positions[0].y):
+				has_depth_stagger = true
+		_assert(has_depth_stagger, "formação usa profundidade em vez de uma fila nivelada")
+
+	var btn_play := menu.get_node_or_null("%BtnPlay")
+	var btn_continue := menu.get_node_or_null("%BtnContinue")
+	var btn_settings := menu.get_node_or_null("%BtnSettings")
+	var btn_quit := menu.get_node_or_null("%BtnQuit")
+	_assert(btn_play != null and btn_play.visible, "JOGAR permanece visível")
+	_assert(btn_continue != null and btn_continue.visible, "CONTINUAR permanece visível")
+	_assert(btn_settings != null and btn_settings.visible, "CONFIGURAÇÕES permanece visível")
+	_assert(btn_quit != null and btn_quit.visible, "SAIR permanece visível")
 
 	menu.queue_free()
 	_finish_test()
@@ -90,14 +96,6 @@ func _assert(condition: bool, message: String) -> void:
 
 func _finish_test() -> void:
 	print("\n========================================================")
-	print(" RESULTADOS DOS TESTES:")
-	print("   Passaram: %d" % passed)
-	print("   Falharam: %d" % failed)
+	print(" LINEUP: %d passaram | %d falharam" % [passed, failed])
 	print("========================================================\n")
-
-	if failed == 0:
-		print(">> TODOS OS TESTES DO LINEUP PASSARAM COM SUCESSO! <<\n")
-		quit(0)
-	else:
-		printerr(">> HOUVE FALHAS NOS TESTES DO LINEUP! <<\n")
-		quit(1)
+	quit(0 if failed == 0 else 1)

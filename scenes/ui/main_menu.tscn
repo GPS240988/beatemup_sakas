@@ -1,19 +1,18 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene format=3 uid="uid://wtod8wrhfjh4"]
 
-[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/locadora.webp" id="2_locadora_bg"]
-[ext_resource type="FontFile" path="res://assets/fonts/arcade_bold.ttf" id="3_arcade_font"]
-[ext_resource type="FontFile" path="res://assets/fonts/barlow_condensed_extrabold_italic.ttf" id="4_barlow_font"]
-[ext_resource type="FontFile" path="res://assets/fonts/press_start_2p.ttf" id="5_pixel_font"]
+[ext_resource type="Script" uid="uid://tpsmdeb0p72q" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
+[ext_resource type="Texture2D" uid="uid://bast0k1ebww5t" path="res://assets/backgrounds/locadora.webp" id="2_locadora_bg"]
+[ext_resource type="FontFile" uid="uid://c1s32gg3wbh72" path="res://assets/fonts/arcade_bold.ttf" id="3_arcade_font"]
+[ext_resource type="FontFile" uid="uid://clulxqhf5yxpe" path="res://assets/fonts/barlow_condensed_extrabold_italic.ttf" id="4_barlow_font"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/arcade_button.tscn" id="6_arcade_btn"]
-[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_play.png" id="7_play_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_coin.png" id="8_coin_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_gear.png" id="9_gear_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/menu/icon_exit.png" id="10_exit_icon"]
+[ext_resource type="Texture2D" uid="uid://bi8f805xqygx1" path="res://assets/ui/menu/icon_play.png" id="7_play_icon"]
+[ext_resource type="Texture2D" uid="uid://c26rpsofl03ku" path="res://assets/ui/menu/icon_coin.png" id="8_coin_icon"]
+[ext_resource type="Texture2D" uid="uid://b4ete46w5n0lp" path="res://assets/ui/menu/icon_gear.png" id="9_gear_icon"]
+[ext_resource type="Texture2D" uid="uid://crx4t2lnrc6rn" path="res://assets/ui/menu/icon_exit.png" id="10_exit_icon"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/settings_panel.tscn" id="11_settings_panel"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/idle.png" id="12_guilherme_idle"]
-[ext_resource type="Shader" path="res://shaders/character_sketch_draw.gdshader" id="13_sketch_shader"]
-[ext_resource type="Script" path="res://scripts/ui/components/menu_character_slot.gd" id="14_slot_script"]
+[ext_resource type="Texture2D" uid="uid://dbyyxu35w6wmx" path="res://assets/sprites/characters/guilherme/idle.png" id="12_guilherme_idle"]
+[ext_resource type="Shader" uid="uid://caotd14c35pn8" path="res://shaders/character_sketch_draw.gdshader" id="13_sketch_shader"]
+[ext_resource type="Script" uid="uid://bq1uneweagskc" path="res://scripts/ui/components/menu_character_slot.gd" id="14_slot_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/menu_character_slot.tscn" id="15_slot_scene"]
 
 [sub_resource type="Gradient" id="Gradient_aura"]
@@ -49,7 +48,7 @@ shader_parameter/line_density = 60.0
 shader_parameter/lead_edge_width = 0.08
 shader_parameter/transition_width = 0.1
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=2017667888]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -58,7 +57,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main_menu")
 
-[node name="BackgroundImage" type="TextureRect" parent="."]
+[node name="BackgroundImage" type="TextureRect" parent="." unique_id=1265037744]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -70,7 +69,7 @@ texture = ExtResource("2_locadora_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="VignetteOverlay" type="ColorRect" parent="."]
+[node name="VignetteOverlay" type="ColorRect" parent="." unique_id=1937743270]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -79,7 +78,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.015, 0.02, 0.05, 0.45)
 
-[node name="MainLayout" type="MarginContainer" parent="."]
+[node name="MainLayout" type="MarginContainer" parent="." unique_id=402199727]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -91,20 +90,20 @@ theme_override_constants/margin_top = 48
 theme_override_constants/margin_right = 72
 theme_override_constants/margin_bottom = 32
 
-[node name="ContentHBox" type="HBoxContainer" parent="MainLayout"]
+[node name="ContentHBox" type="HBoxContainer" parent="MainLayout" unique_id=165949829]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="BrandColumn" type="VBoxContainer" parent="MainLayout/ContentHBox"]
+[node name="BrandColumn" type="VBoxContainer" parent="MainLayout/ContentHBox" unique_id=631737848]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="SpacerTop" type="Control" parent="MainLayout/ContentHBox/BrandColumn"]
+[node name="SpacerTop" type="Control" parent="MainLayout/ContentHBox/BrandColumn" unique_id=1627864362]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 
-[node name="BrandTitle" type="Label" parent="MainLayout/ContentHBox/BrandColumn"]
+[node name="BrandTitle" type="Label" parent="MainLayout/ContentHBox/BrandColumn" unique_id=936571582]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.97, 0.91, 1)
 theme_override_colors/font_shadow_color = Color(0.937, 0.141, 0.224, 1)
@@ -114,7 +113,7 @@ theme_override_fonts/font = ExtResource("3_arcade_font")
 theme_override_font_sizes/font_size = 76
 text = "Saka's"
 
-[node name="BrandSubtitle" type="Label" parent="MainLayout/ContentHBox/BrandColumn"]
+[node name="BrandSubtitle" type="Label" parent="MainLayout/ContentHBox/BrandColumn" unique_id=1456598812]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.788, 0.157, 1)
 theme_override_colors/font_shadow_color = Color(0.067, 0.075, 0.137, 1)
@@ -124,20 +123,22 @@ theme_override_fonts/font = ExtResource("4_barlow_font")
 theme_override_font_sizes/font_size = 36
 text = "A ÚLTIMA FICHA"
 
-[node name="CharactersLineup" type="HBoxContainer" parent="MainLayout/ContentHBox/BrandColumn"]
+[node name="CharactersLineup" type="Control" parent="MainLayout/ContentHBox/BrandColumn" unique_id=2025697910]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 3
-theme_override_constants/separation = 0
+size_flags_horizontal = 3
 
-[node name="SlotGuilherme" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup"]
+[node name="SlotGuilherme" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" unique_id=256161542]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 340)
-layout_mode = 2
+custom_minimum_size = Vector2(220, 300)
+layout_mode = 1
+anchors_preset = 0
+offset_right = 220.0
+offset_bottom = 300.0
 script = ExtResource("14_slot_script")
 
-[node name="CharacterAura" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
+[node name="CharacterAura" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme" unique_id=1271655334]
 modulate = Color(0.26, 0.96, 0.69, 0.15)
 layout_mode = 1
 anchors_preset = 7
@@ -145,46 +146,46 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -80.0
-offset_top = -220.0
-offset_right = 80.0
-offset_bottom = -20.0
+offset_left = -72.0
+offset_top = -200.0
+offset_right = 72.0
+offset_bottom = -18.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 texture = SubResource("GradientTexture2D_aura")
 expand_mode = 1
 
-[node name="CharacterShadow" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
-modulate = Color(1, 1, 1, 0.75)
+[node name="CharacterShadow" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme" unique_id=1674848077]
+modulate = Color(1, 1, 1, 0.58)
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -70.0
-offset_top = -32.0
-offset_right = 70.0
+offset_left = -64.0
+offset_top = -28.0
+offset_right = 64.0
 offset_bottom = 8.0
 grow_horizontal = 2
 grow_vertical = 0
-pivot_offset = Vector2(70, 20)
+pivot_offset = Vector2(64, 18)
 mouse_filter = 2
 texture = SubResource("GradientTexture2D_shadow")
 expand_mode = 1
 
-[node name="SpriteContainer" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
+[node name="SpriteContainer" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme" unique_id=29715719]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-pivot_offset = Vector2(120, 330)
+pivot_offset = Vector2(110, 300)
 mouse_filter = 2
 
-[node name="GuilhermeDrawingCharacter" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/SpriteContainer"]
+[node name="GuilhermeDrawingCharacter" type="TextureRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/SpriteContainer" unique_id=75795147]
 unique_name_in_owner = true
 texture_filter = 1
 material = SubResource("ShaderMaterial_sketch")
@@ -199,22 +200,22 @@ texture = ExtResource("12_guilherme_idle")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="DustContainer" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme"]
+[node name="DustContainer" type="Control" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme" unique_id=461048809]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -60.0
-offset_top = -28.0
-offset_right = 60.0
-offset_bottom = -8.0
+offset_left = -52.0
+offset_top = -22.0
+offset_right = 52.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="DustLeft" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer"]
+[node name="DustLeft" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer" unique_id=661852263]
 visible = false
 layout_mode = 1
 anchors_preset = 4
@@ -227,7 +228,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.85, 0.88, 0.92, 0.7)
 
-[node name="DustRight" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer"]
+[node name="DustRight" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer" unique_id=1612958629]
 visible = false
 layout_mode = 1
 anchors_preset = 6
@@ -243,7 +244,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.85, 0.88, 0.92, 0.7)
 
-[node name="DustCenter" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer"]
+[node name="DustCenter" type="ColorRect" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup/SlotGuilherme/DustContainer" unique_id=1137011845]
 visible = false
 layout_mode = 1
 anchors_preset = 8
@@ -260,46 +261,41 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.85, 0.88, 0.92, 0.7)
 
-[node name="SlotGabriel" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" instance=ExtResource("15_slot_scene")]
+[node name="SlotGabriel" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" unique_id=536410396 instance=ExtResource("15_slot_scene")]
 unique_name_in_owner = true
-visible = false
-layout_mode = 2
+layout_mode = 1
 
-[node name="SlotAndre" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" instance=ExtResource("15_slot_scene")]
+[node name="SlotAndre" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" unique_id=997458031 instance=ExtResource("15_slot_scene")]
 unique_name_in_owner = true
-visible = false
-layout_mode = 2
+layout_mode = 1
 
-[node name="SlotJuliana" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" instance=ExtResource("15_slot_scene")]
+[node name="SlotJuliana" parent="MainLayout/ContentHBox/BrandColumn/CharactersLineup" unique_id=1903939467 instance=ExtResource("15_slot_scene")]
 unique_name_in_owner = true
-visible = false
-layout_mode = 2
+layout_mode = 1
 
-[node name="SpacerBottom" type="Control" parent="MainLayout/ContentHBox/BrandColumn"]
+[node name="SpacerBottom" type="Control" parent="MainLayout/ContentHBox/BrandColumn" unique_id=1633999091]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ButtonsColumn" type="VBoxContainer" parent="MainLayout/ContentHBox"]
+[node name="ButtonsColumn" type="VBoxContainer" parent="MainLayout/ContentHBox" unique_id=1606772625]
 layout_mode = 2
 alignment = 1
 
-[node name="ButtonsContainer" type="VBoxContainer" parent="MainLayout/ContentHBox/ButtonsColumn"]
+[node name="ButtonsContainer" type="VBoxContainer" parent="MainLayout/ContentHBox/ButtonsColumn" unique_id=1599791966]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(410, 0)
 layout_mode = 2
 theme_override_constants/separation = 18
 alignment = 1
 
-[node name="BtnPlay" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
+[node name="BtnPlay" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" unique_id=91027719 instance=ExtResource("6_arcade_btn")]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(410, 68)
 layout_mode = 2
-button_text = "JOGAR"
 icon_texture = ExtResource("7_play_icon")
 is_primary = true
-custom_font_size = 28
 
-[node name="BtnContinue" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
+[node name="BtnContinue" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" unique_id=1625569518 instance=ExtResource("6_arcade_btn")]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(410, 62)
 layout_mode = 2
@@ -307,7 +303,7 @@ button_text = "CONTINUAR"
 icon_texture = ExtResource("8_coin_icon")
 custom_font_size = 26
 
-[node name="BtnSettings" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
+[node name="BtnSettings" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" unique_id=1289248151 instance=ExtResource("6_arcade_btn")]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(410, 62)
 layout_mode = 2
@@ -315,7 +311,7 @@ button_text = "CONFIGURAÇÕES"
 icon_texture = ExtResource("9_gear_icon")
 custom_font_size = 26
 
-[node name="BtnQuit" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" instance=ExtResource("6_arcade_btn")]
+[node name="BtnQuit" parent="MainLayout/ContentHBox/ButtonsColumn/ButtonsContainer" unique_id=1002497993 instance=ExtResource("6_arcade_btn")]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(410, 62)
 layout_mode = 2
@@ -324,33 +320,10 @@ icon_texture = ExtResource("10_exit_icon")
 is_danger = true
 custom_font_size = 26
 
-[node name="FooterBar" type="MarginContainer" parent="."]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -42.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_constants/margin_bottom = 14
-
-[node name="SloganLabel" type="Label" parent="FooterBar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.94, 0.75, 0.8)
-theme_override_colors/font_shadow_color = Color(0.04, 0.04, 0.08, 0.95)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_fonts/font = ExtResource("5_pixel_font")
-theme_override_font_sizes/font_size = 12
-text = "COCA, AMIZADE E MUITA PORRADA!"
-horizontal_alignment = 1
-
-[node name="SettingsPanel" parent="." instance=ExtResource("11_settings_panel")]
+[node name="SettingsPanel" parent="." unique_id=842337547 instance=ExtResource("11_settings_panel")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
 
-[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+[node name="AudioPlayer" type="AudioStreamPlayer" parent="." unique_id=2084745516]
 unique_name_in_owner = true
-bus = &"Master"

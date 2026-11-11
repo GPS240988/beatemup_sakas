@@ -3,7 +3,7 @@ extends Control
 
 ## Apresenta a arte narrativa entre map_1 e map_2 (Fase 1: Entrada da Locadora).
 ## A interferência CRT é aplicada exclusivamente à região do vidro do fliperama.
-## Ao concluir ou ao toque/tecla de avanço, transiciona suavemente para map_2.tscn.
+## A apresentação termina automaticamente e transiciona para map_2.tscn.
 
 const MAP_2_SCENE_PATH: String = "res://scenes/levels/map_2.tscn"
 const CRT_SHADER: Shader = preload("res://shaders/crt_screen_flicker.gdshader")
@@ -32,16 +32,12 @@ func _is_mobile_runtime() -> bool:
 	return MobileScreenAction.is_mobile_runtime()
 
 
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		_transition_to_map_2()
-	elif event is InputEventScreenTouch and event.pressed:
-		_transition_to_map_2()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_accept") or event.is_action_pressed("attack") or event.is_action_pressed("jump") or event.is_action_pressed("ui_cancel"):
-		_transition_to_map_2()
+## A apresentação é obrigatória: entradas do usuário não podem antecipar a transição.
+## Consome teclado, mouse e toque para impedir que o comando chegue ao gameplay.
+func _input(_event: InputEvent) -> void:
+	var viewport: Viewport = get_viewport()
+	if viewport != null:
+		viewport.set_input_as_handled()
 
 
 func _build_presentation() -> void:
