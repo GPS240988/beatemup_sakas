@@ -2,6 +2,9 @@ extends "res://scripts/story/story_intro_fase1_3.gd"
 
 ## Variante obrigatória da cinemática Map 2 -> Map 3.
 ## Os vídeos avançam exclusivamente pelo sinal finished de cada VideoStreamPlayer.
+## Após o vídeo da Juliana, transiciona diretamente para map_3.tscn.
+## O diálogo de dica do Mestre com o Gabriel é exibido dentro do map_3.tscn
+## (mapa carregado pausado), antes de liberar o gameplay.
 
 @export_range(0.0, 5.0, 0.1) var post_video_hold_duration: float = 1.2
 

@@ -293,11 +293,11 @@ func _check_and_trigger_opening_narrative() -> bool:
 	if stage_number != 1 or section_number != 1 or Engine.is_editor_hint():
 		return false
 
-	var session = get_node_or_null("/root/GameSession")
-	if session != null and "has_played_intro" in session and not session.has_played_intro:
-		_trigger_opening_narrative()
-		return true
-	return false
+	# Delega à implementação do mapa (map_1_story_transition sobrescreve para o Mapa 1).
+	# Ela decide se reproduz a sequência completa de abertura e/ou exibe o diálogo
+	# de abertura do Guilherme, respeitando a flag has_played_intro da sessão.
+	_trigger_opening_narrative()
+	return true
 
 
 func _trigger_opening_narrative() -> void:

@@ -39,7 +39,8 @@ max_neighbors = 8
 
 [node name="HealthComponent" type="Node" parent="." unique_id=194702836]
 script = ExtResource("2_health_script")
-max_health = 75.0
+max_health = 80.0
+current_health = 80.0
 
 [node name="MeleeAttack" type="Node2D" parent="." unique_id=519246006]
 script = ExtResource("3_melee_script")

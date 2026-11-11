@@ -165,38 +165,48 @@ func _trigger_opening_narrative() -> void:
 	_opening_tree_was_paused = tree.paused
 	tree.paused = true
 
-	if not ResourceLoader.exists(OPENING_SEQUENCE_PATH):
-		push_warning(
-			"Map1: sequência de abertura não encontrada: " + OPENING_SEQUENCE_PATH
+	var session = get_node_or_null("/root/GameSession")
+	var has_played_intro: bool = (
+		session != null and "has_played_intro" in session and session.has_played_intro
+	)
+
+	if not has_played_intro:
+		# Primeira execução: reproduz a sequência completa de abertura (story_intro_map1.tres)
+		# e, ao concluir, exibe o diálogo de abertura do Guilherme.
+		if not ResourceLoader.exists(OPENING_SEQUENCE_PATH):
+			_show_opening_dialogue()
+			return
+
+		var narrative_director: NarrativeDirector = null
+		var narrative_scene: PackedScene = (
+			load(NARRATIVE_DIRECTOR_SCENE_PATH) as PackedScene
 		)
-		_show_opening_dialogue()
-		return
+		if narrative_scene != null:
+			narrative_director = narrative_scene.instantiate() as NarrativeDirector
+		else:
+			narrative_director = Map1NarrativeDirectorClass.new() as NarrativeDirector
 
-	var narrative_director: NarrativeDirector = null
-	var narrative_scene: PackedScene = (
-		load(NARRATIVE_DIRECTOR_SCENE_PATH) as PackedScene
-	)
-	if narrative_scene != null:
-		narrative_director = narrative_scene.instantiate() as NarrativeDirector
+		if narrative_director == null:
+			push_warning("Map1: não foi possível instanciar o NarrativeDirector.")
+			_show_opening_dialogue()
+			return
+
+		narrative_director.name = "NarrativeDirector"
+		narrative_director.process_mode = Node.PROCESS_MODE_ALWAYS
+
+		# sequence_skipped é emitido antes do fade. Usamos somente
+		# sequence_completed para abrir o diálogo depois que a locadora estiver visível.
+		narrative_director.sequence_completed.connect(
+			_on_opening_narrative_completed,
+			CONNECT_ONE_SHOT
+		)
+		add_child(narrative_director)
+		narrative_director.play_sequence_from_path(OPENING_SEQUENCE_PATH)
 	else:
-		narrative_director = Map1NarrativeDirectorClass.new() as NarrativeDirector
-
-	if narrative_director == null:
-		push_warning("Map1: não foi possível instanciar o NarrativeDirector.")
+		# A abertura cinemática já foi exibida pela cena story_intro.tscn (Novo Jogo).
+		# Pula a repetição da sequência e exibe apenas o diálogo de abertura do
+		# Guilherme antes de liberar o gameplay, conforme o fluxo canônico.
 		_show_opening_dialogue()
-		return
-
-	narrative_director.name = "NarrativeDirector"
-	narrative_director.process_mode = Node.PROCESS_MODE_ALWAYS
-
-	# sequence_skipped é emitido antes do fade. Usamos somente
-	# sequence_completed para abrir o diálogo depois que a locadora estiver visível.
-	narrative_director.sequence_completed.connect(
-		_on_opening_narrative_completed,
-		CONNECT_ONE_SHOT
-	)
-	add_child(narrative_director)
-	narrative_director.play_sequence_from_path(OPENING_SEQUENCE_PATH)
 
 
 func _on_opening_narrative_completed(_sequence_id: String) -> void:
