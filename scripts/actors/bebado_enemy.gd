@@ -26,7 +26,7 @@ enum BebadoState {
 ## Parâmetros de Esquiva
 @export_group("Esquiva (Dodge)")
 @export var dodge_cooldown_time: float = 2.8
-@export var dodge_chance: float = 0.45
+@export var dodge_chance: float = 0.50
 @export var dodge_speed: float = 230.0
 @export var dodge_duration: float = 0.35
 
@@ -69,6 +69,29 @@ var _drink_cooldown: float = 5.0
 var _drink_timer: float = 0.0
 
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
+
+## Mapeamento de nomes padrão da EnemyAI → nomes reais no SpriteFrames do Bêbado.
+## As animações do grid-sheet possuem nomenclatura específica; este dicionário traduz
+## as chamadas genéricas do EnemyAI (death, fall, hit, etc.) para os nomes corretos.
+const _ANIM_MAP: Dictionary = {
+	"death": "knockdown",
+	"fall": "knockdown",
+	"downed": "prone",
+	"hit": "hit_recoil",
+	"hurt": "hit_recoil",
+	"dodge": "dodge_duck",
+	"punch": "attack_jab",
+	"kick": "lunge_pose",
+	"attack": "attack_punch",
+	"get_up": "getup",
+}
+
+
+## Sobrescreve _play_anim para traduzir nomes genéricos da EnemyAI
+## para as animações reais do spritesheet do Bêbado.
+func _play_anim(anim_name: String) -> void:
+	var mapped: String = _ANIM_MAP.get(anim_name, anim_name)
+	super._play_anim(mapped)
 
 func _notification(what: int) -> void:
 	match str(what):
