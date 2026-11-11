@@ -34,6 +34,7 @@ enum BebadoState {
 @export_group("Rastejamento (Crawl)")
 @export var crawl_duration: float = 2.5
 @export var crawl_speed: float = 110.0
+@export var crawl_contact_damage_cooldown: float = 0.65
 @export var crawl_after_downed_chance: float = 0.55
 @export var crawl_spontaneous_chance: float = 0.50  # chance por segundo de entrar em crawl espontâneo na batalha
 @export var crawl_spontaneous_min_interval: float = 6.0
@@ -62,6 +63,7 @@ var _crawl_enter_timer: float = 0.0
 var _crawl_cooldown: float = 5.0
 var _crawl_damage: float = 12.0
 var _crawl_contact_active: bool = false
+var _crawl_contact_last_hit_ms: Dictionary = {}
 var _next_spontaneous_crawl_time: float = 0.0  # timer para crawl espontâneo
 var _crawl_enter_done: bool = false
 
@@ -208,12 +210,6 @@ func _physics_process(delta: float) -> void:
 		BebadoState.NONE:
 			pass
 
-	# Verifica se há oportunidade ou necessidade de esquiva antes da IA padrão
-	if _can_attempt_dodge():
-		if _evaluate_dodge_reaction():
-			start_dodge()
-			return
-
 	# Verifica oportunidade contextual de beber
 	if _can_attempt_drink():
 		start_drink()
@@ -240,38 +236,19 @@ func _physics_process(delta: float) -> void:
 			start_crawl()
 
 
-## Avalia se o Bêbado pode tentar esquivar
+## Verifica se o Bêbado pode tentar esquivar de um golpe recebido.
+## A chance é rolada em take_damage(), nunca apenas pela proximidade do jogador.
 func _can_attempt_dodge() -> bool:
-	if bebado_state != BebadoState.NONE:
+	if bebado_state != BebadoState.NONE or _dodge_cooldown > 0.0:
 		return false
-	if current_state in [State.HURT, State.FALL, State.DOWNED, State.GETUP, State.DEAD, State.ATTACKING]:
-		return false
-	if _dodge_cooldown > 0.0:
-		return false
-	if player_target == null or not is_instance_valid(player_target):
-		return false
-	return true
-
-
-## Avalia se a situação tática motiva uma esquiva (proximidade / ataque iminente)
-func _evaluate_dodge_reaction() -> bool:
-	var dist: float = global_position.distance_to(player_target.global_position)
-	var diff_x: float = absf(player_target.global_position.x - global_position.x)
-	var diff_y: float = absf(player_target.global_position.y - global_position.y)
-
-	# Se o jogador estiver muito próximo na mesma pista horizontal
-	if diff_x < attack_horizontal_distance * 1.5 and diff_y < attack_depth_tolerance * 1.5:
-		# Checa se o jogador está atacando
-		var player_attacking: bool = false
-		if player_target.get("is_attacking") == true or player_target.get("current_state") == 2: # ATTACKING
-			player_attacking = true
-
-		if player_attacking:
-			return true # Esquiva imediata em reação ao ataque
-		elif randf() < dodge_chance:
-			return true
-
-	return false
+	return not current_state in [
+		State.HURT,
+		State.FALL,
+		State.DOWNED,
+		State.GETUP,
+		State.DEAD,
+		State.ATTACKING
+	]
 
 
 ## Inicia a manobra de esquiva imprevisível
@@ -302,8 +279,6 @@ func start_dodge() -> void:
 	_play_anim("dodge")
 	CombatFeedback.spawn_dust(self, global_position)
 
-	# Efeito visual MISS 100% para indicar que o Bêbado desviou de um golpe
-	_spawn_miss_text()
 
 func _process_bebado_dodge(delta: float) -> void:
 	_dodge_timer -= delta
@@ -345,7 +320,7 @@ func start_crawl() -> void:
 
 	# Rebaixa a hurtbox para rente ao solo
 	_set_crawling_hurtbox(true)
-	_activate_crawl_contact_damage(true)
+	_activate_crawl_contact_damage(false)
 	_play_anim("crawl_enter")
 
 
@@ -490,10 +465,11 @@ func _trigger_attack() -> void:
 func _on_damaged(amount: float) -> void:
 	if bebado_state != BebadoState.NONE:
 		bebado_state = BebadoState.NONE
+		_activate_crawl_contact_damage(false)
 		_set_crawling_hurtbox(false)
-		if hurtbox_area != null:
-			hurtbox_area.set_deferred("monitoring", true)
-			hurtbox_area.set_deferred("monitorable", true)
+	if hurtbox_area != null:
+		# Continua detectável pela hitbox do jogador, mas não monitora corpos fora do crawl.
+		hurtbox_area.set_deferred("monitorable", true)
 
 	super._on_damaged(amount)
 
@@ -501,11 +477,11 @@ func _on_damaged(amount: float) -> void:
 func _on_damaged_info(info: RefCounted) -> void:
 	if bebado_state != BebadoState.NONE:
 		bebado_state = BebadoState.NONE
-		_set_crawling_hurtbox(false)
 		_activate_crawl_contact_damage(false)
-		if hurtbox_area != null:
-			hurtbox_area.set_deferred("monitoring", true)
-			hurtbox_area.set_deferred("monitorable", true)
+		_set_crawling_hurtbox(false)
+	if hurtbox_area != null:
+		# O Area continua monitorável para receber ataques; só monitora o jogador no crawl.
+		hurtbox_area.set_deferred("monitorable", true)
 
 	super._on_damaged_info(info)
 
@@ -514,27 +490,47 @@ func _on_damaged_info(info: RefCounted) -> void:
 func _activate_crawl_contact_damage(active: bool) -> void:
 	_crawl_contact_active = active
 	if hurtbox_area != null:
-		# Durante o crawl, a hurtbox fica baixa e ampla para colidir com o jogador no chão
+		# Layer 4 permanece monitorável para receber golpes do jogador.
+		# Mask 1 detecta o corpo do jogador somente enquanto o Bêbado rasteja.
 		hurtbox_area.set_deferred("monitoring", active)
-		hurtbox_area.set_deferred("monitorable", active)
+		hurtbox_area.set_deferred("monitorable", true)
 
 
-## Sobrescreve recebimento de dano: durante o CRAWLING, o Bêbado é invulnerável a socos e chutes.
-## Só ataques especiais (impact_profile == "special") conseguem atingi-lo rastejando.
+## Identifica golpes originados pelo jogador usando o contrato DamageInfo.
+func _is_player_attack(damage_input: Variant) -> bool:
+	if not (damage_input is RefCounted):
+		return false
+
+	var attacker: Node = damage_input.get("attacker") as Node
+	return attacker != null and is_instance_valid(attacker) and attacker.is_in_group("player")
+
+
+## Recebe dano respeitando os estados exclusivos do Bêbado.
+## - Crawl: ignora golpes comuns; aceita especiais.
+## - Dodge: evita integralmente golpes do jogador durante a esquiva.
+## - Fora desses estados: 50% de chance de esquivar de cada golpe elegível,
+##   com MISS exibido apenas quando o dano é efetivamente recusado.
 func take_damage(damage_input: Variant) -> bool:
-	# Durante o rastejamento, ignora dano de ataques normais (soco/chute)
 	if bebado_state == BebadoState.CRAWLING:
-		var info: RefCounted = null
-		if damage_input != null and damage_input.get("impact_profile") != null:
-			var profile: String = str(damage_input.get("impact_profile"))
-			if profile != "special":
-				return false  # Socos e chutes não atingem o Bêbado rastejando
-		if damage_input != null and damage_input.get("damage_type") != null:
-			var dtype: String = str(damage_input.get("damage_type"))
-			if dtype != "special":
-				return false
-		# Se chegou aqui, é ataque especial: permite o dano
+		var is_special_attack: bool = false
+		if damage_input is RefCounted:
+			is_special_attack = (
+				str(damage_input.get("damage_type")) == "special"
+				or str(damage_input.get("impact_profile")) == "special"
+			)
+		if not is_special_attack:
+			return false
 		return super.take_damage(damage_input)
+
+	var from_player: bool = _is_player_attack(damage_input)
+	if from_player and bebado_state == BebadoState.DODGING:
+		_spawn_miss_text()
+		return false
+
+	if from_player and _can_attempt_dodge() and randf() < clampf(dodge_chance, 0.0, 1.0):
+		start_dodge()
+		_spawn_miss_text()
+		return false
 
 	return super.take_damage(damage_input)
 
@@ -580,16 +576,69 @@ func _spawn_miss_text() -> void:
 	tween.tween_callback(feedback.queue_free)
 
 
-## Sinal de contato do rastejamento: chamado quando a hurtbox colide com o jogador durante o crawl
+## Dano de contato durante o rastejamento.
+## O cooldown impede dano repetido por reentrada contínua na área.
 func _on_hurtbox_body_entered(body: Node) -> void:
-	# Verificação rigorosa de contato durante o rastejamento
-	if _crawl_contact_active and body.is_in_group("player") and body != null and is_instance_valid(body):
-		var health: HealthComponent = body.get_node_or_null("HealthComponent") as HealthComponent
-		if health != null and not health.is_dead:
-			health.take_damage(_crawl_damage)
-			# Empurra levemente o jogador na direção oposta ao bêbado
-			var push_dir: Vector2 = (body.global_position - global_position).normalized()
-			if push_dir == Vector2.ZERO:
-				push_dir = Vector2(facing_direction, 0.0)
-			if body.has_method("take_knockback"):
-				body.take_knockback(push_dir * 120.0, 0.15)
+	if not _crawl_contact_active or body == null or not is_instance_valid(body):
+		return
+	if not body.is_in_group("player") or not body.has_method("take_damage"):
+		return
+
+	var now_ms: int = Time.get_ticks_msec()
+	var player_id: int = body.get_instance_id()
+	var previous_hit_ms: int = int(_crawl_contact_last_hit_ms.get(player_id, -1000000))
+	var cooldown_ms: int = maxi(0, roundi(crawl_contact_damage_cooldown * 1000.0))
+	if now_ms - previous_hit_ms < cooldown_ms:
+		return
+
+	_crawl_contact_last_hit_ms[player_id] = now_ms
+	var damage_applied: bool = bool(body.call("take_damage", _crawl_damage))
+	if not damage_applied:
+		return
+
+	# Empurra levemente o jogador na direção oposta ao Bêbado.
+	var push_dir: Vector2 = (body.global_position - global_position).normalized()
+	if push_dir == Vector2.ZERO:
+		push_dir = Vector2(facing_direction, 0.0)
+	if body.has_method("take_knockback"):
+		body.call("take_knockback", push_dir * 120.0, 0.15)
+
+
+## A morte do Bêbado deve concluir a queda e permanecer no chão antes do fade arcade.
+## O EnemyAI já dispara "death" (mapeado para "knockdown"); aqui apenas aguardamos a sequência.
+func _start_death_fade_sequence() -> void:
+	if anim_sprite == null or anim_sprite.sprite_frames == null:
+		super._start_death_fade_sequence()
+		return
+
+	await _play_death_animation_to_completion(&"knockdown")
+	if not is_inside_tree():
+		return
+
+	# Mantém a leitura visual da queda: termina a sequência de knockdown e assenta em prone.
+	if anim_sprite.sprite_frames.has_animation("prone"):
+		await _play_death_animation_to_completion(&"prone")
+	if not is_inside_tree():
+		return
+
+	super._start_death_fade_sequence()
+
+
+func _play_death_animation_to_completion(animation_name: StringName) -> void:
+	if anim_sprite == null or anim_sprite.sprite_frames == null:
+		return
+	var frames: SpriteFrames = anim_sprite.sprite_frames
+	if not frames.has_animation(animation_name) or frames.get_frame_count(animation_name) <= 0:
+		return
+
+	if anim_sprite.animation != animation_name or not anim_sprite.is_playing():
+		anim_sprite.play(animation_name)
+
+	if frames.get_animation_loop(animation_name):
+		var speed: float = maxf(frames.get_animation_speed(animation_name) * anim_sprite.speed_scale, 0.1)
+		var duration: float = float(frames.get_frame_count(animation_name)) / speed
+		var tree: SceneTree = get_tree()
+		if tree != null:
+			await tree.create_timer(duration).timeout
+	else:
+		await anim_sprite.animation_finished
