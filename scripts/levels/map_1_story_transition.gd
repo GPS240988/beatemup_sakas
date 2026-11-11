@@ -7,7 +7,60 @@ extends "res://scripts/levels/mobile_base_level.gd"
 const MAP_2_SCENE_PATH: String = "res://scenes/levels/map_2.tscn"
 const STORY_INTERLUDE_SCENE_PATH: String = "res://scenes/story/story_intro_fase1_2.tscn"
 
+const Map1IntroDialogueClass = preload("res://scripts/ui/map1_intro_dialogue.gd")
+
 var _mobile_reinforcement_spawn_positions: Array[Vector2] = []
+
+
+var _show_opening_warning_after_intro: bool = false
+var _opening_warning_started: bool = false
+
+
+func _ready() -> void:
+	var session: Node = get_node_or_null("/root/GameSession")
+	_show_opening_warning_after_intro = (
+		stage_number == 1
+		and section_number == 1
+		and map_index == 1
+		and session != null
+		and "has_played_intro" in session
+		and not bool(session.get("has_played_intro"))
+	)
+	super._ready()
+
+
+## Intercepta a BGM do BaseLevel: no Novo Jogo, a locadora só libera o mapa
+## depois da fala inicial. O sinal sequence_skipped ocorre antes do fade final;
+## por isso aguardamos sequence_completed, quando is_playing já está false.
+func _setup_level_bgm() -> void:
+	if not _show_opening_warning_after_intro:
+		super._setup_level_bgm()
+		return
+
+	var narrative: Node = get_node_or_null("NarrativeDirector")
+	if narrative != null and "is_playing" in narrative and bool(narrative.get("is_playing")):
+		return
+
+	if _opening_warning_started:
+		return
+	_opening_warning_started = true
+
+	var dialogue: Map1IntroDialogue = Map1IntroDialogueClass.new() as Map1IntroDialogue
+	dialogue.dialogue_closed.connect(_on_map1_warning_dialogue_closed, CONNECT_ONE_SHOT)
+	add_child(dialogue)
+
+	var scene_tree: SceneTree = get_tree()
+	if scene_tree != null:
+		scene_tree.paused = true
+
+
+func _on_map1_warning_dialogue_closed() -> void:
+	_show_opening_warning_after_intro = false
+	var scene_tree: SceneTree = get_tree()
+	if scene_tree != null:
+		scene_tree.paused = false
+	super._setup_level_bgm()
+
 
 
 ## Desktop conserva exatamente o cálculo original de entrada fora da câmera.
