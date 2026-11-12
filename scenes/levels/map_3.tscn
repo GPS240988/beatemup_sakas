@@ -1,8 +1,7 @@
 [gd_scene format=3 uid="uid://d3o4bg4k5hn2g"]
 
-[ext_resource type="Script" uid="uid://bxe7s51a7y1j6" path="res://scripts/levels/mobile_base_level.gd" id="1_mobile_base"]
-[ext_resource type="Script" uid="uid://NEW_MAP3_TRANSITION" path="res://scripts/levels/map_3_story_transition.gd" id="2_map3_transition"]
 [ext_resource type="Texture2D" uid="uid://bd7yshbw34rxf" path="res://assets/backgrounds/maps/fase1/Fase1_3.webp" id="2_bg_texture"]
+[ext_resource type="Script" uid="uid://bbqhtfaatb475" path="res://scripts/levels/map_3_story_transition.gd" id="2_map3_transition"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
@@ -10,9 +9,10 @@
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_3_navpoly.tres" id="8_navpoly"]
 [ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
 [ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="10_spawn_director"]
-[ext_resource type="PackedScene" path="res://scenes/props/destructible_trash_bin_old.tscn" id="11_trash_old"]
+[ext_resource type="PackedScene" uid="uid://bdeo46vglh44h" path="res://scenes/props/destructible_trash_bin_old.tscn" id="11_trash_old"]
 [ext_resource type="PackedScene" uid="uid://cetnte1ekj81t" path="res://scenes/actors/enemies/bebado_enemy.tscn" id="12_bebado_scene"]
-[ext_resource type="PackedScene" path="res://scenes/items/coca_pickup.tscn" id="13_coca_pickup"]
+[ext_resource type="PackedScene" uid="uid://7nwbc888574g" path="res://scenes/items/coca_pickup.tscn" id="13_coca_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/items/guarana_pickup.tscn" id="14_guarana_pickup"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top_wall"]
 size = Vector2(2049, 40)
@@ -92,6 +92,8 @@ y_sort_enabled = true
 
 [node name="LixeiraAntigaIncendiada" parent="World/Props/Destructibles" unique_id=1682970702 instance=ExtResource("11_trash_old")]
 position = Vector2(408, 569)
+drops_item = true
+drop_item_scene = ExtResource("14_guarana_pickup")
 
 [node name="LixeiraAntiga" parent="World/Props/Destructibles" unique_id=1682970703 instance=ExtResource("11_trash_old")]
 position = Vector2(900, 569)
@@ -109,9 +111,11 @@ y_sort_enabled = true
 
 [node name="BebadoEnemy1" parent="World/Actors/Enemies" unique_id=901234567 instance=ExtResource("12_bebado_scene")]
 position = Vector2(574, 610)
+archetype = 1
 
 [node name="BebadoEnemy2" parent="World/Actors/Enemies" unique_id=901234568 instance=ExtResource("12_bebado_scene")]
 position = Vector2(1100, 680)
+archetype = 3
 
 [node name="BebadoEnemy3" parent="World/Actors/Enemies" unique_id=901234569 instance=ExtResource("12_bebado_scene")]
 position = Vector2(700, 685)

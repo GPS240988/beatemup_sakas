@@ -30,13 +30,14 @@ enum Archetype {
 
 ## Variantes de paleta de cores para diferenciar visualmente os inimigos
 enum PaletteVariant {
-	ORIGINAL,   ## Azul original do casaco
-	RED,        ## Casaco vermelho
-	GREEN,      ## Casaco verde
-	PURPLE,     ## Casaco roxo
-	ORANGE,     ## Casaco laranja
-	CYAN,       ## Casaco ciano/turquesa
-	RANDOM      ## Sorteia aleatoriamente ao spawnar
+	AUTO = -1,  ## Usa a cor canônica definida pelo arquétipo
+	ORIGINAL = 0, ## Azul original do casaco
+	RED = 1,       ## Casaco vermelho
+	GREEN = 2,     ## Casaco verde
+	PURPLE = 3,    ## Casaco roxo
+	ORANGE = 4,    ## Casaco laranja
+	CYAN = 5,      ## Casaco ciano/turquesa
+	RANDOM = 6     ## Sorteia aleatoriamente ao spawnar
 }
 
 ## Nome exibido na HUD Arcade quando o inimigo é alvo
@@ -45,8 +46,8 @@ enum PaletteVariant {
 ## Arquétipo tático deste inimigo
 @export var archetype: Archetype = Archetype.GRUNT
 
-## Variante de paleta de cores deste inimigo (shader hue-shift)
-@export var palette_variant: PaletteVariant = PaletteVariant.ORIGINAL
+## AUTO segue o arquétipo; qualquer variante selecionada aqui prevalece (inclusive ORIGINAL/RANDOM).
+@export var palette_variant: PaletteVariant = PaletteVariant.AUTO
 
 ## Sinal emitido quando o inimigo é derrotado
 signal enemy_defeated()
@@ -727,12 +728,29 @@ func _on_damaged_info(info: RefCounted) -> void:
 
 
 ## Aplica o shader de palette swap no AnimatedSprite2D com base na variante exportada
+func _get_canonical_palette_variant() -> PaletteVariant:
+	match archetype:
+		Archetype.GRUNT:
+			return PaletteVariant.ORIGINAL
+		Archetype.AGGRESSOR:
+			return PaletteVariant.RED
+		Archetype.TANK:
+			return PaletteVariant.GREEN
+		Archetype.FLANKER:
+			return PaletteVariant.PURPLE
+	return PaletteVariant.ORIGINAL
+
+
 func _apply_palette_swap() -> void:
 	if anim_sprite == null:
 		return
 
-	# Resolve RANDOM para uma variante concreta aleatória (excluindo ORIGINAL e RANDOM)
-	var effective_variant: PaletteVariant = palette_variant
+	# AUTO acompanha o arquétipo; as demais variantes são escolhas explícitas.
+	var effective_variant: PaletteVariant = (
+		_get_canonical_palette_variant()
+		if palette_variant == PaletteVariant.AUTO
+		else palette_variant
+	)
 	if effective_variant == PaletteVariant.RANDOM:
 		var options: Array[int] = [
 			PaletteVariant.RED,
@@ -781,19 +799,12 @@ func set_palette_variant(new_variant: PaletteVariant) -> void:
 
 
 
-## Aplica configurações de arquétipo tático sem alterar os valores padrão do GRUNT
+## Aplica configurações de arquétipo tático.
+## AUTO seleciona a cor canônica do arquétipo; qualquer variante escolhida
+## explicitamente no Inspector (inclusive ORIGINAL e RANDOM) tem prioridade.
 func _apply_archetype_configuration() -> void:
-	# Define a variante de paleta canônica do arquétipo se nenhuma variante customizada foi definida
-	if palette_variant == PaletteVariant.ORIGINAL:
-		match archetype:
-			Archetype.AGGRESSOR:
-				palette_variant = PaletteVariant.RED
-			Archetype.TANK:
-				palette_variant = PaletteVariant.PURPLE
-			Archetype.FLANKER:
-				palette_variant = PaletteVariant.GREEN
-			Archetype.GRUNT:
-				palette_variant = PaletteVariant.ORIGINAL
+	if palette_variant == PaletteVariant.AUTO:
+		palette_variant = _get_canonical_palette_variant()
 
 	match archetype:
 		Archetype.AGGRESSOR:

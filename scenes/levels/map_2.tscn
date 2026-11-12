@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://igj2to84hmep"]
 
-[ext_resource type="Script" path="res://scripts/levels/map_2_story_transition.gd" id="1_map2_transition"]
+[ext_resource type="Script" uid="uid://w3861r0ihclo" path="res://scripts/levels/map_2_story_transition.gd" id="1_map2_transition"]
 [ext_resource type="Texture2D" uid="uid://o78q2ivl8thb" path="res://assets/backgrounds/maps/fase1/Fase1_2.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
 [ext_resource type="PackedScene" uid="uid://cxvd6h0452i8y" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
@@ -145,15 +145,15 @@ y_sort_enabled = true
 
 [node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=1553066722 instance=ExtResource("4_enemy_scene")]
 position = Vector2(750, 650)
-palette_variant = 6
+archetype = 3
 
 [node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=567898096 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1100, 680)
-palette_variant = 6
+archetype = 1
 
 [node name="BasicEnemy3" parent="World/Actors/Enemies" unique_id=1519327728 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1500, 660)
-palette_variant = 6
+archetype = 3
 
 [node name="NPCs" type="Node2D" parent="World/Actors" unique_id=1277292145]
 y_sort_enabled = true

@@ -22,7 +22,9 @@ signal spawned(entity: Node)
 @export var is_active: bool = true
 
 ## Variante de paleta de cores a aplicar nos inimigos spawnados neste ponto.
-## -1 = usar o padrão da cena; 0 = ORIGINAL; 6 = RANDOM; 1-5 = variantes específicas.
+## -1 = não sobrescrever; o EnemyAI aplica a cor canônica do archetype
+## (AGGRESSOR=vermelho, TANK=roxo, FLANKER=verde, GRUNT=azul original).
+## 0 = ORIGINAL; 6 = RANDOM; 1-5 = variantes específicas.
 @export_range(-1, 6) var enemy_palette_variant: int = -1
 
 

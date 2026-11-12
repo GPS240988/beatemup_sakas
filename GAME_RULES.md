@@ -949,8 +949,9 @@ Permite diferenciar visualmente inimigos do mesmo tipo (ex: Jogador de Magic) se
 ### Regras
 1. **Performance**: Variante `ORIGINAL` não aplica shader (zero custo de GPU extra).
 2. **Instância Única**: Cada inimigo recebe um `ShaderMaterial` próprio para permitir variações individuais na mesma cena.
-3. **SpawnPoint Integration**: O campo `enemy_palette_variant` no SpawnPoint injeta a paleta antes de `_ready()`. Valor `-1` = usa o padrão da cena.
+3. **SpawnPoint Integration**: O campo `enemy_palette_variant` no SpawnPoint injeta a paleta antes de `_ready()`. Valor `-1` = não sobrescreve; o `EnemyAI._apply_archetype_configuration()` aplica a cor canônica do archetype (AGGRESSOR=vermelho, TANK=roxo, FLANKER=verde, GRUNT=azul original) para garantir variação visual entre inimigos, inclusive em respawns/reforços.
 4. **Runtime API**: `set_palette(PaletteVariant)` altera a paleta em tempo de execução (buffs visuais, eventos).
+5. **Variação Visual por Arquétipo**: Cada arquétipo tático herda sua paleta padrão no `_apply_archetype_configuration()`, garantido que inimigos spawnados via respawn (reforços) respeitem a cor do tipo ao qual pertencem, não ficando todos na cor padrão da cena.
 
 ---
 

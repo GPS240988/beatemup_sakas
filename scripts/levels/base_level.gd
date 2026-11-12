@@ -16,6 +16,8 @@ const NarrativeDirectorClass = preload("res://scripts/events/narrative_director.
 const BGM_STAGE_1_2: String = "res://assets/audio/bgm/M_1_2 - Estágio 1.mp3"
 const BGM_STAGE_3_4: String = "res://assets/audio/bgm/M_3_4 - Estágio 1.mp3"
 const BGM_BONUS_1: String = "res://assets/audio/bgm/bonus_1.mp3"
+const BGM_MAP_4_POETA: String = "res://assets/audio/bgm/Poeta Uruguaio - MAP 4.mp3"
+const BGM_BONUS_POETA: String = "res://assets/audio/bgm/Poeta Uruguaio - BONUS1.mp3"
 
 # Spawn seguro da onda de reforços do Mapa 1. A faixa Y 650..715 corresponde
 # ao corredor inferior contínuo da map_1_navpoly.tres.
@@ -243,17 +245,22 @@ var _level_bgm_player: AudioStreamPlayer = null
 
 ## Configura a trilha sonora (BGM) do nível conforme o mapa atual:
 ## Map 1 e Map 2 -> M_1_2 - Estágio 1
-## Map 3 e Map 4 -> M_3_4 - Estágio 1
-## Bonus Stage (Map 5 / bonus1) -> bonus_1.mp3 (fade-in gradual)
+## Map 3 -> M_3_4 - Estágio 1
+## Map 4 -> Poeta Uruguaio - MAP 4 (após diálogos)
+## Bonus Stage (Map 5 / bonus1) -> Poeta Uruguaio - BONUS1 (após diálogo)
 func _setup_level_bgm() -> void:
 	var target_bgm: String = ""
 	var fade_in: float = 0.0
 	if map_index in [1, 2]:
 		target_bgm = BGM_STAGE_1_2
-	elif map_index in [3, 4]:
+	elif map_index == 4:
+		# Fase 1-4 (O Beco Final): trilha exclusiva "Poeta Uruguaio - MAP 4"
+		target_bgm = BGM_MAP_4_POETA
+	elif map_index == 3:
 		target_bgm = BGM_STAGE_3_4
 	elif map_index == 5 or map_group == "bonus1" or map_name.to_lower().contains("bonus") or map_name.to_lower().contains("garagem"):
-		target_bgm = BGM_BONUS_1
+		# Fase Bônus (Garagem): trilha exclusiva "Poeta Uruguaio - BONUS1"
+		target_bgm = BGM_BONUS_POETA
 		fade_in = 3.5
 
 	if target_bgm.is_empty():

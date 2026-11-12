@@ -1,17 +1,15 @@
 class_name StoryIntroFase1_4
 extends Control
 
-## Apresenta a introdução cinematográfica do Chefe Alessandro para a Fase 1-4 (O Beco Final):
-## 1. Vídeo do Alessandro ('video_fase1_4_alessandro.ogv') com áudio estéreo Vorbis integrado.
-## 2. Enquadramento no palco superior (16:9) e StandardDialogueBox na área inferior.
-## 3. Diálogo de confronto do Chefe Alessandro com efeito typewriter e avanço por toque/tecla.
-## 4. Transição fluida (fade out) para map_4.tscn ao terminar ou pular.
+## Cinematica de introducao da Fase 1-4 (O Beco Final / Chefe Alessandro).
+## 1. Video do Alessandro com audio estereo Vorbis integrado.
+## 2. Dialogo do Alessandro DURANTE o video.
+## 3. Transicao para map_4.tscn ao terminar o video.
+## Os dialogos de abertura (Juliana e Gabriel) sao exibidos dentro do map_4.tscn
+## com o mapa pausado, antes de liberar o gameplay.
 
 const MAP_4_SCENE_PATH: String = "res://scenes/levels/map_4.tscn"
 const VIDEO_ALESSANDRO_PATH: String = "res://assets/videos/stage1/video_fase1_4_alessandro.ogv"
-const PORTRAIT_ALESSANDRO_PATH: String = "res://assets/sprites/characters/chefes/alessandro/sprite-frame-caminhar-1.webp"
-
-const TEXT_ALESSANDRO: String = "Vocês acharam que podiam invadir a locadora e sair impunes? Daqui ninguém passa!"
 
 const StandardDialogueBoxClass = preload("res://scripts/ui/standard_dialogue_box.gd")
 const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd")
@@ -28,6 +26,7 @@ var _is_typing: bool = false
 var _typewriter_tween: Tween
 var _prompt_tween: Tween
 var _transition_started: bool = false
+var _alessandro_dialogue_shown: bool = false
 
 
 func _ready() -> void:
@@ -43,7 +42,7 @@ func _is_mobile_runtime() -> bool:
 
 
 func _build_scene() -> void:
-	# Fundo preto arcade sólido
+	# Fundo preto arcade solido
 	var background := ColorRect.new()
 	background.name = "Background"
 	background.color = Color(0.008, 0.010, 0.018, 1.0)
@@ -51,7 +50,7 @@ func _build_scene() -> void:
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
 
-	# Palco Superior: Reserva até 68% da tela para o vídeo em 16:9
+	# Palco Superior: Reserva ate 68% da tela para o video em 16:9
 	_video_stage = MarginContainer.new()
 	_video_stage.name = "VideoStage"
 	_video_stage.anchor_left = 0.0
@@ -81,14 +80,14 @@ func _build_scene() -> void:
 	_video_player.finished.connect(_on_video_finished)
 	_video_wrapper.add_child(_video_player)
 
-	# Interface Oficial de Diálogo (StandardDialogueBox) na área inferior
+	# Interface Oficial de Dialogo (StandardDialogueBox) na area inferior
 	_dialogue_ui = StandardDialogueBoxClass.build_dialogue_ui(self, _is_mobile_runtime())
 	if not _dialogue_ui.is_empty() and _dialogue_ui.has("dialogue_area"):
 		var dialogue_area: Control = _dialogue_ui["dialogue_area"] as Control
 		if dialogue_area != null:
 			dialogue_area.visible = false
 
-	# Overlay para Fades e Transições
+	# Overlay para Fades e Transicoes
 	_fade_overlay = ColorRect.new()
 	_fade_overlay.name = "FadeOverlay"
 	_fade_overlay.color = Color.BLACK
@@ -119,7 +118,14 @@ func _start_presentation() -> void:
 		return
 
 	_play_video(VIDEO_ALESSANDRO_PATH)
-	_show_dialogue("ALESSANDRO", TEXT_ALESSANDRO, PORTRAIT_ALESSANDRO_PATH)
+
+		# Mostra o dialogo do Alessandro DURANTE o video
+		_alessandro_dialogue_shown = true
+		_show_dialogue(
+			"ALESSANDRO",
+			"Vem aqui docinho, tenho uma trufa para voce",
+            "res://assets/ui/hud/portraits/portrait_jogador_de_magic.png"
+		)
 
 
 func _play_video(video_path: String) -> void:
@@ -210,14 +216,21 @@ func _skip_or_advance() -> void:
 
 
 func _on_video_finished() -> void:
-	if _is_typing:
-		var dialogue_label: Label = _dialogue_ui.get("dialogue_label") as Label
-		if dialogue_label != null:
-			if _typewriter_tween != null and _typewriter_tween.is_valid():
-				_typewriter_tween.kill()
-			dialogue_label.visible_characters = dialogue_label.text.length()
-			_is_typing = false
-			_show_prompt()
+	# Dialogo do Alessandro ja foi mostrado durante o video no _start_presentation.
+	# Aqui apenas finaliza a cena de video e transiciona para map_4.tscn.
+	if _typewriter_tween != null and _typewriter_tween.is_valid():
+		_typewriter_tween.kill()
+	_is_typing = false
+
+	var dialogue_label: Label = _dialogue_ui.get("dialogue_label") as Label
+	if dialogue_label != null:
+		dialogue_label.visible_characters = -1
+
+	var prompt_label: Label = _dialogue_ui.get("prompt_label") as Label
+	if prompt_label != null:
+		prompt_label.visible = false
+
+	_transition_to_map_4()
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -275,4 +288,3 @@ func _transition_to_map_4() -> void:
 	if error != OK:
 		push_error("Falha ao solicitar carregamento de map_4.tscn. Código: %d" % error)
 		_transition_started = false
-

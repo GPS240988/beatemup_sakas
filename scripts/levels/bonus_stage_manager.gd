@@ -15,6 +15,7 @@ signal bonus_stage_completed(cars_destroyed_count: int, bonus_continues_awarded:
 
 const BONUS_INTRO_SEQUENCE_PATH: String = "res://resources/story/bonus_garage_intro.tres"
 const NARRATIVE_DIRECTOR_SCENE_PATH: String = "res://scenes/ui/narrative_director.tscn"
+const BGM_BONUS_POETA_PATH: String = "res://assets/audio/bgm/Poeta Uruguaio - BONUS1.mp3"
 
 @export var round_duration: float = 40.0
 @export var orange_car_path: NodePath = NodePath("../World/Props/Vehicles/CarOrange")
@@ -125,6 +126,13 @@ func _on_bonus_intro_completed(_sequence_id: String) -> void:
 	if _narrative_director != null and is_instance_valid(_narrative_director):
 		_narrative_director.queue_free()
 	_narrative_director = null
+
+	# Toca a trilha exclusiva da fase bônus após o diálogo/explicação,
+	# em repetição (loop) enquanto o jogador não sair da fase.
+	var gs: Node = get_node_or_null("/root/GameSession")
+	if gs != null and gs.has_method("play_bgm"):
+		gs.call("play_bgm", BGM_BONUS_POETA_PATH, -4.0, 0.0)
+
 	start_round()
 
 

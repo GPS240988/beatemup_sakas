@@ -1,25 +1,25 @@
 [gd_scene format=3 uid="uid://bo1haot30m3b0"]
 
-[ext_resource type="Script" path="res://scripts/levels/map_4_story_transition.gd" id="1_mobile_base"]
+[ext_resource type="Script" uid="uid://5eich3urg1fx" path="res://scripts/levels/map_4_story_transition.gd" id="1_mobile_base"]
 [ext_resource type="Texture2D" uid="uid://di68bvkiwwr58" path="res://assets/backgrounds/maps/fase1/Fase1_4.webp" id="2_bg_texture"]
 [ext_resource type="PackedScene" uid="uid://c8v1u0b7va5bu" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
-[ext_resource type="PackedScene" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
+[ext_resource type="PackedScene" uid="uid://cxvd6h0452i8y" path="res://scenes/actors/enemies/basic_enemy.tscn" id="4_enemy_scene"]
 [ext_resource type="Script" uid="uid://c1ms60yaiwv12" path="res://scripts/combat/combat_director.gd" id="5_director_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="6_siga_scene"]
+[ext_resource type="PackedScene" uid="uid://cx6etug1g8lhg" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
 [ext_resource type="Texture2D" uid="uid://dgvm14wg6twry" path="res://assets/sprites/characters/npc/loro/loro_0.png" id="7_loro0"]
 [ext_resource type="Texture2D" uid="uid://bf7apilbbkb8w" path="res://assets/sprites/characters/npc/loro/loro_1.png" id="8_loro1"]
+[ext_resource type="NavigationPolygon" path="res://scenes/levels/map_4_navpoly.tres" id="8_navpoly"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/boss_alessandro.tscn" id="9_boss_alessandro"]
 [ext_resource type="Texture2D" uid="uid://brf6rn7dv3q8e" path="res://assets/sprites/characters/npc/loro/loro_2.png" id="9_loro2"]
 [ext_resource type="Texture2D" uid="uid://c4qiptpemloqx" path="res://assets/sprites/characters/npc/loro/loro_3.png" id="10_loro3"]
+[ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="10_spawn_point"]
 [ext_resource type="Texture2D" uid="uid://2t8tyxxtw57h" path="res://assets/sprites/characters/npc/loro/loro_4.png" id="11_loro4"]
+[ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="11_spawn_director"]
 [ext_resource type="Texture2D" uid="uid://vqpwohpm1f5b" path="res://assets/sprites/characters/npc/loro/loro_5.png" id="12_loro5"]
 [ext_resource type="Texture2D" uid="uid://dqp2eye10kl0h" path="res://assets/sprites/characters/npc/loro/loro_6.png" id="13_loro6"]
 [ext_resource type="Texture2D" uid="uid://b8akauvtroo" path="res://assets/sprites/characters/npc/loro/loro_7.png" id="14_loro7"]
 [ext_resource type="Texture2D" uid="uid://c5wojeug44h1b" path="res://assets/sprites/characters/npc/loro/loro_8.png" id="15_loro8"]
-[ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="7_hud_scene"]
-[ext_resource type="NavigationPolygon" path="res://scenes/levels/map_4_navpoly.tres" id="8_navpoly"]
-[ext_resource type="PackedScene" path="res://scenes/actors/enemies/boss_alessandro.tscn" id="9_boss_alessandro"]
-[ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="10_spawn_point"]
-[ext_resource type="Script" uid="uid://dixdfeecpq35i" path="res://scripts/spawning/spawn_director.gd" id="11_spawn_director"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top_wall"]
 size = Vector2(2200, 40)
@@ -29,9 +29,6 @@ size = Vector2(2200, 30)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_boundary"]
 size = Vector2(40, 220)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
-size = Vector2(60, 80)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_loro"]
 animations = [{
@@ -63,27 +60,26 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("15_loro8")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 8.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
+size = Vector2(60, 80)
+
 [node name="Map4" type="Node2D" unique_id=20037952]
 script = ExtResource("1_mobile_base")
-stage_number = 1
 section_number = 4
 map_name = "Fase 1 - Seção 4: O Beco Final"
 map_index = 4
-mobile_camera_fill_overscan = 1.02
 next_map_scene_path = "res://scenes/levels/bonus_garage.tscn"
-is_final_map = false
 boss_scene = ExtResource("9_boss_alessandro")
 boss_spawn_position = Vector2(1650, 640)
 reinforcement_waves_enabled = true
-reinforcement_trigger_enemy_count = 1
 reinforcement_delay_seconds = 1.5
 reinforcement_count = 3
-reinforcement_archetypes = [1, 2, 3]
+reinforcement_archetypes = Array[int]([1, 2, 3])
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=467852972]
 position = Vector2(640, 360)
@@ -146,15 +142,20 @@ y_sort_enabled = true
 
 [node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=1549943247 instance=ExtResource("4_enemy_scene")]
 position = Vector2(600, 620)
+archetype = 2
+palette_variant = 2
 
 [node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=1165304477 instance=ExtResource("4_enemy_scene")]
 position = Vector2(950, 680)
+archetype = 2
 
 [node name="BasicEnemy3" parent="World/Actors/Enemies" unique_id=39592545 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1250, 600)
+archetype = 2
 
 [node name="BasicEnemy4" parent="World/Actors/Enemies" unique_id=2055074000 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1500, 660)
+archetype = 2
 
 [node name="NPCs" type="Node2D" parent="World/Actors" unique_id=1701485444]
 y_sort_enabled = true
