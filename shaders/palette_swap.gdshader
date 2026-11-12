@@ -1,38 +1,37 @@
 shader_type canvas_item;
 
 // ============================================================
-// PALETTE SWAP SHADER — Hue Shift Seletivo para Inimigos
+// PALETTE SWAP SHADER — Substituição seletiva de matiz para inimigos
 // Projeto Sakas — Beat 'em Up 2.5D
 // ============================================================
-// Rotaciona a matiz (hue) de pixels dentro de uma faixa de
-// cor alvo (ex: azuis do casaco), preservando pele, cabelo,
-// calça e botas intactos.
+// Recolore os pixels azuis do casaco com uma matiz de destino fixa.
+// A luminosidade e a estrutura de sombras originais são preservadas,
+// evitando que variações de azul produzam manchas de cores diferentes.
+// Pele, cabelo, calça e botas permanecem intactos fora da faixa-alvo.
 // ============================================================
 
-/// Ângulo de rotação da matiz em graus (0 = original, 120 = verde, 240 = vermelho)
+/// Ângulo de rotação relativo da paleta em graus.
+/// Com target_hue = 220°: 140° gera vermelho; 260° gera verde.
 uniform float hue_shift : hint_range(0.0, 360.0, 1.0) = 0.0;
 
-/// Centro da matiz alvo a ser substituída (em graus, 0-360).
-/// Azul padrão do casaco ≈ 220°
+/// Centro da matiz original a ser substituída (azul do casaco ≈ 220°).
 uniform float target_hue : hint_range(0.0, 360.0, 1.0) = 220.0;
 
-/// Tolerância da faixa de matiz ao redor do alvo (em graus).
-/// Quanto maior, mais cores similares serão afetadas.
+/// Tolerância da faixa de matiz ao redor do azul original.
 uniform float hue_tolerance : hint_range(5.0, 90.0, 1.0) = 45.0;
 
 /// Saturação mínima para o pixel ser elegível ao swap.
-/// Pixels dessaturados (cinzas, pretos, brancos) são ignorados.
+/// Pixels praticamente acromáticos continuam protegidos.
 uniform float min_saturation : hint_range(0.0, 1.0, 0.01) = 0.08;
 
-/// Ajuste de saturação adicional (+/- sobre a saturação original)
+/// Ajuste de saturação adicional (+/- sobre a saturação original).
 uniform float saturation_adjust : hint_range(-0.5, 0.5, 0.01) = 0.0;
 
-/// Ajuste de valor/brilho adicional (+/- sobre o value original)
+/// Ajuste de valor/brilho adicional (+/- sobre o value original).
 uniform float value_adjust : hint_range(-0.5, 0.5, 0.01) = 0.0;
 
 
 // --- Funções de conversão RGB ↔ HSV ---
-
 vec3 rgb_to_hsv(vec3 c) {
 	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
 	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
@@ -54,32 +53,35 @@ void fragment() {
 
 	if (tex_color.a >= 0.01) {
 		vec3 hsv = rgb_to_hsv(tex_color.rgb);
-
-		// Converte hue de [0,1] para graus [0,360]
 		float pixel_hue_deg = hsv.x * 360.0;
 		float pixel_sat = hsv.y;
 
-		// Calcula a distância angular mínima entre o hue do pixel e o hue alvo
+		// Distância angular mínima entre o pixel e o azul-base do casaco.
 		float hue_diff = abs(pixel_hue_deg - target_hue);
 		if (hue_diff > 180.0) {
 			hue_diff = 360.0 - hue_diff;
 		}
 
-		// Verifica se o pixel está dentro da faixa de cor alvo E tem saturação suficiente
 		if (hue_diff <= hue_tolerance && pixel_sat >= min_saturation) {
-			// Fator de suavização nas bordas da faixa (feathering)
-			float blend = 1.0 - smoothstep(hue_tolerance * 0.6, hue_tolerance, hue_diff);
+			// Feather curto: quase toda a faixa recebe a cor integral.
+			// Isso evita bordas longas com mistura azul/vermelho ou azul/verde.
+			float feather_start = hue_tolerance * 0.90;
+			float blend = 1.0 - smoothstep(feather_start, hue_tolerance, hue_diff);
 
-			// Aplica rotação de hue
-			float new_hue = mod(pixel_hue_deg + hue_shift, 360.0) / 360.0;
-			float original_hue = hsv.x;
+			// Usa uma matiz final única para todo o casaco, em vez de girar
+			// cada matiz original individualmente (causa comum de aspecto manchado).
+			float palette_hue = mod(target_hue + hue_shift, 360.0) / 360.0;
+			hsv.x = mix(hsv.x, palette_hue, blend);
 
-			// Interpola suavemente entre original e novo nas bordas
-			hsv.x = mix(original_hue, new_hue, blend);
-
-			// Aplica ajustes de saturação e valor
-			hsv.y = clamp(hsv.y + saturation_adjust * blend, 0.0, 1.0);
-			hsv.z = clamp(hsv.z + value_adjust * blend, 0.0, 1.0);
+			// Todas as variantes recebem um piso de vivacidade.
+			// Vermelho continua usando o brilho extra definido no EnemyAI;
+			// verde, roxo, laranja e ciano deixam de ficar apagados.
+			float effective_saturation_adjust = max(saturation_adjust, 0.24);
+			float effective_value_adjust = max(value_adjust, 0.58);
+			hsv.y = clamp(hsv.y + effective_saturation_adjust * blend, 0.0, 1.0);
+			// Eleva a luminosidade em direção ao branco, com roll-off natural nas áreas já claras.
+			// Isso clareia sombras e meios-tons sem estourar tanto os highlights.
+			hsv.z = mix(hsv.z, 1.0, clamp(effective_value_adjust * blend, 0.0, 1.0));
 		}
 
 		COLOR = vec4(hsv_to_rgb(hsv) * COLOR.rgb, tex_color.a * COLOR.a);

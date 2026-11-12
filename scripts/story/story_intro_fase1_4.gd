@@ -119,13 +119,13 @@ func _start_presentation() -> void:
 
 	_play_video(VIDEO_ALESSANDRO_PATH)
 
-		# Mostra o dialogo do Alessandro DURANTE o video
-		_alessandro_dialogue_shown = true
-		_show_dialogue(
-			"ALESSANDRO",
-			"Vem aqui docinho, tenho uma trufa para voce",
-            "res://assets/ui/hud/portraits/portrait_jogador_de_magic.png"
-		)
+	# Mostra o dialogo do Alessandro DURANTE o video
+	_alessandro_dialogue_shown = true
+	_show_dialogue(
+		"ALESSANDRO",
+		"Vem aqui docinho, tenho uma trufa para voce",
+		"res://assets/ui/hud/portraits/portrait_alessandro.png"
+	)
 
 
 func _play_video(video_path: String) -> void:

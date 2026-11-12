@@ -1,10 +1,8 @@
 extends "res://scripts/levels/mobile_base_level.gd"
 
 ## Controlador de Fase 1-4 (O Beco Final / Chefe Alessandro).
-## Garante que o vídeo de introdução do Chefe Alessandro seja apresentado assim
-## que a fase começar, mesmo se carregada diretamente.
-## Após o vídeo, o mapa carrega pausado e exibe os diálogos de abertura
-## (Juliana e Gabriel) antes de liberar o gameplay.
+## A cinemática obrigatória é executada antes da inicialização do mapa.
+## Após o vídeo, Juliana e Gabriel falam com o mapa pausado, antes do gameplay.
 
 const STORY_INTRO_FASE1_4_PATH: String = "res://scenes/story/story_intro_fase1_4.tscn"
 const Map4OpeningDialogueEventClass = preload(
@@ -16,35 +14,51 @@ var _opening_tree_was_paused: bool = false
 
 
 func _ready() -> void:
-	# Garante a inicialização completa do BaseLevel (câmera, combate, spawn, etc.)
-	super._ready()
-
-	var session = get_node_or_null("/root/GameSession")
+	# A cinemática precisa acontecer ANTES de BaseLevel._ready():
+	# BaseLevel chama _check_and_trigger_opening_narrative() e pausa a árvore.
+	# Se isso ocorrer antes do vídeo, a pausa pode persistir na troca de cenas
+	# e o gameplay continuará congelado mesmo após fechar os diálogos.
+	var session: Node = get_node_or_null("/root/GameSession")
 	var has_seen: bool = false
 	if session != null:
-		if "has_seen_fase1_4_intro" in session:
-			has_seen = bool(session.has_seen_fase1_4_intro)
-		elif session.get("has_seen_fase1_4_intro") != null:
-			has_seen = bool(session.get("has_seen_fase1_4_intro"))
+		has_seen = bool(session.get("has_seen_fase1_4_intro"))
+	else:
+		has_seen = bool(get_tree().root.get_meta("map4_intro_seen", false))
 
 	if not has_seen:
-		if session != null:
-			if "has_seen_fase1_4_intro" in session:
-				session.has_seen_fase1_4_intro = true
-			else:
-				session.set("has_seen_fase1_4_intro", true)
 		if ResourceLoader.exists(STORY_INTRO_FASE1_4_PATH):
-			get_tree().change_scene_to_file(STORY_INTRO_FASE1_4_PATH)
-			return
-	# Se já viu o intro ou a cena não existe, dispara o diálogo de abertura direto no mapa
-	# Usa call_deferred para evitar problemas de inicialização durante o _ready()
-	call_deferred("_trigger_opening_narrative")
+			if session != null:
+				session.set("has_seen_fase1_4_intro", true)
+			else:
+				get_tree().root.set_meta("map4_intro_seen", true)
+
+			var change_error: Error = get_tree().change_scene_to_file(
+				STORY_INTRO_FASE1_4_PATH
+			)
+			if change_error == OK:
+				return
+
+			# Se a troca falhar, permite tentar a cinemática novamente.
+			if session != null:
+				session.set("has_seen_fase1_4_intro", false)
+			else:
+				get_tree().root.set_meta("map4_intro_seen", false)
+			push_error(
+				"Map4: falha ao abrir a cinemática de introdução. Código: %d"
+				% change_error
+			)
+		else:
+			push_warning(
+				"Map4: cinemática não encontrada; a abertura seguirá sem o vídeo."
+			)
+
+	# Só inicializa o gameplay depois da cinemática (ou se ela já foi vista).
+	super._ready()
 
 
 func _check_and_trigger_opening_narrative() -> bool:
-	# O mapa 4 sempre exibe os diálogos de abertura (Juliana e Gabriel) antes do gameplay.
-	# Retorna true para que BaseLevel não inicie o BGM antecipadamente;
-	# o BGM é iniciado em _release_opening_flow() após fechar a fala.
+	# O mapa 4 sempre exibe os diálogos de abertura antes do gameplay.
+	# Retorna true para impedir o BGM antecipado.
 	_trigger_opening_narrative()
 	return true
 
@@ -57,8 +71,6 @@ func _trigger_opening_narrative() -> void:
 	var tree: SceneTree = get_tree()
 	_opening_tree_was_paused = tree.paused
 	tree.paused = true
-
-	# Exibe os diálogos de abertura (Juliana e Gabriel) com a árvore pausada.
 	_show_opening_dialogue()
 
 
@@ -88,5 +100,5 @@ func _release_opening_flow() -> void:
 	if get_tree() != null:
 		get_tree().paused = _opening_tree_was_paused
 
-	# A música e o processamento do mapa começam somente após fechar a fala.
+	# A música e o gameplay começam somente após fechar a fala do Gabriel.
 	super._setup_level_bgm()

@@ -2,8 +2,8 @@ class_name Map4OpeningDialogueEvent
 extends CanvasLayer
 
 ## Evento narrativo bloqueante da entrada do Mapa 4.
-## Exibe os diálogos de abertura da Juliana e do Gabriel após o vídeo OGV
-## da transição Map 3 -> Map 4, antes de liberar o gameplay.
+## Exibe os diálogos da Juliana e do Gabriel após o vídeo OGV,
+## antes de liberar o gameplay.
 signal dialogue_closed
 
 const StandardDialogueBoxClass = preload("res://scripts/ui/standard_dialogue_box.gd")
@@ -13,18 +13,10 @@ const JULIANA_PORTRAIT: Texture2D = preload(
 const GABRIEL_PORTRAIT: Texture2D = preload(
 	"res://assets/ui/hud/portraits/portrait_gabriel.png"
 )
-const ALESSANDRO_PORTRAIT: Texture2D = preload(
-	"res://assets/ui/hud/portraits/portrait_guilherme.png"
-)
 
-## Lista de diálogos a serem exibidos em sequência
-## A ordem é: Alessandro → Juliana → Gabriel
+## Alessandro já fala durante o vídeo de introdução.
+## Depois do vídeo, a sequência contém somente Juliana e Gabriel.
 var _dialogues: Array[Dictionary] = [
-	{
-		"speaker": "ALESSANDRO",
-		"portrait": ALESSANDRO_PORTRAIT,
-		"text": "Vem aqui docinho, tenho uma trufa para você."
-	},
 	{
 		"speaker": "JULIANA",
 		"portrait": JULIANA_PORTRAIT,
@@ -97,7 +89,6 @@ func _show_current_dialogue() -> void:
 	_dialogue_label.text = text
 	_dialogue_label.visible_characters = 0
 	_continue_label.visible = false
-
 	_start_typewriter()
 
 
