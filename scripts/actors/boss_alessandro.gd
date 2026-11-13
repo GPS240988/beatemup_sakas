@@ -2,13 +2,28 @@ class_name BossAlessandro
 extends EnemyAI
 
 ## Controlador Especial do Chefe Alessandro (Fase 1 - O Gerente da Locadora).
-## Utiliza os sprites oficiais em 250x330, inteligência artificial aprimorada com
-## alternância entre socos, chutes e combos pesados, e barra de vida de Chefe.
+## Utiliza os sprites oficiais em 250x330 e preserva a IA base do combate.
+
+enum SpecialBehavior {
+	NONE,
+	THROWING_TRUFFLES
+}
+
+const TRUFFLE_SCENE: PackedScene = preload("res://scenes/actors/projectiles/trufa.tscn")
+const TRUFFLE_COUNT: int = 3
+const TRUFFLE_INTERVAL: float = 0.18
+const TRUFFLE_INITIAL_COOLDOWN: float = 4.0
+const TRUFFLE_COOLDOWN_PHASE_ONE: float = 8.0
+const TRUFFLE_COOLDOWN_PHASE_TWO: float = 6.5
 
 @onready var boss_name_label: Label = $Visual/BossNameLabel
 
 var _attack_variant: int = 0
 var _anim_locked: bool = false
+var _special_behavior: SpecialBehavior = SpecialBehavior.NONE
+var _truffle_cooldown: float = TRUFFLE_INITIAL_COOLDOWN
+var _truffle_shot_timer: float = 0.0
+var _truffles_remaining: int = 0
 
 
 func _ready() -> void:
@@ -45,8 +60,113 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _special_behavior != SpecialBehavior.NONE:
+		_process_special_behavior(delta)
+		move_and_slide()
+		_update_boss_visuals()
+		return
+
 	super._physics_process(delta)
 	_update_boss_visuals()
+
+	if current_state == State.DEAD or player_target == null:
+		return
+
+	_truffle_cooldown = maxf(0.0, _truffle_cooldown - delta)
+	if _truffle_cooldown <= 0.0 and _can_start_truffle_barrage():
+		_start_truffle_barrage()
+
+
+func _can_start_truffle_barrage() -> bool:
+	if _special_behavior != SpecialBehavior.NONE:
+		return false
+	if current_state not in [State.FLANKING, State.WAITING, State.IDLE]:
+		return false
+	if melee_attack != null and melee_attack.is_attacking:
+		return false
+	return player_target != null and is_instance_valid(player_target)
+
+
+func _start_truffle_barrage() -> void:
+	_special_behavior = SpecialBehavior.THROWING_TRUFFLES
+	_truffles_remaining = TRUFFLE_COUNT
+	_truffle_shot_timer = 0.0
+	velocity = Vector2.ZERO
+	_release_combat_resources()
+
+	if melee_attack != null:
+		melee_attack.cancel_attack()
+	if punch_visual != null:
+		punch_visual.visible = false
+	if anim_sprite != null:
+		_play_anim("guard")
+
+
+func _process_special_behavior(delta: float) -> void:
+	velocity = Vector2.ZERO
+	if current_state == State.DEAD or health_component == null or health_component.is_dead:
+		_finish_special_behavior()
+		return
+
+	match _special_behavior:
+		SpecialBehavior.THROWING_TRUFFLES:
+			_truffle_shot_timer -= delta
+			if _truffle_shot_timer <= 0.0 and _truffles_remaining > 0:
+				_throw_truffle()
+				_truffles_remaining -= 1
+				_truffle_shot_timer = TRUFFLE_INTERVAL
+
+			if _truffles_remaining <= 0:
+				_finish_special_behavior()
+
+
+func _throw_truffle() -> void:
+	if not is_instance_valid(player_target):
+		return
+
+	var truffle := TRUFFLE_SCENE.instantiate() as RigidBody2D
+	if truffle == null:
+		push_warning("BossAlessandro: não foi possível instanciar a trufa.")
+		return
+
+	var projectile_container: Node = get_parent()
+	if projectile_container == null:
+		truffle.free()
+		return
+
+	projectile_container.add_child(truffle)
+	truffle.global_position = global_position + Vector2(facing_direction * 34.0, -105.0)
+
+	var target_vector: Vector2 = player_target.global_position - truffle.global_position
+	if target_vector.length_squared() < 1.0:
+		target_vector = Vector2(facing_direction, 0.0)
+	var base_angle: float = target_vector.normalized().angle()
+	var spread_step: float = 0.13
+	var shot_index: int = TRUFFLE_COUNT - _truffles_remaining
+	var spread_angle: float = float(shot_index - 1) * spread_step
+	var launch_direction := Vector2.RIGHT.rotated(base_angle + spread_angle)
+
+	truffle.set("attacker", self)
+	truffle.apply_central_impulse(launch_direction * 310.0)
+
+
+func _finish_special_behavior() -> void:
+	if _special_behavior == SpecialBehavior.NONE:
+		return
+
+	_special_behavior = SpecialBehavior.NONE
+	_truffles_remaining = 0
+	_truffle_shot_timer = 0.0
+	_truffle_cooldown = (
+		TRUFFLE_COOLDOWN_PHASE_TWO
+		if health_component != null and health_component.current_health <= 100.0
+		else TRUFFLE_COOLDOWN_PHASE_ONE
+	)
+
+	if current_state != State.DEAD:
+		current_state = State.FLANKING
+		_attack_timer = maxf(_attack_timer, 0.65)
+		_play_anim("idle")
 
 
 func _update_boss_visuals() -> void:
@@ -88,32 +208,28 @@ func _trigger_attack() -> void:
 	match _attack_variant:
 		0:
 			anim_name = &"punch"
-			if melee_attack != null:
-				melee_attack.damage = 20.0
-				melee_attack.impact_profile = "punch"
-				melee_attack.preferred_regions = ["head", "upper_torso"]
-				melee_attack.hitbox_offset_y = -135.0
+			melee_attack.damage = 20.0
+			melee_attack.impact_profile = "punch"
+			melee_attack.preferred_regions = ["head", "upper_torso"]
+			melee_attack.hitbox_offset_y = -135.0
 		1:
 			anim_name = &"kick"
-			if melee_attack != null:
-				melee_attack.damage = 25.0
-				melee_attack.impact_profile = "kick"
-				melee_attack.preferred_regions = ["lower_torso"]
-				melee_attack.hitbox_offset_y = -75.0
+			melee_attack.damage = 25.0
+			melee_attack.impact_profile = "kick"
+			melee_attack.preferred_regions = ["lower_torso"]
+			melee_attack.hitbox_offset_y = -75.0
 		2:
 			anim_name = &"combo"
-			if melee_attack != null:
-				melee_attack.damage = 30.0
-				melee_attack.impact_profile = "finisher"
-				melee_attack.preferred_regions = ["upper_torso", "head"]
-				melee_attack.hitbox_offset_y = -130.0
+			melee_attack.damage = 30.0
+			melee_attack.impact_profile = "finisher"
+			melee_attack.preferred_regions = ["upper_torso", "head"]
+			melee_attack.hitbox_offset_y = -130.0
 		3:
 			anim_name = &"jump_atk"
-			if melee_attack != null:
-				melee_attack.damage = 28.0
-				melee_attack.impact_profile = "kick"
-				melee_attack.preferred_regions = ["head"]
-				melee_attack.hitbox_offset_y = -150.0
+			melee_attack.damage = 28.0
+			melee_attack.impact_profile = "kick"
+			melee_attack.preferred_regions = ["head"]
+			melee_attack.hitbox_offset_y = -150.0
 
 	if anim_sprite != null and anim_sprite.sprite_frames.has_animation(anim_name):
 		anim_sprite.play(anim_name)
@@ -129,6 +245,8 @@ func _on_attack_ended() -> void:
 
 
 func _on_damaged(amount: float) -> void:
+	# Ser atingido interrompe a preparação do ataque especial sem prender a IA.
+	_finish_special_behavior()
 	super._on_damaged(amount)
 	if current_state == State.DEAD:
 		return
@@ -138,6 +256,9 @@ func _on_damaged(amount: float) -> void:
 
 
 func _on_died() -> void:
+	_special_behavior = SpecialBehavior.NONE
+	_truffles_remaining = 0
+	_truffle_shot_timer = 0.0
 	super._on_died()
 	_anim_locked = true
 
