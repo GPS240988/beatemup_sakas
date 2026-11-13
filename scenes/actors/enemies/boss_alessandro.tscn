@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bx4i3pl1ba018"]
 
-[ext_resource type="Script" uid="uid://cqw7n7nv6q14i" path="res://scripts/actors/boss_alessandro.gd" id="1_boss_script"]
+[ext_resource type="Script" path="res://scripts/actors/boss_alessandro_enhanced.gd" id="1_boss_script"]
 [ext_resource type="Script" uid="uid://dv88d45gnp3hc" path="res://scripts/components/health_component.gd" id="2_health_script"]
 [ext_resource type="Script" uid="uid://dgggt62axoi4n" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
 [ext_resource type="Texture2D" uid="uid://c04sckvbu1elx" path="res://assets/sprites/characters/chefes/alessandro/sprite-frame-caminhar-1.webp" id="4_cam1"]

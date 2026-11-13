@@ -10,7 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://dgvm14wg6twry" path="res://assets/sprites/characters/npc/loro/loro_0.png" id="7_loro0"]
 [ext_resource type="Texture2D" uid="uid://bf7apilbbkb8w" path="res://assets/sprites/characters/npc/loro/loro_1.png" id="8_loro1"]
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_4_navpoly.tres" id="8_navpoly"]
-[ext_resource type="PackedScene" path="res://scenes/actors/enemies/boss_alessandro.tscn" id="9_boss_alessandro"]
+[ext_resource type="PackedScene" uid="uid://bx4i3pl1ba018" path="res://scenes/actors/enemies/boss_alessandro.tscn" id="9_boss_alessandro"]
 [ext_resource type="Texture2D" uid="uid://brf6rn7dv3q8e" path="res://assets/sprites/characters/npc/loro/loro_2.png" id="9_loro2"]
 [ext_resource type="Texture2D" uid="uid://c4qiptpemloqx" path="res://assets/sprites/characters/npc/loro/loro_3.png" id="10_loro3"]
 [ext_resource type="Script" uid="uid://blkj6nc48yw0v" path="res://scripts/spawning/spawn_point.gd" id="10_spawn_point"]
@@ -20,20 +20,53 @@
 [ext_resource type="Texture2D" uid="uid://dqp2eye10kl0h" path="res://assets/sprites/characters/npc/loro/loro_6.png" id="13_loro6"]
 [ext_resource type="Texture2D" uid="uid://b8akauvtroo" path="res://assets/sprites/characters/npc/loro/loro_7.png" id="14_loro7"]
 [ext_resource type="Texture2D" uid="uid://c5wojeug44h1b" path="res://assets/sprites/characters/npc/loro/loro_8.png" id="15_loro8"]
+[ext_resource type="PackedScene" path="res://scenes/items/ovo_pickup.tscn" id="17_ovo_pickup"]
+[ext_resource type="PackedScene" path="res://scenes/items/dado_continue_pickup.tscn" id="18_dado_continue"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top_wall"]
 size = Vector2(2200, 40)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom_wall"]
 size = Vector2(2200, 30)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_boundary"]
 size = Vector2(40, 220)
+
 [sub_resource type="SpriteFrames" id="SpriteFrames_loro"]
 animations = [{
-"frames": [{"duration": 1.0, "texture": ExtResource("7_loro0")}, {"duration": 1.0, "texture": ExtResource("8_loro1")}, {"duration": 1.0, "texture": ExtResource("9_loro2")}, {"duration": 1.0, "texture": ExtResource("10_loro3")}, {"duration": 1.0, "texture": ExtResource("11_loro4")}, {"duration": 1.0, "texture": ExtResource("12_loro5")}, {"duration": 1.0, "texture": ExtResource("13_loro6")}, {"duration": 1.0, "texture": ExtResource("14_loro7")}, {"duration": 1.0, "texture": ExtResource("15_loro8")}],
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_loro0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_loro1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_loro2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_loro3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_loro4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_loro5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_loro6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_loro7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_loro8")
+}],
 "loop": 1,
 "name": &"idle",
 "speed": 8.0
 }]
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit_shape"]
 size = Vector2(60, 80)
 
@@ -52,104 +85,148 @@ reinforcement_archetypes = Array[int]([2])
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=467852972]
 position = Vector2(640, 360)
+
 [node name="Background" type="Node2D" parent="." unique_id=117394303]
 z_index = -10
+
 [node name="Far" type="Sprite2D" parent="Background" unique_id=2110102924]
 texture = ExtResource("2_bg_texture")
 centered = false
+
 [node name="Mid" type="Node2D" parent="Background" unique_id=96712020]
+
 [node name="BackProps" type="Node2D" parent="Background" unique_id=526078627]
+
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="." unique_id=954842616]
 navigation_polygon = ExtResource("8_navpoly")
+
 [node name="StaticWorld" type="Node2D" parent="." unique_id=968335750]
+
 [node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld" unique_id=780207840]
 collision_layer = 2
+
 [node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1927118958]
 position = Vector2(991, 525)
 shape = SubResource("RectangleShape2D_top_wall")
+
 [node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=145217321]
 position = Vector2(991, 750)
 shape = SubResource("RectangleShape2D_bottom_wall")
+
 [node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1965269694]
 position = Vector2(30, 640)
 shape = SubResource("RectangleShape2D_vert_boundary")
+
 [node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries" unique_id=1965269695]
 position = Vector2(1960, 640)
 shape = SubResource("RectangleShape2D_vert_boundary")
+
 [node name="World" type="Node2D" parent="." unique_id=1612995134]
 y_sort_enabled = true
+
 [node name="Props" type="Node2D" parent="World" unique_id=435789889]
 y_sort_enabled = true
+
 [node name="StaticProps" type="Node2D" parent="World/Props" unique_id=1270598425]
 y_sort_enabled = true
+
+[node name="OvoPickup" parent="World/Props/StaticProps" unique_id=1303259027 instance=ExtResource("17_ovo_pickup")]
+position = Vector2(426, 521)
+
+[node name="DadoContinuePickup" parent="World/Props/StaticProps" unique_id=1346837486 instance=ExtResource("18_dado_continue")]
+position = Vector2(982, 680)
+
 [node name="Destructibles" type="Node2D" parent="World/Props" unique_id=723863619]
 y_sort_enabled = true
+
 [node name="Actors" type="Node2D" parent="World" unique_id=1664352535]
 y_sort_enabled = true
+
 [node name="Player" parent="World/Actors" unique_id=1745012511 instance=ExtResource("3_player_scene")]
 position = Vector2(220, 640)
+
 [node name="Enemies" type="Node2D" parent="World/Actors" unique_id=177927606]
 y_sort_enabled = true
+
 [node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=1549943247 instance=ExtResource("4_enemy_scene")]
 position = Vector2(600, 620)
 archetype = 2
+
 [node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=1165304477 instance=ExtResource("4_enemy_scene")]
 position = Vector2(950, 680)
 archetype = 2
+
 [node name="BasicEnemy3" parent="World/Actors/Enemies" unique_id=39592545 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1250, 600)
 archetype = 2
+
 [node name="BasicEnemy4" parent="World/Actors/Enemies" unique_id=2055074000 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1500, 660)
 archetype = 2
+
 [node name="NPCs" type="Node2D" parent="World/Actors" unique_id=1701485444]
 y_sort_enabled = true
+
 [node name="Node2D" type="Node2D" parent="World/Actors/NPCs" unique_id=146166753]
 position = Vector2(982, 421)
 scale = Vector2(0.3, 0.3)
+
 [node name="loro" type="AnimatedSprite2D" parent="World/Actors/NPCs/Node2D" unique_id=168342595]
 position = Vector2(8, -58.667)
 sprite_frames = SubResource("SpriteFrames_loro")
 animation = &"idle"
 autoplay = "idle"
-[node name="Foreground" type="Node2D" parent="."]
+
+[node name="Foreground" type="Node2D" parent="." unique_id=1867594656]
 z_index = 10
-[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="SpawnPoints" type="Node2D" parent="." unique_id=1444526293]
+
 [node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" unique_id=1572100695 groups=["spawn_points"]]
 position = Vector2(100, 560)
 script = ExtResource("10_spawn_point")
 point_id = "spawn_left"
+
 [node name="SpawnPoint_Mid" type="Marker2D" parent="SpawnPoints" unique_id=1504405023 groups=["spawn_points"]]
 position = Vector2(950, 600)
 script = ExtResource("10_spawn_point")
 point_id = "spawn_mid"
+
 [node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" unique_id=34725493 groups=["spawn_points"]]
 position = Vector2(1750, 560)
 script = ExtResource("10_spawn_point")
 point_id = "spawn_right"
+
 [node name="SpawnPoint_Reinforce" type="Marker2D" parent="SpawnPoints" unique_id=270328745 groups=["spawn_points"]]
 position = Vector2(1820, 620)
 script = ExtResource("10_spawn_point")
 point_id = "spawn_reinforce"
 spawn_type = 2
+
 [node name="SpawnPoint_Boss" type="Marker2D" parent="SpawnPoints" unique_id=467060792]
 position = Vector2(1700, 640)
 script = ExtResource("10_spawn_point")
 point_id = "spawn_boss"
 spawn_type = 4
+
 [node name="SpawnDirector" type="Node" parent="." unique_id=1287516413]
 script = ExtResource("11_spawn_director")
+
 [node name="CombatDirector" type="Node" parent="." unique_id=1820802592]
 script = ExtResource("5_director_script")
+
 [node name="ExitArea" type="Area2D" parent="." unique_id=1502179441]
 position = Vector2(1920, 650)
 collision_layer = 0
 monitoring = false
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea" unique_id=134189734]
 shape = SubResource("RectangleShape2D_exit_shape")
+
 [node name="SigaIndicator" parent="." unique_id=941481492 instance=ExtResource("6_siga_scene")]
 offset_left = 1760.0
 offset_top = 615.0
 offset_right = 1920.0
 offset_bottom = 669.0
+
 [node name="PrototypeHud" parent="." unique_id=195038734 instance=ExtResource("7_hud_scene")]

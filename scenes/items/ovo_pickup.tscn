@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/items/ovo_pickup.gd" id="1_ovo_script"]
+
+[node name="OvoPickup" type="Node2D"]
+y_sort_enabled = true
+scale = Vector2(0.5, 0.5)
+script = ExtResource("1_ovo_script")
+
+[node name="Shadow" type="Polygon2D" parent="."]
+visible = false
+color = Color(0.05, 0.05, 0.08, 0.38)
+polygon = PackedVector2Array(-15, -1, -9, -5, 0, -7, 9, -5, 15, -1, 9, 3, 0, 5, -9, 3)
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Sprite" type="Sprite2D" parent="Visual"]
+texture_filter = 1
+position = Vector2(0, -50)
+
+[node name="Fallback" type="Node2D" parent="Visual"]
+
+[node name="EggBody" type="Polygon2D" parent="Visual/Fallback"]
+color = Color(0.95, 0.92, 0.84, 1)
+polygon = PackedVector2Array(-8, -32, -4, -38, 4, -38, 8, -32, 8, -10, 4, -4, -4, -4, -8, -10)
+
+[node name="EggTop" type="Polygon2D" parent="Visual/Fallback"]
+color = Color(0.98, 0.96, 0.90, 1)
+polygon = PackedVector2Array(-4, -38, 0, -42, 4, -38)
+
+[node name="EggLabel" type="Label" parent="Visual/Fallback"]
+offset_left = -12.0
+offset_top = -28.0
+offset_right = 12.0
+offset_bottom = -14.0
+theme_override_colors/font_color = Color(0.55, 0.42, 0.15, 1)
+theme_override_font_sizes/font_size = 7
+text = "OVO"
+horizontal_alignment = 1
+vertical_alignment = 1
