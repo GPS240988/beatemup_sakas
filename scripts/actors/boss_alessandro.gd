@@ -10,7 +10,8 @@ enum SpecialBehavior {
 	TRUFFLE_WINDUP,
 	THROWING_TRUFFLES,
 	EVADING,
-	MEAT_SEEKING
+	MEAT_SEEKING,
+	MEAT_EATING
 }
 
 const TRUFFLE_SCENE: PackedScene = preload("res://scenes/actors/projectiles/trufa.tscn")
@@ -18,9 +19,9 @@ const TRUFFLE_COUNT: int = 3
 const TRUFFLE_WINDUP_SECONDS: float = 0.42
 const TRUFFLE_INTERVAL: float = 0.28
 const TRUFFLE_IMPULSE: float = 330.0
-const TRUFFLE_INITIAL_COOLDOWN: float = 5.0
-const TRUFFLE_COOLDOWN_PHASE_ONE: float = 5.0
-const TRUFFLE_COOLDOWN_PHASE_TWO: float = 5.0
+const TRUFFLE_INITIAL_COOLDOWN: float = 4.25
+const TRUFFLE_COOLDOWN_PHASE_ONE: float = 4.25
+const TRUFFLE_COOLDOWN_PHASE_TWO: float = 4.25
 const TRUFFLE_DAMAGE: float = 10.0
 const TRUFFLE_SPREAD_ANGLE: float = 0.58
 const TRUFFLE_DEPTH_SPREAD: float = 105.0
@@ -48,7 +49,10 @@ const MEAT_TRIGGER_HEALTH: float = 450.0
 const MEAT_HEAL_AMOUNT: float = 300.0
 const MEAT_DROP_OFFSET_X: float = 520.0
 const MEAT_SEEK_SPEED: float = 128.0
-const MEAT_ARRIVAL_DISTANCE: float = 88.0
+const MEAT_ARRIVAL_DISTANCE: float = 112.0
+const MEAT_ARRIVAL_DEPTH: float = 68.0
+const MEAT_APPEAR_EAT_SECONDS: float = 2.5
+const MEAT_DIALOGUE_SECONDS: float = 2.8
 
 @onready var boss_name_label: Label = $Visual/BossNameLabel
 
@@ -64,6 +68,8 @@ var _evasion_cooldown: float = EVADE_INITIAL_COOLDOWN
 var _evasion_direction: Vector2 = Vector2.ZERO
 var _meat_instances: Array[DestructibleProp] = []
 var _meat_target: DestructibleProp = null
+var _meat_eating_target: DestructibleProp = null
+var _meat_dialogue_started: bool = false
 var _meat_phase_used: bool = false
 var _speech_bubble: PanelContainer = null
 var _meat_chatter_timer: float = 0.0
@@ -223,6 +229,9 @@ func _process_special_behavior(delta: float) -> void:
 		SpecialBehavior.MEAT_SEEKING:
 			_process_meat_seeking(delta)
 
+		SpecialBehavior.MEAT_EATING:
+			_process_meat_eating(delta)
+
 
 func _throw_truffle() -> void:
 	if not _is_player_target_valid():
@@ -273,6 +282,76 @@ func _clear_active_truffles() -> void:
 	for truffle: Node2D in pending:
 		if is_instance_valid(truffle):
 			truffle.queue_free()
+
+
+## Alessandro não recebe dano enquanto corre até o churrasco. O ataque é
+## ignorado no ponto de entrada canônico para cobrir melee e especial.
+func take_damage(damage_input: Variant) -> bool:
+	if _special_behavior == SpecialBehavior.MEAT_SEEKING:
+		return false
+	return super.take_damage(damage_input)
+
+
+## Interrompe um especial sem executar o encadeamento automático de trufas.
+## Se estava comendo, preserva a carne para retomar a busca após se recuperar.
+func _interrupt_special_behavior_for_hit() -> void:
+	var interrupted_behavior: SpecialBehavior = _special_behavior
+	_special_behavior = SpecialBehavior.NONE
+	_special_timer = 0.0
+	_truffle_shot_timer = 0.0
+	_truffles_remaining = 0
+	_meat_chatter_timer = 0.0
+
+	if interrupted_behavior in [SpecialBehavior.TRUFFLE_WINDUP, SpecialBehavior.THROWING_TRUFFLES]:
+		_truffle_cooldown = TRUFFLE_COOLDOWN_PHASE_TWO if _is_phase_two() else TRUFFLE_COOLDOWN_PHASE_ONE
+	if interrupted_behavior == SpecialBehavior.EVADING and anim_sprite != null:
+		anim_sprite.speed_scale = 1.0
+	if interrupted_behavior == SpecialBehavior.MEAT_EATING:
+		if _meat_eating_target != null and is_instance_valid(_meat_eating_target) and not _meat_eating_target.is_prop_destroyed():
+			_meat_target = _meat_eating_target
+		_meat_eating_target = null
+		_meat_dialogue_started = false
+
+	if _speech_bubble != null and is_instance_valid(_speech_bubble):
+		_speech_bubble.queue_free()
+	_speech_bubble = null
+
+
+func _process_hurt(delta: float) -> void:
+	super._process_hurt(delta)
+	_resume_meat_seeking_after_recovery()
+
+
+func _process_getup(delta: float) -> void:
+	super._process_getup(delta)
+	_resume_meat_seeking_after_recovery()
+
+
+## O chefe usa fall_03 como pose deitado. A cena não possui uma animação
+## "downed" separada; congelar o último quadro de "fall" mantém o corpo no chão.
+func _process_downed(delta: float) -> void:
+	velocity = Vector2.ZERO
+	if anim_sprite != null and anim_sprite.sprite_frames != null and anim_sprite.sprite_frames.has_animation("fall"):
+		var last_fall_frame: int = anim_sprite.sprite_frames.get_frame_count("fall") - 1
+		if anim_sprite.animation != &"fall":
+			anim_sprite.play("fall")
+		anim_sprite.frame = maxi(0, last_fall_frame)
+		anim_sprite.pause()
+	_state_timer -= delta
+	if _state_timer <= 0.0:
+		current_state = State.GETUP
+		_state_timer = 0.28
+		_play_anim("getup")
+
+
+func _resume_meat_seeking_after_recovery() -> void:
+	if current_state != State.FLANKING or _special_behavior != SpecialBehavior.NONE:
+		return
+	if _meat_target == null or not is_instance_valid(_meat_target) or _meat_target.is_prop_destroyed():
+		return
+	_special_behavior = SpecialBehavior.MEAT_SEEKING
+	_meat_chatter_timer = MEAT_CHATTER_INTERVAL
+	_show_meat_chase_dialogue()
 
 
 func _on_boss_health_changed(current: float, _maximum: float) -> void:
@@ -348,18 +427,11 @@ func _process_meat_seeking(delta: float) -> void:
 			return
 
 	var to_meat: Vector2 = _meat_target.global_position - global_position
-	# O corpo físico pode parar alguns pixels antes do centro da prop; use uma
-	# janela de chegada compatível com as duas CollisionShape2D.
-	if absf(to_meat.x) <= MEAT_ARRIVAL_DISTANCE and absf(to_meat.y) <= 38.0:
-		var eaten_meat: DestructibleProp = _meat_target
-		_meat_instances.erase(eaten_meat)
-		_meat_target = null
-		if health_component != null and not health_component.is_dead:
-			health_component.heal(MEAT_HEAL_AMOUNT)
-		_show_meat_dialogue()
-		if is_instance_valid(eaten_meat):
-			eaten_meat.queue_free()
-		_select_next_healing_meat()
+	# O colisor do prop impede que o CharacterBody2D alcance o centro da carne.
+	# A chegada considera o contato físico com o prop e uma margem de aproximação
+	# 2.5D, em vez de exigir que as origens dos dois corpos coincidam.
+	if _has_reached_meat_target(to_meat):
+		_begin_meat_eating()
 		return
 
 	var direction: Vector2 = to_meat.normalized()
@@ -368,12 +440,77 @@ func _process_meat_seeking(delta: float) -> void:
 		facing_direction = signf(direction.x)
 
 
+func _has_reached_meat_target(to_meat: Vector2) -> bool:
+	if absf(to_meat.y) > MEAT_ARRIVAL_DEPTH:
+		return false
+	if absf(to_meat.x) <= MEAT_ARRIVAL_DISTANCE:
+		return true
+	for collision_index: int in range(get_slide_collision_count()):
+		var collision: KinematicCollision2D = get_slide_collision(collision_index)
+		if collision != null and collision.get_collider() == _meat_target:
+			return true
+	return false
+
+
+func _begin_meat_eating() -> void:
+	if _meat_target == null or not is_instance_valid(_meat_target) or _meat_target.is_prop_destroyed():
+		_select_next_healing_meat()
+		return
+	_meat_eating_target = _meat_target
+	_meat_dialogue_started = false
+	_special_behavior = SpecialBehavior.MEAT_EATING
+	_special_timer = MEAT_APPEAR_EAT_SECONDS
+	_meat_chatter_timer = 0.0
+	velocity = Vector2.ZERO
+	current_state = State.IDLE
+	if melee_attack != null:
+		melee_attack.cancel_attack()
+	if anim_sprite != null and anim_sprite.sprite_frames.has_animation("idle"):
+		_play_anim("idle")
+
+
+func _process_meat_eating(delta: float) -> void:
+	# O jogador ainda pode destruir a carne durante os 2,5s de consumo.
+	if not _meat_dialogue_started and (_meat_eating_target == null or not is_instance_valid(_meat_eating_target) or _meat_eating_target.is_prop_destroyed()):
+		_meat_eating_target = null
+		_special_behavior = SpecialBehavior.MEAT_SEEKING
+		_select_next_healing_meat()
+		return
+
+	velocity = Vector2.ZERO
+	_special_timer = maxf(0.0, _special_timer - delta)
+	if _special_timer > 0.0:
+		return
+
+	if not _meat_dialogue_started:
+		_meat_instances.erase(_meat_eating_target)
+		_meat_target = null
+		_meat_eating_target.queue_free()
+		_meat_eating_target = null
+		_show_meat_dialogue()
+		_meat_dialogue_started = true
+		_special_timer = MEAT_DIALOGUE_SECONDS
+		return
+
+	# A recuperação acontece somente depois que a fala termina.
+	if health_component != null and not health_component.is_dead:
+		health_component.heal(MEAT_HEAL_AMOUNT)
+	_meat_dialogue_started = false
+	_meat_chatter_timer = 0.0
+	_finish_special_behavior()
+
+
 func _on_healing_meat_destroyed(meat: DestructibleProp) -> void:
 	_meat_instances.erase(meat)
 	if _meat_target == meat:
 		_meat_target = null
-		if _special_behavior == SpecialBehavior.MEAT_SEEKING:
-			_select_next_healing_meat()
+	if _meat_eating_target == meat:
+		_meat_eating_target = null
+		_meat_dialogue_started = false
+		if _special_behavior == SpecialBehavior.MEAT_EATING:
+			_special_behavior = SpecialBehavior.MEAT_SEEKING
+	if _special_behavior == SpecialBehavior.MEAT_SEEKING:
+		_select_next_healing_meat()
 
 
 func _show_meat_chase_dialogue() -> void:
@@ -381,7 +518,11 @@ func _show_meat_chase_dialogue() -> void:
 
 
 func _show_meat_dialogue() -> void:
-	_show_speech_bubble("La verdadera picaña es la uruguaya", 2.8)
+	_show_speech_bubble("La verdadera picaña es la uruguaya", MEAT_DIALOGUE_SECONDS)
+
+
+func _show_evasion_dialogue() -> void:
+	_show_speech_bubble("Baila com el Uruga", 1.9)
 
 
 func _show_speech_bubble(dialogue_text: String, duration: float) -> void:
@@ -389,7 +530,7 @@ func _show_speech_bubble(dialogue_text: String, duration: float) -> void:
 		_speech_bubble.queue_free()
 	_speech_bubble = PanelContainer.new()
 	_speech_bubble.name = "UruguayanMeatSpeechBubble"
-	_speech_bubble.position = Vector2(-190.0, -250.0)
+	_speech_bubble.position = Vector2(-190.0, -340.0)
 	_speech_bubble.custom_minimum_size = Vector2(380.0, 58.0)
 	_speech_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_speech_bubble.z_index = 120
@@ -438,12 +579,16 @@ func _can_start_evasion() -> bool:
 func _try_start_evasion() -> bool:
 	if _evasion_cooldown > 0.0 or not _can_start_evasion():
 		return false
-	var evade_chance: float = EVADE_CHANCE_PHASE_TWO if _is_phase_two() else EVADE_CHANCE_PHASE_ONE
-	if randf() > evade_chance:
+	var evade_chance: float = _get_evasion_chance()
+	if randf() >= evade_chance:
 		_evasion_cooldown = 0.35
 		return false
 	_start_evasion()
 	return true
+
+
+func _get_evasion_chance() -> float:
+	return EVADE_CHANCE_PHASE_TWO if _is_phase_two() else EVADE_CHANCE_PHASE_ONE
 
 
 func _start_evasion() -> void:
@@ -464,12 +609,16 @@ func _start_evasion() -> void:
 	if _evasion_direction.length_squared() < 0.01:
 		_evasion_direction = Vector2(escape_x, 0.0)
 
-	facing_direction = escape_x
+	# O deslocamento recua, mas o rosto permanece voltado para o jogador.
+	facing_direction = signf(player_target.global_position.x - global_position.x)
+	if is_zero_approx(facing_direction):
+		facing_direction = -escape_x
 	_special_behavior = SpecialBehavior.EVADING
 	_special_timer = EVADE_DURATION_PHASE_TWO if _is_phase_two() else EVADE_DURATION_PHASE_ONE
 	_evasion_cooldown = EVADE_COOLDOWN_PHASE_TWO if _is_phase_two() else EVADE_COOLDOWN_PHASE_ONE
 	_truffle_cooldown = 0.0
 	velocity = Vector2.ZERO
+	_show_evasion_dialogue()
 
 	if anim_sprite != null:
 		anim_sprite.speed_scale = 1.5 if _is_phase_two() else 1.35
@@ -525,6 +674,9 @@ func _update_boss_visuals() -> void:
 			return
 		SpecialBehavior.EVADING, SpecialBehavior.MEAT_SEEKING:
 			_play_anim("walk")
+			return
+		SpecialBehavior.MEAT_EATING:
+			_play_anim("idle")
 			return
 
 	match current_state:
@@ -590,9 +742,12 @@ func _on_attack_ended() -> void:
 
 
 func _on_damaged(amount: float) -> void:
-	# Receber golpes não cancela a busca: o chefe continua tentando alcançar a carne.
-	if _special_behavior != SpecialBehavior.MEAT_SEEKING:
-		_finish_special_behavior()
+	# MEAT_SEEKING é invulnerável no take_damage(); esta guarda também protege
+	# contra chamadas diretas indevidas ao sinal do HealthComponent.
+	if _special_behavior == SpecialBehavior.MEAT_SEEKING:
+		return
+	if _special_behavior != SpecialBehavior.NONE:
+		_interrupt_special_behavior_for_hit()
 	super._on_damaged(amount)
 	if current_state == State.DEAD:
 		return
@@ -612,6 +767,8 @@ func _on_died() -> void:
 			meat.queue_free()
 	_meat_instances.clear()
 	_meat_target = null
+	_meat_eating_target = null
+	_meat_dialogue_started = false
 	_meat_chatter_timer = 0.0
 	if _speech_bubble != null and is_instance_valid(_speech_bubble):
 		_speech_bubble.queue_free()

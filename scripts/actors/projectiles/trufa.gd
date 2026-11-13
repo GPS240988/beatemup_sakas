@@ -93,43 +93,63 @@ func _on_hitbox_area_entered(area: Area2D) -> void:
 func _is_player_jumping(player_actor: Node) -> bool:
 	for property_info: Dictionary in player_actor.get_property_list():
 		if str(property_info.get("name", "")) == "_is_jumping":
-			return bool(player_actor.get("_is_jumping"))
-	return false
+			if bool(player_actor.get("_is_jumping")):
+				return true
+			break
+
+	# Fallback visual: o salto projeta Visual para Y negativo enquanto a
+	# origem física e a Hurtbox continuam no plano do chão.
+	var player_visual: Node2D = player_actor.get_node_or_null("Visual") as Node2D
+	return player_visual != null and player_visual.position.y <= -12.0
 
 
 func _show_miss_feedback(player_actor: Node) -> void:
 	var actor_2d: Node2D = player_actor as Node2D
-	var feedback_parent: Node = actor_2d.get_parent() if actor_2d != null and actor_2d.get_parent() is Node2D else player_actor
-	var feedback := Label.new()
+	if actor_2d == null:
+		return
+
+	var feedback_parent: Node = actor_2d.get_parent()
+	if feedback_parent == null:
+		feedback_parent = get_tree().current_scene
+	if feedback_parent == null:
+		return
+
+	# Node2D como raiz evita o layout/âncoras de Control no mundo 2.5D.
+	# O ponto global é calculado a partir do jogador e não depende do boss.
+	var feedback := Node2D.new()
 	feedback.name = "TruffleMissFeedback"
-	feedback.text = "MISS"
-	feedback.add_theme_font_override("font", ARCADE_FONT)
-	feedback.add_theme_font_size_override("font_size", 24)
-	feedback.add_theme_color_override("font_color", Color(1.0, 0.92, 0.28, 1.0))
-	feedback.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.02, 1.0))
-	feedback.add_theme_constant_override("outline_size", 6)
-	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	feedback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	feedback.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	feedback.size = Vector2(120.0, 40.0)
 	feedback.top_level = true
-	feedback.z_index = 100
+	feedback.z_index = 220
 	feedback.z_as_relative = false
 	feedback.process_mode = Node.PROCESS_MODE_ALWAYS
 	feedback_parent.add_child(feedback)
-	if actor_2d != null:
-		# Coordenada global do jogador: o MISS não depende da posição do boss,
-		# da orientação do sprite nem da transformação do container de atores.
-		feedback.global_position = actor_2d.global_position + Vector2(-60.0, -210.0)
-	else:
-		feedback.position = Vector2(-60.0, -210.0)
+	var visual_offset_y: float = 0.0
+	var player_visual: Node2D = actor_2d.get_node_or_null("Visual") as Node2D
+	if player_visual != null:
+		visual_offset_y = player_visual.position.y
+	feedback.global_position = actor_2d.global_position + Vector2(0.0, visual_offset_y - 205.0)
+
+	var label := Label.new()
+	label.name = "Text"
+	label.text = "MISS"
+	label.position = Vector2(-70.0, -22.0)
+	label.size = Vector2(140.0, 44.0)
+	label.add_theme_font_override("font", ARCADE_FONT)
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.28, 1.0))
+	label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.02, 1.0))
+	label.add_theme_constant_override("outline_size", 6)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	feedback.add_child(label)
 
 	var tween: Tween = feedback.create_tween()
 	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.set_parallel(true)
-	tween.tween_property(feedback, "position:y", -250.0, 0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(feedback, "modulate:a", 0.0, 0.55).set_delay(0.12)
+	tween.tween_property(feedback, "position:y", feedback.position.y - 48.0, 0.62).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(feedback, "modulate:a", 0.0, 0.62).set_delay(0.14)
 	tween.chain().tween_callback(feedback.queue_free)
 
 
