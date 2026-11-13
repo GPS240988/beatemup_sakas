@@ -49,6 +49,12 @@ enum PaletteVariant {
 ## AUTO segue o arquétipo; qualquer variante selecionada aqui prevalece (inclusive ORIGINAL/RANDOM).
 @export var palette_variant: PaletteVariant = PaletteVariant.AUTO
 
+## Segunda faixa de matiz para sprites com roupa-base diferente do casaco azul.
+## -1 desativa a faixa secundária. Usada pelo Bêbado para recolorir também a jaqueta oliva.
+@export_group("Detecção da Paleta")
+@export_range(-1.0, 360.0, 1.0) var secondary_palette_source_hue: float = -1.0
+@export_range(5.0, 120.0, 1.0) var secondary_palette_hue_tolerance: float = 32.0
+
 ## Sinal emitido quando o inimigo é derrotado
 signal enemy_defeated()
 
@@ -83,15 +89,14 @@ signal enemy_defeated()
 const CombatDirectorClass = preload("res://scripts/combat/combat_director.gd")
 const PaletteSwapShader: Shader = preload("res://shaders/palette_swap.gdshader")
 
-## Mapeamento de PaletteVariant → hue_shift em graus
-## Azul original ≈ 220°. Rotação relativa para cada cor:
-const PALETTE_HUE_SHIFTS: Dictionary = {
-	PaletteVariant.ORIGINAL: 0.0,
-	PaletteVariant.RED: 140.0,      # 220 + 140 = 360 → vermelho
-	PaletteVariant.GREEN: 260.0,    # 220 + 260 = 480 ≡ 120 → verde
-	PaletteVariant.PURPLE: 80.0,    # 220 + 80 = 300 → roxo/magenta
-	PaletteVariant.ORANGE: 170.0,   # 220 + 170 = 390 ≡ 30 → laranja
-	PaletteVariant.CYAN: 320.0,     # 220 + 320 = 540 ≡ 180 → ciano
+## Cores-base RGB canônicas das paletas. A luminosidade das sombras é preservada no shader.
+const PALETTE_RGB_COLORS: Dictionary = {
+	PaletteVariant.ORIGINAL: Color(15.0 / 255.0, 27.0 / 255.0, 207.0 / 255.0, 1.0), # RGB(15, 27, 207)
+	PaletteVariant.RED: Color(1.0, 60.0 / 255.0, 0.0, 1.0),                         # RGB(255, 60, 0)
+	PaletteVariant.GREEN: Color(15.0 / 255.0, 228.0 / 255.0, 0.0, 1.0),             # RGB(15, 228, 0)
+	PaletteVariant.PURPLE: Color(157.0 / 255.0, 0.0, 1.0, 1.0),                     # RGB(157, 0, 255)
+	PaletteVariant.ORANGE: Color(1.0, 128.0 / 255.0, 0.0, 1.0),                     # Variante manual
+	PaletteVariant.CYAN: Color(0.0, 210.0 / 255.0, 225.0 / 255.0, 1.0),              # Variante manual
 }
 
 ## Ajuste de luminosidade (value) específico para cada paleta:
@@ -99,13 +104,13 @@ const PALETTE_HUE_SHIFTS: Dictionary = {
 const PALETTE_VALUE_ADJUSTS: Dictionary = {
 	PaletteVariant.ORIGINAL: 0.0,
 	PaletteVariant.RED: 0.32,       # Clareia a jaqueta vermelha para tom vivo e nítido (+32% brilho)
-	PaletteVariant.GREEN: 0.08,
-	PaletteVariant.PURPLE: 0.12,
+	PaletteVariant.GREEN: 0.28,      # Elevação de sombras para verde nítido
+	PaletteVariant.PURPLE: 0.24,     # Elevação de sombras para roxo nítido
 	PaletteVariant.ORANGE: 0.18,
-	PaletteVariant.CYAN: 0.05,
+	PaletteVariant.CYAN: 0.12,
 }
 
-## Ajuste de saturação específico para cada paleta
+## Valores de compatibilidade com a suíte legada; a saturação final agora vem do RGB canônico.
 const PALETTE_SAT_ADJUSTS: Dictionary = {
 	PaletteVariant.ORIGINAL: 0.0,
 	PaletteVariant.RED: 0.12,       # Realça o tom vermelho vivo
@@ -745,7 +750,7 @@ func _apply_palette_swap() -> void:
 	if anim_sprite == null:
 		return
 
-	# AUTO acompanha o arquétipo; as demais variantes são escolhas explícitas.
+	# AUTO acompanha o arquétipo; variantes explícitas do Inspector continuam prevalecendo.
 	var effective_variant: PaletteVariant = (
 		_get_canonical_palette_variant()
 		if palette_variant == PaletteVariant.AUTO
@@ -761,25 +766,31 @@ func _apply_palette_swap() -> void:
 		]
 		effective_variant = options[randi() % options.size()] as PaletteVariant
 
-	# ORIGINAL = sem shader (performance: evita draw call extra)
-	if effective_variant == PaletteVariant.ORIGINAL:
-		anim_sprite.material = null
-		return
+	# Todas as variantes, inclusive ORIGINAL, passam pelo mesmo shader RGB.
+	# Isso garante o azul canônico e evita depender da cor original do sprite.
+	var palette_color: Color = PALETTE_RGB_COLORS.get(
+		effective_variant,
+		PALETTE_RGB_COLORS[PaletteVariant.ORIGINAL]
+	)
+	var value_adjust: float = PALETTE_VALUE_ADJUSTS.get(effective_variant, 0.0) as float
 
-	# Cria ShaderMaterial único por instância para permitir variações individuais
+	# Material exclusivo por inimigo: permite paletas diferentes sem compartilhar parâmetros.
 	var mat: ShaderMaterial = ShaderMaterial.new()
 	mat.shader = PaletteSwapShader
-
-	var hue_shift_value: float = PALETTE_HUE_SHIFTS.get(effective_variant, 0.0) as float
-	var val_adj: float = PALETTE_VALUE_ADJUSTS.get(effective_variant, 0.0) as float
-	var sat_adj: float = PALETTE_SAT_ADJUSTS.get(effective_variant, 0.0) as float
-	mat.set_shader_parameter("hue_shift", hue_shift_value)
-	mat.set_shader_parameter("target_hue", 220.0)       # Azul do casaco
-	mat.set_shader_parameter("hue_tolerance", 45.0)
-	mat.set_shader_parameter("min_saturation", 0.08)
-	mat.set_shader_parameter("saturation_adjust", sat_adj)
-	mat.set_shader_parameter("value_adjust", val_adj)
-
+	mat.set_shader_parameter(
+		"palette_color",
+		Vector3(palette_color.r, palette_color.g, palette_color.b)
+	)
+	mat.set_shader_parameter("source_hue", 220.0)
+	mat.set_shader_parameter("hue_tolerance", 85.0)
+	mat.set_shader_parameter("secondary_source_hue", secondary_palette_source_hue)
+	mat.set_shader_parameter("secondary_hue_tolerance", secondary_palette_hue_tolerance)
+	mat.set_shader_parameter("min_saturation", 0.06)
+	mat.set_shader_parameter(
+		"palette_saturation_floor",
+		PALETTE_SAT_ADJUSTS.get(effective_variant, 0.0) as float
+	)
+	mat.set_shader_parameter("brightness_adjust", value_adjust)
 	anim_sprite.material = mat
 
 

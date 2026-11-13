@@ -23,6 +23,8 @@ motion_mode = 1
 script = ExtResource("1_bebado_script")
 miss_color = Color(1, 0.16862746, 0.2509804, 1)
 display_name = "O BÊBADO"
+secondary_palette_source_hue = 80.0
+secondary_palette_hue_tolerance = 32.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=529452742]
 position = Vector2(0, -9)
