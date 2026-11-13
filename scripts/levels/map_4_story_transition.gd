@@ -8,6 +8,7 @@ const STORY_INTRO_FASE1_4_PATH: String = "res://scenes/story/story_intro_fase1_4
 const Map4OpeningDialogueEventClass = preload(
 	"res://scripts/events/map4_opening_dialogue.gd"
 )
+const MAP4_BEBADO_SCENE: PackedScene = preload("res://scenes/actors/enemies/bebado_enemy.tscn")
 
 var _opening_flow_pending: bool = false
 var _opening_tree_was_paused: bool = false
@@ -102,3 +103,53 @@ func _release_opening_flow() -> void:
 
 	# A música e o gameplay começam somente após fechar a fala do Gabriel.
 	super._setup_level_bgm()
+
+
+## Coordena a onda de reforços e o surgimento do chefe sem confundir a
+## reserva de spawn do Alessandro com reforços ainda não instanciados.
+func _on_enemy_defeated(_enemy: CharacterBody2D) -> void:
+	if reinforcement_waves_enabled and not _reinforcement_wave_triggered:
+		if combat_director != null and combat_director.alive_enemies.size() <= reinforcement_trigger_enemy_count:
+			_trigger_reinforcement_wave()
+
+	_try_spawn_boss_after_reinforcements()
+
+
+## O CombatDirector mantém uma pendência reservada para o próprio boss desde
+## BaseLevel._ready(). Por isso, pending_spawns_count nunca será zero antes
+## de instanciar o Alessandro. A condição correta é não haver inimigos vivos
+## nem reforços ainda aguardando instanciação.
+func _try_spawn_boss_after_reinforcements() -> void:
+	if boss_scene == null or _boss_spawned or combat_director == null:
+		return
+	if not combat_director.alive_enemies.is_empty():
+		return
+	if _pending_reinforcements_to_spawn > 0:
+		return
+	if reinforcement_waves_enabled and not _reinforcement_wave_triggered:
+		return
+
+	_spawn_boss()
+
+
+## No Mapa 4, a onda de respawn contém um Tank e um Bêbado Grunt.
+## O BaseLevel instancia o Tank configurado na cena e registra sua pendência;
+## aqui adicionamos o Bêbado como segundo combatente do mesmo reforço.
+func _on_reinforcement_timer_timeout() -> void:
+	super._on_reinforcement_timer_timeout()
+	if not is_inside_tree() or _transitioning or _pending_reinforcements_to_spawn > 0:
+		return
+	var actors_container: Node2D = get_actors_container()
+	var drunk := MAP4_BEBADO_SCENE.instantiate() as CharacterBody2D
+	if drunk == null:
+		push_warning("Map4: não foi possível instanciar o Bêbado Grunt do respawn.")
+		return
+	var spawn_position: Vector2 = get_offscreen_spawn_position(1, 2)
+	drunk.global_position = spawn_position
+	actors_container.add_child(drunk)
+	if combat_director != null:
+		combat_director.register_enemy(drunk)
+
+	# Também cobre o caso de a instanciação de um reforço falhar: quando a
+	# onda termina sem inimigos vivos, o boss pode entrar sem ficar travado.
+	_try_spawn_boss_after_reinforcements()

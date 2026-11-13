@@ -54,6 +54,9 @@ const MAP1_MOBILE_SPAWN_SPACING_Y: float = 12.0
 @export_group("Ondas de Reforço (P5)")
 @export var reinforcement_waves_enabled: bool = false
 @export var reinforcement_enemy_scene: PackedScene = preload("res://scenes/actors/enemies/basic_enemy.tscn")
+## Cenas de reforço por slot (índice). Quando preenchido, cada posição usa sua
+## própria PackedScene; slots não preenchidos usam reinforcement_enemy_scene.
+@export var reinforcement_enemy_scenes: Array[PackedScene] = []
 @export var reinforcement_trigger_enemy_count: int = 1
 @export var reinforcement_delay_seconds: float = 2.0
 @export var reinforcement_count: int = 2
@@ -448,8 +451,15 @@ func _on_reinforcement_timer_timeout() -> void:
 			spawn_pos = get_offscreen_spawn_position(i, count_to_spawn)
 
 		var enemy: CharacterBody2D = null
-		if reinforcement_enemy_scene != null:
-			var instance = reinforcement_enemy_scene.instantiate()
+		# Seleciona a cena por slot quando reinforcement_enemy_scenes está preenchido;
+		# caso contrário, usa a cena padrão única (reinforcement_enemy_scene).
+		var scene_for_slot: PackedScene = null
+		if i < reinforcement_enemy_scenes.size() and reinforcement_enemy_scenes[i] != null:
+			scene_for_slot = reinforcement_enemy_scenes[i]
+		else:
+			scene_for_slot = reinforcement_enemy_scene
+		if scene_for_slot != null:
+			var instance = scene_for_slot.instantiate()
 			if instance is CharacterBody2D:
 				enemy = instance as CharacterBody2D
 				# Configura arquétipo antes de add_child para aplicar stats e paleta visual (P0/P4)

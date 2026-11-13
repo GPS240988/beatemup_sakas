@@ -7,6 +7,8 @@ const TruffleClass = preload("res://scripts/actors/projectiles/trufa.gd")
 const BaseLevelClass = preload("res://scripts/levels/base_level.gd")
 const PlayerControllerClass = preload("res://scripts/actors/player_controller.gd")
 const HealthComponentClass = preload("res://scripts/components/health_component.gd")
+const BebadoEnemyClass = preload("res://scripts/actors/bebado_enemy.gd")
+const EnemyAIClass = preload("res://scripts/actors/enemy_ai.gd")
 
 var total_tests: int = 0
 var passed_tests: int = 0
@@ -25,7 +27,9 @@ func _run_tests() -> void:
 	test_boss_alessandro_scene_and_properties()
 	test_truffle_projectile_contract()
 	test_truffle_damage_is_single_hit()
+	test_truffle_can_be_avoided_by_jump()
 	test_boss_evasion_phase_two()
+	test_healing_meat_contract_and_single_drop_logic()
 	test_truffle_barrage_spawns_three_projectiles()
 	test_player_new_attack_controls()
 	test_map1_no_boss_and_map4_boss_spawn()
@@ -82,9 +86,12 @@ func test_boss_alessandro_scene_and_properties() -> void:
 	var boss := scene.instantiate() as BossAlessandroClass
 	root.add_child(boss)
 	assert_test(boss != null, "Instância BossAlessandro válida")
-	assert_test(boss.health_component != null and is_equal_approx(boss.health_component.max_health, 1000.0), "Chefe possui 1000 HP")
-	assert_test(boss.health_component != null and is_equal_approx(boss.health_component.current_health, 1000.0), "Vida inicial também é configurada em 1000 HP")
+	assert_test(boss.health_component != null and is_equal_approx(boss.health_component.max_health, 900.0), "Chefe possui 900 HP")
+	assert_test(boss.health_component != null and is_equal_approx(boss.health_component.current_health, 900.0), "Vida inicial também é configurada em 900 HP")
+	assert_test(is_equal_approx(boss.TRUFFLE_COOLDOWN_PHASE_ONE, 5.0) and is_equal_approx(boss.TRUFFLE_COOLDOWN_PHASE_TWO, 5.0) and is_equal_approx(boss.TRUFFLE_INITIAL_COOLDOWN, 5.0), "Salvas de trufas respeitam cooldown de 5 segundos nas duas fases")
+	assert_test(is_equal_approx(boss.EVADE_CHANCE_PHASE_ONE, 0.80) and is_equal_approx(boss.EVADE_CHANCE_PHASE_TWO, 0.50), "Chance de esquiva cai de 80% para 50% na segunda fase")
 	assert_test(boss.anim_sprite != null, "AnimatedSprite2D do chefe existe")
+	assert_test(boss.anim_sprite != null and boss.anim_sprite.material == null and boss.anim_sprite.modulate == Color.WHITE, "Alessandro preserva os sprites originais sem shader de paleta")
 
 	var frames: SpriteFrames = boss.anim_sprite.sprite_frames if boss.anim_sprite != null else null
 	assert_test(frames != null and frames.has_animation("walk"), "Animação walk presente")
@@ -141,11 +148,35 @@ func test_truffle_damage_is_single_hit() -> void:
 	var health := player.get_node("HealthComponent") as HealthComponent
 	var hurtbox := player.get_node("Hurtbox") as Area2D
 	truffle._on_hitbox_area_entered(hurtbox)
-	assert_test(is_equal_approx(health.current_health, 88.0), "Trufa aplica 12 de dano pelo DamageInfo")	
+	assert_test(is_equal_approx(health.current_health, 90.0), "Trufa aplica 10 de dano pelo DamageInfo")	
 	assert_test(truffle._has_hit, "Trufa marca o primeiro acerto")
 	truffle._on_hitbox_area_entered(hurtbox)
-	assert_test(is_equal_approx(health.current_health, 88.0), "Contato repetido não duplica dano")
+	assert_test(is_equal_approx(health.current_health, 90.0), "Contato repetido não duplica dano")
 
+	truffle.free()
+	player.free()
+
+
+func test_truffle_can_be_avoided_by_jump() -> void:
+	print("\n--- Pulo evita trufa e exibe MISS ---")
+	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn") as PackedScene
+	var player := player_scene.instantiate() as PlayerControllerClass
+	root.add_child(player)
+	player._is_jumping = true
+	var player_visual: Node2D = player.get_node_or_null("Visual") as Node2D
+	if player_visual != null:
+		player_visual.scale.x = -absf(player_visual.scale.x)
+	var health: HealthComponent = player.get_node("HealthComponent") as HealthComponent
+	var truffle_scene: PackedScene = load("res://scenes/actors/projectiles/trufa.tscn") as PackedScene
+	var truffle := truffle_scene.instantiate() as TruffleClass
+	root.add_child(truffle)
+	var hurtbox: Area2D = player.get_node("Hurtbox") as Area2D
+	truffle._on_hitbox_area_entered(hurtbox)
+	assert_test(is_equal_approx(health.current_health, health.max_health), "Pulo no momento do contato evita todo o dano")
+	assert_test(truffle._has_hit, "Trufa é consumida após a esquiva")
+	var miss_label: Label = player.get_parent().get_node_or_null("TruffleMissFeedback") as Label
+	assert_test(miss_label != null and miss_label.text == "MISS", "Texto MISS aparece no ponto do jogador mesmo longe do Alessandro")
+	assert_test(miss_label != null and miss_label.top_level, "Texto MISS independe do espelhamento do personagem e do boss")
 	truffle.free()
 	player.free()
 
@@ -167,10 +198,49 @@ func test_boss_evasion_phase_two() -> void:
 	boss._process_special_behavior(0.02)
 	assert_test(absf(boss.velocity.x) >= 400.0, "Esquiva da segunda fase usa arrancada rápida")	
 	boss._process_special_behavior(1.0)
-	assert_test(boss._special_behavior == BossAlessandroClass.SpecialBehavior.NONE, "Esquiva termina e devolve controle à IA base")
+	assert_test(boss._special_behavior == BossAlessandroClass.SpecialBehavior.TRUFFLE_WINDUP, "Esquiva dispara imediatamente a preparação da salva de trufas")
 
 	boss.free()
 	player.free()
+
+
+func test_healing_meat_contract_and_single_drop_logic() -> void:
+	print("\n--- Carne uruguaia: drop único, perseguição e cura ---")
+	var meat_scene: PackedScene = load("res://scenes/props/alessandro_meat.tscn") as PackedScene
+	assert_test(meat_scene != null, "Cena da carne uruguaia carregada")
+	if meat_scene == null:
+		return
+	var meat := meat_scene.instantiate() as DestructibleProp
+	root.add_child(meat)
+	assert_test(is_equal_approx(meat.max_health, 150.0), "Carne mantém 150 HP de resistência")
+	assert_test(meat.get_script().resource_path.ends_with("alessandro_meat.gd"), "Carne usa script de drop piscante")
+	var meat_sprite: Sprite2D = meat.get_node_or_null("Visual/Sprite2D") as Sprite2D
+	assert_test(meat_sprite != null and meat_sprite.texture != null and is_equal_approx(meat_sprite.position.y, -meat_sprite.texture.get_size().y * absf(meat_sprite.scale.y) * 0.5), "Base do sprite da carne fica ancorada em Y=0")
+	meat.free()
+
+	var boss_scene: PackedScene = load("res://scenes/actors/enemies/boss_alessandro.tscn") as PackedScene
+	var boss := boss_scene.instantiate() as BossAlessandroClass
+	root.add_child(boss)
+	boss.global_position = Vector2(1500.0, 640.0)
+	boss.health_component.current_health = 450.0
+	boss._activate_healing_meat()
+	assert_test(boss._meat_instances.size() == 1, "Fase de cura cria somente uma carne")
+	if boss._meat_instances.size() == 1:
+		var target: DestructibleProp = boss._meat_instances[0]
+		assert_test(is_equal_approx(target.global_position.y, boss.global_position.y), "Origem da carne é posicionada no plano do chão do boss")
+		boss._on_damaged(1.0)
+		assert_test(boss._special_behavior == BossAlessandroClass.SpecialBehavior.MEAT_SEEKING, "Receber dano não interrompe a perseguição da carne")
+		boss.global_position = target.global_position + Vector2(140.0, 0.0)
+		boss._process_meat_seeking()
+		assert_test(boss.velocity.x < 0.0 or boss.velocity.x > 0.0, "Alessandro calcula movimento em direção à carne")
+		boss.global_position = target.global_position
+		boss._process_meat_seeking()
+		assert_test(is_equal_approx(boss.health_component.current_health, 750.0), "Comer a carne recupera 300 HP sem ultrapassar o máximo")
+		assert_test(boss._speech_bubble != null and is_instance_valid(boss._speech_bubble), "Ao comer, exibe balão com a fala uruguaia")
+		if boss._speech_bubble != null:
+			var speech_label: Label = boss._speech_bubble.get_child(0) as Label
+			assert_test(speech_label != null and speech_label.text == "La verdadera picaña es la uruguaya", "Balão contém a frase correta")
+	boss.free()
 
 
 func test_truffle_barrage_spawns_three_projectiles() -> void:
@@ -182,7 +252,9 @@ func test_truffle_barrage_spawns_three_projectiles() -> void:
 	boss.player_target = player
 
 	boss._start_truffle_barrage()
-	assert_test(boss._truffles_remaining == 3, "Preparação agenda três trufas")	
+	assert_test(boss._truffles_remaining == 3, "Preparação agenda três trufas")
+	assert_test(is_equal_approx(boss.TRUFFLE_SPREAD_ANGLE, 0.58), "Trufas usam dispersão angular ampla")
+	assert_test(is_equal_approx(TruffleClass.DAMAGE, 10.0), "Cada trufa causa 10 HP")	
 	assert_test(boss._special_behavior == BossAlessandroClass.SpecialBehavior.TRUFFLE_WINDUP, "Salva começa com telegraph")	
 	boss._process_special_behavior(0.42)
 	boss._process_special_behavior(0.01)
@@ -198,6 +270,19 @@ func test_truffle_barrage_spawns_three_projectiles() -> void:
 			projectile.free()
 	boss.free()
 	player.free()
+
+
+
+func test_meat_chase_dialogue() -> void:
+	print("\n--- Fala durante perseguição da carne ---")
+	var boss_scene: PackedScene = load("res://scenes/actors/enemies/boss_alessandro.tscn") as PackedScene
+	var boss := boss_scene.instantiate() as BossAlessandroClass
+	root.add_child(boss)
+	boss._show_meat_chase_dialogue()
+	var bubble := boss.get_node_or_null("UruguayanMeatSpeechBubble") as PanelContainer
+	var speech := bubble.get_child(0) as Label if bubble != null else null
+	assert_test(speech != null and speech.text == "¡Uy, salió la carne jugosa!", "Alessandro fala a frase da carne durante a perseguição")
+	boss.free()
 
 
 func test_player_new_attack_controls() -> void:
@@ -240,6 +325,19 @@ func test_map1_no_boss_and_map4_boss_spawn() -> void:
 	var map4_scene: PackedScene = load("res://scenes/levels/map_4.tscn") as PackedScene
 	var map4 := map4_scene.instantiate() as BaseLevelClass
 	root.add_child(map4)
+	var map_enemies: Node = map4.get_node("World/Actors/Enemies")
+	var initial_enemies: Array[Node] = map_enemies.get_children()
+	assert_test(initial_enemies.size() == 2, "Mapa 4 inicia somente com dois capangas")
+	var tank_found: bool = false
+	var drunk_found: bool = false
+	for enemy: Node in initial_enemies:
+		if enemy is EnemyAIClass and int((enemy as EnemyAIClass).archetype) == 2:
+			tank_found = true
+		if enemy is BebadoEnemyClass:
+			drunk_found = true
+	assert_test(tank_found, "Mapa 4 contém exatamente o perfil Tank")
+	assert_test(drunk_found, "Mapa 4 contém um Bêbado Grunt")
+	assert_test(not map4.reinforcement_waves_enabled, "Mapa 4 não agenda reforços extras")
 	assert_test(map4.boss_scene != null, "Mapa 4 configura Alessandro como chefe")
 	assert_test(not map4._boss_spawned, "Chefe não nasce antes da derrota dos capangas")
 	assert_test(not map4.exit_area.monitoring, "Saída permanece bloqueada antes da luta")
