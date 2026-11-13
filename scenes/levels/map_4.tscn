@@ -143,7 +143,6 @@ y_sort_enabled = true
 [node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=1549943247 instance=ExtResource("4_enemy_scene")]
 position = Vector2(600, 620)
 archetype = 2
-palette_variant = 2
 
 [node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=1165304477 instance=ExtResource("4_enemy_scene")]
 position = Vector2(950, 680)

@@ -37,10 +37,12 @@ func _init() -> void:
 	_assert(sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "Filtro deve ser NEAREST (Pixel Art HD)")
 	_assert(sprite.position.y == -95.0, "Sprite deve estar posicionado em y=-95 (origem dos pés em y=0)")
 
-	# 3. Verificação de animações obrigatórias
+	# 3. Verificação de animações obrigatórias (nomes reais do SpriteFrames do Bêbado)
 	var required_anims = [
-		"idle", "walk", "punch", "attack", "kick", "dodge", "guard",
-		"crawl", "hit", "hurt", "fall", "knockdown", "downed", "getup", "drink", "death"
+		"idle", "walk", "attack_jab", "attack_hook", "attack_punch",
+		"dodge_duck", "dodge_backhop", "guard",
+		"crawl_enter", "crawl", "prone",
+		"hit_recoil", "knockdown", "getup", "drink", "lunge_pose"
 	]
 	for a in required_anims:
 		_assert(sprite.sprite_frames.has_animation(a), "Animação '%s' deve existir" % a)
@@ -49,7 +51,7 @@ func _init() -> void:
 	_assert(bebado.get("bebado_state") == 0, "Estado inicial deve ser NONE (0)")
 	bebado.start_dodge()
 	_assert(bebado.get("bebado_state") == 1, "start_dodge() deve transicionar para DODGING (1)")
-	_assert(sprite.animation == &"dodge", "Animação de esquiva deve ser 'dodge'")
+	_assert(sprite.animation == &"dodge_duck", "Animação de esquiva deve ser 'dodge_duck'")
 	_assert(bebado.velocity.length() > 0.0, "Esquiva deve conferir velocidade de deslocamento")
 
 	# Simula passagem de tempo para encerrar esquiva
@@ -62,11 +64,14 @@ func _init() -> void:
 	var default_h: float = (hurtbox_shape.shape as RectangleShape2D).size.y
 	bebado.start_crawl()
 	_assert(bebado.get("bebado_state") == 2, "start_crawl() deve transicionar para CRAWLING (2)")
-	_assert(sprite.animation == &"crawl", "Animação de rastejamento deve ser 'crawl'")
+	_assert(sprite.animation == &"crawl_enter", "Animação de rastejamento deve ser 'crawl_enter'")
 	var crawl_h: float = (hurtbox_shape.shape as RectangleShape2D).size.y
 	_assert(crawl_h < default_h, "Hurtbox deve ser rebaixada durante rastejamento (default=%.1f, crawl=%.1f)" % [default_h, crawl_h])
 
 	# Simula passagem de tempo para encerrar rastejamento
+	# Primeiro, finalize crawl_enter (0.35s) para entrar no crawl real
+	bebado._process_bebado_crawl(0.36)
+	# Agora finalize o crawl (restante do tempo)
 	bebado._process_bebado_crawl(2.5)
 	_assert(bebado.get("bebado_state") == 0, "Ao término do crawl, deve retornar para NONE (0)")
 	var restored_h: float = (hurtbox_shape.shape as RectangleShape2D).size.y
@@ -90,12 +95,12 @@ func _init() -> void:
 	_assert(bebado.get("bebado_state") == 0, "Sofrer dano deve cancelar o rastejamento imediatamente")
 	_assert(bebado.current_state == EnemyAI.State.HURT, "Estado de combate deve ser HURT")
 
-	# 8. Teste de Alternância de Ataques
+	# 8. Teste de Alternância de Ataques (nomes mapeados do Bêbado)
 	bebado._attack_variant = 1
 	bebado._trigger_attack()
-	_assert(sprite.animation == &"punch", "Ataque 0 deve ser 'punch'")
+	_assert(sprite.animation == &"attack_punch", "Ataque 2 (soco/garrafada) deve ser 'attack_punch'")
 	bebado._trigger_attack()
-	_assert(sprite.animation == &"kick", "Ataque 1 deve ser 'kick'")
+	_assert(sprite.animation == &"lunge_pose", "Ataque 3 (chute) deve ser 'lunge_pose'")
 
 	# 9. Teste de Integração com SpawnDirector
 	var spawn_scn = SpawnDirector.get_enemy_scene("bebado")

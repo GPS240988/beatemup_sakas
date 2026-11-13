@@ -361,11 +361,6 @@ func _end_dodge() -> void:
 	bebado_state = BebadoState.NONE
 	velocity = Vector2.ZERO
 
-	# A Hurtbox permanece disponível para ataques, mas só monitora contato no crawl.
-	if hurtbox_area != null:
-		hurtbox_area.set_deferred("monitoring", false)
-		hurtbox_area.set_deferred("monitorable", true)
-
 	current_state = State.FLANKING
 	_attack_timer = 0.35
 	_play_anim("idle")
@@ -532,9 +527,6 @@ func _on_damaged(amount: float) -> void:
 		bebado_state = BebadoState.NONE
 		_activate_crawl_contact_damage(false)
 		_set_crawling_hurtbox(false)
-	if hurtbox_area != null:
-		# Continua detectável pela hitbox do jogador, mas não monitora corpos fora do crawl.
-		hurtbox_area.set_deferred("monitorable", true)
 
 	super._on_damaged(amount)
 
@@ -544,9 +536,6 @@ func _on_damaged_info(info: RefCounted) -> void:
 		bebado_state = BebadoState.NONE
 		_activate_crawl_contact_damage(false)
 		_set_crawling_hurtbox(false)
-	if hurtbox_area != null:
-		# O Area continua monitorável para receber ataques; só monitora o jogador no crawl.
-		hurtbox_area.set_deferred("monitorable", true)
 
 	super._on_damaged_info(info)
 
@@ -556,9 +545,12 @@ func _activate_crawl_contact_damage(active: bool) -> void:
 	_crawl_contact_active = active
 	if hurtbox_area != null:
 		# Layer 4 permanece monitorável para receber golpes do jogador.
-		# Mask 1 detecta o corpo do jogador somente enquanto o Bêbado rasteja.
+		# Mask bit 1 detecta o CharacterBody2D do jogador (layer 1) somente durante crawl.
 		hurtbox_area.set_deferred("monitoring", active)
-		hurtbox_area.set_deferred("monitorable", true)
+		if active:
+			hurtbox_area.set_collision_mask_value(1, true)
+		else:
+			hurtbox_area.set_collision_mask_value(1, false)
 
 
 ## Identifica golpes originados pelo jogador usando o contrato DamageInfo.

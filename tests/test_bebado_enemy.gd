@@ -22,8 +22,10 @@ func _init() -> void:
 	print("  [OK] AnimatedSprite2D e SpriteFrames validados")
 
 	var required_anims = [
-		"idle", "walk", "punch", "attack", "kick", "dodge", "guard",
-		"crawl", "hit", "hurt", "fall", "knockdown", "downed", "getup", "get_up", "drink", "death"
+		"idle", "walk", "attack_jab", "attack_hook", "attack_punch",
+		"dodge_duck", "dodge_backhop", "guard",
+		"crawl_enter", "crawl", "prone",
+		"hit_recoil", "knockdown", "getup", "drink", "lunge_pose"
 	]
 	for a in required_anims:
 		assert(sprite.sprite_frames.has_animation(a), "Animação '" + a + "' deve existir no SpriteFrames")

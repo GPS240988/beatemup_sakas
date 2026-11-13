@@ -814,9 +814,6 @@ func set_palette_variant(new_variant: PaletteVariant) -> void:
 ## AUTO seleciona a cor canônica do arquétipo; qualquer variante escolhida
 ## explicitamente no Inspector (inclusive ORIGINAL e RANDOM) tem prioridade.
 func _apply_archetype_configuration() -> void:
-	if palette_variant == PaletteVariant.AUTO:
-		palette_variant = _get_canonical_palette_variant()
-
 	match archetype:
 		Archetype.AGGRESSOR:
 			speed_x = 175.0
