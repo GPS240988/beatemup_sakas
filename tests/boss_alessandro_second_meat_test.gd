@@ -81,42 +81,73 @@ func _run_tests() -> void:
 		loro_target._connect_player_attacks()
 		var loro_attack_callback := Callable(loro_target, "_on_player_attack_phase_changed").bind(player)
 		_assert(player.melee_attack.is_connected("attack_phase_changed", loro_attack_callback), "Alvo do Loro escuta a janela ativa do ataque do jogador")
-	boss._process_loro_timers(2.99)
-	_assert(loro_target != null and not loro_target.is_shouting(), "Loro ainda não grita antes de 3 segundos")
-	boss._process_loro_timers(0.02)
-	_assert(loro_target != null and loro_target.is_shouting(), "Loro começa a gritar ao completar 3 segundos")
-	_assert(loro_target != null and loro_target._speech_bubble != null and loro_target._speech_bubble.text.contains("MULHERES PELADAS"), "Grito do Loro exibe o texto solicitado")
-	boss._process_loro_timers(2.99)
-	_assert(test_world.get_node_or_null("Map4MeatHintDialogue") == null, "Dica do Gabriel não aparece antes de 6 segundos")
-	boss._process_loro_timers(0.02)
+	var meat_dialogue := test_world.get_node_or_null("Map4SecondMeatDialogue") as CanvasLayer
+	_assert(meat_dialogue != null, "Gabriel apresenta primeiro o diálogo sobre a segunda carne")
+	_assert(loro_target != null and not loro_target.is_shouting(), "Loro não grita quando a segunda carne aparece")
+	_assert(loro_target != null and loro_target._shout_blink_tween == null, "Loro também não pisca durante o diálogo sobre a carne")
+	if meat_dialogue != null:
+		var meat_messages: Array = meat_dialogue.get("_dialogues")
+		_assert(meat_messages.size() == 1, "Orientação da carne contém uma única fala")
+		if meat_messages.size() == 1:
+			_assert(meat_messages[0].get("speaker", "") == "GABRIEL", "Gabriel apresenta a orientação para destruir a carne")
+			_assert(meat_messages[0].get("text", "") == "Destrua a carne antes que Alessandro consiga alcançá-la!", "Primeiro diálogo orienta a destruir a segunda carne")
+		meat_dialogue.call("_close_dialogue")
+
 	var hint := test_world.get_node_or_null("Map4MeatHintDialogue") as CanvasLayer
-	_assert(hint != null, "Dica é exibida pela caixa oficial de diálogo do Mapa 4 aos 6 segundos")
+	_assert(hint != null, "Após fechar a orientação da carne, Gabriel apresenta a dica de mestre do Loro")
+	_assert(loro_target != null and not loro_target.is_shouting(), "Loro continua sem gritar enquanto Gabriel apresenta a dica")
+	_assert(loro_target != null and loro_target._shout_blink_tween == null, "Loro continua sem piscar durante a dica de mestre")
 	if hint != null:
 		var messages: Array = hint.get("_dialogues")
 		_assert(messages.size() == 1, "Dica contém uma única fala")
 		if messages.size() == 1:
-			_assert(messages[0].get("speaker", "") == "GABRIEL", "Gabriel é identificado como orador")
-			_assert(messages[0].get("text", "") == "Dica de mestre: Fale com o Loro.", "Texto da dica corresponde ao solicitado")
+			_assert(messages[0].get("speaker", "") == "GABRIEL", "Gabriel é identificado como orador da dica de mestre")
+			_assert(messages[0].get("text", "") == "Dica de mestre: Toque no Loro enquanto ele grita.", "Dica orienta a tocar no Loro durante o grito")
 			var hint_portrait: Texture2D = messages[0].get("portrait") as Texture2D
 			_assert(hint_portrait != null and hint_portrait.resource_path.ends_with("portrait_gabriel.png"), "Dica reutiliza o retrato herdado de Gabriel")
 			_assert(bool(hint.get("_waiting_for_release")), "Dica aguarda confirmação/soltura do comando do jogador")
-	_assert(get_tree().paused, "A fase fica pausada enquanto Gabriel apresenta a dica")
-	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.NONE, "Alessandro não inicia a perseguição enquanto o diálogo está aberto")
-	_assert(boss.velocity.is_zero_approx(), "Alessandro permanece imóvel durante a pausa")
+	_assert(get_tree().paused, "A fase permanece pausada durante os dois diálogos encadeados")
+	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.NONE, "Alessandro não inicia a perseguição enquanto os diálogos estão abertos")
+	_assert(boss.velocity.is_zero_approx(), "Alessandro permanece imóvel durante os diálogos")
 
-	# A confirmação fecha o diálogo, despausa a fase e só então inicia a busca.
+	# Somente fechar a segunda fala libera a fase e inicia o grito/piscar do Loro.
 	if hint != null:
 		hint.call("_close_dialogue")
-	_assert(not get_tree().paused, "Confirmar o diálogo despausa a fase")
-	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro só começa a perseguir depois da confirmação")
+	_assert(not get_tree().paused, "Fechar a dica de mestre despausa a fase")
+	_assert(loro_target != null and loro_target.is_shouting(), "Loro só começa a gritar depois que a dica de mestre é fechada")
+	_assert(loro_target != null and loro_target._speech_bubble != null and loro_target._speech_bubble.text.contains("MULHERES PELADAS"), "Grito do Loro exibe o texto solicitado")
+	_assert(loro_target != null and loro_target._speech_bubble.position.y < loro_target.to_local(loro_sprite.global_position).y, "Balão do Loro fica acima da cabeça, sem cobrir o corpo")
+	_assert(loro_target != null and loro_target._shout_blink_tween != null and loro_target._shout_blink_tween.is_running(), "Loro pisca continuamente enquanto grita")
+	_assert(is_equal_approx(boss._loro_repeat_timer, 8.0), "Primeiro ciclo do Loro agenda a repetição em oito segundos")
+	boss._process_loro_timers(7.99)
+	_assert(boss._loro_repeat_timer > 0.0 and loro_target != null and loro_target.is_shouting(), "O grito permanece ativo enquanto aguarda o próximo ciclo")
+	boss._process_loro_timers(0.02)
+	_assert(loro_target != null and loro_target.is_shouting() and is_equal_approx(boss._loro_repeat_timer, 8.0), "O evento do Loro se rearma ao completar oito segundos")
+	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro só começa a perseguir a carne após os diálogos")
 	_assert(boss._meat_target == boss._meat_instances[0], "A segunda carne é selecionada como alvo após a confirmação")
+
+	# O Loro também pode interromper a perseguição; a carne é preservada e a busca recomeça após a fuga.
+	loro_target.stop_shouting()
+	boss._on_loro_hit()
+	_assert(is_equal_approx(boss._loro_stun_timer, 5.0), "Acertar o Loro durante a perseguição causa tontura")
+	_assert(boss._meat_target == boss._meat_instances[0], "A referência da segunda carne é preservada durante a tontura")
+	boss._process_loro_stun(5.0)
+	boss._post_loro_escape_timer = 0.01
+	boss._process_post_loro_escape(0.01)
+	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro retoma a perseguição após a tontura e a fuga")
 
 	# A segunda refeição percorre o mesmo consumo e aplica novamente +300 HP.
 	var second_meat: DestructibleProp = boss._meat_target
 	boss.health_component.current_health = 500.0
 	boss._begin_meat_eating()
 	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_EATING, "Alessandro entra no estado de consumo da carne")
-	_assert(boss._speech_bubble != null and boss._speech_bubble.get_child_count() > 0 and boss._speech_bubble.get_child(0) is Label and (boss._speech_bubble.get_child(0) as Label).text == "Comendo...", "Balão Comendo aparece durante a refeição")
+	_assert(boss._meat_eating_panel != null and boss._meat_eating_panel.get_node_or_null("Content/StatusLabel") != null, "Indicador Comendo aparece acima da cabeça durante a refeição")
+	_assert(boss._meat_eating_panel != null and boss._meat_eating_panel.position.y < -195.0, "Indicador fica acima da silhueta da cabeça de Alessandro")
+	_assert(boss._meat_eating_bar != null and is_equal_approx(boss._meat_eating_bar.max_value, 2.5), "Barra de timeout representa os 2,5 segundos de consumo")
+	boss._special_timer = 1.25
+	boss._update_meat_eating_indicator()
+	_assert(boss._meat_eating_bar != null and is_equal_approx(boss._meat_eating_bar.value, 1.25), "Barra diminui acompanhando o timeout real da refeição")
+	boss._special_timer = 2.5
 	var health_before_eating_hit: float = boss.health_component.current_health
 	var eating_damage: RefCounted = DamageInfoClass.new(
 		20.0, player, player.global_position, Vector2(-1.0, 0.0),
@@ -127,11 +158,14 @@ func _run_tests() -> void:
 	_assert(is_equal_approx(boss.health_component.current_health, health_before_eating_hit), "Vida de Alessandro permanece intacta durante o consumo")
 	_assert(is_equal_approx(boss._truffle_cooldown, 2.5), "Cadência das trufas é acelerada para intervalo de 2,5 segundos")
 	boss._process_special_behavior(2.5)
+	boss._update_meat_eating_indicator()
+	_assert(boss._meat_eating_panel == null, "Indicador de consumo desaparece ao terminar o timeout")
 	_assert(second_meat.is_queued_for_deletion(), "Segunda carne desaparece ao concluir o consumo")
 	boss._process_special_behavior(2.8)
 	_assert(is_equal_approx(boss.health_component.current_health, 800.0), "Segunda refeição recupera mais 300 HP")
 	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.NONE, "Após consumir a segunda carne, Alessandro retorna ao combate")
 	_assert(boss.current_state == EnemyAIClass.State.FLANKING, "Após o consumo, estado de batalha volta a FLANKING")
+	boss._start_loro_shout_cycle()
 
 	# Acertar o Loro durante o grito provoca chuva de corações e cinco segundos de tontura.
 	player.global_position = loro_target.global_position + Vector2(-50.0, 0.0)
@@ -144,21 +178,38 @@ func _run_tests() -> void:
 		if child is Label and (child as Label).text == "♥":
 			heart_count += 1
 	_assert(heart_count == 12, "Doze corações caem sobre Alessandro")
+	var expanded_hurtbox_shape: RectangleShape2D = (boss.get_node("Hurtbox/CollisionShape2D") as CollisionShape2D).shape as RectangleShape2D
+	_assert(expanded_hurtbox_shape.size.x > 60.0 and expanded_hurtbox_shape.size.y > 140.0, "Hurtbox física aumenta para cobrir Alessandro inclinado para trás")
+	var impact_zones: ImpactZones = boss.get_node("ImpactZones") as ImpactZones
+	_assert(impact_zones.head_top_y < -195.0 and impact_zones.upper_torso_bottom_y < -95.0, "Zonas anatômicas ampliam o alcance dos golpes durante a tontura")
 	boss._process_loro_stun(5.0)
 	_assert(boss._loro_stun_timer <= 0.0 and boss.current_state == EnemyAIClass.State.FLANKING, "Após 5 segundos Alessandro volta ao combate")
-	_assert(is_equal_approx(boss._loro_repeat_timer, 10.0), "Novo grito é agendado para 10 segundos após a recuperação")
-	boss._process_loro_timers(9.99)
-	_assert(not loro_target.is_shouting(), "Loro não repete o grito antes de 10 segundos")
+	var escape_away: Vector2 = (boss.global_position - player.global_position).normalized()
+	_assert(is_equal_approx(boss._post_loro_escape_timer, BossAlessandroEnhancedClass.POST_LORO_ESCAPE_DURATION), "Recuperação inicia uma fuga temporizada")
+	_assert(boss._post_loro_escape_direction.dot(escape_away) > 0.8, "Fuga segue sempre para longe da posição do personagem")
+	boss._process_post_loro_escape(0.1)
+	_assert(boss.velocity.dot(boss._post_loro_escape_direction) > 400.0, "Alessandro corre em alta velocidade para escapar do combo")
+	var restored_hurtbox_shape: RectangleShape2D = (boss.get_node("Hurtbox/CollisionShape2D") as CollisionShape2D).shape as RectangleShape2D
+	_assert(is_equal_approx(restored_hurtbox_shape.size.x, 60.0) and is_equal_approx(restored_hurtbox_shape.size.y, 140.0), "Hurtbox retorna às dimensões normais após a tontura")
+	_assert(is_equal_approx(impact_zones.head_top_y, -195.0), "Zonas anatômicas retornam aos limites originais após a tontura")
+	_assert(is_equal_approx(boss._loro_repeat_timer, 8.0), "Novo grito é agendado para 8 segundos após a recuperação")
+	boss._post_loro_escape_timer = 0.0
+	boss.velocity = Vector2.ZERO
+	boss._process_loro_timers(7.99)
+	_assert(not loro_target.is_shouting(), "Loro não repete o grito antes de 8 segundos")
 	boss._process_loro_timers(0.02)
-	_assert(loro_target.is_shouting(), "Loro volta a gritar após 10 segundos sem repetir a dica do Gabriel")
+	_assert(loro_target.is_shouting(), "Loro volta a gritar após 8 segundos sem repetir a dica do Gabriel")
 	_assert(test_world.get_node_or_null("Map4MeatHintDialogue") == null, "A dica de Gabriel não se repete nos ciclos seguintes")
 	player.melee_attack.attack_phase_changed.emit(2)
 	_assert(not loro_target.is_shouting(), "Loro pode ser atingido novamente no segundo grito")
+	_assert(is_equal_approx(loro_sprite.modulate.a, loro_target._loro_original_modulate.a), "Loro interrompe o piscar e restaura a cor ao ser atingido")
 	_assert(is_equal_approx(boss._loro_stun_timer, 5.0), "Segundo golpe no Loro repete a tontura de 5 segundos")
 	boss.apply_hitstop(0.05)
 	boss._process_loro_stun(0.05)
 	_assert(not boss.is_in_hitstop() and is_equal_approx(boss._loro_stun_timer, 5.0), "Hitstop local não congela permanentemente o temporizador da tontura")
 	boss._process_loro_stun(5.0)
+	boss._post_loro_escape_timer = 0.0
+	boss.velocity = Vector2.ZERO
 
 	# A voadora é reconhecida pela animação e pelo estado de salto do atacante.
 	player._current_attack_anim = &"jump_atk"
@@ -218,6 +269,12 @@ func _run_tests() -> void:
 	boss._process_hurt(1.0)
 	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.EVADING, "Após um combo completo, Alessandro inicia a esquiva")
 	_assert(boss._evasion_direction.x > 0.0, "Na parede esquerda, Alessandro desliza para o interior da arena")
+
+	boss._start_loro_shout_cycle()
+	_assert(loro_target.is_shouting(), "Evento do Loro permanece disponível enquanto Alessandro está vivo")
+	boss.current_state = EnemyAIClass.State.DEAD
+	boss._process_loro_timers(0.01)
+	_assert(not loro_target.is_shouting() and boss._loro_repeat_timer < 0.0, "Derrotar Alessandro encerra e cancela os próximos gritos do Loro")
 
 	boss.free()
 	player.free()

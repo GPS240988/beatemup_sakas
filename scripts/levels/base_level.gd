@@ -670,6 +670,12 @@ func _on_encounter_cleared() -> void:
 	if exit_area != null:
 		exit_area.monitoring = true
 
+	# Se for o mapa 4 da Fase 1 e todos os inimigos/chefe foram derrotados, registra conclusão do Estágio 1
+	if (map_group == "fase1" and map_index == 4) or (stage_number == 1 and section_number == 4):
+		var session = get_node_or_null("/root/GameSession")
+		if session != null and session.has_method("complete_stage"):
+			session.complete_stage(1)
+
 	# 2. Ativa o indicador visual piscante SIGA → (piscando na tela independente da posição do personagem)
 	if siga_indicator != null:
 		siga_indicator.activate()
@@ -756,6 +762,9 @@ func _advance_to_next_map() -> void:
 			return
 
 		# Fim do Mapa 4 (Clímax da Fase 1) -> Vitória!
+		if session != null and session.has_method("complete_stage"):
+			session.complete_stage(1)
+
 		if hud != null and hud.banner_panel != null and hud.banner_label != null:
 			hud.banner_panel.visible = true
 			hud.banner_label.text = "🏆 FASE 1 CONCLUÍDA!\nVITÓRIA EM SAKAS: ÚLTIMA FICHA!"
@@ -767,6 +776,8 @@ func _advance_to_next_map() -> void:
 		# Transição para o próximo mapa da sequência (com suporte à transição cinemática do mapa após 1-4)
 		if (map_group == "fase1" and map_index == 4) or (stage_number == 1 and section_number == 4):
 			if session != null:
+				if session.has_method("complete_stage"):
+					session.complete_stage(1)
 				session.has_seen_bonus_transition = true
 				session.pending_map_transition_mode = 0 # POINT1_TO_BONUS
 				session.pending_transition_target = next_map_scene_path if not next_map_scene_path.is_empty() else "res://scenes/levels/bonus_garage.tscn"

@@ -7,6 +7,9 @@ extends "res://scripts/actors/boss_alessandro.gd"
 const GabrielMeatHintDialogueClass = preload(
 	"res://scripts/events/map4_meat_hint_dialogue.gd"
 )
+const GabrielSecondMeatDialogueClass = preload(
+	"res://scripts/events/map4_second_meat_dialogue.gd"
+)
 const LoroTargetClass = preload("res://scripts/events/map4_loro_target.gd")
 
 const SECOND_MEAT_DROP_DELAY: float = 8.0
@@ -21,10 +24,10 @@ const CORNERED_PLAYER_RANGE_X: float = 150.0
 const CORNERED_DEPTH_TOLERANCE: float = 56.0
 const CORNERED_COMBO_REQUIRED_HITS: int = 4
 const CORNERED_COMBO_WINDOW: float = 2.0
-const LORO_FIRST_SHOUT_DELAY: float = 3.0
-const GABRIEL_HINT_DELAY: float = 6.0
-const LORO_REPEAT_DELAY: float = 10.0
+const LORO_REPEAT_DELAY: float = 8.0
 const LORO_STUN_DURATION: float = 5.0
+const POST_LORO_ESCAPE_DURATION: float = 1.35
+const POST_LORO_ESCAPE_SPEED: float = 430.0
 
 var _second_meat_timer: float = -1.0
 var _second_meat_dropped: bool = false
@@ -37,16 +40,25 @@ var _second_meat_hint_pending: bool = false
 var _loro_target: Map4LoroTarget = null
 var _loro_intro_active: bool = false
 var _loro_intro_hold: bool = false
-var _loro_intro_elapsed: float = 0.0
-var _loro_first_shout_done: bool = false
-var _loro_hit_during_intro: bool = false
+var _second_meat_dialogue_pending: bool = false
+var _resume_meat_seeking_after_escape: bool = false
 var _loro_stun_timer: float = 0.0
 var _loro_repeat_timer: float = -1.0
 var _loro_stun_visual: Label = null
+var _post_loro_escape_timer: float = 0.0
+var _post_loro_escape_direction: Vector2 = Vector2.ZERO
+var _meat_eating_panel: PanelContainer = null
+var _meat_eating_bar: ProgressBar = null
+var _stun_hurtbox_shape: CollisionShape2D = null
+var _original_hurtbox_shape: Shape2D = null
+var _original_hurtbox_shape_position: Vector2 = Vector2.ZERO
+var _impact_zones: ImpactZones = null
+var _original_impact_zone_bounds: Array[float] = []
 
 
 func _ready() -> void:
 	super._ready()
+	_cache_loro_stun_hurtbox()
 	# A cadência anterior de 4,25s deixava longos intervalos entre as salvas.
 	_truffle_cooldown = 2.5
 
@@ -66,7 +78,11 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
+	if _post_loro_escape_timer > 0.0:
+		_process_post_loro_escape(delta)
+		return
 	super._physics_process(delta)
+	_update_meat_eating_indicator()
 
 
 func _process_second_meat_timer(delta: float) -> void:
@@ -130,18 +146,15 @@ func _drop_second_healing_meat() -> void:
 	if anim_sprite != null and current_state == State.FLANKING:
 		_play_anim("idle")
 
-	# A sequência do Loro substitui a dica imediata: a fase já está pausada,
-	# o papagaio grita aos 3s e Gabriel entra aos 6s. Só o evento segue ativo.
+	# Sequência bloqueante: primeiro Gabriel orienta a destruir a carne;
+	# depois apresenta a dica do Loro. O papagaio só grita após a segunda confirmação.
 	_loro_intro_active = true
 	_loro_intro_hold = true
-	_loro_intro_elapsed = 0.0
-	_loro_first_shout_done = false
-	_loro_hit_during_intro = false
-	# A fase permanece pausada durante a preparação do evento. O chefe e o
-	# controlador do Loro usam PROCESS_MODE_ALWAYS para cumprir os 3s/6s.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().paused = true
 	_ensure_loro_target()
+	if not _show_gabriel_second_meat_dialogue() and not _show_gabriel_meat_hint():
+		_finish_second_meat_dialogue_sequence()
 
 
 func _ensure_loro_target() -> void:
@@ -168,44 +181,38 @@ func _ensure_loro_target() -> void:
 
 
 func _process_loro_timers(delta: float) -> void:
-	if _loro_intro_active:
-		_loro_intro_elapsed += delta
-		if not _loro_first_shout_done and _loro_intro_elapsed >= LORO_FIRST_SHOUT_DELAY:
-			_ensure_loro_target()
-			if _loro_target != null:
-				_loro_target.start_shouting()
-			_loro_first_shout_done = true
-		if _loro_intro_elapsed >= GABRIEL_HINT_DELAY:
-			_loro_intro_active = false
-			if not _show_gabriel_meat_hint():
-				get_tree().paused = false
-				process_mode = Node.PROCESS_MODE_INHERIT
-				_loro_intro_hold = false
-				if not _loro_hit_during_intro:
-					_start_meat_seeking_for_remaining_drop()
+	if current_state == State.DEAD or health_component == null or health_component.is_dead:
+		_loro_intro_active = false
+		_loro_repeat_timer = -1.0
+		if _loro_target != null and is_instance_valid(_loro_target):
+			_loro_target.stop_shouting()
+		return
 
-	if _loro_repeat_timer > 0.0 and _loro_stun_timer <= 0.0:
+	# O grito permanece ativo até o jogador atingir o Loro; o ciclo é
+	# rearmado a cada oito segundos enquanto Alessandro continuar vivo.
+	if _loro_repeat_timer > 0.0 and _loro_stun_timer <= 0.0 and not _loro_intro_active:
 		_loro_repeat_timer = maxf(0.0, _loro_repeat_timer - delta)
 		if _loro_repeat_timer <= 0.0:
-			_loro_repeat_timer = -1.0
-			_ensure_loro_target()
-			if _loro_target != null:
-				_loro_target.start_shouting()
+			_start_loro_shout_cycle()
 
 
 func _on_loro_hit() -> void:
 	if _loro_stun_timer > 0.0 or current_state == State.DEAD:
 		return
-	# A refeição é uma janela protegida: o evento do Loro não interrompe
-	# nem causa tontura enquanto Alessandro está buscando ou consumindo a carne.
-	if _special_behavior in [SpecialBehavior.MEAT_SEEKING, SpecialBehavior.MEAT_EATING]:
+	_loro_repeat_timer = -1.0
+	# A busca pela segunda carne pode ser interrompida pela dica do Loro;
+	# durante o consumo, porém, a animação e a recuperação permanecem protegidas.
+	if _special_behavior == SpecialBehavior.MEAT_EATING:
+		_loro_repeat_timer = LORO_REPEAT_DELAY
 		return
-	if _loro_intro_active or _second_meat_hint_pending:
-		_loro_hit_during_intro = true
+	if _loro_intro_active or _second_meat_dialogue_pending or _second_meat_hint_pending:
+		return
 	_start_loro_stun()
 
 
 func _start_loro_stun() -> void:
+	var was_seeking_meat: bool = _special_behavior == SpecialBehavior.MEAT_SEEKING
+	_resume_meat_seeking_after_escape = was_seeking_meat and not _meat_instances.is_empty()
 	_release_combat_resources()
 	_clear_active_truffles()
 	if melee_attack != null:
@@ -216,14 +223,16 @@ func _start_loro_stun() -> void:
 	_special_timer = 0.0
 	_truffle_shot_timer = 0.0
 	_truffles_remaining = 0
-	_meat_target = null
-	_meat_eating_target = null
-	_meat_dialogue_started = false
-	_meat_chatter_timer = 0.0
+	if not was_seeking_meat:
+		_meat_target = null
+		_meat_eating_target = null
+		_meat_dialogue_started = false
+		_meat_chatter_timer = 0.0
 	velocity = Vector2.ZERO
 	if current_state != State.DEAD:
 		current_state = State.FLANKING
 	_loro_stun_timer = LORO_STUN_DURATION
+	_expand_loro_stun_hurtbox()
 	if anim_sprite != null:
 		anim_sprite.speed_scale = 0.65
 		_play_anim("hurt")
@@ -248,6 +257,7 @@ func _process_loro_stun(delta: float) -> void:
 
 func _finish_loro_stun() -> void:
 	_loro_stun_timer = 0.0
+	_restore_loro_stun_hurtbox()
 	if _loro_stun_visual != null and is_instance_valid(_loro_stun_visual):
 		_loro_stun_visual.queue_free()
 	_loro_stun_visual = null
@@ -256,12 +266,16 @@ func _finish_loro_stun() -> void:
 	_special_behavior = SpecialBehavior.NONE
 	current_state = State.FLANKING
 	velocity = Vector2.ZERO
-	_attack_timer = maxf(_attack_timer, 0.75)
-	_truffle_cooldown = maxf(_truffle_cooldown, 1.0)
+	_attack_timer = maxf(_attack_timer, 1.25)
+	_truffle_cooldown = maxf(_truffle_cooldown, 1.5)
+	_start_post_loro_escape()
 	if anim_sprite != null:
 		anim_sprite.speed_scale = 1.0
-		_play_anim("idle")
-	# O próximo grito acontece dez segundos depois de o chefe se recuperar.
+		if _post_loro_escape_timer > 0.0:
+			_play_anim("walk")
+		else:
+			_play_anim("idle")
+	# O próximo ciclo começa oito segundos após a recuperação da tontura.
 	_loro_repeat_timer = LORO_REPEAT_DELAY
 
 
@@ -307,6 +321,18 @@ func _show_loro_dizzy_visual() -> void:
 	var dizzy_tween: Tween = _loro_stun_visual.create_tween().set_loops()
 	dizzy_tween.tween_property(_loro_stun_visual, "rotation", 0.16, 0.35)
 	dizzy_tween.tween_property(_loro_stun_visual, "rotation", -0.16, 0.35)
+
+
+func _start_loro_shout_cycle() -> void:
+	if current_state == State.DEAD or health_component == null or health_component.is_dead:
+		_loro_repeat_timer = -1.0
+		return
+	_ensure_loro_target()
+	if _loro_target == null:
+		_loro_repeat_timer = LORO_REPEAT_DELAY
+		return
+	_loro_target.start_shouting()
+	_loro_repeat_timer = LORO_REPEAT_DELAY
 
 
 func _start_meat_seeking_for_remaining_drop() -> void:
@@ -357,7 +383,172 @@ func _finish_special_behavior() -> void:
 func _begin_meat_eating() -> void:
 	super._begin_meat_eating()
 	if _special_behavior == SpecialBehavior.MEAT_EATING:
-		_show_speech_bubble("Comendo...", MEAT_APPEAR_EAT_SECONDS)
+		_show_meat_eating_indicator()
+
+
+func _show_meat_eating_indicator() -> void:
+	_clear_meat_eating_indicator()
+	_meat_eating_panel = PanelContainer.new()
+	_meat_eating_panel.name = "MeatEatingTimeout"
+	_meat_eating_panel.position = Vector2(-92.0, -330.0)
+	_meat_eating_panel.custom_minimum_size = Vector2(184.0, 62.0)
+	_meat_eating_panel.size = Vector2(184.0, 62.0)
+	_meat_eating_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_meat_eating_panel.z_index = 145
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.055, 0.035, 0.045, 0.92)
+	panel_style.border_color = Color(1.0, 0.72, 0.25, 1.0)
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(7)
+	panel_style.content_margin_left = 8.0
+	panel_style.content_margin_right = 8.0
+	panel_style.content_margin_top = 5.0
+	panel_style.content_margin_bottom = 5.0
+	_meat_eating_panel.add_theme_stylebox_override("panel", panel_style)
+
+	var content := VBoxContainer.new()
+	content.name = "Content"
+	content.add_theme_constant_override("separation", 3)
+	_meat_eating_panel.add_child(content)
+
+	var status_label := Label.new()
+	status_label.name = "StatusLabel"
+	status_label.text = "Comendo..."
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.add_theme_font_override("font", preload("res://assets/fonts/arcade_bold.ttf"))
+	status_label.add_theme_font_size_override("font_size", 14)
+	status_label.add_theme_color_override("font_color", Color(1.0, 0.91, 0.68, 1.0))
+	status_label.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.02, 1.0))
+	status_label.add_theme_constant_override("outline_size", 3)
+	content.add_child(status_label)
+
+	_meat_eating_bar = ProgressBar.new()
+	_meat_eating_bar.name = "TimeoutBar"
+	_meat_eating_bar.custom_minimum_size = Vector2(164.0, 12.0)
+	_meat_eating_bar.min_value = 0.0
+	_meat_eating_bar.max_value = MEAT_APPEAR_EAT_SECONDS
+	_meat_eating_bar.value = _special_timer
+	_meat_eating_bar.show_percentage = false
+	var bar_background := StyleBoxFlat.new()
+	bar_background.bg_color = Color(0.12, 0.09, 0.08, 1.0)
+	bar_background.set_corner_radius_all(3)
+	var bar_fill := StyleBoxFlat.new()
+	bar_fill.bg_color = Color(1.0, 0.68, 0.18, 1.0)
+	bar_fill.set_corner_radius_all(3)
+	_meat_eating_bar.add_theme_stylebox_override("background", bar_background)
+	_meat_eating_bar.add_theme_stylebox_override("fill", bar_fill)
+	content.add_child(_meat_eating_bar)
+	add_child(_meat_eating_panel)
+
+
+func _update_meat_eating_indicator() -> void:
+	if _special_behavior == SpecialBehavior.MEAT_EATING and not _meat_dialogue_started:
+		if _meat_eating_bar != null and is_instance_valid(_meat_eating_bar):
+			_meat_eating_bar.value = clampf(_special_timer, 0.0, MEAT_APPEAR_EAT_SECONDS)
+		return
+	_clear_meat_eating_indicator()
+
+
+func _clear_meat_eating_indicator() -> void:
+	if _meat_eating_panel != null and is_instance_valid(_meat_eating_panel):
+		_meat_eating_panel.queue_free()
+	_meat_eating_panel = null
+	_meat_eating_bar = null
+
+
+func _cache_loro_stun_hurtbox() -> void:
+	var hurtbox: Area2D = get_node_or_null("Hurtbox") as Area2D
+	if hurtbox != null:
+		_stun_hurtbox_shape = hurtbox.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if _stun_hurtbox_shape != null:
+		_original_hurtbox_shape = _stun_hurtbox_shape.shape
+		_original_hurtbox_shape_position = _stun_hurtbox_shape.position
+	_impact_zones = get_node_or_null("ImpactZones") as ImpactZones
+	if _impact_zones != null:
+		_original_impact_zone_bounds = [
+			_impact_zones.head_top_y, _impact_zones.head_bottom_y,
+			_impact_zones.upper_torso_top_y, _impact_zones.upper_torso_bottom_y,
+			_impact_zones.lower_torso_top_y, _impact_zones.lower_torso_bottom_y,
+			_impact_zones.legs_top_y, _impact_zones.legs_bottom_y
+		]
+
+
+func _expand_loro_stun_hurtbox() -> void:
+	if _stun_hurtbox_shape != null and _original_hurtbox_shape is RectangleShape2D:
+		var expanded_shape := (_original_hurtbox_shape as RectangleShape2D).duplicate() as RectangleShape2D
+		expanded_shape.size = Vector2(112.0, 184.0)
+		_stun_hurtbox_shape.shape = expanded_shape
+		_stun_hurtbox_shape.position = Vector2(0.0, -82.0)
+	if _impact_zones != null:
+		# A pose inclinada para trás desloca cabeça e tronco; as zonas são
+		# temporariamente ampliadas para não exigir contato na pose em pé.
+		_impact_zones.head_top_y = -225.0
+		_impact_zones.head_bottom_y = -135.0
+		_impact_zones.upper_torso_top_y = -145.0
+		_impact_zones.upper_torso_bottom_y = -62.0
+		_impact_zones.lower_torso_top_y = -72.0
+		_impact_zones.lower_torso_bottom_y = -25.0
+		_impact_zones.legs_top_y = -38.0
+		_impact_zones.legs_bottom_y = 0.0
+
+
+func _restore_loro_stun_hurtbox() -> void:
+	if _stun_hurtbox_shape != null and is_instance_valid(_stun_hurtbox_shape):
+		_stun_hurtbox_shape.shape = _original_hurtbox_shape
+		_stun_hurtbox_shape.position = _original_hurtbox_shape_position
+	if _impact_zones != null and _original_impact_zone_bounds.size() == 8:
+		_impact_zones.head_top_y = _original_impact_zone_bounds[0]
+		_impact_zones.head_bottom_y = _original_impact_zone_bounds[1]
+		_impact_zones.upper_torso_top_y = _original_impact_zone_bounds[2]
+		_impact_zones.upper_torso_bottom_y = _original_impact_zone_bounds[3]
+		_impact_zones.lower_torso_top_y = _original_impact_zone_bounds[4]
+		_impact_zones.lower_torso_bottom_y = _original_impact_zone_bounds[5]
+		_impact_zones.legs_top_y = _original_impact_zone_bounds[6]
+		_impact_zones.legs_bottom_y = _original_impact_zone_bounds[7]
+
+
+func _start_post_loro_escape() -> void:
+	if not _is_player_target_valid():
+		_post_loro_escape_timer = 0.0
+		return
+	var away_direction: Vector2 = global_position - player_target.global_position
+	if away_direction.length_squared() < 1.0:
+		away_direction = Vector2(-facing_direction, 0.0)
+	if global_position.x <= MAP_LEFT_WALL_X + 24.0 and away_direction.x < 0.0:
+		away_direction.x = 0.0
+		away_direction.y = -1.0 if player_target.global_position.y > global_position.y else 1.0
+	elif global_position.x >= MAP_RIGHT_WALL_X - 24.0 and away_direction.x > 0.0:
+		away_direction.x = 0.0
+		away_direction.y = -1.0 if player_target.global_position.y > global_position.y else 1.0
+	_post_loro_escape_direction = away_direction.normalized()
+	_post_loro_escape_timer = POST_LORO_ESCAPE_DURATION
+	if not is_zero_approx(_post_loro_escape_direction.x):
+		facing_direction = signf(_post_loro_escape_direction.x)
+		if visual_root != null:
+			visual_root.scale.x = absf(visual_root.scale.y) * facing_direction
+
+
+func _process_post_loro_escape(delta: float) -> void:
+	if is_in_hitstop():
+		super._physics_process(delta)
+		return
+	_post_loro_escape_timer = maxf(0.0, _post_loro_escape_timer - delta)
+	velocity = _post_loro_escape_direction * POST_LORO_ESCAPE_SPEED
+	if global_position.x <= MAP_LEFT_WALL_X and velocity.x < 0.0:
+		velocity.x = 0.0
+	if global_position.x >= MAP_RIGHT_WALL_X and velocity.x > 0.0:
+		velocity.x = 0.0
+	_play_anim("walk")
+	move_and_slide()
+	if _post_loro_escape_timer <= 0.0:
+		velocity = Vector2.ZERO
+		_attack_timer = maxf(_attack_timer, 1.25)
+		_truffle_cooldown = maxf(_truffle_cooldown, 1.5)
+		_play_anim("idle")
+		if _resume_meat_seeking_after_escape:
+			_resume_meat_seeking_after_escape = false
+			_start_meat_seeking_for_remaining_drop()
 
 
 func _show_meat_dialogue() -> void:
@@ -474,6 +665,7 @@ func _try_execute_cornered_evasion() -> void:
 
 
 func _restore_battle_after_meat() -> void:
+	_clear_meat_eating_indicator()
 	_meat_target = null
 	_meat_eating_target = null
 	_meat_dialogue_started = false
@@ -543,6 +735,36 @@ func _process_evasion(delta: float) -> void:
 	super._process_evasion(delta)
 
 
+func _show_gabriel_second_meat_dialogue() -> bool:
+	var scene_root: Node = get_tree().current_scene
+	if scene_root == null:
+		scene_root = get_tree().root
+	if scene_root == null:
+		return false
+
+	var dialogue: CanvasLayer = GabrielSecondMeatDialogueClass.new() as CanvasLayer
+	if dialogue == null:
+		push_warning("BossAlessandro: não foi possível criar a orientação da segunda carne.")
+		return false
+	dialogue.name = "Map4SecondMeatDialogue"
+	dialogue.connect("dialogue_closed", Callable(self, "_on_gabriel_second_meat_dialogue_closed"), CONNECT_ONE_SHOT)
+	_second_meat_dialogue_pending = true
+	get_tree().paused = true
+	scene_root.add_child(dialogue)
+	return true
+
+
+func _on_gabriel_second_meat_dialogue_closed() -> void:
+	if not _second_meat_dialogue_pending:
+		return
+	_second_meat_dialogue_pending = false
+	if current_state == State.DEAD or health_component == null or health_component.is_dead:
+		_finish_second_meat_dialogue_sequence()
+		return
+	if not _show_gabriel_meat_hint():
+		_finish_second_meat_dialogue_sequence()
+
+
 func _show_gabriel_meat_hint() -> bool:
 	var scene_root: Node = get_tree().current_scene
 	if scene_root == null:
@@ -550,12 +772,12 @@ func _show_gabriel_meat_hint() -> bool:
 	if scene_root == null:
 		return false
 
-	var dialogue: Map4MeatHintDialogue = GabrielMeatHintDialogueClass.new() as Map4MeatHintDialogue
+	var dialogue: CanvasLayer = GabrielMeatHintDialogueClass.new() as CanvasLayer
 	if dialogue == null:
-		push_warning("BossAlessandro: não foi possível criar a dica do Gabriel.")
+		push_warning("BossAlessandro: não foi possível criar a dica do Loro do Gabriel.")
 		return false
 	dialogue.name = "Map4MeatHintDialogue"
-	dialogue.dialogue_closed.connect(_on_gabriel_meat_hint_closed, CONNECT_ONE_SHOT)
+	dialogue.connect("dialogue_closed", Callable(self, "_on_gabriel_meat_hint_closed"), CONNECT_ONE_SHOT)
 	_second_meat_hint_pending = true
 	get_tree().paused = true
 	scene_root.add_child(dialogue)
@@ -566,12 +788,15 @@ func _on_gabriel_meat_hint_closed() -> void:
 	if not _second_meat_hint_pending:
 		return
 	_second_meat_hint_pending = false
+	_finish_second_meat_dialogue_sequence()
+
+
+func _finish_second_meat_dialogue_sequence() -> void:
+	_loro_intro_active = false
 	get_tree().paused = false
 	process_mode = Node.PROCESS_MODE_INHERIT
 	_loro_intro_hold = false
 	if current_state == State.DEAD or health_component == null or health_component.is_dead:
 		return
-	if _loro_hit_during_intro:
-		_loro_hit_during_intro = false
-		return
+	_start_loro_shout_cycle()
 	_start_meat_seeking_for_remaining_drop()

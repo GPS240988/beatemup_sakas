@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/menu/icon_play.png" id="8_play_icon"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/arcade_button.tscn" id="9_arcade_btn_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/settings_panel.tscn" id="10_settings_panel_scene"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/stage_section_select.tscn" id="11_section_select_scene"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icon_button"]
 bg_color = Color(0.09, 0.082, 0.239, 0.95)
@@ -275,6 +276,11 @@ is_primary = true
 icon_texture = ExtResource("8_play_icon")
 
 [node name="SettingsPanel" parent="." instance=ExtResource("10_settings_panel_scene")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="StageSectionSelect" parent="." instance=ExtResource("11_section_select_scene")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1

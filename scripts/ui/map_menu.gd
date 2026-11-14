@@ -68,10 +68,12 @@ const STAGE_CONFIGS: Array[Dictionary] = [
 @onready var hotspots_container: Control = %HotspotsContainer
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
 @onready var settings_panel: Control = get_node_or_null("%SettingsPanel") as Control
+@onready var stage_section_select: Control = get_node_or_null("%StageSectionSelect") as Control
 
 var _selected_index: int = 0
 var _is_transitioning: bool = false
 var _is_in_settings: bool = false
+var _is_in_section_select: bool = false
 var _entry_context: String = ""
 
 var _sfx_move: AudioStream
@@ -103,6 +105,13 @@ func _ready() -> void:
 		settings_panel.set("settings_origin", "map_menu")
 		if settings_panel.has_signal("closed"):
 			settings_panel.connect("closed", Callable(self, "_on_settings_closed"))
+
+	if stage_section_select != null:
+		stage_section_select.visible = false
+		if stage_section_select.has_signal("section_selected"):
+			stage_section_select.connect("section_selected", Callable(self, "_on_stage_section_selected"))
+		if stage_section_select.has_signal("closed"):
+			stage_section_select.connect("closed", Callable(self, "_on_stage_section_closed"))
 
 	# Seleciona inicialmente a Fase 1
 	_select_stage(0, false)
@@ -183,8 +192,22 @@ func _update_hotspot_positions() -> void:
 		node.position = Vector2(ratio.x * c_size.x - half_size.x, ratio.y * c_size.y - half_size.y)
 
 
+func _is_stage_1_completed() -> bool:
+	var session := _get_game_session()
+	if session != null and session.has_method("is_stage_completed"):
+		return session.is_stage_completed(1)
+	elif session != null:
+		return bool(session.get("stage_1_completed")) or bool(session.get("bonus_stage_unlocked")) or bool(session.get("stage_2_unlocked")) or int(session.get("max_unlocked_stage")) >= 2
+	return false
+
+
 func _on_hotspot_clicked(index: int) -> void:
-	if _is_transitioning or _is_in_settings:
+	if _is_transitioning or _is_in_settings or _is_in_section_select:
+		return
+
+	if index == 0 and _is_stage_1_completed():
+		_select_stage(0, false)
+		_open_section_select()
 		return
 
 	if index == _selected_index:
@@ -215,18 +238,26 @@ func _select_stage(index: int, play_sound: bool = true) -> void:
 	if stage_title_label != null:
 		stage_title_label.text = str(cfg["title"])
 
-	# Atualiza status
+	# Atualiza status e texto do botão de ação
 	if map_status_label != null:
 		if is_unlocked:
-			map_status_label.text = "%s · SELECIONADA" % str(cfg["title"])
-			map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+			if _selected_index == 0 and _is_stage_1_completed():
+				map_status_label.text = "FASE 1 CONCLUÍDA · TOQUE P/ ESCOLHER SEÇÃO"
+				map_status_label.modulate = Color(1.0, 0.85, 0.25, 1.0)
+			else:
+				map_status_label.text = "%s · SELECIONADA" % str(cfg["title"])
+				map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
 		else:
 			map_status_label.text = "%s · AINDA BLOQUEADA" % str(cfg["title"])
 			map_status_label.modulate = Color(1.0, 0.45, 0.45, 0.9)
 
-	# Configura botão JOGAR FASE
+	# Configura botão JOGAR FASE / ESCOLHER SEÇÃO
 	if btn_play_stage != null:
 		btn_play_stage.set("disabled", not is_unlocked)
+		if _selected_index == 0 and _is_stage_1_completed():
+			btn_play_stage.set("button_text", "ESCOLHER SEÇÃO")
+		else:
+			btn_play_stage.set("button_text", "JOGAR FASE")
 
 	if play_sound:
 		_play_sfx(_sfx_move if is_unlocked else _sfx_cancel)
@@ -253,10 +284,15 @@ func _on_pack_progress(_pack_id: String, loaded: int, total: int, pct: float) ->
 
 
 func _on_play_stage_pressed() -> void:
-	if _is_transitioning or _is_in_settings:
+	if _is_transitioning or _is_in_settings or _is_in_section_select:
 		return
 	if not is_stage_unlocked(_selected_index):
 		_play_sfx(_sfx_cancel)
+		return
+
+	# Se for o Estágio 1 e já foi finalizado, abre a seleção de seções do estágio
+	if _selected_index == 0 and _is_stage_1_completed():
+		_open_section_select()
 		return
 
 	_is_transitioning = true
@@ -310,8 +346,63 @@ func _on_play_stage_pressed() -> void:
 		printerr("Erro ao transicionar para a fase selecionada: ", err)
 
 
+func _open_section_select() -> void:
+	_is_in_section_select = true
+	if stage_section_select != null and stage_section_select.has_method("open"):
+		stage_section_select.open()
+
+
+func _on_stage_section_closed() -> void:
+	_is_in_section_select = false
+	if btn_play_stage != null and not MobileScreenAction.is_mobile_runtime():
+		btn_play_stage.grab_focus()
+
+
+func _on_stage_section_selected(scene_path: String, section_name: String) -> void:
+	if _is_transitioning:
+		return
+	_is_in_section_select = false
+	_is_transitioning = true
+
+	var session := _get_game_session()
+	if session != null:
+		session.set_meta("selected_stage_index", 0)
+		if not ("selected_character_id" in session) or str(session.selected_character_id).is_empty():
+			session.selected_character_id = "guilherme"
+		if not ("difficulty_id" in session) or str(session.difficulty_id).is_empty():
+			session.difficulty_id = "normal"
+		# Ao entrar diretamente por seleção livre de seção, limpa dados residuais para iniciar com 100% de vida
+		session.clear_player_progression()
+
+	# Streaming inteligente sob demanda para a Fase 1
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+		if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("audio_bgm"):
+			if map_status_label != null:
+				map_status_label.text = "CARREGANDO RECURSOS..."
+				map_status_label.modulate = Color(0, 0.94, 1, 1)
+			var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
+			var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
+			if not ok_stage1 or not ok_bgm:
+				_is_transitioning = false
+				if map_status_label != null:
+					map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."
+					map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
+				return
+
+	if map_status_label != null:
+		map_status_label.text = "INICIANDO %s..." % section_name.to_upper()
+		map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+
+	await get_tree().create_timer(0.2).timeout
+	var err := get_tree().change_scene_to_file(scene_path)
+	if err != OK:
+		_is_transitioning = false
+		printerr("Erro ao transicionar para a seção selecionada: ", err)
+
+
 func _on_back_pressed() -> void:
-	if _is_transitioning or _is_in_settings:
+	if _is_transitioning or _is_in_settings or _is_in_section_select:
 		return
 	_is_transitioning = true
 	_play_sfx(_sfx_cancel)
@@ -319,7 +410,7 @@ func _on_back_pressed() -> void:
 
 
 func _on_pause_pressed() -> void:
-	if _is_transitioning or _is_in_settings:
+	if _is_transitioning or _is_in_settings or _is_in_section_select:
 		return
 	_play_sfx(_sfx_confirm)
 	_open_settings()
@@ -339,7 +430,7 @@ func _on_settings_closed(_origin: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _is_transitioning or _is_in_settings:
+	if _is_transitioning or _is_in_settings or _is_in_section_select:
 		return
 
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):

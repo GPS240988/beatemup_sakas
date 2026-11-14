@@ -18,6 +18,7 @@ var difficulty_id: String = ""
 var has_played_intro: bool = false
 
 ## Progresso da campanha e fases desbloqueadas
+var stage_1_completed: bool = false
 var bonus_stage_unlocked: bool = false
 var stage_2_unlocked: bool = false
 var max_unlocked_stage: int = 1
@@ -161,10 +162,30 @@ func is_bonus_unlocked() -> bool:
 
 ## Desbloqueia a Fase Bônus e persiste a evolução
 func unlock_bonus_stage() -> void:
+	stage_1_completed = true
 	if not bonus_stage_unlocked:
 		bonus_stage_unlocked = true
 		_save_campaign_progression()
 		bonus_unlocked_signal.emit()
+
+
+## Verifica se um estágio específico foi finalizado durante gameplay
+func is_stage_completed(stage_num: int) -> bool:
+	if stage_num == 1:
+		return stage_1_completed or bonus_stage_unlocked or stage_2_unlocked or max_unlocked_stage >= 2
+	return false
+
+
+## Marca um estágio como finalizado e persiste a evolução da campanha
+func complete_stage(stage_num: int) -> void:
+	if stage_num == 1:
+		stage_1_completed = true
+		_save_campaign_progression()
+
+
+## Método público para carregar a progressão da campanha salva
+func load_campaign_progression() -> void:
+	_load_campaign_progression()
 
 
 ## Verifica se a Fase 2 foi desbloqueada
@@ -192,6 +213,7 @@ func unlock_stage(stage_num: int) -> void:
 ## Grava dados de progressão da campanha (independente de slot de partida)
 func _save_campaign_progression() -> void:
 	var data: Dictionary = {
+		"stage_1_completed": is_stage_completed(1),
 		"bonus_stage_unlocked": bonus_stage_unlocked,
 		"stage_2_unlocked": stage_2_unlocked,
 		"max_unlocked_stage": max_unlocked_stage,
@@ -219,6 +241,7 @@ func _load_campaign_progression() -> void:
 		bonus_stage_unlocked = bool(d.get("bonus_stage_unlocked", false))
 		stage_2_unlocked = bool(d.get("stage_2_unlocked", false))
 		max_unlocked_stage = int(d.get("max_unlocked_stage", 1))
+		stage_1_completed = bool(d.get("stage_1_completed", false)) or bonus_stage_unlocked or stage_2_unlocked or max_unlocked_stage >= 2
 		has_seen_bonus_transition = bool(d.get("has_seen_bonus_transition", false))
 		has_seen_stage_2_transition = bool(d.get("has_seen_stage_2_transition", false))
 
@@ -432,6 +455,7 @@ func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, p
 		"health": hp_to_save,
 		"special": sp_to_save,
 		"continues": current_continues,
+		"stage_1_completed": is_stage_completed(1),
 		"bonus_stage_unlocked": bonus_stage_unlocked,
 		"stage_2_unlocked": stage_2_unlocked,
 		"max_unlocked_stage": max_unlocked_stage,
@@ -496,6 +520,7 @@ func load_game_from_slot(slot: int) -> bool:
 	difficulty_id = str(data.get("difficulty_id", "normal"))
 	current_continues = int(data.get("continues", 1))
 	has_played_intro = true
+	stage_1_completed = bool(data.get("stage_1_completed", stage_1_completed)) or is_stage_completed(1)
 	bonus_stage_unlocked = bool(data.get("bonus_stage_unlocked", bonus_stage_unlocked))
 	stage_2_unlocked = bool(data.get("stage_2_unlocked", stage_2_unlocked))
 	max_unlocked_stage = int(data.get("max_unlocked_stage", max_unlocked_stage))

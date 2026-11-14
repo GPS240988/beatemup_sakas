@@ -13,6 +13,8 @@ var _loro_anchor: Node2D = null
 var _is_shouting: bool = false
 var _speech_bubble: Label = null
 var _connected_player_attacks: Array[Node] = []
+var _shout_blink_tween: Tween = null
+var _loro_original_modulate: Color = Color.WHITE
 
 
 func _ready() -> void:
@@ -23,6 +25,8 @@ func _ready() -> void:
 func configure(loro_sprite: AnimatedSprite2D, loro_anchor: Node2D) -> void:
 	_loro_sprite = loro_sprite
 	_loro_anchor = loro_anchor
+	if _loro_sprite != null:
+		_loro_original_modulate = _loro_sprite.modulate
 	_sync_target_position()
 
 
@@ -97,17 +101,34 @@ func start_shouting() -> void:
 		_loro_sprite.speed_scale = 1.5
 		if _loro_sprite.sprite_frames != null and _loro_sprite.sprite_frames.has_animation("idle"):
 			_loro_sprite.play("idle")
+		_start_shout_blink()
 	_show_speech_bubble()
 
 
 func stop_shouting() -> void:
 	_is_shouting = false
 	if _loro_sprite != null and is_instance_valid(_loro_sprite):
+		if _shout_blink_tween != null and _shout_blink_tween.is_valid():
+			_shout_blink_tween.kill()
+		_shout_blink_tween = null
+		_loro_sprite.modulate = _loro_original_modulate
 		_loro_sprite.speed_scale = 1.0
 		_loro_sprite.process_mode = Node.PROCESS_MODE_INHERIT
 	if _speech_bubble != null and is_instance_valid(_speech_bubble):
 		_speech_bubble.queue_free()
 	_speech_bubble = null
+
+
+func _start_shout_blink() -> void:
+	if _loro_sprite == null or not is_instance_valid(_loro_sprite):
+		return
+	if _shout_blink_tween != null and _shout_blink_tween.is_valid():
+		_shout_blink_tween.kill()
+	_loro_sprite.modulate = _loro_original_modulate
+	_shout_blink_tween = _loro_sprite.create_tween().set_loops()
+	_shout_blink_tween.set_trans(Tween.TRANS_SINE)
+	_shout_blink_tween.tween_property(_loro_sprite, "modulate:a", 0.28, 0.12)
+	_shout_blink_tween.tween_property(_loro_sprite, "modulate:a", _loro_original_modulate.a, 0.12)
 
 
 func is_shouting() -> bool:
@@ -132,16 +153,17 @@ func _show_speech_bubble() -> void:
 
 	_speech_bubble = Label.new()
 	_speech_bubble.name = "LoroShoutBubble"
-	_speech_bubble.position = Vector2(-175.0, -190.0)
-	_speech_bubble.size = Vector2(350.0, 88.0)
+	var sprite_head_position: Vector2 = to_local(_loro_sprite.global_position) if _loro_sprite != null and is_instance_valid(_loro_sprite) else Vector2(0.0, -124.0)
+	_speech_bubble.position = sprite_head_position + Vector2(-180.0, -142.0)
+	_speech_bubble.size = Vector2(360.0, 72.0)
 	_speech_bubble.text = "ALEHANDRO! ALEHANDRO!\nMULHERES PELADAS! MULHERES PELADAS!"
 	_speech_bubble.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_speech_bubble.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_speech_bubble.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_speech_bubble.add_theme_font_size_override("font_size", 19)
+	_speech_bubble.add_theme_font_size_override("font_size", 16)
 	_speech_bubble.add_theme_color_override("font_color", Color(1.0, 0.91, 0.62, 1.0))
 	_speech_bubble.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.08, 1.0))
-	_speech_bubble.add_theme_constant_override("outline_size", 5)
+	_speech_bubble.add_theme_constant_override("outline_size", 4)
 	_speech_bubble.z_index = 140
 
 	var bubble_style := StyleBoxFlat.new()
