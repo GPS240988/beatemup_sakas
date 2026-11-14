@@ -40,11 +40,11 @@ const SECTIONS: Array[Dictionary] = [
 	}
 ]
 
-@onready var dim_overlay: ColorRect = %DimOverlay
-@onready var panel_container: PanelContainer = %PanelContainer
-@onready var btn_close: Button = %BtnClose
-@onready var btn_back: Button = %BtnBack
-@onready var buttons_vbox: VBoxContainer = %ButtonsVBox
+@onready var dim_overlay: ColorRect = get_node_or_null("%DimOverlay") as ColorRect
+@onready var panel_container: PanelContainer = get_node_or_null("%PanelContainer") as PanelContainer
+@onready var btn_close: Button = get_node_or_null("%BtnClose") as Button
+@onready var btn_back: Button = get_node_or_null("%BtnBack") as Button
+@onready var buttons_vbox: VBoxContainer = get_node_or_null("%ButtonsVBox") as VBoxContainer
 
 var _sfx_move: AudioStream
 var _sfx_confirm: AudioStream
@@ -54,6 +54,7 @@ var _section_buttons: Array[Button] = []
 
 
 func _ready() -> void:
+	_resolve_nodes()
 	_init_audio()
 	_setup_buttons()
 
@@ -63,6 +64,19 @@ func _ready() -> void:
 		btn_close.pressed.connect(_on_close_pressed)
 	if btn_back != null:
 		btn_back.pressed.connect(_on_close_pressed)
+
+
+func _resolve_nodes() -> void:
+	if dim_overlay == null:
+		dim_overlay = get_node_or_null("DimOverlay") as ColorRect
+	if panel_container == null:
+		panel_container = get_node_or_null("CenterContainer/PanelContainer") as PanelContainer
+	if btn_close == null:
+		btn_close = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/HeaderHBox/BtnClose") as Button
+	if btn_back == null:
+		btn_back = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/FooterHBox/BtnBack") as Button
+	if buttons_vbox == null:
+		buttons_vbox = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/ButtonsVBox") as VBoxContainer
 
 
 func _init_audio() -> void:

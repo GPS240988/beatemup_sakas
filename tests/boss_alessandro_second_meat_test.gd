@@ -94,9 +94,22 @@ func _run_tests() -> void:
 		meat_dialogue.call("_close_dialogue")
 
 	var hint := test_world.get_node_or_null("Map4MeatHintDialogue") as CanvasLayer
-	_assert(hint != null, "Após fechar a orientação da carne, Gabriel apresenta a dica de mestre do Loro")
-	_assert(loro_target != null and not loro_target.is_shouting(), "Loro continua sem gritar enquanto Gabriel apresenta a dica")
-	_assert(loro_target != null and loro_target._shout_blink_tween == null, "Loro continua sem piscar durante a dica de mestre")
+	_assert(hint == null, "A dica do Loro ainda não aparece ao fechar a orientação da carne")
+	_assert(not get_tree().paused, "Fechar a orientação da carne retoma imediatamente a fase")
+	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro começa a perseguir a segunda carne após o primeiro diálogo")
+	_assert(boss._meat_target == boss._meat_instances[0], "A segunda carne é selecionada como alvo ao iniciar a perseguição")
+	_assert(is_equal_approx(boss._second_meat_hint_delay_timer, 10.0), "A espera da dica começa ao fechar o primeiro diálogo e dura dez segundos")
+	_assert(loro_target != null and not loro_target.is_shouting(), "Loro não grita durante a perseguição inicial")
+	_assert(loro_target != null and loro_target._shout_blink_tween == null, "Loro não pisca durante a perseguição inicial")
+	boss._process_second_meat_hint_delay(9.99)
+	_assert(test_world.get_node_or_null("Map4MeatHintDialogue") == null, "A segunda conversa não aparece antes de dez segundos")
+	_assert(not get_tree().paused and boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro continua perseguindo a carne durante os dez segundos")
+	boss._process_second_meat_hint_delay(0.02)
+	hint = test_world.get_node_or_null("Map4MeatHintDialogue") as CanvasLayer
+	_assert(hint != null, "Gabriel apresenta a dica de mestre após dez segundos")
+	_assert(get_tree().paused, "A fase pausa enquanto Gabriel apresenta a segunda conversa")
+	_assert(loro_target != null and not loro_target.is_shouting(), "Loro ainda não grita enquanto Gabriel apresenta a dica")
+	_assert(loro_target != null and loro_target._shout_blink_tween == null, "Loro ainda não pisca durante a dica de mestre")
 	if hint != null:
 		var messages: Array = hint.get("_dialogues")
 		_assert(messages.size() == 1, "Dica contém uma única fala")
@@ -106,11 +119,9 @@ func _run_tests() -> void:
 			var hint_portrait: Texture2D = messages[0].get("portrait") as Texture2D
 			_assert(hint_portrait != null and hint_portrait.resource_path.ends_with("portrait_gabriel.png"), "Dica reutiliza o retrato herdado de Gabriel")
 			_assert(bool(hint.get("_waiting_for_release")), "Dica aguarda confirmação/soltura do comando do jogador")
-	_assert(get_tree().paused, "A fase permanece pausada durante os dois diálogos encadeados")
-	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.NONE, "Alessandro não inicia a perseguição enquanto os diálogos estão abertos")
-	_assert(boss.velocity.is_zero_approx(), "Alessandro permanece imóvel durante os diálogos")
+	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro mantém a perseguição enquanto a segunda conversa está aberta")
 
-	# Somente fechar a segunda fala libera a fase e inicia o grito/piscar do Loro.
+	# Fechar a dica libera o evento de grito sem reiniciar a perseguição.
 	if hint != null:
 		hint.call("_close_dialogue")
 	_assert(not get_tree().paused, "Fechar a dica de mestre despausa a fase")
@@ -123,8 +134,8 @@ func _run_tests() -> void:
 	_assert(boss._loro_repeat_timer > 0.0 and loro_target != null and loro_target.is_shouting(), "O grito permanece ativo enquanto aguarda o próximo ciclo")
 	boss._process_loro_timers(0.02)
 	_assert(loro_target != null and loro_target.is_shouting() and is_equal_approx(boss._loro_repeat_timer, 8.0), "O evento do Loro se rearma ao completar oito segundos")
-	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro só começa a perseguir a carne após os diálogos")
-	_assert(boss._meat_target == boss._meat_instances[0], "A segunda carne é selecionada como alvo após a confirmação")
+	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro mantém a perseguição após fechar a dica")
+	_assert(boss._meat_target == boss._meat_instances[0], "A perseguição preserva a segunda carne como alvo")
 
 	# O Loro também pode interromper a perseguição; a carne é preservada e a busca recomeça após a fuga.
 	loro_target.stop_shouting()

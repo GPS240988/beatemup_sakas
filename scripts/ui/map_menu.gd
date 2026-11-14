@@ -106,6 +106,9 @@ func _ready() -> void:
 		if settings_panel.has_signal("closed"):
 			settings_panel.connect("closed", Callable(self, "_on_settings_closed"))
 
+	if stage_section_select == null:
+		stage_section_select = get_node_or_null("StageSectionSelect") as Control
+
 	if stage_section_select != null:
 		stage_section_select.visible = false
 		if stage_section_select.has_signal("section_selected"):

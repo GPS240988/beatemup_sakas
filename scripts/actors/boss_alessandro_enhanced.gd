@@ -13,6 +13,7 @@ const GabrielSecondMeatDialogueClass = preload(
 const LoroTargetClass = preload("res://scripts/events/map4_loro_target.gd")
 
 const SECOND_MEAT_DROP_DELAY: float = 8.0
+const SECOND_MEAT_HINT_DELAY: float = 10.0
 const PLAYER_MELEE_EVADE_CHANCE: float = 0.70
 const POST_EVASION_COUNTER_WINDOW: float = 0.75
 const FAST_APPROACH_MIN_SPEED: float = 210.0
@@ -30,6 +31,7 @@ const POST_LORO_ESCAPE_DURATION: float = 1.35
 const POST_LORO_ESCAPE_SPEED: float = 430.0
 
 var _second_meat_timer: float = -1.0
+var _second_meat_hint_delay_timer: float = -1.0
 var _second_meat_dropped: bool = false
 var _first_meat_consumed: bool = false
 var _post_evasion_counter_timer: float = 0.0
@@ -67,6 +69,7 @@ func _physics_process(delta: float) -> void:
 	# Os relógios usam tempo de gameplay e congelam durante hitstop.
 	if not is_in_hitstop():
 		_process_second_meat_timer(delta)
+		_process_second_meat_hint_delay(delta)
 		_post_evasion_counter_timer = maxf(0.0, _post_evasion_counter_timer - delta)
 		_update_cornered_combo_window(delta)
 		_process_loro_timers(delta)
@@ -96,6 +99,20 @@ func _process_second_meat_timer(delta: float) -> void:
 	if is_zero_approx(_second_meat_timer):
 		_second_meat_timer = -1.0
 		_drop_second_healing_meat()
+
+
+func _process_second_meat_hint_delay(delta: float) -> void:
+	if _second_meat_hint_delay_timer < 0.0:
+		return
+	if current_state == State.DEAD or health_component == null or health_component.is_dead:
+		_second_meat_hint_delay_timer = -1.0
+		_loro_intro_active = false
+		return
+	_second_meat_hint_delay_timer = maxf(0.0, _second_meat_hint_delay_timer - delta)
+	if is_zero_approx(_second_meat_hint_delay_timer):
+		_second_meat_hint_delay_timer = -1.0
+		if not _show_gabriel_meat_hint():
+			_finish_second_meat_dialogue_sequence()
 
 
 func _drop_second_healing_meat() -> void:
@@ -146,15 +163,16 @@ func _drop_second_healing_meat() -> void:
 	if anim_sprite != null and current_state == State.FLANKING:
 		_play_anim("idle")
 
-	# Sequência bloqueante: primeiro Gabriel orienta a destruir a carne;
-	# depois apresenta a dica do Loro. O papagaio só grita após a segunda confirmação.
+	# Primeiro Gabriel orienta o jogador. Ao fechar essa fala, a fase é
+	# retomada e Alessandro começa a perseguir a carne; a dica do Loro só
+	# aparece dez segundos depois, sem interromper esse intervalo.
 	_loro_intro_active = true
 	_loro_intro_hold = true
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().paused = true
 	_ensure_loro_target()
-	if not _show_gabriel_second_meat_dialogue() and not _show_gabriel_meat_hint():
-		_finish_second_meat_dialogue_sequence()
+	if not _show_gabriel_second_meat_dialogue():
+		_begin_second_meat_pursuit_and_hint_delay()
 
 
 func _ensure_loro_target() -> void:
@@ -761,8 +779,20 @@ func _on_gabriel_second_meat_dialogue_closed() -> void:
 	if current_state == State.DEAD or health_component == null or health_component.is_dead:
 		_finish_second_meat_dialogue_sequence()
 		return
-	if not _show_gabriel_meat_hint():
+	_begin_second_meat_pursuit_and_hint_delay()
+
+
+func _begin_second_meat_pursuit_and_hint_delay() -> void:
+	if current_state == State.DEAD or health_component == null or health_component.is_dead:
 		_finish_second_meat_dialogue_sequence()
+		return
+	# O cronômetro começa no fechamento da primeira conversa, não no drop.
+	# A perseguição ocorre livremente durante os dez segundos completos.
+	_loro_intro_hold = false
+	get_tree().paused = false
+	process_mode = Node.PROCESS_MODE_INHERIT
+	_start_meat_seeking_for_remaining_drop()
+	_second_meat_hint_delay_timer = SECOND_MEAT_HINT_DELAY
 
 
 func _show_gabriel_meat_hint() -> bool:
@@ -792,6 +822,7 @@ func _on_gabriel_meat_hint_closed() -> void:
 
 
 func _finish_second_meat_dialogue_sequence() -> void:
+	_second_meat_hint_delay_timer = -1.0
 	_loro_intro_active = false
 	get_tree().paused = false
 	process_mode = Node.PROCESS_MODE_INHERIT
@@ -799,4 +830,3 @@ func _finish_second_meat_dialogue_sequence() -> void:
 	if current_state == State.DEAD or health_component == null or health_component.is_dead:
 		return
 	_start_loro_shout_cycle()
-	_start_meat_seeking_for_remaining_drop()
