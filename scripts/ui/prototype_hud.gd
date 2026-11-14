@@ -38,6 +38,7 @@ var _can_restart: bool = false
 var _game_over_tween: Tween = null
 var _restart_scene_path: String = ""
 var _mobile_restart_button: Button
+var _mobile_exit_button: Button
 
 
 func _ready() -> void:
@@ -218,6 +219,10 @@ func show_game_over() -> void:
 	if banner_panel != null:
 		banner_panel.visible = false
 
+	# Oculta controles virtuais durante a tela de Game Over para limpar a visão do jogador
+	if touch_controls != null:
+		touch_controls.visible = false
+
 	if game_over_layer == null or game_over_rect == null:
 		# Fallback: usa o banner legado se o layer não existir
 		if banner_panel != null and banner_label != null:
@@ -245,6 +250,8 @@ func show_game_over() -> void:
 		_can_restart = true
 		if _mobile_restart_button != null:
 			MobileScreenAction.set_action_state(_mobile_restart_button, "TENTAR NOVAMENTE", false)
+		if _mobile_exit_button != null:
+			MobileScreenAction.set_action_state(_mobile_exit_button, "SAIR DO JOGO", false)
 	)
 
 
@@ -261,11 +268,21 @@ func _show_mobile_restart_action(disabled: bool) -> void:
 			self, "AGUARDE..." if disabled else "TENTAR NOVAMENTE",
 			Callable(self, "_restart_current_stage"), Color(0.90, 0.29, 0.22, 1.0)
 		)
+	if _mobile_exit_button == null:
+		_mobile_exit_button = MobileScreenAction.add_secondary_action(
+			self, "SAIR DO JOGO",
+			Callable(self, "_exit_to_main_menu")
+		)
 	MobileScreenAction.set_action_state(
 		_mobile_restart_button, "AGUARDE..." if disabled else "TENTAR NOVAMENTE", disabled
 	)
+	MobileScreenAction.set_action_state(
+		_mobile_exit_button, "SAIR DO JOGO", disabled
+	)
 	if _mobile_restart_button != null:
 		_mobile_restart_button.visible = true
+	if _mobile_exit_button != null:
+		_mobile_exit_button.visible = true
 
 
 ## Processa entrada de reiniciar durante o Game Over apenas após o término do fade in (5s)
@@ -273,8 +290,45 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _game_over_active or not _can_restart:
 		return
 
+	# Tecla física R (PC)
 	if event.is_action_pressed("restart"):
 		_restart_current_stage()
+		return
+
+	# Toque na tela (Mobile) ou clique com botão esquerdo (Desktop)
+	if event is InputEventScreenTouch and event.pressed:
+		_restart_current_stage()
+		return
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_restart_current_stage()
+		return
+
+	# ESC para retornar ao menu principal
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		_exit_to_main_menu()
+
+
+## Retorna ao Menu Principal a partir da tela de Game Over
+func _exit_to_main_menu() -> void:
+	if not _game_over_active or not _can_restart:
+		return
+
+	if _mobile_restart_button != null:
+		_mobile_restart_button.visible = false
+	if _mobile_exit_button != null:
+		_mobile_exit_button.visible = false
+
+	get_tree().paused = false
+	var session: Node = get_node_or_null("/root/GameSession")
+	if session != null:
+		if "current_continues" in session:
+			session.current_continues = 1
+		if "pending_save_snapshot" in session:
+			session.pending_save_snapshot = {}
+		if session.has_method("clear_player_progression"):
+			session.clear_player_progression()
+
+	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
 
 
 ## Reinicia a fase correspondente ao mapa atual com continues zerado
@@ -284,12 +338,16 @@ func _restart_current_stage() -> void:
 
 	if _mobile_restart_button != null:
 		_mobile_restart_button.visible = false
+	if _mobile_exit_button != null:
+		_mobile_exit_button.visible = false
 
 	# Reseta progresso da fase e define continues como 0 (zerado após Game Over, e não 1)
 	var session: Node = get_node_or_null("/root/GameSession")
 	if session != null:
 		if "current_continues" in session:
 			session.current_continues = 0
+		if "pending_save_snapshot" in session:
+			session.pending_save_snapshot = {}
 		if session.has_method("clear_player_progression"):
 			session.clear_player_progression()
 

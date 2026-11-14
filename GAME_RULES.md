@@ -142,7 +142,7 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    - `EnemyHUD` (`scenes/ui/enemy_hud.tscn`): Canto superior direito compacto espelhado (340×78px). Nome do alvo alinhado à direita, barra de vida vermelha segmentada com damage buffer e retrato do inimigo/boss com moldura azul arcade.
    - `Arcade Combo Counter`: Placa dinâmica recortada em azul escuro (`hud_combo_plate_arcade.png`) com contador de acertos em escala de impacto (punch scale tween).
    - `SigaIndicator` (`scenes/ui/siga_indicator.tscn`): Indicador de avanço arcade exibindo o banner `vamos.webp` com pulso de impacto no centro superior (offset_top = 90.0, desobstruindo o CenterHUD). A placa legada de saída ("Siga") fica permanentemente oculta.
-   - `GameOverLayer`: Camada arcade (`CanvasLayer` layer = 90) com imagem de fim de jogo `game_over.webp`. Fade in cinematográfico de aproximadamente 5.0 segundos com bloqueio estrito de reinício (`_can_restart = false`). Comando `[R]` liberado apenas após o término do fade in, reiniciando o primeiro mapa da fase correspondente com quantidade de continues ZERADA (`current_continues = 0`) e sem labels de instrução redundantes (legenda nativa na imagem).
+   - GameOverLayer: Camada arcade (CanvasLayer layer = 90) com imagem de fim de jogo game_over.webp. Fade in cinematográfico de aproximadamente 5.0 segundos com bloqueio estrito de reinício (_can_restart = false). Comando [R] no teclado, clique de mouse ou toque em qualquer lugar da tela no mobile liberados após o término do fade in, reiniciando no início do mapa específico onde o personagem foi derrotado (ex: morte no Map 3 retorna ao início do Map 3) com quantidade de continues ZERADA (current_continues = 0), HP restaurado. No Mobile, são exibidos botões dedicados no dock ('TENTAR NOVAMENTE' e 'SAIR DO JOGO'), e os controles virtuais de gameplay são ocultados para garantir visão limpa. Tecla [Esc] permite sair para o Menu Principal no Desktop.
    - Suíte de validação: `tests/arcade_hud_migration_test.gd`, `tests/player_hud_test.gd` e `tests/game_over_flow_test.gd`.
 
 ### 1.5. Arquitetura Modular Multi-PCK, Fast Boot e Streaming sob Demanda
@@ -494,7 +494,7 @@ MapX (Node2D, script: base_level.gd)
     - Blindagem contra acionamento indevido de Game Over durante o respawn via flag atômica `is_respawning`.
     - Ao esgotar as fichas e ocorrer a morte definitiva, a tela de Game Over exibe a imagem `game_over.webp` com efeito suave de fade in por ~5 segundos.
     - O comando `[R]` para reiniciar a fase é estritamente bloqueado durante o fade in, sendo liberado apenas após os 5 segundos completos de transição.
-    - Ao reiniciar pelo Game Over, o jogador retorna ao início da fase (Fase 1 retorna para `map_1.tscn`) com a contagem de continues ZERADA (`current_continues = 0`), e não 1 como padrão. A imagem de fundo já contém a legenda nativa ('aperte o r para reiniciar'), dispensando textos de instrução redundantes sobrepostos.
+    - Ao reiniciar pelo Game Over, o jogador retorna ao início do mapa exato em que morreu (ex: morte no Map 3 retorna ao início do Map 3, como se tivesse acabado de entrar nele a partir do mapa anterior), com HP restaurado a 100%, mas com a contagem de continues ZERADA (current_continues = 0, não herdando fichas prévias). No Desktop o reinício pode ser feito com [R], clique do mouse ou saindo com [Esc]. No Mobile, o reinício pode ser feito tocando em qualquer lugar da tela ou pelos botões dedicados do dock ('TENTAR NOVAMENTE' e 'SAIR DO JOGO'), ocultando os controles virtuais de toque durante a tela de Game Over.
   - **Sequência de Morte e Fade dos Inimigos**: O shader de `palette_swap` modula canal alpha e cor (`tex_color.a * COLOR.a` e `tex_color * COLOR`), assegurando que em todos os mapas e para todas as paletas de cores, os inimigos derrotados apresentem a sequência de piscar 4 vezes e desaparecer suavemente do cenário antes do despawn.
 
 ---
@@ -1090,6 +1090,16 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
   - Bônus Desbloqueado: Seta sobre Ponto Bônus (`Vector2(578, 282)`), Ponto 1 coberto, cadeado no Ponto 2 visível.
   - Fase 2 Desbloqueada: Seta sobre Ponto 2 (`Vector2(870, 265)`), Ponto 1 coberto, cadeado do Ponto 2 removido.
 
+### 1.1. Regras de Gating, Desbloqueio Progressivo e Acesso por Save:
+- **Acesso pelo Menu sem Save (`not session.has_any_save()`)**:
+  - Ao acessar o mapa a partir do Menu Principal (`map_entry_context == "continue"` ou direto), se nenhum save existir em slots 1-4 nem na campanha, o carregamento direto do `map_1.tscn` é estritamente bloqueado.
+  - Ao clicar no Ponto 1 ou no botão de ação, o modal de seções (`StageSectionSelect`) exibe **todos os 4 mapas (Map 1, Map 2, Map 3 e Map 4) desabilitados/bloqueados**, com visual acinzentado/dimmed (`modulate = Color(0.45, 0.45, 0.50, 0.65)`), cursor padrão e bloqueio de cliques (`_play_sound(_sfx_cancel)`). O status informa *"NENHUM SAVE ENCONTRADO · USE NOVO JOGO NO MENU"*.
+- **Desbloqueio Progressivo de Mapas (1 a 4)**:
+  - Cada mapa só é habilitado para seleção individual quando o jogador efetivamente avança para o mapa seguinte durante o gameplay (`session.unlock_map(map_index + 1)` disparado em `BaseLevel._advance_to_next_map()`).
+  - Map 1 é liberado após alcançar o Map 2; Map 2 é liberado após alcançar o Map 3; Map 3 é liberado após alcançar o Map 4; Map 4 é liberado após a derrota de Alessandro / conclusão do estágio.
+- **Acesso pelo Fluxo "Novo Jogo" (Campanha)**:
+  - Quando o mapa é acessado através do fluxo Novo Jogo (`map_entry_context == "campaign"`, vindo de `main_menu.gd` → `character_select.gd` → `difficulty_select.gd`), o botão primário exibe *"INICIAR HISTÓRIA"* e o clique inicia obrigatoriamente do início da história (`res://scenes/story/story_intro.tscn`), garantindo a integridade narrativa antes do carregamento do `map_1.tscn`.
+
 ### 2. Indicador "VAMOS, MALACOS!" (`SigaIndicator`):
 - Todos os mapas de combate (`map_1.tscn`, `map_2.tscn`, `map_3.tscn`, `map_4.tscn`, `bonus_garage.tscn`) possuem o nó `SigaIndicator` instanciado.
 - Ao limpar o encontro (`_on_encounter_cleared()`), `SigaIndicator.activate()` projeta o banner estilizado `vamos.webp` com animação de impacto e pulso contínuo arcade, sinalizando que a saída está livre para avanço.
@@ -1206,3 +1216,57 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 - `story_intro_fase1_2.gd` já consome eventos em `_input()` e conclui a apresentação de imagem pelo temporizador automático, sem permitir avanço do jogador.
 - **Limitação atual:** os scripts-base `story_intro_fase1_3.gd` e `story_intro_fase1_4.gd` ainda possuem caminhos de avanço/pulo por `_gui_input()` e `_unhandled_input()`. As duas cenas de vídeo precisam receber a mesma proteção e progressão automática descritas nesta seção antes que o contrato possa ser marcado como integralmente implementado.
 - Os vídeos de André e Juliana (`assets/videos/stage1/video_fase1_3_andre.ogv` e `video_fase1_3_juliana.ogv`) e o vídeo de Alessandro (`video_fase1_4_alessandro.ogv`) devem seguir o mesmo contrato; os arquivos de mídia não devem ser alterados para implementar o bloqueio de input.
+
+---
+
+## 37. BOSS ALESSANDRO (MAPA 1-4) & POST-DEFEAT NARRATIVE CONTRACT
+`STATUS: IMPLEMENTED`
+
+### 1. Mecânicas de Combate do Chefe Alessandro (`boss_alessandro.gd`):
+- **Contra-ataque Dinâmico (60%)**: Quando o jogador encaixa mais de 4 golpes consecutivos nele (combo > 4) ou atinge o chefe com a voadora (`attack_aerial` / dropkick), Alessandro possui exatamente 60% de probabilidade de responder imediatamente com um soco ou chute de retaliação rápida, quebrando a ofensiva estática do herói.
+- **Primeira Carne Uruguaia Indestrutível**: A primeira carne de cura arremessada na arena possui invulnerabilidade absoluta (não pode ser destruída por golpes normais nem especiais do jogador). Alessandro caminha diretamente até ela e consome sem ser impedido, garantindo a narrativa de cura do chefe.
+- **Probabilidade de Esquiva em Segunda Fase**: Mantém exatamente 80% de chance de esquiva com recuo tático rápido quando a vida de Alessandro cai abaixo de 50% de HP.
+- **Cadência Elevada de Trufas**: Alessandro arremessa salvas de trufas explosivas com maior frequência ao longo de todo o combate, exigindo leitura espacial e saltos do jogador para evitar o dano de projétil (evitado com salto e feedback 'MISS').
+- **Balões de Fala e Legibilidade Tipográfica**: A moldura do balão de fala e o tamanho da fonte das frases de Alessandro em combate (`SpeechBubble`) foram ampliados para legibilidade visual superior, com fonte `barlow_condensed_bold.ttf` em tamanho 20px com contorno escuro e fundo translúcido escuro.
+
+### 2. Diálogo Pós-Derrota & BGM Canônica de Encerramento:
+- **Transição de Trilha Sonora**: Imediatamente após a derrota do chefe Alessandro no Mapa 4, a trilha sonora de combate é interrompida e comutada instantaneamente para a música oficial de abertura da história (`res://assets/audio/bgm/Historia.mp3`).
+- **Sequência de Diálogo Canônica (Padrão In-Game)**:
+  - **ALESSANDRO**: *"Argh... minha cabeça... O que... Por que vocês estão todos arrebentados? Espera... fui eu que fiz isso?!"*
+  - **GUILHERME**: *"Você surtou no meio da rua, Alessandro! Partiu pra cima da gente como se não reconhecesse ninguém!"*
+  - **ALESSANDRO**: *"Não... eu não lembro de nada disso! Eu tinha ido encontrar o Fernando na Estação Vila Prudente. A gente ia resolver uma parada antes do Reencontro..."*
+  - **ALESSANDRO**: *"Quando desci a plataforma, as luzes do metrô começaram a piscar feito loucas. Deu um clarão seco... e num flash, eu vi o Fernando caído, morto bem na minha frente! Depois... apagou tudo."*
+  - **ANDRÉ**: *"Morto?! Não faz sentido... A gente tá rodando a Vila Prudente inteira desde que essa loucura começou. O bairro inteiro tá quebrado no tempo, carros antigos, coisas dos anos 90 misturadas com hoje..."*
+  - **ALESSANDRO**: *"Aquele flash... não era o passado. O tempo rachou ali dentro! Precisamos descobrir o que aconteceu..."*
+  - **GABRIEL**: *"Já que o Fernando morreu não precisamos ter pressa. Vamos até a casa do Alessandro descansar e comer um churrasco."*
+- **Avanço**: Ao término do diálogo, o sistema exibe o banner de vitória e transiciona normalmente para a transição de mapa rumo à garagem bônus.
+
+---
+
+## 38. CRÉDITOS FINAIS: REPRODUÇÃO EM VÍDEO (.OGV)
+`STATUS: IMPLEMENTED`
+
+- **Mídia Oficial de Créditos**: A tela de encerramento (`scenes/ui/credits.tscn`), acessada após a conclusão da fase bônus da garagem, substitui permanentemente qualquer imagem estática pelo vídeo em alta definição `res://assets/videos/creditos/video_creditos_demo.ogv`.
+- **Controle de Reprodução e HUD**:
+  - `VideoStreamPlayer` integrado na camada de fundo com escala de proporção e `loop = true` ou avanço coordenado.
+  - Painel de interface overlay discreto preservando o botão e atalho de retorno ao Menu Principal (`scenes/ui/main_menu.tscn`).
+
+---
+
+## 39. MENU PRINCIPAL: ARCADE SHOWCASE 1 A 1 & PWA STANDALONE SUITE
+`STATUS: IMPLEMENTED`
+
+### 1. Vitrine de Personagens no Menu Principal (`CharacterShowcase`):
+- **Apresentação Individual 1 a 1**: No canto esquerdo da entrada da locadora, os personagens jogáveis são apresentados um a um em ciclo contínuo, exibindo suas animações idle em Pixel Art HD.
+- **Efeitos Visuais PixelFX**: A cada troca de personagem, é disparado um efeito de transição PixelFX (brilho e partículas arcade) acoplado ao nome do lutador renderizado em tipografia dourada Neo-16-bit com contorno arcade.
+- **Atualização da Arte de Alessandro**: A arte do personagem Alessandro no menu utiliza o arquivo oficial atualizado `alessandro_menu.png` (PNG transparente de alta definição).
+
+### 2. PWA Mobile Standalone & Ícone 'S' Arcade:
+- **Ícone Temático Oficial 'S'**: Conjunto de ícones com badge dourado clássico estilizado com o 'S' arcade do Sakas em todas as resoluções canônicas: `512x512`, `180x180`, `144x144`, `index.icon.png`, `apple-touch-icon.png` em `public/` e `assets/ui/`.
+- **Modo Standalone / Fullscreen Nativo pós-Instalação**:
+  - O arquivo `index.manifest.json` configura `display: "standalone"`, `display_override: ["fullscreen", "standalone", "minimal-ui"]` e `launch_handler: { "client_mode": "auto" }`.
+  - Ao instalar o PWA na tela inicial do dispositivo móvel e abri-lo, o jogo executa automaticamente em tela cheia dedicada nativa sem barras de endereço do navegador.
+- **Módulo PWA Update Manager (`initPwaUpdateManager`)**:
+  - Sincronização contínua com `version.json` e `CACHE_VERSION`.
+  - Verificação de novas versões em `visibilitychange` e `focus` sem causar loops de reload e sem interromper partidas ativas.
+  - Notificação discreta via toast arcade quando uma atualização estiver pronta.

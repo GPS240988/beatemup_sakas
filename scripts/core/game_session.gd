@@ -22,6 +22,7 @@ var stage_1_completed: bool = false
 var bonus_stage_unlocked: bool = false
 var stage_2_unlocked: bool = false
 var max_unlocked_stage: int = 1
+var max_unlocked_map: int = 0
 var has_seen_bonus_transition: bool = false
 var has_seen_stage_2_transition: bool = false
 var has_seen_fase1_4_intro: bool = false
@@ -180,12 +181,52 @@ func is_stage_completed(stage_num: int) -> bool:
 func complete_stage(stage_num: int) -> void:
 	if stage_num == 1:
 		stage_1_completed = true
+		max_unlocked_map = maxi(max_unlocked_map, 4)
 		_save_campaign_progression()
 
 
 ## Método público para carregar a progressão da campanha salva
 func load_campaign_progression() -> void:
 	_load_campaign_progression()
+
+
+## Verifica se o jogador possui qualquer save válido (em slots 1-4 ou na campanha)
+func has_any_save() -> bool:
+	if max_unlocked_map > 0 or max_unlocked_stage > 1 or stage_1_completed:
+		return true
+	for slot in range(1, 5):
+		if has_save_in_slot(slot):
+			return true
+	if FileAccess.file_exists(CAMPAIGN_SAVE_PATH):
+		var file := FileAccess.open(CAMPAIGN_SAVE_PATH, FileAccess.READ)
+		if file != null:
+			var text := file.get_as_text()
+			file.close()
+			var json := JSON.new()
+			if json.parse(text) == OK and json.data is Dictionary:
+				var d: Dictionary = json.data as Dictionary
+				var max_m: int = int(d.get("max_unlocked_map", 0))
+				var max_s: int = int(d.get("max_unlocked_stage", 0))
+				var st1_done: bool = bool(d.get("stage_1_completed", false))
+				if max_m > 0 or max_s > 1 or st1_done:
+					return true
+	return false
+
+
+## Verifica se um mapa específico (1 a 4) está desbloqueado para seleção livre
+func is_map_unlocked(map_num: int) -> bool:
+	if not has_any_save():
+		return false
+	if max_unlocked_map <= 0:
+		return false
+	return map_num <= max_unlocked_map
+
+
+## Desbloqueia o mapa especificado e persiste imediatamente a progressão
+func unlock_map(map_num: int) -> void:
+	if map_num > max_unlocked_map:
+		max_unlocked_map = map_num
+		_save_campaign_progression()
 
 
 ## Verifica se a Fase 2 foi desbloqueada
@@ -217,6 +258,7 @@ func _save_campaign_progression() -> void:
 		"bonus_stage_unlocked": bonus_stage_unlocked,
 		"stage_2_unlocked": stage_2_unlocked,
 		"max_unlocked_stage": max_unlocked_stage,
+		"max_unlocked_map": max_unlocked_map,
 		"has_seen_bonus_transition": has_seen_bonus_transition,
 		"has_seen_stage_2_transition": has_seen_stage_2_transition
 	}
@@ -241,7 +283,11 @@ func _load_campaign_progression() -> void:
 		bonus_stage_unlocked = bool(d.get("bonus_stage_unlocked", false))
 		stage_2_unlocked = bool(d.get("stage_2_unlocked", false))
 		max_unlocked_stage = int(d.get("max_unlocked_stage", 1))
-		stage_1_completed = bool(d.get("stage_1_completed", false)) or bonus_stage_unlocked or stage_2_unlocked or max_unlocked_stage >= 2
+		stage_1_completed = bool(d.get("stage_1_completed", false))
+		max_unlocked_map = int(d.get("max_unlocked_map", 0))
+		if stage_1_completed or bonus_stage_unlocked or stage_2_unlocked:
+			stage_1_completed = true
+			max_unlocked_map = maxi(max_unlocked_map, 4)
 		has_seen_bonus_transition = bool(d.get("has_seen_bonus_transition", false))
 		has_seen_stage_2_transition = bool(d.get("has_seen_stage_2_transition", false))
 
@@ -459,6 +505,7 @@ func save_game_to_slot(slot: int, level_path: String, player_hp: float = -1.0, p
 		"bonus_stage_unlocked": bonus_stage_unlocked,
 		"stage_2_unlocked": stage_2_unlocked,
 		"max_unlocked_stage": max_unlocked_stage,
+		"max_unlocked_map": max_unlocked_map,
 		"world_snapshot": world_snapshot
 	}
 
@@ -524,11 +571,20 @@ func load_game_from_slot(slot: int) -> bool:
 	bonus_stage_unlocked = bool(data.get("bonus_stage_unlocked", bonus_stage_unlocked))
 	stage_2_unlocked = bool(data.get("stage_2_unlocked", stage_2_unlocked))
 	max_unlocked_stage = int(data.get("max_unlocked_stage", max_unlocked_stage))
+	max_unlocked_map = int(data.get("max_unlocked_map", max_unlocked_map))
+	var lvl_path: String = str(data.get("level_path", FIRST_LEVEL_PATH))
+	if "map_4" in lvl_path:
+		max_unlocked_map = maxi(max_unlocked_map, 3)
+	elif "map_3" in lvl_path:
+		max_unlocked_map = maxi(max_unlocked_map, 2)
+	elif "map_2" in lvl_path:
+		max_unlocked_map = maxi(max_unlocked_map, 1)
+	elif "map_1" in lvl_path:
+		max_unlocked_map = maxi(max_unlocked_map, 0)
 	_save_campaign_progression()
 
 	var hp: float = float(data.get("health", 100.0))
 	var sp: float = float(data.get("special", 0.0))
-	var lvl_path: String = str(data.get("level_path", FIRST_LEVEL_PATH))
 
 	save_player_progression("fase1", hp, sp)
 

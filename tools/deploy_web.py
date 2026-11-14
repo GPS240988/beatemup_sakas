@@ -59,7 +59,7 @@ def ensure_godot_web_export():
     sources_newer = False
     if pck_path.exists():
         pck_mtime = pck_path.stat().st_mtime
-        for check_dir in [ROOT_DIR / "scenes", ROOT_DIR / "scripts", ROOT_DIR / "resources"]:
+        for check_dir in [ROOT_DIR / "scenes", ROOT_DIR / "scripts", ROOT_DIR / "resources", ROOT_DIR / "assets"]:
             if check_dir.exists():
                 for root, _, files in os.walk(check_dir):
                     for f in files:

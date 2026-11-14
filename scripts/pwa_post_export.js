@@ -8,7 +8,10 @@
  * 3. Atualizar public/index.service.worker.js com a nova CACHE_VERSION, self.skipWaiting(),
  *    e estratégia Network-First para navegação (index.html) com fallback offline.
  * 4. Carimbar a meta tag sakas-build-id em public/mobile_shell.html e public/index.html.
- * 5. Preservar 100% dos dados do usuário (IndexedDB, user://, LocalStorage).
+ * 5. Garantir "serviceWorker": "index.service.worker.js" no IND_CONFIG de ambos os HTMLs.
+ * 6. Garantir ciclo de auto-update PWA e transição fullscreen standalone.
+ * 7. Enriquecer public/index.manifest.json com display_override fullscreen e metadados oficiais.
+ * 8. Preservar 100% dos dados do usuário (IndexedDB, user://, LocalStorage).
  */
 
 const fs = require('fs');
@@ -158,6 +161,154 @@ function updateHtmlMetaTag(filePath, version) {
 	console.log(`[PWA Build] ${path.basename(filePath)} atualizado com meta sakas-build-id = '${version}'`);
 }
 
+function ensureServiceWorkerInConfig(filePath) {
+	if (!fs.existsSync(filePath)) return;
+	let content = fs.readFileSync(filePath, 'utf8');
+
+	if (!content.includes('"serviceWorker"')) {
+		content = content.replace(
+			/"gdextensionLibs"\s*:\s*\[\]/,
+			'"gdextensionLibs": [],\n\t\t\t"serviceWorker": "index.service.worker.js"'
+		);
+		fs.writeFileSync(filePath, content, 'utf8');
+		console.log(`[PWA Build] ${path.basename(filePath)} atualizado com "serviceWorker" em IND_CONFIG.`);
+	}
+}
+
+function ensurePwaLifecycle(filePath) {
+	if (!fs.existsSync(filePath)) return;
+	let content = fs.readFileSync(filePath, 'utf8');
+
+	if (!content.includes('// SAKAS AUTO-UPDATE')) {
+		const oldBlockRegex = /\(function\(\)\s*\{[\r\n\s]*if\s*\(!\('serviceWorker'\s*in\s*navigator\)\)\s*return;[\s\S]*?navigator\.serviceWorker\.getRegistration\(\)\.then\(\(reg\)\s*=>\s*\{[\s\S]*?\}\);\s*\}\)\(\);/;
+
+		const modernBlock = `(function() {
+			if (!('serviceWorker' in navigator)) return;
+
+			let deferredInstallPrompt = null;
+			window.addEventListener('beforeinstallprompt', (e) => {
+				e.preventDefault();
+				deferredInstallPrompt = e;
+				if (!sessionStorage.getItem('sakas_install_dismissed') && installBanner) {
+					installBanner.style.display = 'flex';
+				}
+			});
+
+			// Ao instalar o app, fecha banner e entra automaticamente em tela cheia/standalone
+			window.addEventListener('appinstalled', () => {
+				console.log('[PWA] Aplicativo instalado com sucesso no dispositivo!');
+				if (installBanner) installBanner.style.display = 'none';
+				sessionStorage.setItem('sakas_installed', '1');
+				if (!window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone) {
+					try {
+						if (document.documentElement.requestFullscreen) {
+							document.documentElement.requestFullscreen().catch(() => {});
+						}
+					} catch (_) {}
+				}
+			});
+
+			if (btnInstall) {
+				btnInstall.addEventListener('click', async () => {
+					if (deferredInstallPrompt) {
+						deferredInstallPrompt.prompt();
+						const choice = await deferredInstallPrompt.userChoice;
+						if (choice.outcome === 'accepted') {
+							console.log('[PWA] Instalação aceita pelo usuário');
+							if (installBanner) installBanner.style.display = 'none';
+							try {
+								if (document.documentElement.requestFullscreen) {
+									await document.documentElement.requestFullscreen().catch(() => {});
+								}
+							} catch (_) {}
+						}
+						deferredInstallPrompt = null;
+					} else {
+						// Instrução iOS Safari
+						alert('Para instalar no iPhone/iPad: Toque em Compartilhar (⎋) na barra do Safari e selecione "Adicionar à Tela de Início" (⊞).');
+					}
+				});
+			}
+
+			if (btnCloseBanner) {
+				btnCloseBanner.addEventListener('click', () => {
+					sessionStorage.setItem('sakas_install_dismissed', '1');
+					if (installBanner) installBanner.style.display = 'none';
+				});
+			}
+
+			// SAKAS AUTO-UPDATE: Recarrega automaticamente quando um novo SW é ativado
+			let refreshing = false;
+			navigator.serviceWorker.addEventListener('controllerchange', () => {
+				if (refreshing) return;
+				refreshing = true;
+				console.log('[PWA] Novo Service Worker ativo. Recarregando página para aplicar nova versão...');
+				window.location.reload();
+			});
+
+			async function checkForPublishedRelease(registration) {
+				try {
+					if (registration) {
+						registration.update().catch(() => {});
+					}
+					const resp = await fetch('version.json?_t=' + Date.now(), {
+						cache: 'no-store',
+						headers: { 'Accept': 'application/json' }
+					});
+					if (!resp.ok) return;
+					const data = await resp.json();
+					const serverVersion = data && data.version ? String(data.version) : '';
+					if (!serverVersion) return;
+
+					const localMeta = document.querySelector('meta[name="sakas-build-id"]');
+					const currentVersion = localMeta ? localMeta.getAttribute('content') : '';
+
+					if (currentVersion && currentVersion !== 'initial' && serverVersion !== currentVersion) {
+						console.log(\`[PWA] Nova versão detectada: \${serverVersion} (local: \${currentVersion})\`);
+						if (registration) {
+							if (registration.waiting) {
+								registration.waiting.postMessage('SKIP_WAITING');
+								registration.waiting.postMessage('claim');
+							} else {
+								registration.update().then(() => {
+									if (registration.waiting) {
+										registration.waiting.postMessage('SKIP_WAITING');
+									}
+								}).catch(() => {});
+							}
+						}
+					}
+				} catch (_e) {}
+			}
+
+			// Registra ativamente o Service Worker e monitora ciclo de atualização
+			navigator.serviceWorker.register('index.service.worker.js').then((registration) => {
+				console.log('[PWA] Service Worker registrado com sucesso:', registration.scope);
+				registration.addEventListener('updatefound', () => {
+					const newWorker = registration.installing;
+					if (newWorker) {
+						newWorker.addEventListener('statechange', () => {
+							if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+								console.log('[PWA] Nova versão pronta no cache. Ativando imediatamente...');
+								newWorker.postMessage('SKIP_WAITING');
+							}
+						});
+					}
+				});
+				checkForPublishedRelease(registration);
+			}).catch((err) => {
+				console.warn('[PWA] Falha ao registrar Service Worker:', err);
+			});
+		})();`;
+
+		if (oldBlockRegex.test(content)) {
+			content = content.replace(oldBlockRegex, modernBlock);
+			fs.writeFileSync(filePath, content, 'utf8');
+			console.log(`[PWA Build] ${path.basename(filePath)} atualizado com ciclo PWA modernizado.`);
+		}
+	}
+}
+
 function updateHtmlFileSizes(filePath) {
 	if (!fs.existsSync(filePath)) return;
 	let content = fs.readFileSync(filePath, 'utf8');
@@ -193,13 +344,19 @@ function enrichManifest() {
 	if (!fs.existsSync(manifestPath)) return;
 	try {
 		const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+		manifest.id = "./index.html";
 		manifest.name = "Beat 'em Up Sakas — A Última Ficha";
-		manifest.short_name = "Sakas Arcade";
+		manifest.short_name = "Sakas";
 		manifest.description = "Beat 'em Up retrô Neo-16-bit ambientado na São Paulo dos anos 90.";
 		manifest.theme_color = "#060814";
 		manifest.background_color = "#060814";
 		manifest.display = "standalone";
+		manifest.display_override = ["fullscreen", "standalone", "minimal-ui"];
 		manifest.orientation = "landscape";
+		manifest.start_url = "./index.html";
+		manifest.scope = "./";
+		manifest.prefer_related_applications = false;
+		manifest.launch_handler = { client_mode: "auto" };
 		if (Array.isArray(manifest.icons)) {
 			for (const icon of manifest.icons) {
 				icon.purpose = "any maskable";
@@ -235,9 +392,20 @@ function main() {
 
 	updateVersionJson(version);
 	updateServiceWorker(version);
-	updateHtmlMetaTag(path.join(PUBLIC_DIR, 'mobile_shell.html'), version);
-	updateHtmlMetaTag(path.join(PUBLIC_DIR, 'index.html'), version);
-	updateHtmlFileSizes(path.join(PUBLIC_DIR, 'index.html'));
+	
+	const shellPath = path.join(PUBLIC_DIR, 'mobile_shell.html');
+	const indexPath = path.join(PUBLIC_DIR, 'index.html');
+
+	updateHtmlMetaTag(shellPath, version);
+	updateHtmlMetaTag(indexPath, version);
+	
+	ensureServiceWorkerInConfig(shellPath);
+	ensureServiceWorkerInConfig(indexPath);
+	
+	ensurePwaLifecycle(shellPath);
+	ensurePwaLifecycle(indexPath);
+	
+	updateHtmlFileSizes(indexPath);
 	enrichManifest();
 
 	console.log('[PWA Build] Automação concluída com sucesso!');

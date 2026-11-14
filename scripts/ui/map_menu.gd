@@ -208,7 +208,8 @@ func _on_hotspot_clicked(index: int) -> void:
 	if _is_transitioning or _is_in_settings or _is_in_section_select:
 		return
 
-	if index == 0 and _is_stage_1_completed():
+	# Ao acessar pelo menu Continuar (ou fora de campanha), clicar no Estágio 1 abre o seletor de seções
+	if index == 0 and _entry_context != "campaign":
 		_select_stage(0, false)
 		_open_section_select()
 		return
@@ -244,8 +245,11 @@ func _select_stage(index: int, play_sound: bool = true) -> void:
 	# Atualiza status e texto do botão de ação
 	if map_status_label != null:
 		if is_unlocked:
-			if _selected_index == 0 and _is_stage_1_completed():
-				map_status_label.text = "FASE 1 CONCLUÍDA · TOQUE P/ ESCOLHER SEÇÃO"
+			if _selected_index == 0 and _entry_context == "campaign":
+				map_status_label.text = "INICIAR HISTÓRIA · NOVO JOGO"
+				map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+			elif _selected_index == 0 and _entry_context != "campaign":
+				map_status_label.text = "O REENCONTRO · TOQUE P/ ESCOLHER SEÇÃO"
 				map_status_label.modulate = Color(1.0, 0.85, 0.25, 1.0)
 			else:
 				map_status_label.text = "%s · SELECIONADA" % str(cfg["title"])
@@ -254,10 +258,12 @@ func _select_stage(index: int, play_sound: bool = true) -> void:
 			map_status_label.text = "%s · AINDA BLOQUEADA" % str(cfg["title"])
 			map_status_label.modulate = Color(1.0, 0.45, 0.45, 0.9)
 
-	# Configura botão JOGAR FASE / ESCOLHER SEÇÃO
+	# Configura botão JOGAR FASE / ESCOLHER SEÇÃO / INICIAR HISTÓRIA
 	if btn_play_stage != null:
 		btn_play_stage.set("disabled", not is_unlocked)
-		if _selected_index == 0 and _is_stage_1_completed():
+		if _selected_index == 0 and _entry_context == "campaign":
+			btn_play_stage.set("button_text", "INICIAR HISTÓRIA")
+		elif _selected_index == 0 and _entry_context != "campaign":
 			btn_play_stage.set("button_text", "ESCOLHER SEÇÃO")
 		else:
 			btn_play_stage.set("button_text", "JOGAR FASE")
@@ -267,12 +273,18 @@ func _select_stage(index: int, play_sound: bool = true) -> void:
 
 
 func is_stage_unlocked(index: int) -> bool:
+	var session := _get_game_session()
 	if index == 0:
-		return true # Fase 1: O Reencontro (sempre desbloqueada)
+		# Campanha (Novo Jogo) ou Continuar: sempre permite interagir com o Ponto 1
+		# Em campanha inicia a história; em continuar abre o modal de seções com status de bloqueio
+		return true
 	if index == 1:
-		return true # B: Garagem (Bônus 1 disponível inicialmente para teste)
+		# Bônus: desbloqueado se a sessão confirmar
+		if session != null and session.has_method("is_bonus_unlocked"):
+			return session.is_bonus_unlocked()
+		return false
 
-	# O Estágio 2 (HAPPEN) e estágios posteriores permanecem bloqueados no mapa
+	# Estágios 2+ permanecem bloqueados
 	return false
 
 
@@ -289,13 +301,14 @@ func _on_pack_progress(_pack_id: String, loaded: int, total: int, pct: float) ->
 func _on_play_stage_pressed() -> void:
 	if _is_transitioning or _is_in_settings or _is_in_section_select:
 		return
-	if not is_stage_unlocked(_selected_index):
-		_play_sfx(_sfx_cancel)
+
+	# Ao acessar pelo menu Continuar (ou fora de campanha), o Estágio 1 abre o seletor de seções
+	if _selected_index == 0 and _entry_context != "campaign":
+		_open_section_select()
 		return
 
-	# Se for o Estágio 1 e já foi finalizado, abre a seleção de seções do estágio
-	if _selected_index == 0 and _is_stage_1_completed():
-		_open_section_select()
+	if not is_stage_unlocked(_selected_index):
+		_play_sfx(_sfx_cancel)
 		return
 
 	_is_transitioning = true
@@ -332,9 +345,15 @@ func _on_play_stage_pressed() -> void:
 	var cfg := STAGE_CONFIGS[_selected_index]
 	var target_scene: String = str(cfg.get("scene", ""))
 
-	# Para a fase 1, direciona para o primeiro mapa (ou loading se novo)
+	# Para a fase 1: campanha → inicia pela história; continuar → mapa 1
 	if _selected_index == 0:
-		if session != null and "has_played_intro" in session and not session.has_played_intro and _entry_context != "continue":
+		if _entry_context == "campaign":
+			# Novo Jogo: inicia do início da história (story_intro.tscn → map_1)
+			target_scene = "res://scenes/story/story_intro.tscn"
+			if not ResourceLoader.exists(target_scene):
+				# Fallback: loading screen que exibe a intro e carrega map_1
+				target_scene = "res://scenes/ui/loading_screen.tscn"
+		elif session != null and "has_played_intro" in session and not session.has_played_intro:
 			target_scene = "res://scenes/ui/loading_screen.tscn"
 		else:
 			target_scene = "res://scenes/levels/map_1.tscn"

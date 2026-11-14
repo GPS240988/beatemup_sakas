@@ -45,6 +45,8 @@ const SECTIONS: Array[Dictionary] = [
 @onready var btn_close: Button = get_node_or_null("%BtnClose") as Button
 @onready var btn_back: Button = get_node_or_null("%BtnBack") as Button
 @onready var buttons_vbox: VBoxContainer = get_node_or_null("%ButtonsVBox") as VBoxContainer
+@onready var eyebrow_label: Label = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/HeaderHBox/TitlesVBox/EyebrowLabel") as Label
+@onready var subtitle_label: Label = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/SubtitleLabel") as Label
 
 var _sfx_move: AudioStream
 var _sfx_confirm: AudioStream
@@ -77,6 +79,10 @@ func _resolve_nodes() -> void:
 		btn_back = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/FooterHBox/BtnBack") as Button
 	if buttons_vbox == null:
 		buttons_vbox = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/ButtonsVBox") as VBoxContainer
+	if eyebrow_label == null:
+		eyebrow_label = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/HeaderHBox/TitlesVBox/EyebrowLabel") as Label
+	if subtitle_label == null:
+		subtitle_label = get_node_or_null("CenterContainer/PanelContainer/Margin/MainVBox/SubtitleLabel") as Label
 
 
 func _init_audio() -> void:
@@ -118,8 +124,15 @@ func open() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE)
 
+	# Atualiza estado de desbloqueio de cada seção/mapa com base na progressão salva
+	_update_section_lock_states()
+
 	if not _section_buttons.is_empty() and _section_buttons[0] != null:
-		_section_buttons[0].grab_focus()
+		# Foca no primeiro botão habilitado
+		for btn in _section_buttons:
+			if btn != null and not btn.disabled:
+				btn.grab_focus()
+				break
 
 	_play_sound(_sfx_move)
 
@@ -145,9 +158,75 @@ func _on_dim_overlay_input(event: InputEvent) -> void:
 
 
 func _on_section_pressed(scene_path: String, sec_name: String) -> void:
+	# Bloqueia seleção se o botão clicado estiver desabilitado (mapa bloqueado)
+	for i in range(mini(_section_buttons.size(), SECTIONS.size())):
+		if str(SECTIONS[i].get("scene", "")) == scene_path:
+			if _section_buttons[i] != null and _section_buttons[i].disabled:
+				_play_sound(_sfx_cancel)
+				return
 	_play_sound(_sfx_confirm)
 	visible = false
 	section_selected.emit(scene_path, sec_name)
+
+
+## Atualiza o estado visual e funcional dos botões de seção com base no desbloqueio progressivo
+func _update_section_lock_states() -> void:
+	var session: Node = null
+	if is_inside_tree():
+		session = get_node_or_null("/root/GameSession")
+	if session == null:
+		var main_loop = Engine.get_main_loop()
+		if main_loop is SceneTree and main_loop.root != null:
+			session = main_loop.root.get_node_or_null("GameSession")
+
+	var has_save: bool = false
+	var max_m: int = 0
+	var is_stage_done: bool = false
+	if session != null:
+		if session.has_method("has_any_save"):
+			has_save = session.has_any_save()
+		if "max_unlocked_map" in session:
+			max_m = int(session.max_unlocked_map)
+		if session.has_method("is_stage_completed"):
+			is_stage_done = session.is_stage_completed(1)
+
+	# Atualiza cabeçalho do modal conforme status real de progressão
+	if eyebrow_label != null:
+		if not has_save or max_m <= 0:
+			eyebrow_label.text = "NENHUM SAVE REGISTRADO • MAPAS BLOQUEADOS"
+			eyebrow_label.modulate = Color(1.0, 0.45, 0.45, 0.95)
+		elif is_stage_done:
+			eyebrow_label.text = "ESTÁGIO 01 CONCLUÍDO • SELEÇÃO LIVRE"
+			eyebrow_label.modulate = Color(1.0, 0.85, 0.25, 1.0)
+		else:
+			eyebrow_label.text = "PROGRESSÃO DA CAMPANHA • MAPAS LIBERADOS"
+			eyebrow_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+
+	if subtitle_label != null:
+		if not has_save or max_m <= 0:
+			subtitle_label.text = "Inicie pelo 'Novo Jogo' no Menu Principal para liberar as seções da fase."
+		else:
+			subtitle_label.text = "Selecione o mapa desejado para continuar a partida:"
+
+	for i in range(_section_buttons.size()):
+		var btn := _section_buttons[i]
+		if btn == null:
+			continue
+		var map_num: int = i + 1  # Mapas de 1 a 4
+		var is_unlocked: bool = false
+
+		if session != null and session.has_method("is_map_unlocked"):
+			is_unlocked = session.is_map_unlocked(map_num)
+
+		btn.disabled = not is_unlocked
+
+		# Feedback visual: dimming e cursor para mapas bloqueados
+		if is_unlocked:
+			btn.modulate = Color(1.0, 1.0, 1.0, 1.0)
+			btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		else:
+			btn.modulate = Color(0.40, 0.40, 0.45, 0.55)
+			btn.mouse_default_cursor_shape = Control.CURSOR_ARROW
 
 
 func _unhandled_input(event: InputEvent) -> void:

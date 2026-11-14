@@ -24,7 +24,18 @@
   "name": "Beat 'em Up Sakas — A Última Ficha",
   "orientation": "landscape",
   "start_url": "./index.html",
-  "short_name": "Sakas Arcade",
+  "id": "./index.html",
+  "short_name": "Sakas",
   "description": "Beat 'em Up retrô Neo-16-bit ambientado na São Paulo dos anos 90.",
-  "theme_color": "#060814"
+  "theme_color": "#060814",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ],
+  "scope": "./",
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "auto"
+  }
 }

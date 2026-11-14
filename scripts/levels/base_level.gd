@@ -203,7 +203,7 @@ func _ready() -> void:
 			hud.center_hud.set_stage_index(stage_number, section_number)
 
 	# Restaura vida e especial do jogador de seções anteriores do mesmo mapa (ex: Fase 1)
-	var session = get_node_or_null("/root/GameSession")
+	var session = _get_game_session()
 	if session != null and player != null:
 		# Sincroniza fichas de continue com a sessão
 		if "current_continues" in session and "current_continues" in player:
@@ -739,7 +739,7 @@ func _advance_to_next_map() -> void:
 	_clear_pending_reinforcements()
 
 	# Salva a vida e energia especial para a próxima seção do mesmo mapa
-	var session = get_node_or_null("/root/GameSession")
+	var session = _get_game_session()
 	if session != null and player != null:
 		# Sincroniza fichas de continue com a sessão para a nova seção
 		if "current_continues" in session and "current_continues" in player:
@@ -748,6 +748,10 @@ func _advance_to_next_map() -> void:
 		var cur_sp: float = player.current_special if "current_special" in player else 0.0
 		if not is_final_map and not next_map_scene_path.is_empty():
 			session.save_player_progression(map_group, cur_hp, cur_sp)
+			# Desbloqueia o mapa que acabou de ser concluído/passado na sessão de campanha
+			if map_group == "fase1" and map_index >= 1 and map_index <= 4:
+				if session.has_method("unlock_map"):
+					session.unlock_map(map_index)
 		else:
 			session.clear_player_progression()
 
@@ -798,6 +802,19 @@ func _safe_change_scene(scene_path: String) -> void:
 		printerr("Erro ao transicionar para o mapa '%s': %d" % [scene_path, err])
 
 
+func _get_game_session() -> Node:
+	if is_inside_tree():
+		var gs = get_node_or_null("/root/GameSession")
+		if gs != null:
+			return gs
+		if get_tree() != null and get_tree().root != null:
+			return get_tree().root.get_node_or_null("GameSession")
+	var main_loop = Engine.get_main_loop()
+	if main_loop is SceneTree and main_loop.root != null:
+		return main_loop.root.get_node_or_null("GameSession")
+	return null
+
+
 func _on_player_died_for_hud() -> void:
 	if player != null and ("is_respawning" in player and player.is_respawning):
 		# O jogador está no processo de ressurgir dos céus (Mecânica Arcade Continue)
@@ -806,8 +823,19 @@ func _on_player_died_for_hud() -> void:
 		# O jogador consumirá a ficha e ressurgirá dos céus (Mecânica Arcade Continue)
 		return
 	_clear_pending_reinforcements()
+
+	# Game Over: zera fichas de continue e reinicia a progressão transitória
+	var session = _get_game_session()
+	if session != null:
+		if "current_continues" in session:
+			session.current_continues = 0
+		if "pending_save_snapshot" in session:
+			session.pending_save_snapshot = {}
+		if session.has_method("clear_player_progression"):
+			session.clear_player_progression()
+
 	if hud != null and hud.has_method("show_game_over"):
-		# Define a cena de reinício como o primeiro mapa da fase atual (Fase 1 → map_1.tscn)
+		# Define a cena de reinício como o mapa específico onde ocorreu a derrota
 		var restart_path: String = _get_stage_restart_scene_path()
 		if hud.has_method("set_restart_scene"):
 			hud.set_restart_scene(restart_path)
@@ -1080,14 +1108,30 @@ func _exit_tree() -> void:
 	_clear_pending_reinforcements()
 
 
-## Retorna o caminho da cena de reinício para a fase atual.
-## Fase 1 sempre retorna para map_1.tscn. Fases futuras retornarão para o mapa inicial da fase em questão.
+## Retorna o caminho da cena de reinício para o mapa atual onde ocorreu o Game Over.
+## O jogador retorna ao início do mapa específico onde morreu com 0 continue.
 func _get_stage_restart_scene_path() -> String:
-	# Para a Fase 1 (mapas 1 a 4), o reinício sempre volta para o map_1
-	if stage_number == 1:
-		return "res://scenes/levels/map_1.tscn"
-	# Fases futuras: fallback para o próprio scene_file_path
-	return scene_file_path if not scene_file_path.is_empty() else "res://scenes/levels/map_1.tscn"
+	if not scene_file_path.is_empty():
+		return scene_file_path
+
+	# Mapeamento canônico caso scene_file_path esteja vazio (ex: instâncias de testes ou dynamic scenes)
+	if map_group == "fase1":
+		match map_index:
+			1: return "res://scenes/levels/map_1.tscn"
+			2: return "res://scenes/levels/map_2.tscn"
+			3: return "res://scenes/levels/map_3.tscn"
+			4: return "res://scenes/levels/map_4.tscn"
+			_:
+				match section_number:
+					1: return "res://scenes/levels/map_1.tscn"
+					2: return "res://scenes/levels/map_2.tscn"
+					3: return "res://scenes/levels/map_3.tscn"
+					4: return "res://scenes/levels/map_4.tscn"
+					_: return "res://scenes/levels/map_1.tscn"
+	elif map_group == "bonus1" or map_index == 5 or section_number == 5:
+		return "res://scenes/levels/bonus_garage.tscn"
+
+	return "res://scenes/levels/map_1.tscn"
 
 
 func _unhandled_input(event: InputEvent) -> void:
