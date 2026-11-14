@@ -29,12 +29,24 @@ function resolveBuildVersion() {
 		return String(process.env.VERCEL_DEPLOYMENT_ID).trim();
 	}
 	try {
-		const gitSha = execSync('git rev-parse --short HEAD', {
+		let gitSha = execSync('git rev-parse --short HEAD', {
 			cwd: ROOT_DIR,
 			encoding: 'utf8',
 			stdio: ['ignore', 'pipe', 'ignore'],
 		}).trim();
-		if (gitSha) return gitSha;
+		if (gitSha) {
+			try {
+				const isDirty = execSync('git status --porcelain', {
+					cwd: ROOT_DIR,
+					encoding: 'utf8',
+					stdio: ['ignore', 'pipe', 'ignore'],
+				}).trim().length > 0;
+				if (isDirty) {
+					gitSha += '-d' + Math.floor(Date.now() / 1000).toString(36);
+				}
+			} catch (_) {}
+			return gitSha;
+		}
 	} catch (_e) {
 		// Git não disponível ou erro de execução
 	}
@@ -357,11 +369,26 @@ function enrichManifest() {
 		manifest.scope = "./";
 		manifest.prefer_related_applications = false;
 		manifest.launch_handler = { client_mode: "auto" };
-		if (Array.isArray(manifest.icons)) {
-			for (const icon of manifest.icons) {
-				icon.purpose = "any maskable";
+		manifest.icons = [
+			{
+				"sizes": "144x144",
+				"src": "index.144x144.png",
+				"type": "image/png",
+				"purpose": "any maskable"
+			},
+			{
+				"sizes": "180x180",
+				"src": "index.180x180.png",
+				"type": "image/png",
+				"purpose": "any maskable"
+			},
+			{
+				"sizes": "512x512",
+				"src": "index.512x512.png",
+				"type": "image/png",
+				"purpose": "any maskable"
 			}
-		}
+		];
 		fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 		console.log('[PWA Build] index.manifest.json enriquecido com metadados premium.');
 	} catch (e) {

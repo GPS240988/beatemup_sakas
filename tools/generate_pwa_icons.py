@@ -18,6 +18,7 @@ Padrões aplicados:
 
 import math
 import os
+import shutil
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -147,21 +148,38 @@ def generate_all_icons():
     print("=" * 60)
 
     PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
+    ui_dir = ROOT_DIR / "assets" / "ui"
+    ui_dir.mkdir(parents=True, exist_ok=True)
 
-    base_icon_512 = create_sakas_icon(512)
+    source_path = ui_dir / "icon_sakas_source.png"
+    if source_path.exists():
+        print(f"  [FONTE] Usando imagem oficial do usuário: {source_path}")
+        user_img = Image.open(source_path).convert("RGBA")
+        base_icon_512 = user_img.resize((512, 512), Image.Resampling.LANCZOS)
+    else:
+        print("  [FONTE] Gerando proceduralmente o ícone base 512x512...")
+        base_icon_512 = create_sakas_icon(512)
+
+    # Grava ícones na pasta assets/ui para uso do motor Godot
+    base_icon_512.save(ui_dir / "icon_sakas_512.png", format="PNG", optimize=True)
+    icon_180 = base_icon_512.resize((180, 180), Image.Resampling.LANCZOS)
+    icon_180.save(ui_dir / "icon_sakas_180.png", format="PNG", optimize=True)
 
     targets = [
         ("index.512x512.png", 512),
         ("index.180x180.png", 180),
         ("index.apple-touch-icon.png", 180),
         ("index.144x144.png", 144),
-        ("index.icon.png", 64),
+        ("index.icon.png", 128),
         ("index.png", 128),
     ]
 
     for fname, sz in targets:
         out_path = PUBLIC_DIR / fname
-        if sz == 512:
+        if fname == "index.144x144.png" and source_path.exists():
+            # Preserva 1:1 os pixels originais se a fonte já tiver 144x144
+            shutil.copyfile(source_path, out_path)
+        elif sz == 512:
             base_icon_512.save(out_path, format="PNG", optimize=True)
         else:
             resized = base_icon_512.resize((sz, sz), Image.Resampling.LANCZOS)

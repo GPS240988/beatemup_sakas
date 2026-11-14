@@ -1262,7 +1262,7 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 - **Atualização da Arte de Alessandro**: A arte do personagem Alessandro no menu utiliza o arquivo oficial atualizado `alessandro_menu.png` (PNG transparente de alta definição).
 
 ### 2. PWA Mobile Standalone & Ícone 'S' Arcade:
-- **Ícone Temático Oficial 'S'**: Conjunto de ícones com badge dourado clássico estilizado com o 'S' arcade do Sakas em todas as resoluções canônicas: `512x512`, `180x180`, `144x144`, `index.icon.png`, `apple-touch-icon.png` em `public/` e `assets/ui/`.
+- **Ícone Temático Oficial 'S' com Dado**: Conjunto de ícones com a arte oficial de Sakas ('S' estilizado em corte dinâmico à frente do dado, com néon da Locadora ao fundo) em todas as resoluções canônicas: 512x512, 180x180, 144x144, index.icon.png, pple-touch-icon.png em public/ e ssets/ui/.
 - **Modo Standalone / Fullscreen Nativo pós-Instalação**:
   - O arquivo `index.manifest.json` configura `display: "standalone"`, `display_override: ["fullscreen", "standalone", "minimal-ui"]` e `launch_handler: { "client_mode": "auto" }`.
   - Ao instalar o PWA na tela inicial do dispositivo móvel e abri-lo, o jogo executa automaticamente em tela cheia dedicada nativa sem barras de endereço do navegador.

@@ -213,8 +213,18 @@ def deploy_to_vercel():
         sys.exit(1)
 
 
+def ensure_pwa_icons():
+    print_header("1.5. GARANTINDO ÍCONES OFICIAIS 'S' DO PWA")
+    icons_script = ROOT_DIR / "tools" / "generate_pwa_icons.py"
+    if icons_script.exists():
+        res = subprocess.run([sys.executable, str(icons_script)], cwd=ROOT_DIR)
+        if res.returncode != 0:
+            print(f"  [AVISO] Erro ao gerar ícones PWA: {res.returncode}")
+
+
 def main():
     ensure_godot_web_export()
+    ensure_pwa_icons()
     build_modular_packs()
     check_exported_binaries()
     run_pwa_post_export()
