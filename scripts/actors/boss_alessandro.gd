@@ -19,13 +19,13 @@ const TRUFFLE_COUNT: int = 3
 const TRUFFLE_WINDUP_SECONDS: float = 0.42
 const TRUFFLE_INTERVAL: float = 0.28
 const TRUFFLE_IMPULSE: float = 330.0
-const TRUFFLE_INITIAL_COOLDOWN: float = 4.25
-const TRUFFLE_COOLDOWN_PHASE_ONE: float = 4.25
-const TRUFFLE_COOLDOWN_PHASE_TWO: float = 4.25
+const TRUFFLE_INITIAL_COOLDOWN: float = 2.0
+const TRUFFLE_COOLDOWN_PHASE_ONE: float = 2.0
+const TRUFFLE_COOLDOWN_PHASE_TWO: float = 1.8
 const TRUFFLE_DAMAGE: float = 10.0
 const TRUFFLE_SPREAD_ANGLE: float = 0.58
 const TRUFFLE_DEPTH_SPREAD: float = 105.0
-const CLOSE_TRUFFLE_CHANCE: float = 0.30
+const CLOSE_TRUFFLE_CHANCE: float = 0.70
 
 const BOSS_MAX_HEALTH: float = 900.0
 const PHASE_TWO_HEALTH_RATIO: float = 0.5
@@ -36,7 +36,7 @@ const EVADE_INITIAL_COOLDOWN: float = 2.0
 const EVADE_COOLDOWN_PHASE_ONE: float = 1.25
 const EVADE_COOLDOWN_PHASE_TWO: float = 1.6
 const EVADE_CHANCE_PHASE_ONE: float = 0.80
-const EVADE_CHANCE_PHASE_TWO: float = 0.50
+const EVADE_CHANCE_PHASE_TWO: float = 0.80
 const EVADE_DURATION_PHASE_ONE: float = 0.58
 const EVADE_DURATION_PHASE_TWO: float = 0.62
 const EVADE_SPEED_X_PHASE_ONE: float = 390.0
@@ -54,7 +54,9 @@ const MEAT_ARRIVAL_DEPTH: float = 68.0
 const MEAT_APPEAR_EAT_SECONDS: float = 2.5
 const MEAT_DIALOGUE_SECONDS: float = 2.8
 
-@onready var boss_name_label: Label = $Visual/BossNameLabel
+@onready var boss_name_label: Label = get_node_or_null("Visual/BossNameLabel")
+
+var is_boss: bool = true
 
 var _attack_variant: int = 0
 var _anim_locked: bool = false
@@ -154,7 +156,7 @@ func _physics_process(delta: float) -> void:
 		if player_distance > 245.0 or randf() < CLOSE_TRUFFLE_CHANCE:
 			_start_truffle_barrage()
 		else:
-			_truffle_cooldown = 0.75
+			_truffle_cooldown = 0.35
 
 
 func _is_player_target_valid() -> bool:
@@ -378,6 +380,13 @@ func _activate_healing_meat() -> void:
 		push_warning("BossAlessandro: não foi possível instanciar a carne de cura.")
 		return
 	destructibles.add_child(meat)
+	# A primeira carne não pode ser destruída pelo jogador; Alessandro anda e come ela sem ser impedido.
+	meat.is_destructible = false
+	meat.remove_from_group("destructibles")
+	meat.remove_from_group("damageable")
+	if meat.hurtbox != null:
+		meat.hurtbox.monitorable = false
+		meat.hurtbox.collision_layer = 0
 	var drop_direction: float = -1.0 if global_position.x >= 1025.0 else 1.0
 	var drop_position := Vector2(
 		clampf(global_position.x + drop_direction * MEAT_DROP_OFFSET_X, 100.0, 1950.0),
@@ -470,8 +479,8 @@ func _begin_meat_eating() -> void:
 
 
 func _process_meat_eating(delta: float) -> void:
-	# O jogador ainda pode destruir a carne durante os 2,5s de consumo.
-	if not _meat_dialogue_started and (_meat_eating_target == null or not is_instance_valid(_meat_eating_target) or _meat_eating_target.is_prop_destroyed()):
+	# Somente carnes destrutíveis (como a segunda porção) podem ser interrompidas pelo jogador.
+	if not _meat_dialogue_started and (_meat_eating_target == null or not is_instance_valid(_meat_eating_target) or (_meat_eating_target.is_destructible and _meat_eating_target.is_prop_destroyed())):
 		_meat_eating_target = null
 		_special_behavior = SpecialBehavior.MEAT_SEEKING
 		_select_next_healing_meat()
@@ -530,37 +539,41 @@ func _show_speech_bubble(dialogue_text: String, duration: float) -> void:
 		_speech_bubble.queue_free()
 	_speech_bubble = PanelContainer.new()
 	_speech_bubble.name = "UruguayanMeatSpeechBubble"
-	_speech_bubble.position = Vector2(-190.0, -340.0)
-	_speech_bubble.custom_minimum_size = Vector2(380.0, 58.0)
+	_speech_bubble.position = Vector2(-260.0, -380.0)
+	_speech_bubble.custom_minimum_size = Vector2(520.0, 84.0)
 	_speech_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_speech_bubble.z_index = 120
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.97, 0.91, 0.73, 0.97)
+	style.bg_color = Color(0.97, 0.91, 0.73, 0.98)
 	style.border_color = Color(0.12, 0.07, 0.04, 1.0)
-	style.set_border_width_all(4)
-	style.set_corner_radius_all(8)
-	style.content_margin_left = 12.0
-	style.content_margin_right = 12.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 8.0
+	style.set_border_width_all(5)
+	style.set_corner_radius_all(12)
+	style.content_margin_left = 22.0
+	style.content_margin_right = 22.0
+	style.content_margin_top = 12.0
+	style.content_margin_bottom = 12.0
 	_speech_bubble.add_theme_stylebox_override("panel", style)
 	var speech := Label.new()
 	speech.text = dialogue_text
 	speech.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	speech.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	speech.add_theme_font_override("font", preload("res://assets/fonts/arcade_bold.ttf"))
-	speech.add_theme_font_size_override("font_size", 15)
+	speech.add_theme_font_size_override("font_size", 22)
 	speech.add_theme_color_override("font_color", Color(0.12, 0.07, 0.04, 1.0))
+	speech.add_theme_color_override("font_outline_color", Color(0.97, 0.91, 0.73, 1.0))
+	speech.add_theme_constant_override("outline_size", 2)
 	speech.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_speech_bubble.add_child(speech)
 	add_child(_speech_bubble)
 	_speech_bubble.scale = Vector2.ONE
 	var bubble_ref: WeakRef = weakref(_speech_bubble)
-	get_tree().create_timer(duration).timeout.connect(func() -> void:
-		var bubble: PanelContainer = bubble_ref.get_ref() as PanelContainer
-		if bubble != null and is_instance_valid(bubble):
-			bubble.queue_free()
-	)
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		tree.create_timer(duration).timeout.connect(func() -> void:
+			var bubble: PanelContainer = bubble_ref.get_ref() as PanelContainer
+			if bubble != null and is_instance_valid(bubble):
+				bubble.queue_free()
+		)
 
 
 func _can_start_evasion() -> bool:
@@ -786,3 +799,9 @@ func _on_died() -> void:
 	if anim_sprite != null and anim_sprite.sprite_frames.has_animation("death"):
 		anim_sprite.play("death")
 		anim_sprite.position = Vector2(0.0, -50.0)
+
+
+func _start_death_fade_sequence() -> void:
+	# Como chefe principal de história, Alessandro não desaparece piscando;
+	# permanece deitado no chão do beco para os diálogos de narrativa pós-luta.
+	pass

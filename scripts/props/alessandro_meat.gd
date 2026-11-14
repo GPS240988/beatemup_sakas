@@ -25,3 +25,9 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if _drop_blink_tween != null and _drop_blink_tween.is_running():
 		_drop_blink_tween.kill()
+
+
+func take_damage(damage_input: Variant) -> bool:
+	if not is_destructible:
+		return false
+	return super.take_damage(damage_input)

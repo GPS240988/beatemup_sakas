@@ -17,7 +17,7 @@ polygon = PackedVector2Array(-15, -1, -9, -5, 0, -7, 9, -5, 15, -1, 9, 3, 0, 5, 
 
 [node name="Sprite" type="Sprite2D" parent="Visual"]
 texture_filter = 1
-position = Vector2(0, -77)
+position = Vector2(0, -68)
 
 [node name="Fallback" type="Node2D" parent="Visual"]
 

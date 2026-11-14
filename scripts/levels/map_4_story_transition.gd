@@ -5,13 +5,18 @@ extends "res://scripts/levels/mobile_base_level.gd"
 ## Após o vídeo, Juliana e Gabriel falam com o mapa pausado, antes do gameplay.
 
 const STORY_INTRO_FASE1_4_PATH: String = "res://scenes/story/story_intro_fase1_4.tscn"
+const STORY_BGM_PATH: String = "res://assets/audio/bgm/Historia.mp3"
 const Map4OpeningDialogueEventClass = preload(
 	"res://scripts/events/map4_opening_dialogue.gd"
+)
+const Map4DefeatDialogueEventClass = preload(
+	"res://scripts/events/map4_defeat_dialogue.gd"
 )
 const MAP4_BEBADO_SCENE: PackedScene = preload("res://scenes/actors/enemies/bebado_enemy.tscn")
 
 var _opening_flow_pending: bool = false
 var _opening_tree_was_paused: bool = false
+var _defeat_dialogue_seen: bool = false
 
 
 func _ready() -> void:
@@ -153,3 +158,66 @@ func _on_reinforcement_timer_timeout() -> void:
 	# Também cobre o caso de a instanciação de um reforço falhar: quando a
 	# onda termina sem inimigos vivos, o boss pode entrar sem ficar travado.
 	_try_spawn_boss_after_reinforcements()
+
+
+## Disparado quando todos os inimigos e o chefe forem derrotados no Mapa 4.
+## 1. Conclui as validações de encontro do BaseLevel (libera saída, atualiza progresso e ativa SIGA).
+## 2. Muda a música de fundo para a trilha de abertura da história (Historia.mp3).
+## 3. Apresenta a sequência canônica de diálogos entre Alessandro, Guilherme, André e Gabriel.
+func _on_encounter_cleared() -> void:
+	if boss_scene != null and not _boss_spawned:
+		return
+	if combat_director != null and combat_director.pending_spawns_count > 0:
+		return
+
+	# Executa as ações canônicas de conclusão do BaseLevel
+	super._on_encounter_cleared()
+
+	# Dispara o diálogo de vitória pós-Alessandro e a mudança de música
+	if not _defeat_dialogue_seen:
+		_defeat_dialogue_seen = true
+		_change_to_story_bgm()
+		_show_defeat_dialogue()
+
+
+func _change_to_story_bgm() -> void:
+	var session: Node = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("play_bgm"):
+		session.call("play_bgm", STORY_BGM_PATH, -4.0, 1.0)
+	if _level_bgm_player != null and is_instance_valid(_level_bgm_player):
+		_level_bgm_player.stop()
+
+	if ResourceLoader.exists(STORY_BGM_PATH):
+		var stream: AudioStream = load(STORY_BGM_PATH) as AudioStream
+		if stream != null:
+			if stream is AudioStreamMP3:
+				(stream as AudioStreamMP3).loop = true
+			if _level_bgm_player == null:
+				_level_bgm_player = AudioStreamPlayer.new()
+				_level_bgm_player.name = "LevelBGMPlayer"
+				_level_bgm_player.bus = &"Master"
+				add_child(_level_bgm_player)
+			_level_bgm_player.process_mode = Node.PROCESS_MODE_ALWAYS
+			_level_bgm_player.stream = stream
+			_level_bgm_player.volume_db = -4.0
+			_level_bgm_player.play()
+
+
+func _show_defeat_dialogue() -> void:
+	if not is_inside_tree():
+		return
+
+	var defeat_dialogue := Map4DefeatDialogueEventClass.new()
+	if defeat_dialogue == null:
+		push_warning("Map4: não foi possível instanciar o diálogo de vitória.")
+		return
+
+	defeat_dialogue.process_mode = Node.PROCESS_MODE_ALWAYS
+	defeat_dialogue.dialogue_closed.connect(_on_defeat_dialogue_closed)
+	add_child(defeat_dialogue)
+	get_tree().paused = true
+
+
+func _on_defeat_dialogue_closed() -> void:
+	if get_tree() != null:
+		get_tree().paused = false

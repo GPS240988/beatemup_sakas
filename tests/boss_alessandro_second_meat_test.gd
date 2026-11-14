@@ -72,7 +72,7 @@ func _run_tests() -> void:
 	_assert(boss._meat_instances.size() == 1, "Segunda carne aparece ao completar 8 segundos")
 	_assert(boss._second_meat_dropped, "O segundo drop ocorre somente uma vez")
 	_assert(not boss._meat_instances.is_empty() and boss.global_position.distance_to(boss._meat_instances[0].global_position) >= 1000.0, "Segunda carne surge no extremo oposto, longe de Alessandro")
-	_assert(boss._loro_intro_hold and get_tree().paused, "A fase pausa assim que a segunda carne cai, mantendo Alessandro parado")
+	_assert(boss._loro_intro_hold and paused, "A fase pausa assim que a segunda carne cai, mantendo Alessandro parado")
 	_assert(test_world.get_node_or_null("Map4LoroTarget") != null, "Alvo de combate invisível do Loro é criado no Mapa 4")
 	var loro_target := test_world.get_node_or_null("Map4LoroTarget") as Map4LoroTarget
 	_assert(loro_target != null and not loro_target.is_in_group("enemies"), "Loro permanece fora do grupo de inimigos do encontro")
@@ -95,7 +95,7 @@ func _run_tests() -> void:
 
 	var hint := test_world.get_node_or_null("Map4MeatHintDialogue") as CanvasLayer
 	_assert(hint == null, "A dica do Loro ainda não aparece ao fechar a orientação da carne")
-	_assert(not get_tree().paused, "Fechar a orientação da carne retoma imediatamente a fase")
+	_assert(not paused, "Fechar a orientação da carne retoma imediatamente a fase")
 	_assert(boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro começa a perseguir a segunda carne após o primeiro diálogo")
 	_assert(boss._meat_target == boss._meat_instances[0], "A segunda carne é selecionada como alvo ao iniciar a perseguição")
 	_assert(is_equal_approx(boss._second_meat_hint_delay_timer, 10.0), "A espera da dica começa ao fechar o primeiro diálogo e dura dez segundos")
@@ -103,11 +103,11 @@ func _run_tests() -> void:
 	_assert(loro_target != null and loro_target._shout_blink_tween == null, "Loro não pisca durante a perseguição inicial")
 	boss._process_second_meat_hint_delay(9.99)
 	_assert(test_world.get_node_or_null("Map4MeatHintDialogue") == null, "A segunda conversa não aparece antes de dez segundos")
-	_assert(not get_tree().paused and boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro continua perseguindo a carne durante os dez segundos")
+	_assert(not paused and boss._special_behavior == BossAlessandroEnhancedClass.SpecialBehavior.MEAT_SEEKING, "Alessandro continua perseguindo a carne durante os dez segundos")
 	boss._process_second_meat_hint_delay(0.02)
 	hint = test_world.get_node_or_null("Map4MeatHintDialogue") as CanvasLayer
 	_assert(hint != null, "Gabriel apresenta a dica de mestre após dez segundos")
-	_assert(get_tree().paused, "A fase pausa enquanto Gabriel apresenta a segunda conversa")
+	_assert(paused, "A fase pausa enquanto Gabriel apresenta a segunda conversa")
 	_assert(loro_target != null and not loro_target.is_shouting(), "Loro ainda não grita enquanto Gabriel apresenta a dica")
 	_assert(loro_target != null and loro_target._shout_blink_tween == null, "Loro ainda não pisca durante a dica de mestre")
 	if hint != null:
@@ -124,7 +124,7 @@ func _run_tests() -> void:
 	# Fechar a dica libera o evento de grito sem reiniciar a perseguição.
 	if hint != null:
 		hint.call("_close_dialogue")
-	_assert(not get_tree().paused, "Fechar a dica de mestre despausa a fase")
+	_assert(not paused, "Fechar a dica de mestre despausa a fase")
 	_assert(loro_target != null and loro_target.is_shouting(), "Loro só começa a gritar depois que a dica de mestre é fechada")
 	_assert(loro_target != null and loro_target._speech_bubble != null and loro_target._speech_bubble.text.contains("MULHERES PELADAS"), "Grito do Loro exibe o texto solicitado")
 	_assert(loro_target != null and loro_target._speech_bubble.position.y < loro_target.to_local(loro_sprite.global_position).y, "Balão do Loro fica acima da cabeça, sem cobrir o corpo")
@@ -167,7 +167,7 @@ func _run_tests() -> void:
 	)
 	_assert(not boss.take_damage(eating_damage), "Alessandro rejeita dano enquanto consome a carne")
 	_assert(is_equal_approx(boss.health_component.current_health, health_before_eating_hit), "Vida de Alessandro permanece intacta durante o consumo")
-	_assert(is_equal_approx(boss._truffle_cooldown, 2.5), "Cadência das trufas é acelerada para intervalo de 2,5 segundos")
+	_assert(is_equal_approx(boss._truffle_cooldown, 2.0), "Cadência das trufas é acelerada para intervalo de 2,0 segundos")
 	boss._process_special_behavior(2.5)
 	boss._update_meat_eating_indicator()
 	_assert(boss._meat_eating_panel == null, "Indicador de consumo desaparece ao terminar o timeout")

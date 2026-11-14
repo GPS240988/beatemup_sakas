@@ -32,6 +32,7 @@ const MenuCharacterSlotClass = preload("res://scripts/ui/components/menu_charact
 @onready var btn_quit: Button = %BtnQuit
 @onready var settings_panel: Control = %SettingsPanel
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
+@onready var character_showcase: Control = %CharacterShowcase
 @onready var characters_lineup: Control = %CharactersLineup
 @onready var slot_guilherme: Control = %SlotGuilherme
 @onready var slot_gabriel: Control = %SlotGabriel
@@ -237,6 +238,8 @@ func _activate_option(index: int) -> void:
 
 func _open_settings() -> void:
 	_is_in_settings = true
+	if character_showcase != null and character_showcase.has_method("stop_cycle"):
+		character_showcase.call("stop_cycle")
 	if settings_panel != null:
 		settings_panel.visible = true
 		settings_panel.set("settings_origin", "main_menu")
@@ -247,6 +250,8 @@ func _open_settings() -> void:
 
 func _on_settings_closed(_origin: String) -> void:
 	_is_in_settings = false
+	if character_showcase != null and character_showcase.has_method("start_cycle"):
+		character_showcase.call("start_cycle")
 	if settings_panel != null:
 		settings_panel.visible = false
 	# Devolve o foco ao botão de Configurações.

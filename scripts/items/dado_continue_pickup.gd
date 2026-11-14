@@ -5,8 +5,8 @@ class_name DadoContinuePickup
 ## Mesma mecânica de proximidade e botão "Pegar" do CocaPickup,
 ## mas concede um continue ao invés de curar vida.
 
-@export_range(8.0, 160.0, 1.0) var pickup_range_x: float = 64.0
-@export_range(4.0, 96.0, 1.0) var pickup_depth_tolerance: float = 28.0
+@export_range(8.0, 160.0, 1.0) var pickup_range_x: float = 72.0
+@export_range(4.0, 96.0, 1.0) var pickup_depth_tolerance: float = 42.0
 @export_file("*.png") var item_texture_path: String = "res://assets/sprites/itens/dado_continue.png"
 
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
@@ -46,7 +46,9 @@ func _setup_visuals() -> void:
 	_visuals = DroppedItemVisualsScript.new()
 	_visuals.name = "DroppedItemVisuals"
 	add_child(_visuals)
-	_visuals.call("setup", visual_root, true, Vector2(30.0, 10.0), Vector2(38.0, 14.0))
+	# Assentado firmemente no solo (enable_floating = false), sombra de 62x16px local (31x8px real)
+	# sob a base do dado de 75px de largura, garantindo contato 2.5D crível.
+	_visuals.call("setup", visual_root, false, Vector2(62.0, 16.0), Vector2(48.0, 12.0), false)
 
 
 func _build_interaction_hint() -> void:
@@ -56,7 +58,7 @@ func _build_interaction_hint() -> void:
 	_hint_button.scale = Vector2(2.0, 2.0)
 	_hint_button.custom_minimum_size = Vector2(96.0, 48.0)
 	_hint_button.size = Vector2(96.0, 48.0)
-	_hint_button.position = Vector2(-96.0, -152.0)
+	_hint_button.position = Vector2(-96.0, -170.0)
 	_hint_button.z_index = 100
 	_hint_button.z_as_relative = false
 	_hint_button.focus_mode = Control.FOCUS_NONE
@@ -225,6 +227,8 @@ func _load_item_texture() -> void:
 		return
 
 	item_sprite.texture = loaded_texture
+	# Alinha pixel-perfect a base opaca do dado ao chão (Y = 0)
+	item_sprite.position.y = -68.0
 	fallback_visual.visible = false
 
 

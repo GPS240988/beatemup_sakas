@@ -14,16 +14,28 @@ var _health_before_consume: float = 0.0
 
 
 func _ready() -> void:
-	# O ponto original (426, 521) ficava atrás da parede superior do Mapa 4
-	# (Y=525), fora da faixa caminhável e do alcance 2.5D do jogador.
+	pickup_depth_tolerance = 42.0
+	pickup_range_x = 72.0
+	# O ponto original ficava atrás da parede superior do Mapa 4 (Y=525),
+	# fora da faixa caminhável [545, 735] e do alcance 2.5D do jogador.
 	if global_position.y < MIN_WALKABLE_GROUND_Y:
 		global_position.y = SAFE_PICKUP_GROUND_Y
 	item_texture_path = OVO_TEXTURE_PATH
 	super._ready()
-	# O sprite do ovo é mais alto que o da Coca; eleva o prompt para que
-	# "Pegar" fique integralmente acima da arte, sem cobri-la.
+	# Posiciona o botão "Pegar" logo acima da coroa do ovo sem cobri-lo
 	if _hint_button != null:
-		_hint_button.position.y = -250.0
+		_hint_button.position.y = -190.0
+
+
+func _setup_visuals() -> void:
+	if visual_root == null:
+		return
+	_visuals = DroppedItemVisualsScript.new()
+	_visuals.name = "DroppedItemVisuals"
+	add_child(_visuals)
+	# Assentado firmemente no solo (enable_floating = false), sombra elíptica proporcional
+	# à largura do ovo (raio 72x18 local, 36x9 real sob a base de 88px) para ancoragem 2.5D perfeita.
+	_visuals.call("setup", visual_root, true, Vector2(72.0, 18.0), Vector2(56.0, 14.0), false)
 
 
 func try_consume(player: Node) -> bool:
@@ -82,7 +94,6 @@ func _load_item_texture() -> void:
 	super._load_item_texture()
 	if item_sprite == null or item_sprite.texture == null:
 		return
-	var texture_height: float = item_sprite.texture.get_size().y * absf(item_sprite.scale.y)
-	var half_height: float = texture_height * 0.5 if item_sprite.centered else texture_height
-	item_sprite.position.y = -half_height - 2.0 - (item_sprite.offset.y * item_sprite.scale.y)
+	# Alinha pixel-perfect a base inferior opaca do ovo ao chão (Y = 0)
+	item_sprite.position.y = -56.5
 

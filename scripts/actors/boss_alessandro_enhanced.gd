@@ -14,7 +14,7 @@ const LoroTargetClass = preload("res://scripts/events/map4_loro_target.gd")
 
 const SECOND_MEAT_DROP_DELAY: float = 8.0
 const SECOND_MEAT_HINT_DELAY: float = 10.0
-const PLAYER_MELEE_EVADE_CHANCE: float = 0.70
+const PLAYER_MELEE_EVADE_CHANCE: float = 0.80
 const POST_EVASION_COUNTER_WINDOW: float = 0.75
 const FAST_APPROACH_MIN_SPEED: float = 210.0
 const MAP_LEFT_WALL_X: float = 80.0
@@ -29,6 +29,15 @@ const LORO_REPEAT_DELAY: float = 8.0
 const LORO_STUN_DURATION: float = 5.0
 const POST_LORO_ESCAPE_DURATION: float = 1.35
 const POST_LORO_ESCAPE_SPEED: float = 430.0
+const COUNTER_ATTACK_CHANCE: float = 0.60
+const CONSECUTIVE_HITS_THRESHOLD: int = 4
+const CONSECUTIVE_HITS_WINDOW: float = 1.8
+
+signal counter_attack_performed(attack_name: String)
+
+var counter_attack_chance: float = COUNTER_ATTACK_CHANCE
+var _player_consecutive_hits: int = 0
+var _player_combo_hit_timer: float = 0.0
 
 var _second_meat_timer: float = -1.0
 var _second_meat_hint_delay_timer: float = -1.0
@@ -61,8 +70,8 @@ var _original_impact_zone_bounds: Array[float] = []
 func _ready() -> void:
 	super._ready()
 	_cache_loro_stun_hurtbox()
-	# A cadência anterior de 4,25s deixava longos intervalos entre as salvas.
-	_truffle_cooldown = 2.5
+	# Cadência acelerada de trufas para maior frequência de ataques.
+	_truffle_cooldown = 2.0
 
 
 func _physics_process(delta: float) -> void:
@@ -73,6 +82,7 @@ func _physics_process(delta: float) -> void:
 		_post_evasion_counter_timer = maxf(0.0, _post_evasion_counter_timer - delta)
 		_update_cornered_combo_window(delta)
 		_process_loro_timers(delta)
+		_update_player_combo_hit_window(delta)
 
 	if _loro_stun_timer > 0.0:
 		_process_loro_stun(delta)
@@ -385,7 +395,7 @@ func _finish_special_behavior() -> void:
 
 	super._finish_special_behavior()
 	if finished_behavior in [SpecialBehavior.TRUFFLE_WINDUP, SpecialBehavior.THROWING_TRUFFLES]:
-		_truffle_cooldown = 2.5
+		_truffle_cooldown = 1.8 if _is_phase_two() else 2.0
 
 	if was_eating_meat and current_state != State.DEAD and not _meat_instances.is_empty():
 		_start_meat_seeking_for_remaining_drop()
@@ -587,7 +597,7 @@ func take_damage(damage_input: Variant) -> bool:
 	if not _is_player_melee_damage(damage_input):
 		return super.take_damage(damage_input)
 
-	# Encurralado, Alessandro deixa o jogador concluir um único combo de quatro
+	# 1. Encurralado, Alessandro deixa o jogador concluir um único combo de quatro
 	# acertos. Depois do quarto golpe, bloqueia novos hits até executar a fuga.
 	if _is_cornered_by_player():
 		if _cornered_evasion_pending:
@@ -607,25 +617,40 @@ func take_damage(damage_input: Variant) -> bool:
 	_cornered_combo_hits = 0
 	_cornered_combo_timer = 0.0
 
-	# Se o jogador encurta a distância em alta velocidade logo após a esquiva,
+	var is_voadora: bool = _is_flying_kick(damage_input)
+
+	# 2. Se o jogador chega na voadora, Alessandro tem 60% de chance de desferir um soco ou chute no personagem
+	if is_voadora and randf() < counter_attack_chance:
+		var accepted_voadora: bool = super.take_damage(damage_input)
+		if accepted_voadora:
+			_execute_counter_attack()
+		return accepted_voadora
+
+	# 3. Se o jogador encurta a distância em alta velocidade logo após a esquiva,
 	# Alessandro fica vulnerável: o golpe não pode ser esquivado novamente.
 	if _post_evasion_counter_timer > 0.0 and _is_fast_player_approach():
 		_post_evasion_counter_timer = 0.0
 		if _special_behavior != SpecialBehavior.NONE:
 			_interrupt_special_behavior_for_hit()
-		return super.take_damage(damage_input)
+		var accepted_fast_hit: bool = super.take_damage(damage_input)
+		if accepted_fast_hit:
+			_check_consecutive_hits_counter()
+		return accepted_fast_hit
 
-	# Fora da janela de contra-ataque, Alessandro mantém 70% de chance de
-	# esquivar dos golpes corpo a corpo do jogador, inclusive da voadora.
+	# 4. Fora da janela de contra-ataque, Alessandro mantém 80% de chance de
+	# esquivar dos golpes corpo a corpo do jogador.
 	if _evasion_cooldown <= 0.0 and _can_start_evasion():
-		if randf() < PLAYER_MELEE_EVADE_CHANCE:
+		if randf() < _get_evasion_chance():
 			_start_evasion()
 			if _special_behavior == SpecialBehavior.EVADING:
 				return false
 		else:
 			_evasion_cooldown = 0.35
 
-	return super.take_damage(damage_input)
+	var accepted_hit: bool = super.take_damage(damage_input)
+	if accepted_hit:
+		_check_consecutive_hits_counter()
+	return accepted_hit
 
 
 func _is_cornered_by_player() -> bool:
@@ -830,3 +855,126 @@ func _finish_second_meat_dialogue_sequence() -> void:
 	if current_state == State.DEAD or health_component == null or health_component.is_dead:
 		return
 	_start_loro_shout_cycle()
+
+
+# ==============================================================================
+# CONTRA-ATAQUE REATIVO DE ALESSANDRO (MAPA 4)
+# ==============================================================================
+
+## Identifica se o dano recebido foi originado por uma voadora (ataque aéreo)
+func _is_flying_kick(damage_input: Variant) -> bool:
+	if not (damage_input is RefCounted):
+		return false
+	var profile: String = str(damage_input.get("impact_profile"))
+	if profile == "punch":
+		return false
+	var attacker: Node = damage_input.get("attacker") as Node
+	if attacker != null and is_instance_valid(attacker):
+		if str(attacker.get("_current_attack_anim")) == "jump_atk":
+			return true
+		if attacker.get("_is_jumping") == true and profile in ["kick", "jump_atk", "voadora"]:
+			return true
+		var anim_sprite_node = attacker.get_node_or_null("Visual/AnimatedSprite2D")
+		if anim_sprite_node != null and anim_sprite_node is AnimatedSprite2D:
+			if anim_sprite_node.animation == &"jump_atk":
+				return true
+	if profile in ["jump_atk", "voadora"]:
+		return true
+	return false
+
+
+## Atualiza a janela de tempo entre os golpes consecutivos recebidos do jogador
+func _update_player_combo_hit_window(delta: float) -> void:
+	if _player_combo_hit_timer > 0.0:
+		_player_combo_hit_timer = maxf(0.0, _player_combo_hit_timer - delta)
+		if _player_combo_hit_timer <= 0.0:
+			_player_consecutive_hits = 0
+
+
+## Avalia e incrementa o contador de golpes recebidos, disparando o contra-ataque se passar de 4
+func _check_consecutive_hits_counter() -> void:
+	if current_state == State.DEAD or (health_component != null and health_component.is_dead):
+		return
+	if current_state in [State.FALL, State.GETUP]:
+		return
+	if _loro_stun_timer > 0.0:
+		return
+
+	if _player_combo_hit_timer <= 0.0:
+		_player_consecutive_hits = 0
+	_player_consecutive_hits += 1
+	_player_combo_hit_timer = CONSECUTIVE_HITS_WINDOW
+
+	# "quando o jogador encaixa mais que 4 golpes nele (...) tem que ter 60% de dar um soco ou chute no personagem"
+	if _player_consecutive_hits > CONSECUTIVE_HITS_THRESHOLD:
+		if randf() < counter_attack_chance:
+			_execute_counter_attack()
+
+
+## Executa o contra-ataque imediato (soco ou chute) voltado contra o jogador
+func _execute_counter_attack() -> void:
+	if current_state == State.DEAD or (health_component != null and health_component.is_dead):
+		return
+	if current_state in [State.FALL, State.GETUP]:
+		return
+	if melee_attack == null:
+		return
+
+	_player_consecutive_hits = 0
+	_player_combo_hit_timer = 0.0
+
+	# Virar de frente para o jogador
+	if player_target != null and is_instance_valid(player_target):
+		var dir_to_player: float = signf(player_target.global_position.x - global_position.x)
+		if dir_to_player != 0.0:
+			facing_direction = dir_to_player
+			if visual_root != null:
+				visual_root.scale.x = absf(visual_root.scale.x) * dir_to_player
+
+	# Cancelar qualquer ataque ou visual anterior
+	if melee_attack.is_attacking:
+		melee_attack.cancel_attack()
+	if punch_visual != null:
+		punch_visual.visible = false
+
+	# Escolher aleatoriamente entre soco (50%) ou chute (50%)
+	var choose_punch: bool = (randf() < 0.5)
+	var anim_name: StringName = &"punch" if choose_punch else &"kick"
+
+	if choose_punch:
+		melee_attack.damage = 20.0
+		melee_attack.impact_profile = "punch"
+		melee_attack.preferred_regions = ["head", "upper_torso"]
+		melee_attack.hitbox_offset_y = -135.0
+	else:
+		melee_attack.damage = 25.0
+		melee_attack.impact_profile = "kick"
+		melee_attack.preferred_regions = ["lower_torso"]
+		melee_attack.hitbox_offset_y = -75.0
+
+	# Alcance dinâmico de contra-ataque
+	melee_attack.horizontal_range = 105.0
+	melee_attack.depth_tolerance = 32.0
+
+	current_state = State.ATTACKING
+	_state_timer = 0.0
+	velocity = Vector2.ZERO
+
+	if anim_sprite != null and anim_sprite.sprite_frames != null and anim_sprite.sprite_frames.has_animation(anim_name):
+		anim_sprite.play(anim_name)
+
+	melee_attack.execute_attack(facing_direction)
+	counter_attack_performed.emit(String(anim_name))
+
+
+func _start_evasion() -> void:
+	_player_consecutive_hits = 0
+	_player_combo_hit_timer = 0.0
+	super._start_evasion()
+
+
+func _on_attack_ended() -> void:
+	super._on_attack_ended()
+	_player_consecutive_hits = 0
+	_player_combo_hit_timer = 0.0
+

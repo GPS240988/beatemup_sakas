@@ -92,8 +92,8 @@ func test_boss_alessandro_scene_and_properties() -> void:
 	assert_test(boss != null, "Instância BossAlessandro válida")
 	assert_test(boss.health_component != null and is_equal_approx(boss.health_component.max_health, 900.0), "Chefe possui 900 HP")
 	assert_test(boss.health_component != null and is_equal_approx(boss.health_component.current_health, 900.0), "Vida inicial também é configurada em 900 HP")
-	assert_test(is_equal_approx(boss.TRUFFLE_COOLDOWN_PHASE_ONE, 4.25) and is_equal_approx(boss.TRUFFLE_COOLDOWN_PHASE_TWO, 4.25) and is_equal_approx(boss.TRUFFLE_INITIAL_COOLDOWN, 4.25), "Salvas de trufas respeitam cooldown de 4,25 segundos nas duas fases")
-	assert_test(is_equal_approx(boss.EVADE_CHANCE_PHASE_ONE, 0.80) and is_equal_approx(boss.EVADE_CHANCE_PHASE_TWO, 0.50), "Chance de esquiva cai de 80% para 50% na segunda fase")
+	assert_test(is_equal_approx(boss.TRUFFLE_COOLDOWN_PHASE_ONE, 2.0) and is_equal_approx(boss.TRUFFLE_COOLDOWN_PHASE_TWO, 1.8) and is_equal_approx(boss.TRUFFLE_INITIAL_COOLDOWN, 2.0), "Salvas de trufas respeitam cooldown reduzido nas duas fases")
+	assert_test(is_equal_approx(boss.EVADE_CHANCE_PHASE_ONE, 0.80) and is_equal_approx(boss.EVADE_CHANCE_PHASE_TWO, 0.80), "Chance de esquiva permanece em 80% na segunda fase")
 	assert_test(boss.anim_sprite != null, "AnimatedSprite2D do chefe existe")
 	assert_test(boss.anim_sprite != null and boss.anim_sprite.material == null and boss.anim_sprite.modulate == Color.WHITE, "Alessandro preserva os sprites originais sem shader de paleta")
 
@@ -219,7 +219,7 @@ func test_boss_evasion_phase_two() -> void:
 	boss.health_component.current_health = 400.0
 
 	assert_test(boss._is_phase_two(), "Segunda fase ativa abaixo de 50% da vida")
-	assert_test(is_equal_approx(boss._get_evasion_chance(), 0.50), "Segunda fase usa 50% de chance de esquiva")
+	assert_test(is_equal_approx(boss._get_evasion_chance(), 0.80), "Segunda fase continua usando 80% de chance de esquiva")
 	assert_test(boss._can_start_evasion(), "Boss reconhece jogador no raio de esquiva")
 	boss._start_evasion()
 	assert_test(boss._special_behavior == BossAlessandroClass.SpecialBehavior.EVADING, "Boss entra no comportamento de fuga")

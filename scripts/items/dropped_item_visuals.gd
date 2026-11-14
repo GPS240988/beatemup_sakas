@@ -13,6 +13,7 @@ extends Node2D
 @export var category_color: Color = Color(0.98, 0.78, 0.22, 1.0)
 @export var aura_color: Color = Color(0.95, 0.75, 0.20, 0.42)
 @export var glow_tint: Color = Color(1.30, 1.20, 1.05, 1.0)
+@export var enable_floating: bool = true
 @export var float_amplitude: float = 3.5
 @export var float_speed: float = 3.0
 @export var shadow_radius: Vector2 = Vector2(22.0, 8.0)
@@ -64,8 +65,14 @@ func setup(
 	target: Node2D,
 	is_green: bool = false,
 	custom_shadow_r: Vector2 = Vector2.ZERO,
-	custom_aura_r: Vector2 = Vector2.ZERO
+	custom_aura_r: Vector2 = Vector2.ZERO,
+	custom_enable_floating: Variant = null
 ) -> void:
+	if custom_enable_floating != null:
+		enable_floating = bool(custom_enable_floating)
+		if not enable_floating:
+			float_amplitude = 0.0
+
 	_target_visual = target
 	if _target_visual != null:
 		normalize_target_base(_target_visual)
@@ -74,11 +81,11 @@ func setup(
 
 	if is_green:
 		category_color = Color(0.25, 0.95, 0.40, 1.0)
-		aura_color = Color(0.20, 0.90, 0.35, 0.42)
+		aura_color = Color(0.20, 0.90, 0.35, 0.42 if enable_floating else 0.22)
 		glow_tint = Color(1.15, 1.35, 1.20, 1.0)
 	else:
 		category_color = Color(0.98, 0.78, 0.22, 1.0)
-		aura_color = Color(0.95, 0.75, 0.20, 0.42)
+		aura_color = Color(0.95, 0.75, 0.20, 0.42 if enable_floating else 0.22)
 		glow_tint = Color(1.35, 1.25, 1.10, 1.0)
 
 	if custom_shadow_r != Vector2.ZERO:
@@ -115,7 +122,7 @@ func _build_ground_elements() -> void:
 	# 2. Sombra fixa no chão (física 2.5D - não acompanha a flutuação do item)
 	_ground_shadow = Polygon2D.new()
 	_ground_shadow.name = "GroundShadow"
-	_ground_shadow.color = Color(0.02, 0.03, 0.06, 0.48)
+	_ground_shadow.color = Color(0.015, 0.02, 0.04, 0.65 if not enable_floating else 0.50)
 	_ground_shadow.polygon = _generate_ellipse_points(shadow_radius.x, shadow_radius.y, 16)
 	_ground_shadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_ground_anchor.add_child(_ground_shadow)
@@ -198,9 +205,12 @@ func _process(delta: float) -> void:
 	_clock += delta
 
 	if not _is_spawning and _target_visual != null and is_instance_valid(_target_visual):
-		# Flutuação vertical suave exclusiva do nó visual
-		var bob: float = sin(_clock * float_speed) * float_amplitude
-		_target_visual.position.y = _base_visual_y + bob
+		if enable_floating and float_amplitude > 0.0:
+			# Flutuação vertical suave exclusiva do nó visual
+			var bob: float = sin(_clock * float_speed) * float_amplitude
+			_target_visual.position.y = _base_visual_y + bob
+		else:
+			_target_visual.position.y = _base_visual_y
 
 		# Pulsação do contorno luminoso
 		var pulse: float = (sin(_clock * 3.5) + 1.0) * 0.5
