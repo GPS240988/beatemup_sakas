@@ -6,6 +6,7 @@
 y_sort_enabled = true
 scale = Vector2(0.5, 0.5)
 script = ExtResource("1_dado_script")
+item_texture_path = "res://assets/sprites/Itens/dado_continue.png"
 
 [node name="Shadow" type="Polygon2D" parent="."]
 visible = false
@@ -16,7 +17,7 @@ polygon = PackedVector2Array(-15, -1, -9, -5, 0, -7, 9, -5, 15, -1, 9, 3, 0, 5, 
 
 [node name="Sprite" type="Sprite2D" parent="Visual"]
 texture_filter = 1
-position = Vector2(0, -50)
+position = Vector2(0, -77)
 
 [node name="Fallback" type="Node2D" parent="Visual"]
 
