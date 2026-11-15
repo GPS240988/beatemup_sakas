@@ -339,8 +339,19 @@ func _on_play_stage_pressed() -> void:
 						map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
 					return
 		elif _selected_index == 1:
-			if not pack_mgr.is_pack_mounted("audio_bgm"):
-				await pack_mgr.ensure_pack_loaded_async("audio_bgm")
+			if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("story_cinematics") or not pack_mgr.is_pack_mounted("audio_bgm"):
+				if map_status_label != null:
+					map_status_label.text = "CARREGANDO RECURSOS DO BÔNUS..."
+					map_status_label.modulate = Color(0, 0.94, 1, 1)
+				var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
+				var ok_story = await pack_mgr.ensure_pack_loaded_async("story_cinematics")
+				var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
+				if not ok_stage1 or not ok_story or not ok_bgm:
+					_is_transitioning = false
+					if map_status_label != null:
+						map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."
+						map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
+					return
 
 	var cfg := STAGE_CONFIGS[_selected_index]
 	var target_scene: String = str(cfg.get("scene", ""))

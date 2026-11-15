@@ -29,7 +29,13 @@ func _ready() -> void:
 	if background_image != null and ResourceLoader.exists(CREDITS_BG_PATH):
 		background_image.texture = load(CREDITS_BG_PATH) as Texture2D
 
-	# 2. Inicializa e reproduz o vídeo de créditos oficial
+	# 2. Garante montagem do pacote stage1 que contém os vídeos de encerramento
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+		if not pack_mgr.is_pack_mounted("stage1"):
+			await pack_mgr.ensure_pack_loaded_async("stage1")
+
+	# 3. Inicializa e reproduz o vídeo de créditos oficial
 	_setup_video_credits()
 
 	# 3. Botão de retorno

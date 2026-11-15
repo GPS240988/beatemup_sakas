@@ -57,6 +57,27 @@ func _initialize_bonus_stage() -> void:
 	):
 		return
 
+	# Garante montagem assíncrona dos pacotes necessários na Web (Cenários/Vídeos, BGM e Cinemáticas)
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+		if not pack_mgr.is_pack_mounted("stage1"):
+			await pack_mgr.ensure_pack_loaded_async("stage1")
+		if not pack_mgr.is_pack_mounted("story_cinematics"):
+			await pack_mgr.ensure_pack_loaded_async("story_cinematics")
+		if not pack_mgr.is_pack_mounted("audio_bgm"):
+			await pack_mgr.ensure_pack_loaded_async("audio_bgm")
+
+	# Se a textura do fundo da garagem estiver nula (porque o pack ainda não estava montado ao instanciar a cena),
+	# recarrega a textura oficial da garagem e atualiza a câmera mobile.
+	if get_parent() != null:
+		var far_bg: Sprite2D = get_parent().get_node_or_null("Background/Far") as Sprite2D
+		if far_bg != null and far_bg.texture == null:
+			if ResourceLoader.exists("res://assets/backgrounds/maps/bonus1/garagem.webp"):
+				far_bg.texture = load("res://assets/backgrounds/maps/bonus1/garagem.webp") as Texture2D
+				var lvl = get_parent()
+				if lvl != null and lvl.has_method("_apply_mobile_camera_bounds"):
+					lvl.call("_apply_mobile_camera_bounds")
+
 	_orange_car = get_node_or_null(orange_car_path)
 	_blue_car = get_node_or_null(blue_car_path)
 	

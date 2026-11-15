@@ -49,7 +49,8 @@ const PACK_DEFINITIONS: Dictionary = {
 		"sources": [
 			"res://assets/videos/stage1/video_fase1_3_andre.ogv",
 			"res://assets/videos/stage1/video_fase1_3_juliana.ogv",
-			"res://assets/videos/stage1/video_fase1_4_alessandro.ogv"
+			"res://assets/videos/stage1/video_fase1_4_alessandro.ogv",
+			"res://assets/videos/creditos/video_creditos_demo.ogv"
 		],
 		"dirs": [
 			"res://assets/backgrounds/maps"

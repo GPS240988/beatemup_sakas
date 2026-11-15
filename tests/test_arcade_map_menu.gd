@@ -25,6 +25,16 @@ func _init() -> void:
 
 
 func _run_tests() -> void:
+	var session = root.get_node_or_null("GameSession")
+	if session == null:
+		var session_script = load("res://scripts/core/game_session.gd")
+		if session_script != null:
+			session = session_script.new()
+			session.name = "GameSession"
+			root.add_child(session)
+	if session != null and session.has_method("unlock_bonus_stage"):
+		session.unlock_bonus_stage()
+
 	var packed_scene = ResourceLoader.load(MAP_MENU_SCENE_PATH) as PackedScene
 	_assert(packed_scene != null, "A cena map_menu.tscn deve ser carregada com sucesso")
 	if packed_scene == null:
