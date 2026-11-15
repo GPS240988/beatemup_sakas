@@ -375,8 +375,8 @@ function enrichManifest() {
 		manifest.theme_color = "#060814";
 		manifest.background_color = "#060814";
 		manifest.display = "standalone";
-		manifest.display_override = ["fullscreen", "standalone", "minimal-ui"];
-		manifest.orientation = "landscape";
+		manifest.display_override = ["standalone", "minimal-ui"];
+		delete manifest.orientation;
 		manifest.start_url = "/";
 		manifest.scope = "/";
 		manifest.prefer_related_applications = false;
