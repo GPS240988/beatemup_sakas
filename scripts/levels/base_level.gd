@@ -121,6 +121,10 @@ func _ready() -> void:
 		pause_menu = PauseMenuScene.instantiate() as CanvasLayer
 		add_child(pause_menu)
 
+	# Monitora conexão e desconexão de gamepad durante a partida
+	if not Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.connect(_on_joy_connection_changed)
+
 	# Em celulares ultrawide, a viewport fica mais larga que 16:9.
 	# Ajusta os limites da câmera aos limites reais da textura do mapa, evitando
 	# revelar áreas vazias nas laterais. No desktop os valores originais permanecem.
@@ -1105,7 +1109,32 @@ func restore_world_snapshot(snapshot: Dictionary) -> void:
 
 
 func _exit_tree() -> void:
+	if Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.disconnect(_on_joy_connection_changed)
 	_clear_pending_reinforcements()
+
+
+## Responde a conexão e desconexão de gamepad durante a partida
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if not connected:
+		_flush_combat_inputs()
+		# Ao desconectar controle durante gameplay ativo, pausa o jogo para proteger o jogador
+		if pause_menu != null and not pause_menu.visible and (hud == null or not hud._game_over_active):
+			pause_menu.open_pause(scene_file_path)
+	else:
+		print("[BaseLevel] Gamepad conectado (device %d): %s" % [device, Input.get_joy_name(device)])
+
+
+## Libera ações de combate e movimento que possam ter ficado retidas
+func _flush_combat_inputs() -> void:
+	var actions: Array[StringName] = [
+		&"move_left", &"move_right", &"move_up", &"move_down",
+		&"attack", &"attack_punch", &"jump", &"attack_aerial",
+		&"special", &"attack_special", &"guard"
+	]
+	for act in actions:
+		if Input.is_action_pressed(act):
+			Input.action_release(act)
 
 
 ## Retorna o caminho da cena de reinício para o mapa atual onde ocorreu o Game Over.
@@ -1141,7 +1170,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event.is_action_pressed("restart"):
 		get_tree().reload_current_scene()
-	elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
+	elif event.is_action_pressed("pause") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		if pause_menu != null:
 			if pause_menu.visible:
 				pause_menu.resume_game()

@@ -284,12 +284,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if _is_in_controls:
 		var pressed_key: bool = event is InputEventKey and event.pressed and not event.echo
-		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("ui_accept") or pressed_key:
+		var pressed_joy: bool = event is InputEventJoypadButton and event.pressed
+		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("ui_accept") or event.is_action_pressed("pause") or pressed_key or pressed_joy:
 			_safe_handle_input()
 			_close_controls_overlay()
 		return
 
-	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
+	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_safe_handle_input()
 		if _is_in_slots:
 			_on_back_slot_save_pressed()
@@ -300,10 +301,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if _is_in_slots:
+		if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+			_safe_handle_input()
+			_on_back_slot_save_pressed()
+			return
 		_handle_slots_input(event)
 		return
 
 	if _is_in_settings:
+		if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+			_safe_handle_input()
+			_on_back_settings_pressed()
+			return
 		_handle_settings_input(event)
 		return
 

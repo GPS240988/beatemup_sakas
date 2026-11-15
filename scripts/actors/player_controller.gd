@@ -438,19 +438,24 @@ func _physics_process(delta: float) -> void:
 		else:
 			_is_guarding = false
 
+	# Atualiza a orientação (facing direction) caso haja movimento simultâneo a comandos de combate
+	var pre_input_vector: Vector2 = _get_movement_input()
+	if pre_input_vector.x != 0.0:
+		_update_facing_direction(pre_input_vector.x)
+
 	# Leitura de comandos de ataque e habilidades
 	if not _is_guarding:
-		# Botão Especial Exclusivo (O)
+		# Botão Especial Exclusivo (O / Gamepad Y ou B)
 		if Input.is_action_just_pressed("attack_special") or Input.is_action_just_pressed("special"):
 			execute_special()
 			return
 
-		# Voadora do Personagem / Salto com Ataque Aéreo (Space)
+		# Voadora do Personagem / Salto com Ataque Aéreo (Space / Gamepad A)
 		if Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("attack_aerial"):
 			execute_aerial()
 			return
 
-		# Botão Principal de Golpe Básico / Combo de Pancadaria (J)
+		# Botão Principal de Golpe Básico / Combo de Pancadaria (J / Gamepad X ou R1)
 		if Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("attack_punch"):
 			if _try_interact_with_nearby():
 				velocity = Vector2.ZERO
@@ -1160,30 +1165,112 @@ func _find_health_component(actor: Node) -> HealthComponent:
 	return null
 
 
-## Fallback defensivo para mapeamento de teclas
+## Fallback defensivo para mapeamento de teclado e gamepad
 func _ensure_fallback_inputs() -> void:
 	_register_key_if_missing("move_left", KEY_A, KEY_LEFT)
+	_register_joy_button_if_missing("move_left", JOY_BUTTON_DPAD_LEFT)
+	_register_joy_axis_if_missing("move_left", JOY_AXIS_LEFT_X, -1.0)
+
 	_register_key_if_missing("move_right", KEY_D, KEY_RIGHT)
+	_register_joy_button_if_missing("move_right", JOY_BUTTON_DPAD_RIGHT)
+	_register_joy_axis_if_missing("move_right", JOY_AXIS_LEFT_X, 1.0)
+
 	_register_key_if_missing("move_up", KEY_W, KEY_UP)
+	_register_joy_button_if_missing("move_up", JOY_BUTTON_DPAD_UP)
+	_register_joy_axis_if_missing("move_up", JOY_AXIS_LEFT_Y, -1.0)
+
 	_register_key_if_missing("move_down", KEY_S, KEY_DOWN)
+	_register_joy_button_if_missing("move_down", JOY_BUTTON_DPAD_DOWN)
+	_register_joy_axis_if_missing("move_down", JOY_AXIS_LEFT_Y, 1.0)
+
 	_register_key_if_missing("attack_punch", KEY_J, KEY_NONE)
+	_register_joy_button_if_missing("attack_punch", JOY_BUTTON_X)
+	_register_joy_button_if_missing("attack_punch", JOY_BUTTON_RIGHT_SHOULDER)
+
 	_register_key_if_missing("attack", KEY_J, KEY_NONE)
-	_register_key_if_missing("attack_special", KEY_O, KEY_NONE)
-	_register_key_if_missing("special", KEY_O, KEY_NONE)
+	_register_joy_button_if_missing("attack", JOY_BUTTON_X)
+	_register_joy_button_if_missing("attack", JOY_BUTTON_RIGHT_SHOULDER)
+
+	_register_key_if_missing("attack_special", KEY_O, KEY_E)
+	_register_joy_button_if_missing("attack_special", JOY_BUTTON_Y)
+	_register_joy_button_if_missing("attack_special", JOY_BUTTON_B)
+
+	_register_key_if_missing("special", KEY_O, KEY_E)
+	_register_joy_button_if_missing("special", JOY_BUTTON_Y)
+	_register_joy_button_if_missing("special", JOY_BUTTON_B)
+
 	_register_key_if_missing("attack_aerial", KEY_SPACE, KEY_NONE)
+	_register_joy_button_if_missing("attack_aerial", JOY_BUTTON_A)
+
 	_register_key_if_missing("jump", KEY_SPACE, KEY_NONE)
+	_register_joy_button_if_missing("jump", JOY_BUTTON_A)
+
 	_register_key_if_missing("guard", KEY_K, KEY_H)
+	_register_joy_button_if_missing("guard", JOY_BUTTON_LEFT_SHOULDER)
+	_register_joy_button_if_missing("guard", JOY_BUTTON_LEFT_STICK)
+
+	_register_key_if_missing("pause", KEY_ESCAPE, KEY_NONE)
+	_register_joy_button_if_missing("pause", JOY_BUTTON_START)
+
 	_register_key_if_missing("restart", KEY_R, KEY_NONE)
+	_register_joy_button_if_missing("restart", JOY_BUTTON_BACK)
 
 
 func _register_key_if_missing(action_name: StringName, primary_key: Key, secondary_key: Key) -> void:
 	if not InputMap.has_action(action_name):
-		InputMap.add_action(action_name)
-		if primary_key != KEY_NONE:
+		InputMap.add_action(action_name, 0.25 if "move_" in str(action_name) else 0.5)
+
+	var events: Array[InputEvent] = InputMap.action_get_events(action_name)
+
+	if primary_key != KEY_NONE:
+		var has_primary: bool = false
+		for ev in events:
+			if ev is InputEventKey and (ev.physical_keycode == primary_key or ev.keycode == primary_key):
+				has_primary = true
+				break
+		if not has_primary:
 			var event1 := InputEventKey.new()
 			event1.physical_keycode = primary_key
 			InputMap.action_add_event(action_name, event1)
-		if secondary_key != KEY_NONE:
+
+	if secondary_key != KEY_NONE:
+		var has_secondary: bool = false
+		for ev in events:
+			if ev is InputEventKey and (ev.physical_keycode == secondary_key or ev.keycode == secondary_key):
+				has_secondary = true
+				break
+		if not has_secondary:
 			var event2 := InputEventKey.new()
 			event2.physical_keycode = secondary_key
 			InputMap.action_add_event(action_name, event2)
+
+
+func _register_joy_button_if_missing(action_name: StringName, btn: JoyButton) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name, 0.25 if "move_" in str(action_name) else 0.5)
+
+	var events: Array[InputEvent] = InputMap.action_get_events(action_name)
+	for ev in events:
+		if ev is InputEventJoypadButton and ev.button_index == btn:
+			return
+
+	var joy_event := InputEventJoypadButton.new()
+	joy_event.device = -1
+	joy_event.button_index = btn
+	InputMap.action_add_event(action_name, joy_event)
+
+
+func _register_joy_axis_if_missing(action_name: StringName, axis: JoyAxis, val: float) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name, 0.25 if "move_" in str(action_name) else 0.5)
+
+	var events: Array[InputEvent] = InputMap.action_get_events(action_name)
+	for ev in events:
+		if ev is InputEventJoypadMotion and ev.axis == axis and signf(ev.axis_value) == signf(val):
+			return
+
+	var motion_event := InputEventJoypadMotion.new()
+	motion_event.device = -1
+	motion_event.axis = axis
+	motion_event.axis_value = val
+	InputMap.action_add_event(action_name, motion_event)

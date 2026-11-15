@@ -290,8 +290,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _game_over_active or not _can_restart:
 		return
 
-	# Tecla física R (PC)
-	if event.is_action_pressed("restart"):
+	# Tecla física R (PC), botão A / START do Gamepad ou ação de confirmação arcade
+	if event.is_action_pressed("restart") or event.is_action_pressed("ui_accept") or (event is InputEventJoypadButton and event.pressed and event.button_index in [JOY_BUTTON_A, JOY_BUTTON_START]):
 		_restart_current_stage()
 		return
 
@@ -303,8 +303,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_restart_current_stage()
 		return
 
-	# ESC para retornar ao menu principal
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+	# ESC ou botão B do Gamepad para retornar ao menu principal
+	if event.is_action_pressed("ui_cancel") or (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_exit_to_main_menu()
 
 

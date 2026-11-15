@@ -127,6 +127,26 @@ func _ready() -> void:
 	reset_session()
 	_load_campaign_progression()
 	_init_bgm_pack_listener()
+	if not Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.connect(_on_joy_connection_changed)
+
+
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	print("[GameSession] Joypad %d %s: %s" % [device, "conectado" if connected else "desconectado", Input.get_joy_name(device)])
+	if not connected:
+		flush_gamepad_actions()
+
+
+## Libera ações de combate e movimento que possam ter ficado retidas
+func flush_gamepad_actions() -> void:
+	var actions: Array[StringName] = [
+		&"move_left", &"move_right", &"move_up", &"move_down",
+		&"attack", &"attack_punch", &"jump", &"attack_aerial",
+		&"special", &"attack_special", &"guard"
+	]
+	for act in actions:
+		if Input.is_action_pressed(act):
+			Input.action_release(act)
 
 
 ## Estado de progressão do jogador entre seções do mesmo mapa (ex: Fase 1)

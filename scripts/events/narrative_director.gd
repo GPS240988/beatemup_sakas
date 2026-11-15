@@ -253,7 +253,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _is_mobile_runtime() and _is_current_event_arcade_machine():
 		return
 
-	if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)) or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
+	if event.is_action_pressed("ui_accept") or (event is InputEventJoypadButton and event.pressed and event.button_index in [JOY_BUTTON_A, JOY_BUTTON_START]) or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)) or (event is InputEventMouseButton and event.pressed) or (event is InputEventScreenTouch and event.pressed):
 		_safe_handle_input()
 		advance_or_skip_text()
 

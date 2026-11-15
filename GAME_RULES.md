@@ -332,19 +332,23 @@ MapX (Node2D, script: base_level.gd)
   - **Juliana**: Força 1, Velocidade 3, Técnica 4 (Especialista técnica, janela ampla de combos e cancelamentos).
 - **Controles de Combate Arcade com Botão Único Principal**:
   - **Botão de Ataque Principal** (`attack` / `attack_punch` / `ui_accept`):
+    - Mapeamento: Tecla `J`, Gamepad `JOY_BUTTON_X` (Botão X / Quadrado) e `JOY_BUTTON_RIGHT_SHOULDER` (RB / R1), e Botão Touch Punho.
     - Executa a sequência contextual de 4 golpes contínuos:
       `Passo 1 (Jab / Punch 1)` → `Passo 2 (Cruzado / Punch 2)` → `Passo 3 (Chute no Tronco / Kick)` → `Passo 4 (Finisher / Heavy)`.
     - O Finisher desfere impacto máximo e derruba o inimigo (`can_knockdown = true`). Utiliza animação `heavy` em 6 quadros (`heavy_01` a `heavy_06.png`) a 10.0 FPS, recovery calibrado em 0.58s e transição imediata para `idle` conectada via sinais `attack_ended` e `animation_finished`, impedindo travamento no último quadro.
     - Ciclo temporal formal de ataque no `MeleeAttack` (`Phase`): `STARTUP` (preparação visual sem hitbox ativa nem dano), `ACTIVE` (hitbox ativa com dano único estrito por alvo) e `RECOVERY` (hitbox desativada imediatamente). Sinais `attack_started` e `attack_ended` são emitidos estritamente uma única vez no início e na conclusão completa do ciclo.
     - Possui janela real de encadeamento (`combo_window`) escalonada pelo atributo Técnica e buffer de entrada (`_input_buffered`) durante startup/active que permite encadear golpes no início do recovery ou cancelando o recovery remanescente.
   - **Botão Exclusivo de Especial** (`attack_special` / `special`):
+    - Mapeamento: Teclas `O` e `E`, Gamepad `JOY_BUTTON_Y` (Botão Y / Triângulo) e `JOY_BUTTON_B` (Botão B / Círculo), e Botão Touch Especial.
     - Dispara evento global de combate consumindo 100% da barra de Especial (sem subtrair vida do jogador, exigindo medidor completamente cheio).
     - Concede invulnerabilidade temporária durante a apresentação.
     - Exibe apresentação visual cinematográfica oficial de 2,50 segundos (`SpecialPresentation`, layer 120) orientada por dados (`HeroData`), cobrindo integralmente a viewport em qualquer proporção (`STRETCH_KEEP_ASPECT_COVERED`) com proporção preservada e sem poluição de texto na tela. A sequência possui 6 etapas rigorosamente sincronizadas (Abertura 0,35s, Construção de Energia 0,55s, Hold do Clímax 0,40s, Flash de Impacto 0,20s, Respiro 0,50s, Saída 0,50s), emitindo o sinal `impact_reached` estritamente aos 1,30s e `finished` aos 2,50s de forma idempotente.
     - Aplica dano global e queda obrigatória em todos os inimigos vivos do encontro exatamente aos 1,30s no sinal `impact_reached`, preservando NPCs civis.
-  - **Botão de Salto** (`jump`):
+  - **Botão de Salto / Voadora** (`jump` / `attack_aerial`):
+    - Mapeamento: Tecla `Espaço`, Gamepad `JOY_BUTTON_A` (Botão A / Cruz), e Botão Touch Voadora.
     - Projeta o nó `Visual` no eixo Y (`Y < 0`). Ataque no ar dispara o golpe aéreo (`jump_atk`).
   - **Botão de Guarda** (`guard`):
+    - Mapeamento: Teclas `K` e `H`, Gamepad `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) e `JOY_BUTTON_LEFT_STICK` (L3), e Botão Touch Bloqueio.
     - Reduz 70% do dano recebido, anula knockback e cancela transições de queda.
   - **Métodos Públicos Legados Preservados**: `execute_punch()`, `execute_kick()`, `execute_heavy()`, `execute_aerial()`.
 - **Reações Físicas do Jogador**:
@@ -1270,3 +1274,45 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   - Sincronização contínua com `version.json` e `CACHE_VERSION`.
   - Verificação de novas versões em `visibilitychange` e `focus` sem causar loops de reload e sem interromper partidas ativas.
   - Notificação discreta via toast arcade quando uma atualização estiver pronta.
+
+---
+
+## 40. GAMEPAD MULTIPLATFORM CONTRACT (USB, BLUETOOTH & WEB GAMEPAD API)
+`STATUS: IMPLEMENTED`
+
+### 1. Filosofia e Arquitetura do InputMap Nativo:
+- **Prioridade Absoluta ao InputMap Nativo**: O jogo não utiliza drivers paralelos em JavaScript, scripts de polling externos ou emulação de teclado. A engine Godot 4 compila o módulo WebAssembly integrando a Gamepad API do navegador (`navigator.getGamepads()`) diretamente ao loop de eventos da engine (`InputEventJoypadButton` e `InputEventJoypadMotion`).
+- **Configuração Universal (`device = -1`)**: Todos os eventos joypad configurados em `project.godot` e em scripts defensivos utilizam `device = -1` (All Devices). Isso assegura resposta imediata para qualquer controle conectado via USB ou Bluetooth (Xbox, PlayStation, Nintendo, 8BitDo ou genérico), independentemente do índice de porta (`device 0`, `device 1`, etc.) atribuído pelo navegador ou sistema operacional.
+- **Camada Defensiva em Runtime**: O método `_ensure_fallback_inputs()` em `player_controller.gd` e `GameSession` garante que, caso o jogo seja carregado com configurações dinâmicas ou modificadas, todos os botões e eixos essenciais sejam registrados com proteção anti-duplicação (`InputMap.action_has_event`).
+
+### 2. Tabela Canônica de Mapeamento Multiplataforma:
+| Ação de Gameplay / UI | Teclado | Gamepad (Padrão Xbox / PS / Universal) | Mobile Touch (`TouchControls`) |
+| :--- | :--- | :--- | :--- |
+| **Combo Básico** (`attack`, `attack_punch`) | `J` | `JOY_BUTTON_X` (X / Quadrado) + `JOY_BUTTON_RIGHT_SHOULDER` (RB / R1) | Botão Punho |
+| **Voadora / Salto Aéreo** (`jump`, `attack_aerial`) | `Espaço` | `JOY_BUTTON_A` (A / Cruz) | Botão Voadora |
+| **Golpe Especial** (`special`, `attack_special`) | `O`, `E` | `JOY_BUTTON_Y` (Y / Triângulo) + `JOY_BUTTON_B` (B / Círculo) | Botão Especial |
+| **Bloqueio / Guarda** (`guard`) | `K`, `H` | `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) + `JOY_BUTTON_LEFT_STICK` (L3) | Botão Bloqueio |
+| **Pausa no Gameplay** (`pause`) | `ESC` | `JOY_BUTTON_START` (Start / Options / Menu) | Botão Pause (Topo Dir.) |
+| **Reiniciar Fase** (`restart`) | `R` | `JOY_BUTTON_BACK` (Select / View / Share) | Botão Tentar Novamente |
+| **Confirmar em Menus** (`ui_accept`) | `Enter`, `Espaço` | `JOY_BUTTON_A` (A / Cruz) + `JOY_BUTTON_START` | Toque / Clique |
+| **Cancelar / Voltar** (`ui_cancel`) | `ESC` | `JOY_BUTTON_B` (B / Círculo) | Botão Voltar |
+| **Movimentação Direcional** (`move_*` e `ui_*`) | `WASD`, Setas | **D-Pad**: Botões 11, 12, 13, 14<br>**Analógico Esquerdo**: Eixos 0 e 1 (Deadzone: `0.25`) | Joystick Virtual |
+
+### 3. Diretrizes Obrigatórias para Novas Ações e Botões Futuros:
+1. **Segregação Estrita entre Pausa e Cancelamento de Menu**:
+   - Durante o gameplay ativo, `base_level.gd` monitora **exclusivamente** a ação `pause` (`JOY_BUTTON_START` / `KEY_ESCAPE`).
+   - **É estritamente proibido** utilizar `ui_cancel` para acionar a pausa no meio do combate, pois o botão físico `B` (Círculo) dispara tanto `ui_cancel` quanto o Golpe Especial (`special`). Se `ui_cancel` pausasse a partida, o jogador pausaria acidentalmente ao tentar desferir o Especial.
+   - Dentro de menus abertos (`pause_menu.gd`, `main_menu.gd`, `map_menu.gd`), `ui_cancel` (`JOY_BUTTON_B`) atua normalmente como Voltar / Cancelar.
+2. **Atualização Imediata de Orientação em Ações Simultâneas**:
+   - Em `player_controller.gd`, a leitura do vetor direcional (`_get_movement_input()`) deve ser executada **antes** da checagem dos botões de combate.
+   - Pressionar direcional + botão de ataque no mesmo frame atualiza `facing_direction` instantaneamente, garantindo que o herói desfira o soco ou a voadora voltado para o lado pressionado sem atraso de frame.
+3. **Calibração de Deadzone para Analógicos**:
+   - Ações de locomoção (`move_left`, `move_right`, `move_up`, `move_down`, `ui_*`) devem ser configuradas com deadzone calibrada entre `0.20` e `0.25`. Deadzones excessivas (como 0.50) comprometem a sensibilidade de movimentos diagonais em controles Bluetooth no navegador.
+4. **Ciclo de Vida de Conexão e Desconexão em Partida**:
+   - Qualquer cena de nível ou autoload de sessão deve conectar-se ao sinal `Input.joy_connection_changed`.
+   - Ao desconectar um controle em partida ativa:
+     1. Invocar `Input.action_release()` para todas as ações de locomoção e combate, impedindo comandos presos ou deslocamento fantasma.
+     2. Acionar a pausa automática (`open_pause()`), protegendo o jogador contra ataques inimigos enquanto reconecta o controle.
+5. **Princípio da Coexistência Tripla Harmônica**:
+   - Teclado, Gamepad e Controles Touchscreen virtuais compartilham as mesmas ações abstratas do `InputMap`.
+   - O jogo deve aceitar alternância instantânea entre os periféricos no mesmo frame sem falhas, sem travamentos de estado e sem comandos duplicados (`echo`). Ao criar novos botões, adicionar o mapeamento no `project.godot` e espelhar em `_ensure_fallback_inputs()`.
