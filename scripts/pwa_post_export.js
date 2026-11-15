@@ -40,9 +40,9 @@ function resolveBuildVersion() {
 					cwd: ROOT_DIR,
 					encoding: 'utf8',
 					stdio: ['ignore', 'pipe', 'ignore'],
-				}).trim().split('\n').filter(Boolean);
+				}).split('\n').filter(Boolean);
 				const codeChanges = dirtyFiles.filter(line => {
-					const f = line.slice(3).trim();
+					const f = line.replace(/^[MADRCU?! ]+\s+/, '').trim().replace(/\\/g, '/');
 					return !f.startsWith('public/version.json')
 						&& !f.startsWith('public/index.service.worker.js')
 						&& !f.startsWith('public/index.html')
