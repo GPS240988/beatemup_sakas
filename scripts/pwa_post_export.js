@@ -36,12 +36,20 @@ function resolveBuildVersion() {
 		}).trim();
 		if (gitSha) {
 			try {
-				const isDirty = execSync('git status --porcelain', {
+				const dirtyFiles = execSync('git status --porcelain -uno', {
 					cwd: ROOT_DIR,
 					encoding: 'utf8',
 					stdio: ['ignore', 'pipe', 'ignore'],
-				}).trim().length > 0;
-				if (isDirty) {
+				}).trim().split('\n').filter(Boolean);
+				const codeChanges = dirtyFiles.filter(line => {
+					const f = line.slice(3).trim();
+					return !f.startsWith('public/version.json')
+						&& !f.startsWith('public/index.service.worker.js')
+						&& !f.startsWith('public/index.html')
+						&& !f.startsWith('public/mobile_shell.html')
+						&& !f.startsWith('public/packs/manifest.json');
+				});
+				if (codeChanges.length > 0) {
 					gitSha += '-d' + Math.floor(Date.now() / 1000).toString(36);
 				}
 			} catch (_) {}
