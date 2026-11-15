@@ -5,6 +5,12 @@
 
 [resource]
 script = ExtResource("1_8cke0")
+hero_id = "guilherme"
+display_name = "Guilherme"
+punch1_damage = 10.0
+punch2_damage = 15.0
+kick3_damage = 20.0
+heavy4_damage = 35.0
 special_presentation_texture = ExtResource("2_special_tex")
 special_title = ""
 special_theme_color = Color(0.95, 0.78, 0.15, 0.9)

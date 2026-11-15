@@ -66,6 +66,9 @@ var _base_hitbox_y: float = -100.0
 ## Habilita atingir objetos destrutíveis em paralelo ao grupo alvo
 @export var can_hit_props: bool = true
 
+## Define se o ataque corrente é um projétil (suprime abertura da hitbox física)
+@export var is_projectile: bool = false
+
 ## Validação de linha de visão física (impede golpes através de paredes e balcões na Layer 2)
 @export var check_obstacles: bool = true
 @export var obstacle_collision_mask: int = 2
@@ -261,6 +264,8 @@ func _update_hitbox_transform() -> void:
 
 ## Liga ou desliga a monitoração da Hitbox de forma segura
 func _set_hitbox_active(active: bool) -> void:
+	if is_projectile:
+		active = false
 	is_active_window = active
 	if hitbox_area != null and is_instance_valid(hitbox_area):
 		hitbox_area.set_deferred("monitoring", active)
@@ -278,7 +283,7 @@ func _on_hitbox_detect(collider: Node) -> void:
 
 ## Varre os alvos potenciais (via Area2D overlapping e verificação direta do grupo apenas quando necessário)
 func _poll_overlapping_targets(force_group_scan: bool = false) -> void:
-	if not is_active_window or current_phase != Phase.ACTIVE:
+	if is_projectile or not is_active_window or current_phase != Phase.ACTIVE:
 		return
 
 	var has_monitoring_hitbox: bool = (hitbox_area != null and is_instance_valid(hitbox_area) and is_inside_tree() and hitbox_area.monitoring)
@@ -479,6 +484,10 @@ func apply_attack_data(data: RefCounted) -> void:
 		hitbox_offset_y = float(data.get("hitbox_offset_y"))
 	else:
 		hitbox_offset_y = 0.0
+	if data.get("is_projectile") != null:
+		is_projectile = bool(data.get("is_projectile"))
+	else:
+		is_projectile = false
 
 
 

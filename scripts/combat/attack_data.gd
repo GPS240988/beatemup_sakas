@@ -24,6 +24,12 @@ extends Resource
 @export var preferred_regions: Array[String] = []
 @export var hitbox_offset_y: float = 0.0
 
+## Propriedades para ataques baseados em projéteis (ex: Gabriel)
+@export var is_projectile: bool = false
+@export var projectile_count: int = 1
+@export var projectile_interval: float = 0.0
+@export var projectile_speed: float = 700.0
+
 ## Retorna a duração em segundos correspondente aos frames de hitstop (base 60 FPS)
 func get_hitstop_duration() -> float:
 	return float(hitstop_frames) / 60.0

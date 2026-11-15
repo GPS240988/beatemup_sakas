@@ -1316,3 +1316,63 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 5. **Princípio da Coexistência Tripla Harmônica**:
    - Teclado, Gamepad e Controles Touchscreen virtuais compartilham as mesmas ações abstratas do `InputMap`.
    - O jogo deve aceitar alternância instantânea entre os periféricos no mesmo frame sem falhas, sem travamentos de estado e sem comandos duplicados (`echo`). Ao criar novos botões, adicionar o mapeamento no `project.godot` e espelhar em `_ensure_fallback_inputs()`.
+
+---
+
+## 41. NORMALIZAÇÃO DE DANO DOS HERÓIS & CONTRATO DO GABRIEL (ATIRADOR VELOZ)
+`STATUS: IMPLEMENTED`
+
+### 1. Fonte Única de Verdade do Dano de Combate
+- **Problema Corrigido**: Divergência histórica entre a documentação oficial (Jab 10, Cross 15, Hook 20, Finisher 35 = 80 total) e valores legados inflados em `HeroData` (20, 25, 32, 48 = 125 total).
+- **Referência Canônica**: A referência oficial de dano-base acumulado do combo principal é rigorosamente **80.0 pontos**, eliminando exatamente 1 Grunt padrão de 80 HP no Mapa 1 (Dificuldade Normal) com 1 combo limpo.
+- **Aplicação Única do Multiplicador de Força**:
+  $$\text{Dano Efetivo} = \text{Dano Base} \times \text{Multiplicador de Força}$$
+  $$\text{Multiplicador de Força} = 0.70 + (\text{Força} \times 0.10)$$
+  - **Força 1 (Gabriel / Juliana)**: $0.70 + (1 \times 0.10) = 0.80\times$ (Combo efetivo: $80 \times 0.80 = 64.0$)
+  - **Força 3 (Guilherme)**: $0.70 + (3 \times 0.10) = 1.00\times$ (Combo efetivo: $80 \times 1.00 = 80.0$)
+  - **Força 4 (André)**: $0.70 + (4 \times 0.10) = 1.10\times$ (Combo efetivo: $80 \times 1.10 = 88.0$)
+  - **Força 5 (Fernando)**: $0.70 + (5 \times 0.10) = 1.20\times$ (Combo efetivo: $80 \times 1.20 = 96.0$)
+- **Blindagem Contra Duplicação**: O multiplicador de Força é aplicado estritamente na montagem do `AttackData` no `PlayerController`. O componente `MeleeAttack` e o `DamageInfo` não re-multiplicam o valor.
+
+### 2. Contrato Oficial do Gabriel (Atirador Veloz)
+- **Estatísticas Oficiais (Teto de 8 Pontos)**: Força 1, Velocidade 4, Técnica 3.
+- **Orçamento de Dano Efetivo do Combo**: 64.0 pontos (com vantagem tática de alcance e alta mobilidade).
+  | Movimento | Dano Base (`gabriel_data.tres`) | Dano Efetivo ($0.80\times$) | Alcance | Tolerância Y | Efeito Mecânico |
+  | :--- | :--- | :--- | :--- | :--- | :--- |
+  | **Passo 1 (Disparo Rápido)** | 17.50 | 14.00 | 280 px | 24 px | Disparo balístico reto, hitstun leve (0.20s). |
+  | **Passo 2 (Rajada Dupla)** | 17.50 (2x 8.75) | 14.00 (2x 7.00) | 300 px | 26 px | Dois disparos rápidos em semi-automático. |
+  | **Passo 3 (Pistolada Curta)** | 15.00 | 12.00 | 75 px | 28 px | Ataque físico com a coronha para abrir espaço. |
+  | **Passo 4 (Rajada Final)** | 30.00 | 24.00 | 320 px | 30 px | Tiro forte com recuo, causando **Knockdown**. |
+  | **Total do Combo** | **80.00** | **64.00** | — | — | Deixa Grunts com 16 HP em queda no solo. |
+  | **Ataque Aéreo (Espaço)** | 30.00 | 24.00 | 160 px | 24 px | Salto tático com disparo em ângulo descendente. |
+  | **Golpe Especial (O)** | 62.50 | 50.00 | Global | Viewport | Apresentação cinematográfica de 2.50s com dano de área. |
+- **Arquitetura de Carregamento Modular de Heróis**:
+  - `PlayerController` desacoplado: em `_ready()`, carrega dinamicamente `res://resources/heroes/%s_data.tres % char_id` e `res://resources/characters/%s_sprite_frames.tres % char_id`.
+  - Guilherme, André e Juliana permanecem 100% protegidos contra quebras.
+  - Placeholder técnico `gabriel_sprite_frames.tres` preserva todas as ações (`idle`, `walk`, `punch`, `kick`, `heavy`, `jump`, `jump_atk`, `hurt`, `fall`, `getup`, `death`, `guard`) sem falhas enquanto os sprites finais não são desenhados.
+
+### 3. Implementação Técnica Integrada da Gameplay do Gabriel (Etapas 03, 04 e 05)
+- **Sistema de Projéteis 2.5D (`PlayerBullet`)**:
+  - Script: `scripts/actors/projectiles/player_bullet.gd` | Cena: `scenes/actors/projectiles/player_bullet.tscn`.
+  - Velocidade linear balística: 700.0 px/s no plano horizontal.
+  - Colisões físicas: Layer 8 (Hitbox), Layer 2 (muros, obstáculos e móveis de cenário), Layer 3 (hurtboxes de inimigos).
+  - Alinhamento de profundidade 2.5D: O projétil armazena a coordenada Y do chão no momento do disparo (`projectile_lane_y`), comparando com os pés do alvo (`absf(target.global_position.y - projectile_lane_y) <= depth_tolerance`).
+  - Evasão Aérea: Inimigos em salto (`_is_jumping` ou `Visual.position.y <= -12.0`) desviam do tiro por baixo, acionando feedback visual "MISS".
+  - Consumo único: Projétil é destruído no primeiro impacto válido, eliminando perfuração infinita não intencional.
+  - Artefato visual PixelFX: Spritesheet de alta fidelidade `bullet-tracer` (`assets/sprites/Efeitos/pixelfx/bullet-tracer.png`), 18 frames em 30 FPS, integrado ao nó `Sprite2D` com `hframes = 2` e `vframes = 9`.
+
+- **Combo Exclusivo de 4 Movimentos com Botão Principal (`J`)**:
+  - `Passo 1 (Disparo Rápido)`: 1 projétil balístico, dano efetivo 14.0, alcance 280 px, profundidade 24 px, startup 0.03s, active 0.08s, recovery 0.12s, hitstop 2 frames, sem knockdown.
+  - `Passo 2 (Rajada Dupla)`: 2 projéteis semiautomáticos intervalados por 0.06s, dano efetivo 7.0 cada (14.0 total), alcance 300 px, profundidade 26 px, startup 0.04s, active 0.10s, recovery 0.15s, hitstop 2 frames, sem knockdown.
+  - `Passo 3 (Pistolada / Coronhada)`: Golpe corpo a corpo físico desferido com a coronha da arma utilizando o componente `MeleeAttack` (`is_projectile = false`), dano efetivo 12.0, alcance 75 px, profundidade 28 px, startup 0.03s, active 0.10s, recovery 0.16s, hitstop 3 frames, sem knockdown.
+  - `Passo 4 (Rajada Final)`: 1 projétil balístico pesado com recuo, dano efetivo 24.0, alcance 320 px, profundidade 30 px, startup 0.05s, active 0.12s, recovery 0.32s, hitstop 5 frames, causando **Knockdown** garantido.
+  - `Garantia de Progressão Completa`: Diferente de Guilherme (que aplica a regra canônica de 20% para entrar no Heavy), Gabriel avança do Passo 3 para o Passo 4 com 100% de garantia linear, permitindo vivenciar o combo de 4 etapas fluidamente.
+  - `Prioridade de Coleta Contextual`: Ao pressionar `J` perto de um consumível de vida (`coca_pickup`), a coleta do item tem prioridade estrita sobre o disparo da pistola.
+
+- **Mobilidade e Salto Tático (`Space` / `attack_aerial`)**:
+  - Velocidades calibradas: `speed_x = 260.0`, `speed_y = 190.0` que, multiplicadas pelo modificador de Velocidade 4 ($1.30\times$), entregam exatamente 338.0 px/s horizontal e 247.0 px/s vertical.
+  - Impulso de Salto Tático: Impulso vertical `aerial_jump_v_velocity = -320.0` e impulso horizontal à frente de 200.0 px/s.
+  - Disparo Aéreo Balístico: Dispara projétil no ar (dano efetivo 24.0, alcance 160 px, profundidade 28 px) originado do `MuzzleMarker` acompanhando a projeção do nó `Visual` no ar, sem ativar hitbox corpo a corpo simultânea.
+  - Bloqueio estrito de reativação: Jogador não pode acionar novo salto ou golpe aéreo enquanto já estiver no ar (`_is_jumping = true`).
+  - Restauração ao tocar o solo: Ao atingir o solo (`visual_root.position.y >= 0.0`), zera a velocidade vertical e restaura o estado para `CombatState.NORMAL`.
+

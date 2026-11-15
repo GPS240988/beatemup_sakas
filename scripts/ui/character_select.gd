@@ -371,21 +371,27 @@ func _update_stats_display(char_id: String) -> void:
 	if stat_tec_label != null:
 		stat_tec_label.text = "TÉCNICA:    " + _generate_bar_string(tec)
 
+	var hero_display: String = char_id.capitalize().to_upper()
+	if session != null and session.CHARACTERS.has(char_id):
+		hero_display = str(session.CHARACTERS[char_id].get("name", hero_display)).to_upper()
+
 	if is_unlocked:
 		if status_label != null:
-			status_label.text = "HERÓI SELECIONADO: GUILHERME (DISPONÍVEL)"
+			status_label.text = "HERÓI SELECIONADO: %s (DISPONÍVEL)" % hero_display
 			status_label.modulate = Color(1.0, 0.85, 0.15, 1.0)
 		if char_desc_label != null:
-			char_desc_label.text = "O Guerreiro de Sakas — Equilibrado e pronto para o combate nas ruas da Vila Prudente."
+			if char_id == "gabriel":
+				char_desc_label.text = "O Atirador Veloz — Ágil e preciso nas ruas da Vila Prudente."
+			else:
+				char_desc_label.text = "O Guerreiro de Sakas — Equilibrado e pronto para o combate nas ruas da Vila Prudente."
 			char_desc_label.modulate = Color(0.85, 0.9, 0.95, 1.0)
 		if btn_confirm != null:
 			btn_confirm.disabled = false
-			btn_confirm.text = "⚡ ESCOLHER GUILHERME — INICIAR FASE 1"
+			btn_confirm.text = "⚡ ESCOLHER %s — INICIAR FASE 1" % hero_display
 			btn_confirm.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	else:
-		var hero_name: String = char_id.capitalize()
 		if status_label != null:
-			status_label.text = "⚠️ %s ESTÁ BLOQUEADO (EM DESENVOLVIMENTO)" % hero_name.to_upper()
+			status_label.text = "⚠️ %s ESTÁ BLOQUEADO (EM DESENVOLVIMENTO)" % hero_display
 			status_label.modulate = Color(0.95, 0.25, 0.35, 1.0)
 		if char_desc_label != null:
 			char_desc_label.text = "Guerreiro trancado nesta versão arcade. Derrote os chefões para desbloquear."
@@ -401,12 +407,18 @@ func _update_stats_display(char_id: String) -> void:
 func _update_mobile_action() -> void:
 	if _mobile_action_button == null or btn_confirm == null:
 		return
+	var session = get_node_or_null("/root/GameSession")
+	var is_unlocked: bool = false
+	if session != null and session.CHARACTERS.has(current_hover_id):
+		is_unlocked = bool(session.CHARACTERS[current_hover_id].get("unlocked", false))
+	else:
+		is_unlocked = (current_hover_id == "guilherme")
 	var hero_name := current_hover_id.to_upper()
-	var mobile_label := "CONFIRMAR " + hero_name if current_hover_id == "guilherme" else "BLOQUEADO: " + hero_name
+	var mobile_label := "CONFIRMAR " + hero_name if is_unlocked else "BLOQUEADO: " + hero_name
 	MobileScreenAction.set_action_state(
 		_mobile_action_button,
 		mobile_label,
-		current_hover_id != "guilherme"
+		not is_unlocked
 	)
 
 
@@ -421,8 +433,15 @@ func _on_confirm_pressed() -> void:
 	if _is_transitioning_scene:
 		return
 
-	# Restrição master do jogo: apenas Guilherme inicia a partida
-	if current_hover_id != "guilherme":
+	# Restrição master do jogo: apenas heróis desbloqueados iniciam a partida
+	var session = get_node_or_null("/root/GameSession")
+	var is_unlocked: bool = false
+	if session != null and session.CHARACTERS.has(current_hover_id):
+		is_unlocked = bool(session.CHARACTERS[current_hover_id].get("unlocked", false))
+	else:
+		is_unlocked = (current_hover_id == "guilherme")
+
+	if not is_unlocked:
 		_deny_character_selection()
 		return
 
@@ -439,7 +458,7 @@ func _on_confirm_pressed() -> void:
 
 	var game_session = get_node_or_null("/root/GameSession")
 	if game_session != null:
-		game_session.select_character("guilherme")
+		game_session.select_character(current_hover_id)
 
 	_safe_handle_input()
 	await get_tree().create_timer(0.20).timeout

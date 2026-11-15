@@ -25,6 +25,7 @@ extends Resource
 @export var aerial_recovery: float = 0.23
 @export var aerial_forward_velocity: float = 240.0
 @export var aerial_hitbox_offset_y: float = -130.0
+@export var aerial_depth_tolerance: float = 28.0
 
 @export_group("Golpe Especial")
 @export var special_max_charge: float = 100.0
@@ -40,7 +41,7 @@ extends Resource
 @export var special_presentation_duration: float = 2.5
 
 @export_group("Combo 1 - Jab / Soco")
-@export var punch1_damage: float = 20.0
+@export var punch1_damage: float = 10.0
 @export var punch1_range: float = 85.0
 @export var punch1_depth_tolerance: float = 26.0
 @export var punch1_startup: float = 0.04
@@ -53,7 +54,7 @@ extends Resource
 @export var punch1_hitbox_offset_y: float = -125.0
 
 @export_group("Combo 2 - Cruzado / Soco 2")
-@export var punch2_damage: float = 25.0
+@export var punch2_damage: float = 15.0
 @export var punch2_range: float = 90.0
 @export var punch2_depth_tolerance: float = 26.0
 @export var punch2_startup: float = 0.04
@@ -66,7 +67,7 @@ extends Resource
 @export var punch2_hitbox_offset_y: float = -110.0
 
 @export_group("Combo 3 - Chute no Tronco")
-@export var kick3_damage: float = 32.0
+@export var kick3_damage: float = 20.0
 @export var kick3_range: float = 105.0
 @export var kick3_depth_tolerance: float = 28.0
 @export var kick3_startup: float = 0.05
@@ -79,7 +80,7 @@ extends Resource
 @export var kick3_hitbox_offset_y: float = -70.0
 
 @export_group("Combo 4 - Finisher / Gancho Pesado")
-@export var heavy4_damage: float = 48.0
+@export var heavy4_damage: float = 35.0
 @export var heavy4_range: float = 115.0
 @export var heavy4_depth_tolerance: float = 30.0
 @export var heavy4_startup: float = 0.06

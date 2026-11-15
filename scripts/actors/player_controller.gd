@@ -55,6 +55,7 @@ const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 const SpecialPresentationClass = preload("res://scripts/combat/special_presentation.gd")
 const ImpactZonesClass = preload("res://scripts/combat/impact_zones.gd")
+const PlayerBulletClass = preload("res://scripts/actors/projectiles/player_bullet.gd")
 
 ## Referências internas
 @onready var visual_root: Node2D = $Visual
@@ -120,12 +121,15 @@ func _ready() -> void:
 	if session != null and "selected_character_id" in session and session.selected_character_id != "":
 		char_id = str(session.selected_character_id).to_lower()
 
-	if hero_data == null:
-		var hero_path := "res://resources/heroes/%s_data.tres" % char_id
-		if ResourceLoader.exists(hero_path):
-			hero_data = load(hero_path)
-		elif ResourceLoader.exists("res://resources/heroes/guilherme_data.tres"):
-			hero_data = load("res://resources/heroes/guilherme_data.tres")
+	var hero_path := "res://resources/heroes/%s_data.tres" % char_id
+	if ResourceLoader.exists(hero_path):
+		hero_data = load(hero_path)
+	elif hero_data == null and ResourceLoader.exists("res://resources/heroes/guilherme_data.tres"):
+		hero_data = load("res://resources/heroes/guilherme_data.tres")
+
+	var frames_path := "res://resources/characters/%s_sprite_frames.tres" % char_id
+	if ResourceLoader.exists(frames_path) and anim_sprite != null:
+		anim_sprite.sprite_frames = load(frames_path)
 
 	if hero_data != null:
 		if "speed_x" in hero_data:
@@ -153,6 +157,14 @@ func _ready() -> void:
 		melee_attack.attack_ended.connect(_on_attack_ended)
 		if not melee_attack.target_hit.is_connected(_on_melee_target_hit):
 			melee_attack.target_hit.connect(_on_melee_target_hit)
+		if not melee_attack.attack_phase_changed.is_connected(_on_attack_phase_changed):
+			melee_attack.attack_phase_changed.connect(_on_attack_phase_changed)
+
+	if visual_root != null and visual_root.get_node_or_null("MuzzleMarker") == null:
+		var marker := Marker2D.new()
+		marker.name = "MuzzleMarker"
+		marker.position = Vector2(45.0, -115.0)
+		visual_root.add_child(marker)
 
 	if punch_visual != null:
 		punch_visual.visible = false
@@ -166,12 +178,23 @@ func _ready() -> void:
 	_build_combo_chain()
 
 
+func is_gabriel() -> bool:
+	if hero_data != null and hero_data.hero_id.to_lower() == "gabriel":
+		return true
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and "selected_character_id" in session:
+		return str(session.selected_character_id).to_lower() == "gabriel"
+	return false
+
+
 ## Aplica os modificadores de Força, Velocidade e Técnica da sessão
 func _apply_character_stat_modifiers() -> void:
 	var session = get_node_or_null("/root/GameSession")
 	var char_id: String = "guilherme"
 	if session != null and "selected_character_id" in session:
 		char_id = session.selected_character_id
+	elif hero_data != null and hero_data.hero_id != "":
+		char_id = hero_data.hero_id.to_lower()
 
 	_str_mult = 1.0
 	_spd_mult = 1.0
@@ -181,6 +204,10 @@ func _apply_character_stat_modifiers() -> void:
 		_str_mult = session.get_strength_multiplier(char_id)
 		_spd_mult = session.get_speed_multiplier(char_id)
 		_tec_mult = session.get_technique_multiplier(char_id)
+	elif hero_data != null:
+		_str_mult = 1.0 + (float(hero_data.strength) - 3.0) * 0.10
+		_spd_mult = 1.0 + (float(hero_data.speed) - 3.0) * 0.10
+		_tec_mult = 1.0 + (float(hero_data.technique) - 3.0) * 0.08
 
 	# Aplica modificadores de velocidade de locomoção
 	speed_x *= _spd_mult
@@ -188,7 +215,6 @@ func _apply_character_stat_modifiers() -> void:
 
 	# Aplica modificadores de combate
 	if melee_attack != null:
-		melee_attack.damage *= _str_mult
 		melee_attack.depth_tolerance *= _tec_mult
 		if _tec_mult > 0.0:
 			melee_attack.attack_cooldown /= _tec_mult
@@ -198,6 +224,102 @@ func _apply_character_stat_modifiers() -> void:
 func _build_combo_chain() -> void:
 	_combo_attacks.clear()
 
+	if is_gabriel():
+		# 1. Gabriel Combo 1: Disparo Rápido (1 projétil)
+		var g_atk1: Resource = AttackDataClass.new()
+		g_atk1.set("attack_id", "gabriel_shot_1")
+		g_atk1.set("animation", &"punch")
+		g_atk1.set("startup", hero_data.punch1_startup if hero_data and "punch1_startup" in hero_data else 0.03)
+		g_atk1.set("active", hero_data.punch1_active if hero_data and "punch1_active" in hero_data else 0.08)
+		g_atk1.set("recovery", (hero_data.punch1_recovery if hero_data and "punch1_recovery" in hero_data else 0.12) / maxf(0.1, _tec_mult))
+		g_atk1.set("damage", (hero_data.punch1_damage if hero_data and "punch1_damage" in hero_data else 17.5) * _str_mult)
+		g_atk1.set("horizontal_range", hero_data.punch1_range if hero_data and "punch1_range" in hero_data else 280.0)
+		g_atk1.set("depth_tolerance", (hero_data.punch1_depth_tolerance if hero_data and "punch1_depth_tolerance" in hero_data else 24.0) * _tec_mult)
+		g_atk1.set("hitstun", hero_data.punch1_hitstun if hero_data and "punch1_hitstun" in hero_data else 0.20)
+		g_atk1.set("knockback", hero_data.punch1_knockback if hero_data and "punch1_knockback" in hero_data else 30.0)
+		g_atk1.set("hitstop_frames", hero_data.punch1_hitstop_frames if hero_data and "punch1_hitstop_frames" in hero_data else 2)
+		g_atk1.set("combo_index", 0)
+		g_atk1.set("combo_window", (hero_data.punch1_combo_window if hero_data and "punch1_combo_window" in hero_data else 0.45) * _tec_mult)
+		g_atk1.set("can_knockdown", false)
+		g_atk1.set("impact_profile", "punch")
+		g_atk1.set("is_projectile", true)
+		g_atk1.set("projectile_count", 1)
+		g_atk1.set("projectile_interval", 0.0)
+		g_atk1.preferred_regions.assign(["head", "upper_torso"])
+		g_atk1.hitbox_offset_y = hero_data.punch1_hitbox_offset_y if hero_data and "punch1_hitbox_offset_y" in hero_data else -125.0
+		_combo_attacks.append(g_atk1)
+
+		# 2. Gabriel Combo 2: Rajada Dupla (2 projéteis semiautomáticos)
+		var g_atk2: Resource = AttackDataClass.new()
+		g_atk2.set("attack_id", "gabriel_shot_2")
+		g_atk2.set("animation", &"punch")
+		g_atk2.set("startup", hero_data.punch2_startup if hero_data and "punch2_startup" in hero_data else 0.04)
+		g_atk2.set("active", hero_data.punch2_active if hero_data and "punch2_active" in hero_data else 0.10)
+		g_atk2.set("recovery", (hero_data.punch2_recovery if hero_data and "punch2_recovery" in hero_data else 0.15) / maxf(0.1, _tec_mult))
+		g_atk2.set("damage", (hero_data.punch2_damage if hero_data and "punch2_damage" in hero_data else 17.5) * _str_mult)
+		g_atk2.set("horizontal_range", hero_data.punch2_range if hero_data and "punch2_range" in hero_data else 300.0)
+		g_atk2.set("depth_tolerance", (hero_data.punch2_depth_tolerance if hero_data and "punch2_depth_tolerance" in hero_data else 26.0) * _tec_mult)
+		g_atk2.set("hitstun", hero_data.punch2_hitstun if hero_data and "punch2_hitstun" in hero_data else 0.22)
+		g_atk2.set("knockback", hero_data.punch2_knockback if hero_data and "punch2_knockback" in hero_data else 45.0)
+		g_atk2.set("hitstop_frames", hero_data.punch2_hitstop_frames if hero_data and "punch2_hitstop_frames" in hero_data else 2)
+		g_atk2.set("combo_index", 1)
+		g_atk2.set("combo_window", (hero_data.punch2_combo_window if hero_data and "punch2_combo_window" in hero_data else 0.48) * _tec_mult)
+		g_atk2.set("can_knockdown", false)
+		g_atk2.set("impact_profile", "punch")
+		g_atk2.set("is_projectile", true)
+		g_atk2.set("projectile_count", 2)
+		g_atk2.set("projectile_interval", 0.06)
+		g_atk2.preferred_regions.assign(["upper_torso", "head"])
+		g_atk2.hitbox_offset_y = hero_data.punch2_hitbox_offset_y if hero_data and "punch2_hitbox_offset_y" in hero_data else -110.0
+		_combo_attacks.append(g_atk2)
+
+		# 3. Gabriel Combo 3: Pistolada / Coronhada (Corpo a corpo físico)
+		var g_atk3: Resource = AttackDataClass.new()
+		g_atk3.set("attack_id", "gabriel_whip_3")
+		g_atk3.set("animation", &"kick")
+		g_atk3.set("startup", hero_data.kick3_startup if hero_data and "kick3_startup" in hero_data else 0.03)
+		g_atk3.set("active", hero_data.kick3_active if hero_data and "kick3_active" in hero_data else 0.10)
+		g_atk3.set("recovery", (hero_data.kick3_recovery if hero_data and "kick3_recovery" in hero_data else 0.16) / maxf(0.1, _tec_mult))
+		g_atk3.set("damage", (hero_data.kick3_damage if hero_data and "kick3_damage" in hero_data else 15.0) * _str_mult)
+		g_atk3.set("horizontal_range", hero_data.kick3_range if hero_data and "kick3_range" in hero_data else 75.0)
+		g_atk3.set("depth_tolerance", (hero_data.kick3_depth_tolerance if hero_data and "kick3_depth_tolerance" in hero_data else 28.0) * _tec_mult)
+		g_atk3.set("hitstun", hero_data.kick3_hitstun if hero_data and "kick3_hitstun" in hero_data else 0.25)
+		g_atk3.set("knockback", hero_data.kick3_knockback if hero_data and "kick3_knockback" in hero_data else 60.0)
+		g_atk3.set("hitstop_frames", hero_data.kick3_hitstop_frames if hero_data and "kick3_hitstop_frames" in hero_data else 3)
+		g_atk3.set("combo_index", 2)
+		g_atk3.set("combo_window", (hero_data.kick3_combo_window if hero_data and "kick3_combo_window" in hero_data else 0.50) * _tec_mult)
+		g_atk3.set("can_knockdown", false)
+		g_atk3.set("impact_profile", "punch")
+		g_atk3.set("is_projectile", false)
+		g_atk3.preferred_regions.assign(["upper_torso", "head"])
+		g_atk3.hitbox_offset_y = hero_data.kick3_hitbox_offset_y if hero_data and "kick3_hitbox_offset_y" in hero_data else -90.0
+		_combo_attacks.append(g_atk3)
+
+		# 4. Gabriel Combo 4: Rajada Final (1 projétil com Knockdown)
+		var g_atk4: Resource = AttackDataClass.new()
+		g_atk4.set("attack_id", "gabriel_blast_4")
+		g_atk4.set("animation", &"heavy")
+		g_atk4.set("startup", hero_data.heavy4_startup if hero_data and "heavy4_startup" in hero_data else 0.05)
+		g_atk4.set("active", hero_data.heavy4_active if hero_data and "heavy4_active" in hero_data else 0.12)
+		g_atk4.set("recovery", (hero_data.heavy4_recovery if hero_data and "heavy4_recovery" in hero_data else 0.32) / maxf(0.1, _tec_mult))
+		g_atk4.set("damage", (hero_data.heavy4_damage if hero_data and "heavy4_damage" in hero_data else 30.0) * _str_mult)
+		g_atk4.set("horizontal_range", hero_data.heavy4_range if hero_data and "heavy4_range" in hero_data else 320.0)
+		g_atk4.set("depth_tolerance", (hero_data.heavy4_depth_tolerance if hero_data and "heavy4_depth_tolerance" in hero_data else 30.0) * _tec_mult)
+		g_atk4.set("hitstun", hero_data.heavy4_hitstun if hero_data and "heavy4_hitstun" in hero_data else 0.35)
+		g_atk4.set("knockback", hero_data.heavy4_knockback if hero_data and "heavy4_knockback" in hero_data else 140.0)
+		g_atk4.set("hitstop_frames", hero_data.heavy4_hitstop_frames if hero_data and "heavy4_hitstop_frames" in hero_data else 5)
+		g_atk4.set("combo_index", 3)
+		g_atk4.set("combo_window", 0.0)
+		g_atk4.set("can_knockdown", true)
+		g_atk4.set("impact_profile", "finisher")
+		g_atk4.set("is_projectile", true)
+		g_atk4.set("projectile_count", 1)
+		g_atk4.set("projectile_interval", 0.0)
+		g_atk4.preferred_regions.assign(["upper_torso", "head"])
+		g_atk4.hitbox_offset_y = hero_data.heavy4_hitbox_offset_y if hero_data and "heavy4_hitbox_offset_y" in hero_data else -120.0
+		_combo_attacks.append(g_atk4)
+		return
+
 	# 1. Combo 1: Jab Rápido (Soco)
 	var atk1: Resource = AttackDataClass.new()
 	atk1.set("attack_id", "punch_1")
@@ -205,7 +327,7 @@ func _build_combo_chain() -> void:
 	atk1.set("startup", hero_data.punch1_startup if hero_data and "punch1_startup" in hero_data else 0.04)
 	atk1.set("active", hero_data.punch1_active if hero_data and "punch1_active" in hero_data else 0.12)
 	atk1.set("recovery", (hero_data.punch1_recovery if hero_data and "punch1_recovery" in hero_data else 0.22) / maxf(0.1, _tec_mult))
-	atk1.set("damage", (hero_data.punch1_damage if hero_data and "punch1_damage" in hero_data else 20.0) * _str_mult)
+	atk1.set("damage", (hero_data.punch1_damage if hero_data and "punch1_damage" in hero_data else 10.0) * _str_mult)
 	atk1.set("horizontal_range", hero_data.punch1_range if hero_data and "punch1_range" in hero_data else 85.0)
 	atk1.set("depth_tolerance", (hero_data.punch1_depth_tolerance if hero_data and "punch1_depth_tolerance" in hero_data else 26.0) * _tec_mult)
 	atk1.set("hitstun", hero_data.punch1_hitstun if hero_data and "punch1_hitstun" in hero_data else 0.22)
@@ -226,7 +348,7 @@ func _build_combo_chain() -> void:
 	atk2.set("startup", hero_data.punch2_startup if hero_data and "punch2_startup" in hero_data else 0.04)
 	atk2.set("active", hero_data.punch2_active if hero_data and "punch2_active" in hero_data else 0.12)
 	atk2.set("recovery", (hero_data.punch2_recovery if hero_data and "punch2_recovery" in hero_data else 0.22) / maxf(0.1, _tec_mult))
-	atk2.set("damage", (hero_data.punch2_damage if hero_data and "punch2_damage" in hero_data else 25.0) * _str_mult)
+	atk2.set("damage", (hero_data.punch2_damage if hero_data and "punch2_damage" in hero_data else 15.0) * _str_mult)
 	atk2.set("horizontal_range", hero_data.punch2_range if hero_data and "punch2_range" in hero_data else 90.0)
 	atk2.set("depth_tolerance", (hero_data.punch2_depth_tolerance if hero_data and "punch2_depth_tolerance" in hero_data else 26.0) * _tec_mult)
 	atk2.set("hitstun", hero_data.punch2_hitstun if hero_data and "punch2_hitstun" in hero_data else 0.25)
@@ -247,7 +369,7 @@ func _build_combo_chain() -> void:
 	atk3.set("startup", hero_data.kick3_startup if hero_data and "kick3_startup" in hero_data else 0.05)
 	atk3.set("active", hero_data.kick3_active if hero_data and "kick3_active" in hero_data else 0.15)
 	atk3.set("recovery", (hero_data.kick3_recovery if hero_data and "kick3_recovery" in hero_data else 0.25) / maxf(0.1, _tec_mult))
-	atk3.set("damage", (hero_data.kick3_damage if hero_data and "kick3_damage" in hero_data else 32.0) * _str_mult)
+	atk3.set("damage", (hero_data.kick3_damage if hero_data and "kick3_damage" in hero_data else 20.0) * _str_mult)
 	atk3.set("horizontal_range", hero_data.kick3_range if hero_data and "kick3_range" in hero_data else 105.0)
 	atk3.set("depth_tolerance", (hero_data.kick3_depth_tolerance if hero_data and "kick3_depth_tolerance" in hero_data else 28.0) * _tec_mult)
 	atk3.set("hitstun", hero_data.kick3_hitstun if hero_data and "kick3_hitstun" in hero_data else 0.30)
@@ -269,7 +391,7 @@ func _build_combo_chain() -> void:
 	atk4.set("startup", hero_data.heavy4_startup if hero_data and "heavy4_startup" in hero_data else 0.06)
 	atk4.set("active", hero_data.heavy4_active if hero_data and "heavy4_active" in hero_data else 0.20)
 	atk4.set("recovery", (hero_data.heavy4_recovery if hero_data and "heavy4_recovery" in hero_data else 0.40) / maxf(0.1, _tec_mult))
-	atk4.set("damage", (hero_data.heavy4_damage if hero_data and "heavy4_damage" in hero_data else 48.0) * _str_mult)
+	atk4.set("damage", (hero_data.heavy4_damage if hero_data and "heavy4_damage" in hero_data else 35.0) * _str_mult)
 	atk4.set("horizontal_range", hero_data.heavy4_range if hero_data and "heavy4_range" in hero_data else 115.0)
 	atk4.set("depth_tolerance", (hero_data.heavy4_depth_tolerance if hero_data and "heavy4_depth_tolerance" in hero_data else 30.0) * _tec_mult)
 	atk4.set("hitstun", hero_data.heavy4_hitstun if hero_data and "heavy4_hitstun" in hero_data else 0.40)
@@ -421,6 +543,9 @@ func _physics_process(delta: float) -> void:
 				visual_root.position.y = 0.0
 				_is_jumping = false
 				_jump_v_velocity = 0.0
+				if combat_state == CombatState.ATTACKING and (melee_attack == null or not melee_attack.is_attacking):
+					combat_state = CombatState.NORMAL
+					state_changed.emit("Normal")
 				if melee_attack != null and not melee_attack.is_attacking:
 					_update_animation("idle")
 
@@ -548,8 +673,10 @@ func _advance_combo_step() -> int:
 	if _combo_step >= _combo_attacks.size() - 1:
 		return 0
 	var next_step: int = _combo_step + 1
-	# Quando o próximo passo seria o heavy (step 3), aplica chance de 20%
+	# Quando o próximo passo seria o heavy (step 3): Gabriel sempre completa o combo; Guilherme aplica a chance de 20%
 	if next_step == 3:
+		if is_gabriel():
+			return 3
 		if randf() <= HEAVY_FINISHER_CHANCE:
 			return 3
 		else:
@@ -579,7 +706,11 @@ func _execute_combo_attack(step: int) -> bool:
 
 	if melee_attack.execute_attack(facing_direction):
 		combat_state = CombatState.ATTACKING
-		var titles: Array[String] = ["Soco", "Cruzado", "Chute", "Finisher"]
+		var titles: Array[String] = []
+		if is_gabriel():
+			titles.assign(["Disparo", "Rajada", "Pistolada", "Final"])
+		else:
+			titles.assign(["Soco", "Cruzado", "Chute", "Finisher"])
 		state_changed.emit(titles[_combo_step] if _combo_step < titles.size() else "Ataque")
 		return true
 	return false
@@ -735,7 +866,7 @@ func _try_jump() -> void:
 	_update_animation("jump")
 
 
-## Executa o Ataque Aéreo (voadora em salto frontal)
+## Executa o Ataque Aéreo (voadora em salto frontal para Guilherme / Salto Tático com disparo para Gabriel)
 func _try_aerial_attack() -> void:
 	if melee_attack == null:
 		return
@@ -746,6 +877,31 @@ func _try_aerial_attack() -> void:
 		return
 	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
 		return
+
+	if is_gabriel():
+		_is_jumping = true
+		_jump_v_velocity = hero_data.aerial_jump_v_velocity if hero_data and "aerial_jump_v_velocity" in hero_data else -320.0
+		_current_attack_anim = &"jump_atk"
+		var fwd_vel: float = hero_data.aerial_forward_velocity if hero_data and "aerial_forward_velocity" in hero_data else 200.0
+		velocity.x = facing_direction * fwd_vel
+		
+		combat_state = CombatState.ATTACKING
+		state_changed.emit("Salto Tático")
+		
+		if anim_sprite != null:
+			anim_sprite.play("jump_atk")
+		
+		var aerial_dmg: float = (hero_data.aerial_damage if hero_data and "aerial_damage" in hero_data else 30.0) * _str_mult
+		var aerial_rng: float = hero_data.aerial_range if hero_data and "aerial_range" in hero_data else 160.0
+		var aerial_depth: float = (hero_data.aerial_depth_tolerance if hero_data and "aerial_depth_tolerance" in hero_data else 28.0) * _tec_mult
+		var startup_t: float = hero_data.aerial_startup if hero_data and "aerial_startup" in hero_data else 0.03
+		
+		get_tree().create_timer(startup_t).timeout.connect(func():
+			if is_instance_valid(self) and (health_component == null or not health_component.is_dead):
+				_spawn_aerial_bullet(aerial_dmg, aerial_rng, aerial_depth)
+		)
+		return
+
 	_is_jumping = true
 	_jump_v_velocity = hero_data.aerial_jump_v_velocity if hero_data and "aerial_jump_v_velocity" in hero_data else -340.0
 	_current_attack_anim = &"jump_atk"
@@ -889,6 +1045,111 @@ func _on_anim_sprite_animation_finished() -> void:
 	if anim_sprite.animation in [&"heavy", &"punch", &"kick"]:
 		if not _is_jumping and not _is_guarding and (melee_attack == null or not melee_attack.is_attacking):
 			anim_sprite.play("idle")
+
+
+## Processamento de disparo de projéteis e transições de fase de ataque (Gabriel)
+func _on_attack_phase_changed(new_phase: MeleeAttack.Phase) -> void:
+	if new_phase == MeleeAttack.Phase.ACTIVE:
+		if _combo_step >= 0 and _combo_step < _combo_attacks.size():
+			var atk: Resource = _combo_attacks[_combo_step]
+			if atk != null and atk.get("is_projectile") == true:
+				_spawn_combo_projectiles(atk)
+
+
+func _spawn_combo_projectiles(atk: Resource) -> void:
+	var count: int = int(atk.get("projectile_count")) if atk.get("projectile_count") != null else 1
+	var interval: float = float(atk.get("projectile_interval")) if atk.get("projectile_interval") != null else 0.0
+	var bullet_dmg: float = float(atk.get("damage")) / float(maxi(1, count))
+	
+	_spawn_single_bullet(atk, bullet_dmg)
+	
+	if count > 1:
+		for i in range(1, count):
+			var delay: float = interval * float(i)
+			get_tree().create_timer(delay).timeout.connect(func():
+				if is_instance_valid(self) and (health_component == null or not health_component.is_dead):
+					_spawn_single_bullet(atk, bullet_dmg)
+			)
+
+
+func _spawn_single_bullet(atk: Resource, bullet_dmg: float = -1.0) -> Area2D:
+	var bullet_scene: PackedScene = load("res://scenes/actors/projectiles/player_bullet.tscn")
+	if bullet_scene == null:
+		return null
+	
+	var bullet: Area2D = bullet_scene.instantiate() as Area2D
+	if bullet == null:
+		return null
+	
+	var actual_dmg: float = bullet_dmg if bullet_dmg > 0.0 else float(atk.get("damage"))
+	bullet.set("attacker", self)
+	bullet.set("projectile_lane_y", global_position.y)
+	bullet.set("direction", Vector2(facing_direction, 0.0))
+	bullet.set("damage", actual_dmg)
+	bullet.set("max_range", float(atk.get("horizontal_range")) if atk.get("horizontal_range") != null else 280.0)
+	bullet.set("depth_tolerance", float(atk.get("depth_tolerance")) if atk.get("depth_tolerance") != null else 24.0)
+	bullet.set("can_knockdown", bool(atk.get("can_knockdown")))
+	bullet.set("hitstop_duration", atk.call("get_hitstop_duration") if atk.has_method("get_hitstop_duration") else 0.033)
+	bullet.set("hitstun_duration", float(atk.get("hitstun")) if atk.get("hitstun") != null else 0.20)
+	bullet.set("knockback_force", float(atk.get("knockback")) if atk.get("knockback") != null else 30.0)
+	bullet.set("impact_profile", str(atk.get("impact_profile")) if atk.get("impact_profile") != null else "projectile")
+	
+	bullet.global_position = _get_muzzle_global_position()
+	
+	var target_parent: Node = get_parent()
+	if target_parent == null:
+		target_parent = get_tree().current_scene
+	if target_parent != null:
+		target_parent.add_child(bullet)
+	
+	CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_SOCO_1, 0.45, 0.02)
+	return bullet
+
+
+func _spawn_aerial_bullet(dmg: float, rng: float, depth: float) -> Area2D:
+	var bullet_scene: PackedScene = load("res://scenes/actors/projectiles/player_bullet.tscn")
+	if bullet_scene == null:
+		return null
+	
+	var bullet: Area2D = bullet_scene.instantiate() as Area2D
+	if bullet == null:
+		return null
+	
+	bullet.set("attacker", self)
+	bullet.set("projectile_lane_y", global_position.y)
+	bullet.set("direction", Vector2(facing_direction, 0.0))
+	bullet.set("damage", dmg)
+	bullet.set("max_range", rng)
+	bullet.set("depth_tolerance", depth)
+	bullet.set("can_knockdown", true)
+	bullet.set("hitstop_duration", 0.05)
+	bullet.set("hitstun_duration", 0.25)
+	bullet.set("knockback_force", 60.0)
+	bullet.set("impact_profile", "kick")
+	
+	bullet.global_position = _get_muzzle_global_position()
+	
+	var target_parent: Node = get_parent()
+	if target_parent == null:
+		target_parent = get_tree().current_scene
+	if target_parent != null:
+		target_parent.add_child(bullet)
+	
+	CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_JUMPKICK, 0.45, 0.02)
+	return bullet
+
+
+func _get_muzzle_global_position() -> Vector2:
+	if visual_root != null:
+		var marker: Node2D = visual_root.get_node_or_null("MuzzleMarker") as Node2D
+		if marker != null:
+			return marker.global_position
+		return visual_root.to_global(Vector2(45.0, -115.0))
+	return global_position + Vector2(facing_direction * 45.0, -115.0)
+
+
+func _on_projectile_hit(target: Node, dmg: float) -> void:
+	_on_melee_target_hit(target, dmg)
 
 
 ## Processa acertos de golpe: incrementa combo e carrega a barra de Special

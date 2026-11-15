@@ -281,3 +281,6 @@ scale = Vector2(1.4, 1.4)
 [node name="PunchFlash" type="Polygon2D" parent="Visual/PunchVisual" unique_id=1047532406]
 color = Color(1, 0.9, 0.3, 0.8)
 polygon = PackedVector2Array(0, -14, 30, -8, 42, 0, 30, 8, 0, 14, 12, 0)
+
+[node name="MuzzleMarker" type="Marker2D" parent="Visual" unique_id=1084221935]
+position = Vector2(45, -115)
