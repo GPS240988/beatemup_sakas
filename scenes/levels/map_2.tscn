@@ -146,6 +146,7 @@ y_sort_enabled = true
 [node name="BasicEnemy1" parent="World/Actors/Enemies" unique_id=1553066722 instance=ExtResource("4_enemy_scene")]
 position = Vector2(750, 650)
 archetype = 3
+palette_variant = 1
 
 [node name="BasicEnemy2" parent="World/Actors/Enemies" unique_id=567898096 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1100, 680)
@@ -154,6 +155,7 @@ archetype = 1
 [node name="BasicEnemy3" parent="World/Actors/Enemies" unique_id=1519327728 instance=ExtResource("4_enemy_scene")]
 position = Vector2(1500, 660)
 archetype = 3
+palette_variant = 1
 
 [node name="NPCs" type="Node2D" parent="World/Actors" unique_id=1277292145]
 y_sort_enabled = true

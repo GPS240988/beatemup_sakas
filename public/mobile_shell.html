@@ -271,7 +271,7 @@
 			cursor: pointer;
 		}
 	</style>
-	<meta name="sakas-build-id" content="d0fed4d0">
+	<meta name="sakas-build-id" content="7444da19-dtoiosj">
 </head>
 <body>
 	<canvas id="canvas" width="1280" height="720" tabindex="0">
@@ -643,131 +643,6 @@
 			window.sakasNotifyGameStarted = function() {
 				engineRunning = true;
 			};
-		})();
-
-		// =========================================================================
-		// GESTÃO DO SERVICE WORKER & DETECÇÃO DE ATUALIZAÇÕES
-		// =========================================================================
-		// =========================================================================
-		// PWA: CONTROLE DE INSTALAÇÃO, AUTO-UPDATE E TRANSIÇÃO STANDALONE
-		// =========================================================================
-		(function() {
-			if (!('serviceWorker' in navigator)) return;
-
-			let deferredInstallPrompt = null;
-			window.addEventListener('beforeinstallprompt', (e) => {
-				e.preventDefault();
-				deferredInstallPrompt = e;
-				if (!sessionStorage.getItem('sakas_install_dismissed') && installBanner) {
-					installBanner.style.display = 'flex';
-				}
-			});
-
-			// Ao instalar o app, fecha banner e entra automaticamente em tela cheia/standalone
-			window.addEventListener('appinstalled', () => {
-				console.log('[PWA] Aplicativo instalado com sucesso no dispositivo!');
-				if (installBanner) installBanner.style.display = 'none';
-				sessionStorage.setItem('sakas_installed', '1');
-				if (!window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone) {
-					try {
-						if (document.documentElement.requestFullscreen) {
-							document.documentElement.requestFullscreen().catch(() => {});
-						}
-					} catch (_) {}
-				}
-			});
-
-			if (btnInstall) {
-				btnInstall.addEventListener('click', async () => {
-					if (deferredInstallPrompt) {
-						deferredInstallPrompt.prompt();
-						const choice = await deferredInstallPrompt.userChoice;
-						if (choice.outcome === 'accepted') {
-							console.log('[PWA] Instalação aceita pelo usuário');
-							if (installBanner) installBanner.style.display = 'none';
-							try {
-								if (document.documentElement.requestFullscreen) {
-									await document.documentElement.requestFullscreen().catch(() => {});
-								}
-							} catch (_) {}
-						}
-						deferredInstallPrompt = null;
-					} else {
-						// Instrução iOS Safari
-						alert('Para instalar no iPhone/iPad: Toque em Compartilhar (⎋) na barra do Safari e selecione "Adicionar à Tela de Início" (⊞).');
-					}
-				});
-			}
-
-			if (btnCloseBanner) {
-				btnCloseBanner.addEventListener('click', () => {
-					sessionStorage.setItem('sakas_install_dismissed', '1');
-					if (installBanner) installBanner.style.display = 'none';
-				});
-			}
-
-			// SAKAS AUTO-UPDATE: Recarrega automaticamente quando um novo SW é ativado
-			let refreshing = false;
-			navigator.serviceWorker.addEventListener('controllerchange', () => {
-				if (refreshing) return;
-				refreshing = true;
-				console.log('[PWA] Novo Service Worker ativo. Recarregando página para aplicar nova versão...');
-				window.location.reload();
-			});
-
-			async function checkForPublishedRelease(registration) {
-				try {
-					if (registration) {
-						registration.update().catch(() => {});
-					}
-					const resp = await fetch('version.json?_t=' + Date.now(), {
-						cache: 'no-store',
-						headers: { 'Accept': 'application/json' }
-					});
-					if (!resp.ok) return;
-					const data = await resp.json();
-					const serverVersion = data && data.version ? String(data.version) : '';
-					if (!serverVersion) return;
-
-					const localMeta = document.querySelector('meta[name="sakas-build-id"]');
-					const currentVersion = localMeta ? localMeta.getAttribute('content') : '';
-
-					if (currentVersion && currentVersion !== 'initial' && serverVersion !== currentVersion) {
-						console.log(`[PWA] Nova versão detectada: ${serverVersion} (local: ${currentVersion})`);
-						if (registration) {
-							if (registration.waiting) {
-								registration.waiting.postMessage('SKIP_WAITING');
-								registration.waiting.postMessage('claim');
-							} else {
-								registration.update().then(() => {
-									if (registration.waiting) {
-										registration.waiting.postMessage('SKIP_WAITING');
-									}
-								}).catch(() => {});
-							}
-						}
-					}
-				} catch (_e) {}
-			}
-
-			// Registra ativamente o Service Worker e monitora ciclo de atualização
-			navigator.serviceWorker.register('index.service.worker.js').then((registration) => {
-				console.log('[PWA] Service Worker registrado com sucesso:', registration.scope);
-				registration.addEventListener('updatefound', () => {
-					const newWorker = registration.installing;
-					if (newWorker) {
-						newWorker.addEventListener('statechange', () => {
-							if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-								console.log('[PWA] Nova versão pronta no cache. Ativando imediatamente...');
-								newWorker.postMessage('SKIP_WAITING');
-							}
-						});
-					}
-				});
-				checkForPublishedRelease(registration);
-			}).catch((err) => {
-				console.warn('[PWA] Falha ao registrar Service Worker:', err);
-			});
 		})();
 
 		// =========================================================================

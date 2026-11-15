@@ -307,21 +307,62 @@ func _finish_loro_stun() -> void:
 	_loro_repeat_timer = LORO_REPEAT_DELAY
 
 
+static var _heart_pixel_texture: ImageTexture = null
+
+static func _get_heart_texture() -> ImageTexture:
+	if _heart_pixel_texture != null:
+		return _heart_pixel_texture
+	var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var pattern: Array[String] = [
+		"................",
+		"...XX....XX.....",
+		"..XRRX..XRRX....",
+		".XRRRRXXRRRRX...",
+		".XWRRRRRRRRRX...",
+		".XWRRRRRRRRRX...",
+		"..XRRRRRRRRX....",
+		"...XRRRRRRX.....",
+		"....XRRRRX......",
+		".....XRRX.......",
+		"......XX........",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................"
+	]
+	for y in range(pattern.size()):
+		var line: String = pattern[y]
+		for x in range(mini(16, line.length())):
+			var ch: String = line[x]
+			if ch == 'X':
+				img.set_pixel(x, y, Color(0.18, 0.02, 0.06, 1.0))
+			elif ch == 'W':
+				img.set_pixel(x, y, Color(1.0, 0.75, 0.85, 1.0))
+			elif ch == 'R':
+				img.set_pixel(x, y, Color(1.0, 0.20, 0.45, 1.0))
+	_heart_pixel_texture = ImageTexture.create_from_image(img)
+	return _heart_pixel_texture
+
+
 func _spawn_falling_hearts() -> void:
 	var scene_root: Node = get_tree().current_scene
 	if scene_root == null:
 		return
-	for _heart_index: int in range(12):
-		var heart := Label.new()
-		heart.text = "♥"
-		heart.add_theme_font_size_override("font_size", randi_range(25, 39))
-		heart.add_theme_color_override("font_color", Color(1.0, 0.28, 0.58, 1.0))
-		heart.add_theme_color_override("font_outline_color", Color(0.16, 0.025, 0.08, 1.0))
-		heart.add_theme_constant_override("outline_size", 4)
-		heart.size = Vector2(48.0, 48.0)
+	var heart_tex := _get_heart_texture()
+	for _heart_index: int in range(14):
+		var heart := TextureRect.new()
+		heart.texture = heart_tex
+		heart.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		var sz: float = randf_range(28.0, 44.0)
+		heart.custom_minimum_size = Vector2(sz, sz)
+		heart.size = Vector2(sz, sz)
+		heart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		heart.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		heart.z_index = 150
 		scene_root.add_child(heart)
-		var x_offset: float = randf_range(-135.0, 135.0)
+		var x_offset: float = randf_range(-140.0, 140.0)
 		heart.position = global_position + Vector2(x_offset, -330.0 - randf_range(0.0, 170.0))
 		var landing := global_position + Vector2(x_offset * 0.35, -115.0)
 		var fall_tween: Tween = heart.create_tween()
@@ -395,7 +436,7 @@ func _finish_special_behavior() -> void:
 
 	super._finish_special_behavior()
 	if finished_behavior in [SpecialBehavior.TRUFFLE_WINDUP, SpecialBehavior.THROWING_TRUFFLES]:
-		_truffle_cooldown = 1.8 if _is_phase_two() else 2.0
+		_truffle_cooldown = 1.2 if _is_phase_two() else 1.6
 
 	if was_eating_meat and current_state != State.DEAD and not _meat_instances.is_empty():
 		_start_meat_seeking_for_remaining_drop()

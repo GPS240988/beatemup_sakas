@@ -139,7 +139,13 @@ function updateServiceWorker(version) {
 					} catch (_err) {
 						// Offline: continua para o cache abaixo
 					}
-					const cachedNav = await cache.match(event.request);
+					let cachedNav = await cache.match(event.request);
+					if (cachedNav == null) {
+						cachedNav = await cache.match('index.html');
+					}
+					if (cachedNav == null) {
+						cachedNav = await cache.match('/');
+					}
 					if (cachedNav != null) {
 						return ensureCrossOriginIsolationHeaders(cachedNav);
 					}
@@ -356,7 +362,7 @@ function enrichManifest() {
 	if (!fs.existsSync(manifestPath)) return;
 	try {
 		const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-		manifest.id = "./index.html";
+		manifest.id = "/";
 		manifest.name = "Beat 'em Up Sakas — A Última Ficha";
 		manifest.short_name = "Sakas";
 		manifest.description = "Beat 'em Up retrô Neo-16-bit ambientado na São Paulo dos anos 90.";
@@ -365,28 +371,46 @@ function enrichManifest() {
 		manifest.display = "standalone";
 		manifest.display_override = ["fullscreen", "standalone", "minimal-ui"];
 		manifest.orientation = "landscape";
-		manifest.start_url = "./index.html";
-		manifest.scope = "./";
+		manifest.start_url = "/";
+		manifest.scope = "/";
 		manifest.prefer_related_applications = false;
-		manifest.launch_handler = { client_mode: "auto" };
+		manifest.launch_handler = { client_mode: "focus-existing" };
 		manifest.icons = [
 			{
 				"sizes": "144x144",
 				"src": "index.144x144.png",
 				"type": "image/png",
-				"purpose": "any maskable"
+				"purpose": "any"
+			},
+			{
+				"sizes": "144x144",
+				"src": "index.144x144.png",
+				"type": "image/png",
+				"purpose": "maskable"
 			},
 			{
 				"sizes": "180x180",
 				"src": "index.180x180.png",
 				"type": "image/png",
-				"purpose": "any maskable"
+				"purpose": "any"
+			},
+			{
+				"sizes": "180x180",
+				"src": "index.180x180.png",
+				"type": "image/png",
+				"purpose": "maskable"
 			},
 			{
 				"sizes": "512x512",
 				"src": "index.512x512.png",
 				"type": "image/png",
-				"purpose": "any maskable"
+				"purpose": "any"
+			},
+			{
+				"sizes": "512x512",
+				"src": "index.512x512.png",
+				"type": "image/png",
+				"purpose": "maskable"
 			}
 		];
 		fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');

@@ -19,13 +19,13 @@ const TRUFFLE_COUNT: int = 3
 const TRUFFLE_WINDUP_SECONDS: float = 0.42
 const TRUFFLE_INTERVAL: float = 0.28
 const TRUFFLE_IMPULSE: float = 330.0
-const TRUFFLE_INITIAL_COOLDOWN: float = 2.0
-const TRUFFLE_COOLDOWN_PHASE_ONE: float = 2.0
-const TRUFFLE_COOLDOWN_PHASE_TWO: float = 1.8
+const TRUFFLE_INITIAL_COOLDOWN: float = 1.5
+const TRUFFLE_COOLDOWN_PHASE_ONE: float = 1.8
+const TRUFFLE_COOLDOWN_PHASE_TWO: float = 1.4
 const TRUFFLE_DAMAGE: float = 10.0
 const TRUFFLE_SPREAD_ANGLE: float = 0.58
 const TRUFFLE_DEPTH_SPREAD: float = 105.0
-const CLOSE_TRUFFLE_CHANCE: float = 0.70
+const CLOSE_TRUFFLE_CHANCE: float = 0.85
 
 const BOSS_MAX_HEALTH: float = 900.0
 const PHASE_TWO_HEALTH_RATIO: float = 0.5
@@ -153,10 +153,10 @@ func _physics_process(delta: float) -> void:
 
 	if _truffle_cooldown <= 0.0 and _can_start_truffle_barrage():
 		var player_distance: float = global_position.distance_to(player_target.global_position)
-		if player_distance > 245.0 or randf() < CLOSE_TRUFFLE_CHANCE:
+		if player_distance > 130.0 or randf() < CLOSE_TRUFFLE_CHANCE:
 			_start_truffle_barrage()
 		else:
-			_truffle_cooldown = 0.35
+			_truffle_cooldown = 0.25
 
 
 func _is_player_target_valid() -> bool:
@@ -173,7 +173,7 @@ func _is_phase_two() -> bool:
 func _can_start_truffle_barrage() -> bool:
 	if _special_behavior != SpecialBehavior.NONE or not _is_player_target_valid():
 		return false
-	if current_state not in [State.FLANKING, State.WAITING, State.IDLE]:
+	if current_state not in [State.FLANKING, State.WAITING, State.IDLE, State.APPROACHING]:
 		return false
 	if melee_attack != null and melee_attack.is_attacking:
 		return false

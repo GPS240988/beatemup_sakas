@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = 'd0fed4d0';
+const CACHE_VERSION = '7444da19-dtoiosj';
 /** @type {string} */
 const CACHE_PREFIX = 'Beat Em Up - Sak-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
@@ -119,7 +119,13 @@ self.addEventListener(
 					} catch (_err) {
 						// Offline: continua para o cache abaixo
 					}
-					const cachedNav = await cache.match(event.request);
+					let cachedNav = await cache.match(event.request);
+					if (cachedNav == null) {
+						cachedNav = await cache.match('index.html');
+					}
+					if (cachedNav == null) {
+						cachedNav = await cache.match('/');
+					}
 					if (cachedNav != null) {
 						return ensureCrossOriginIsolationHeaders(cachedNav);
 					}

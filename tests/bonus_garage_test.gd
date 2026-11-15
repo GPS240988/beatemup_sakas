@@ -156,4 +156,3 @@ func _test_navpoly_resource() -> void:
 	if navpoly != null:
 		_assert(navpoly.get_polygon_count() > 0, "NavigationPolygon possui polígonos de navegação definidos")
 		_assert(navpoly.vertices.size() >= 4, "NavigationPolygon possui vértices cobrindo a área da garagem")
-
