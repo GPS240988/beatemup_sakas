@@ -256,8 +256,14 @@ function ensurePwaLifecycle(filePath) {
 			}
 
 			// SAKAS AUTO-UPDATE: Recarrega automaticamente quando um novo SW é ativado
+			let hadControllerOnLoad = !!navigator.serviceWorker.controller;
 			let refreshing = false;
 			navigator.serviceWorker.addEventListener('controllerchange', () => {
+				if (!hadControllerOnLoad) {
+					hadControllerOnLoad = true;
+					console.log('[PWA] Primeiro Service Worker ativo. Nenhuma recarga necessária.');
+					return;
+				}
 				if (refreshing) return;
 				refreshing = true;
 				console.log('[PWA] Novo Service Worker ativo. Recarregando página para aplicar nova versão...');
@@ -363,9 +369,9 @@ function enrichManifest() {
 	try {
 		const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 		manifest.id = "/";
-		manifest.name = "Beat 'em Up Sakas — A Última Ficha";
+		manifest.name = "Beat 'em Up Sakas - A Ultima Ficha";
 		manifest.short_name = "Sakas";
-		manifest.description = "Beat 'em Up retrô Neo-16-bit ambientado na São Paulo dos anos 90.";
+		manifest.description = "Beat 'em Up retro Neo-16-bit ambientado na Sao Paulo dos anos 90.";
 		manifest.theme_color = "#060814";
 		manifest.background_color = "#060814";
 		manifest.display = "standalone";
@@ -397,6 +403,18 @@ function enrichManifest() {
 			{
 				"sizes": "180x180",
 				"src": "index.180x180.png",
+				"type": "image/png",
+				"purpose": "maskable"
+			},
+			{
+				"sizes": "192x192",
+				"src": "index.192x192.png",
+				"type": "image/png",
+				"purpose": "any"
+			},
+			{
+				"sizes": "192x192",
+				"src": "index.192x192.png",
 				"type": "image/png",
 				"purpose": "maskable"
 			},

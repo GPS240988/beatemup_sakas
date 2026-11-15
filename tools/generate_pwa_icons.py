@@ -167,6 +167,7 @@ def generate_all_icons():
 
     targets = [
         ("index.512x512.png", 512),
+        ("index.192x192.png", 192),
         ("index.180x180.png", 180),
         ("index.apple-touch-icon.png", 180),
         ("index.144x144.png", 144),

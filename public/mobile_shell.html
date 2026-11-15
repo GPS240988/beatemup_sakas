@@ -271,7 +271,7 @@
 			cursor: pointer;
 		}
 	</style>
-	<meta name="sakas-build-id" content="34a936b26493">
+	<meta name="sakas-build-id" content="8164587c2e01">
 </head>
 <body>
 	<canvas id="canvas" width="1280" height="720" tabindex="0">
@@ -548,9 +548,16 @@
 				window.location.reload();
 			}
 
+			let hadControllerOnLoad = !!navigator.serviceWorker.controller;
+
 			// Quando um novo Service Worker assume o controle
 			navigator.serviceWorker.addEventListener('controllerchange', () => {
-				console.log('[PWA] Novo Service Worker ativo.');
+				console.log('[PWA] Evento controllerchange acionado.');
+				if (!hadControllerOnLoad) {
+					hadControllerOnLoad = true;
+					console.log('[PWA] Primeiro Service Worker ativo. Nenhuma recarga necessária.');
+					return;
+				}
 				if (!engineRunning) {
 					safeReload();
 				} else {

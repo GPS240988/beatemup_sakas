@@ -27,6 +27,18 @@
       "purpose": "maskable"
     },
     {
+      "sizes": "192x192",
+      "src": "index.192x192.png",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "sizes": "192x192",
+      "src": "index.192x192.png",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "sizes": "512x512",
       "src": "index.512x512.png",
       "type": "image/png",
@@ -39,12 +51,12 @@
       "purpose": "maskable"
     }
   ],
-  "name": "Beat 'em Up Sakas — A Última Ficha",
+  "name": "Beat 'em Up Sakas - A Ultima Ficha",
   "orientation": "landscape",
   "start_url": "/",
   "id": "/",
   "short_name": "Sakas",
-  "description": "Beat 'em Up retrô Neo-16-bit ambientado na São Paulo dos anos 90.",
+  "description": "Beat 'em Up retro Neo-16-bit ambientado na Sao Paulo dos anos 90.",
   "theme_color": "#060814",
   "display_override": [
     "fullscreen",
