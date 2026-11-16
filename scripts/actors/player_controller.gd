@@ -249,7 +249,7 @@ func _build_combo_chain() -> void:
 		# 1. Gabriel Combo 1: Disparo Rápido (1 projétil)
 		var g_atk1: Resource = AttackDataClass.new()
 		g_atk1.set("attack_id", "gabriel_shot_1")
-		g_atk1.set("animation", &"punch")
+		g_atk1.set("animation", &"shot_1")
 		g_atk1.set("startup", hero_data.punch1_startup if hero_data and "punch1_startup" in hero_data else 0.03)
 		g_atk1.set("active", hero_data.punch1_active if hero_data and "punch1_active" in hero_data else 0.08)
 		g_atk1.set("recovery", (hero_data.punch1_recovery if hero_data and "punch1_recovery" in hero_data else 0.12) / maxf(0.1, _tec_mult))
@@ -273,7 +273,7 @@ func _build_combo_chain() -> void:
 		# 2. Gabriel Combo 2: Rajada Dupla (2 projéteis semiautomáticos)
 		var g_atk2: Resource = AttackDataClass.new()
 		g_atk2.set("attack_id", "gabriel_shot_2")
-		g_atk2.set("animation", &"punch")
+		g_atk2.set("animation", &"shot_2")
 		g_atk2.set("startup", hero_data.punch2_startup if hero_data and "punch2_startup" in hero_data else 0.04)
 		g_atk2.set("active", hero_data.punch2_active if hero_data and "punch2_active" in hero_data else 0.10)
 		g_atk2.set("recovery", (hero_data.punch2_recovery if hero_data and "punch2_recovery" in hero_data else 0.15) / maxf(0.1, _tec_mult))
@@ -1119,9 +1119,10 @@ func _on_attack_ended() -> void:
 		_combo_window_timer = 0.0
 		if melee_attack != null:
 			melee_attack.is_attacking = false
+			melee_attack.current_phase = MeleeAttack.Phase.INACTIVE
 		combat_state = CombatState.NORMAL
 		state_changed.emit("Normal")
-		if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
+		if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy", &"shot_1", &"shot_2", &"jump_atk"]):
 			if not _is_jumping and not _is_guarding:
 				anim_sprite.play("idle")
 		if _input_buffered:
@@ -1141,6 +1142,7 @@ func _on_attack_ended() -> void:
 
 	if melee_attack != null:
 		melee_attack.is_attacking = false
+		melee_attack.current_phase = MeleeAttack.Phase.INACTIVE
 
 	combat_state = CombatState.NORMAL
 	state_changed.emit("Normal")
@@ -1152,7 +1154,7 @@ func _on_attack_ended() -> void:
 		_combo_step = 0
 		_gabriel_step3_confirmed = false
 
-	if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
+	if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy", &"shot_1", &"shot_2", &"jump_atk"]):
 		if not _is_jumping and not _is_guarding:
 			anim_sprite.play("idle")
 
@@ -1161,7 +1163,7 @@ func _on_attack_ended() -> void:
 func _on_anim_sprite_animation_finished() -> void:
 	if anim_sprite == null or health_component == null or health_component.is_dead:
 		return
-	if anim_sprite.animation in [&"heavy", &"punch", &"kick"]:
+	if anim_sprite.animation in [&"heavy", &"punch", &"kick", &"shot_1", &"shot_2", &"jump_atk"]:
 		if not _is_jumping and not _is_guarding and (melee_attack == null or not melee_attack.is_attacking):
 			anim_sprite.play("idle")
 

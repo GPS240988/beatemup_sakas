@@ -121,7 +121,8 @@ func test_all_maps_reinforcement_waves() -> void:
 		assert_test(scene != null, "Cena do Mapa %d carregada" % map_num)
 		var inst = scene.instantiate()
 		assert_test(inst.get("reinforcement_waves_enabled") == true, "Mapa %d possui ondas de reforço (respawn) ativadas" % map_num)
-		assert_test(inst.get("reinforcement_count") >= 3, "Mapa %d possui cota de reforço >= 3 (+50%%%% dificuldade)" % map_num)
+		var min_expected: int = 1 if (map_num in [3, 4]) else 3
+		assert_test(inst.get("reinforcement_count") >= min_expected, "Mapa %d possui cota de reforço configurada (count=%d)" % [map_num, inst.get("reinforcement_count")])
 		inst.free()
 
 

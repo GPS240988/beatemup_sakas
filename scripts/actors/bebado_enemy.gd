@@ -23,23 +23,27 @@ enum BebadoState {
 	DRINKING
 }
 
+## Parâmetros de Atributos Base
+@export_group("Atributos")
+@export var base_health: float = 110.0
+
 ## Parâmetros de Esquiva
 @export_group("Esquiva (Dodge)")
-@export var dodge_cooldown_time: float = 2.8
-@export var dodge_chance: float = 0.50
-@export var dodge_speed: float = 230.0
-@export var dodge_duration: float = 0.35
+@export var dodge_cooldown_time: float = 3.5
+@export var dodge_chance: float = 0.30
+@export var dodge_speed: float = 210.0
+@export var dodge_duration: float = 0.30
 
 ## Parâmetros de Rastejamento
 @export_group("Rastejamento (Crawl)")
-@export_range(0.05, 0.95, 0.05) var crawl_low_health_threshold: float = 0.50
-@export var crawl_duration: float = 2.5
+@export_range(0.05, 0.95, 0.05) var crawl_low_health_threshold: float = 0.35
+@export var crawl_duration: float = 2.0
 @export var crawl_speed: float = 110.0
 @export var crawl_contact_damage_cooldown: float = 0.65
-@export var crawl_after_downed_chance: float = 0.55
-@export var crawl_spontaneous_chance: float = 0.50  # chance por segundo de entrar em crawl espontâneo na batalha
-@export var crawl_spontaneous_min_interval: float = 6.0
-@export var crawl_spontaneous_max_interval: float = 12.0
+@export var crawl_after_downed_chance: float = 0.30
+@export var crawl_spontaneous_chance: float = 0.20  # chance por segundo de entrar em crawl espontâneo na batalha
+@export var crawl_spontaneous_min_interval: float = 12.0
+@export var crawl_spontaneous_max_interval: float = 18.0
 
 ## Parâmetros Contextuais
 @export_group("Comportamento Bêbado")
@@ -149,13 +153,13 @@ func _ready() -> void:
 	if hurtbox_area != null:
 		hurtbox_area.body_entered.connect(_on_hurtbox_body_entered)
 
-	# Vida base aumentada considerando dificuldade (GameSession: normal=1.0, dificil=2.1)
-	var base_health: float = 120.0
+	# Vida base ajustada considerando dificuldade (GameSession: normal=1.0, dificil=2.1)
 	var health_mult: float = 1.0
-	var session = get_node_or_null("/root/GameSession") as GameSessionClass
-	if session != null:
-		var diff_data: Dictionary = session.DIFFICULTIES.get(session.difficulty_id, {})
-		health_mult = float(diff_data.get("enemy_health_mult", 1.0))
+	if is_inside_tree():
+		var session = get_node_or_null("/root/GameSession") as GameSessionClass
+		if session != null:
+			var diff_data: Dictionary = session.DIFFICULTIES.get(session.difficulty_id, {})
+			health_mult = float(diff_data.get("enemy_health_mult", 1.0))
 	if health_component != null:
 		health_component.max_health = base_health * health_mult
 		health_component.current_health = base_health * health_mult
@@ -182,6 +186,15 @@ func _ensure_internal_refs() -> void:
 		anim_sprite = get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
 	if health_component == null:
 		health_component = get_node_or_null("HealthComponent") as HealthComponent
+		if health_component != null:
+			var health_mult: float = 1.0
+			if is_inside_tree():
+				var session = get_node_or_null("/root/GameSession") as GameSessionClass
+				if session != null:
+					var diff_data: Dictionary = session.DIFFICULTIES.get(session.difficulty_id, {})
+					health_mult = float(diff_data.get("enemy_health_mult", 1.0))
+			health_component.max_health = base_health * health_mult
+			health_component.current_health = base_health * health_mult
 	if melee_attack == null:
 		melee_attack = get_node_or_null("MeleeAttack") as MeleeAttack
 	if hurtbox_area == null:

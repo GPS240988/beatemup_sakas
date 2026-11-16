@@ -1,12 +1,33 @@
 [gd_resource type="SpriteFrames" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/gabriel/idle.png" id="1_gabriel_idle"]
+[ext_resource type="Texture2D" uid="uid://bxv5l0m8jlj5h" path="res://assets/sprites/characters/gabriel/idle.png" id="1_idle"]
+[ext_resource type="Texture2D" uid="uid://bn0kwh78bjov7" path="res://assets/sprites/characters/gabriel/punch_01.png" id="2_punch_01"]
+[ext_resource type="Texture2D" uid="uid://coeqd47xuqsrj" path="res://assets/sprites/characters/gabriel/punch_02.png" id="3_punch_02"]
+[ext_resource type="Texture2D" uid="uid://dd80syi4b63oi" path="res://assets/sprites/characters/gabriel/punch_03.png" id="4_punch_03"]
+[ext_resource type="Texture2D" uid="uid://do37ltulnsdca" path="res://assets/sprites/characters/gabriel/punch2_01.png" id="5_punch2_01"]
+[ext_resource type="Texture2D" uid="uid://d1j6txha0wecv" path="res://assets/sprites/characters/gabriel/punch2_02.png" id="6_punch2_02"]
+[ext_resource type="Texture2D" uid="uid://dlul3j6qsp0fc" path="res://assets/sprites/characters/gabriel/punch2_03.png" id="7_punch2_03"]
+[ext_resource type="Texture2D" uid="uid://c8hwx80tpdvhn" path="res://assets/sprites/characters/gabriel/punch2_04.png" id="8_punch2_04"]
+[ext_resource type="Texture2D" uid="uid://37dim38sd7g8" path="res://assets/sprites/characters/gabriel/punch2_05.png" id="9_punch2_05"]
+[ext_resource type="Texture2D" uid="uid://hvnes1npvoxr" path="res://assets/sprites/characters/gabriel/kick_01.png" id="10_kick_01"]
+[ext_resource type="Texture2D" uid="uid://bio0qyw56gmql" path="res://assets/sprites/characters/gabriel/kick_02.png" id="11_kick_02"]
+[ext_resource type="Texture2D" uid="uid://ctw1h0nuvq0g7" path="res://assets/sprites/characters/gabriel/kick_03.png" id="12_kick_03"]
+[ext_resource type="Texture2D" uid="uid://b8j3s2stnqs47" path="res://assets/sprites/characters/gabriel/heavy_01.png" id="13_heavy_01"]
+[ext_resource type="Texture2D" uid="uid://wogdlymsnta1" path="res://assets/sprites/characters/gabriel/heavy_02.png" id="14_heavy_02"]
+[ext_resource type="Texture2D" uid="uid://c6lb2q4lhkbwe" path="res://assets/sprites/characters/gabriel/heavy_03.png" id="15_heavy_03"]
+[ext_resource type="Texture2D" uid="uid://ct78at1pq4pm6" path="res://assets/sprites/characters/gabriel/heavy_04.png" id="16_heavy_04"]
+[ext_resource type="Texture2D" uid="uid://dhps0sg6sg1wm" path="res://assets/sprites/characters/gabriel/heavy_05.png" id="17_heavy_05"]
+[ext_resource type="Texture2D" uid="uid://b4jis6t0v1kmh" path="res://assets/sprites/characters/gabriel/heavy_06.png" id="18_heavy_06"]
+[ext_resource type="Texture2D" uid="uid://brkmfs683dxnb" path="res://assets/sprites/characters/gabriel/jump_atk_01.png" id="19_jump_atk_01"]
+[ext_resource type="Texture2D" uid="uid://f3jyh7ht5uhn" path="res://assets/sprites/characters/gabriel/jump_atk_02.png" id="20_jump_atk_02"]
+[ext_resource type="Texture2D" uid="uid://gqxuss0vtvyy" path="res://assets/sprites/characters/gabriel/jump_atk_03.png" id="21_jump_atk_03"]
+[ext_resource type="Texture2D" uid="uid://c85rhjk8c8eu4" path="res://assets/sprites/characters/gabriel/jump_atk_04.png" id="22_jump_atk_04"]
 
 [resource]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("1_idle")
 }],
 "loop": 0,
 "name": &"death",
@@ -14,7 +35,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("1_idle")
 }],
 "loop": 0,
 "name": &"fall",
@@ -22,7 +43,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("1_idle")
 }],
 "loop": 0,
 "name": &"getup",
@@ -30,7 +51,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("1_idle")
 }],
 "loop": 1,
 "name": &"guard",
@@ -38,7 +59,22 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("13_heavy_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_heavy_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_heavy_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_heavy_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_heavy_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_heavy_06")
 }],
 "loop": 0,
 "name": &"heavy",
@@ -46,7 +82,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("1_idle")
 }],
 "loop": 0,
 "name": &"hurt",
@@ -54,7 +90,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("1_idle")
 }],
 "loop": 1,
 "name": &"idle",
@@ -62,7 +98,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("1_idle")
 }],
 "loop": 0,
 "name": &"jump",
@@ -70,7 +106,16 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("19_jump_atk_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_jump_atk_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21_jump_atk_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_jump_atk_04")
 }],
 "loop": 0,
 "name": &"jump_atk",
@@ -78,7 +123,13 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("10_kick_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_kick_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_kick_03")
 }],
 "loop": 0,
 "name": &"kick",
@@ -86,7 +137,13 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("2_punch_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_punch_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_punch_03")
 }],
 "loop": 0,
 "name": &"punch",
@@ -94,9 +151,43 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_gabriel_idle")
+"texture": ExtResource("2_punch_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_punch_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_punch_03")
+}],
+"loop": 0,
+"name": &"shot_1",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_punch2_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_punch2_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_punch2_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_punch2_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_punch2_05")
+}],
+"loop": 0,
+"name": &"shot_2",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_idle")
 }],
 "loop": 1,
 "name": &"walk",
-"speed": 8.0
+"speed": 5.0
 }]

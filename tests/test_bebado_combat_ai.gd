@@ -47,6 +47,21 @@ func _init() -> void:
 	for a in required_anims:
 		_assert(sprite.sprite_frames.has_animation(a), "Animação '%s' deve existir" % a)
 
+	# 3.1. Validação dos Parâmetros de Balanceamento do Bêbado
+	bebado._ensure_internal_refs()
+	_assert(is_equal_approx(bebado.base_health, 110.0), "Propriedade base_health calibrada em 110 HP (atual=%.1f)" % bebado.base_health)
+	_assert(is_equal_approx(bebado.health_component.max_health, 110.0), "Vida base calibrada em 110 HP (atual=%.1f)" % bebado.health_component.max_health)
+	_assert(is_equal_approx(bebado.dodge_chance, 0.30), "Chance de esquiva calibrada em 30%% (atual=%.2f)" % bebado.dodge_chance)
+	_assert(is_equal_approx(bebado.dodge_cooldown_time, 3.5), "Cooldown de esquiva calibrado em 3.5s (atual=%.2f)" % bebado.dodge_cooldown_time)
+	_assert(is_equal_approx(bebado.dodge_duration, 0.30), "Duração da esquiva calibrada em 0.30s (atual=%.2f)" % bebado.dodge_duration)
+	_assert(is_equal_approx(bebado.dodge_speed, 210.0), "Velocidade de esquiva calibrada em 210 (atual=%.1f)" % bebado.dodge_speed)
+	_assert(is_equal_approx(bebado.crawl_after_downed_chance, 0.30), "Chance de crawl pós-knockdown calibrada em 30%% (atual=%.2f)" % bebado.crawl_after_downed_chance)
+	_assert(is_equal_approx(bebado.crawl_spontaneous_chance, 0.20), "Chance de crawl espontâneo calibrada em 20%% (atual=%.2f)" % bebado.crawl_spontaneous_chance)
+	_assert(is_equal_approx(bebado.crawl_spontaneous_min_interval, 12.0), "Intervalo mín de crawl calibrado em 12s (atual=%.1f)" % bebado.crawl_spontaneous_min_interval)
+	_assert(is_equal_approx(bebado.crawl_spontaneous_max_interval, 18.0), "Intervalo máx de crawl calibrado em 18s (atual=%.1f)" % bebado.crawl_spontaneous_max_interval)
+	_assert(is_equal_approx(bebado.crawl_duration, 2.0), "Duração do crawl calibrada em 2.0s (atual=%.1f)" % bebado.crawl_duration)
+	_assert(is_equal_approx(bebado.crawl_low_health_threshold, 0.35), "Limite de vida para crawl calibrado em 35%% (atual=%.2f)" % bebado.crawl_low_health_threshold)
+
 	# 4. Teste da Mecânica de Esquiva (DODGE)
 	_assert(bebado.get("bebado_state") == 0, "Estado inicial deve ser NONE (0)")
 	bebado.start_dodge()
