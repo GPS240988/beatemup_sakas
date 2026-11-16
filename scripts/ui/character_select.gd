@@ -372,8 +372,8 @@ func _update_stats_display(char_id: String) -> void:
 		stat_tec_label.text = "TÉCNICA:    " + _generate_bar_string(tec)
 
 	var hero_display: String = char_id.capitalize().to_upper()
-	if session != null and session.CHARACTERS.has(char_id):
-		hero_display = str(session.CHARACTERS[char_id].get("name", hero_display)).to_upper()
+	if game_session != null and game_session.CHARACTERS.has(char_id):
+		hero_display = str(game_session.CHARACTERS[char_id].get("name", hero_display)).to_upper()
 
 	if is_unlocked:
 		if status_label != null:
@@ -409,7 +409,9 @@ func _update_mobile_action() -> void:
 		return
 	var session = get_node_or_null("/root/GameSession")
 	var is_unlocked: bool = false
-	if session != null and session.CHARACTERS.has(current_hover_id):
+	if session != null and session.has_method("is_character_unlocked"):
+		is_unlocked = session.is_character_unlocked(current_hover_id)
+	elif session != null and session.CHARACTERS.has(current_hover_id):
 		is_unlocked = bool(session.CHARACTERS[current_hover_id].get("unlocked", false))
 	else:
 		is_unlocked = (current_hover_id == "guilherme")
@@ -436,7 +438,9 @@ func _on_confirm_pressed() -> void:
 	# Restrição master do jogo: apenas heróis desbloqueados iniciam a partida
 	var session = get_node_or_null("/root/GameSession")
 	var is_unlocked: bool = false
-	if session != null and session.CHARACTERS.has(current_hover_id):
+	if session != null and session.has_method("is_character_unlocked"):
+		is_unlocked = session.is_character_unlocked(current_hover_id)
+	elif session != null and session.CHARACTERS.has(current_hover_id):
 		is_unlocked = bool(session.CHARACTERS[current_hover_id].get("unlocked", false))
 	else:
 		is_unlocked = (current_hover_id == "guilherme")

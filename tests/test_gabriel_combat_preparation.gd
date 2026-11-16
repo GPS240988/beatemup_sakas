@@ -50,7 +50,7 @@ func _test_game_session_stats_and_multipliers() -> void:
 	_assert(gabriel_info.get("speed") == 4, "Gabriel possui Velocidade 4")
 	_assert(gabriel_info.get("technique") == 3, "Gabriel possui Técnica 3")
 	_assert(gabriel_info.get("title") == "Atirador Veloz", "Título do Gabriel é 'Atirador Veloz'")
-	_assert(gabriel_info.get("unlocked") == true, "Gabriel está desbloqueado para gameplay")
+	_assert(gabriel_info.get("unlocked") == false, "Gabriel está bloqueado para novo jogo")
 	_assert(gabriel_info.get("preview_path") == "res://assets/sprites/characters/gabriel/idle.png", "Preview path de Gabriel está configurado")
 
 	# Teste dos multiplicadores oficiais:
@@ -168,16 +168,20 @@ func _test_player_controller_character_loading() -> void:
 	player_guilherme.queue_free()
 
 func _test_character_select_unlock_behavior() -> void:
-	print("\n--- 5. Validando Tela de Seleção de Personagem com Gabriel Desbloqueado ---")
+	print("\n--- 5. Validando Bloqueio de Gabriel em Novo Jogo e Desbloqueio de Guilherme ---")
 	var session = root.get_node_or_null("GameSession")
-	_assert(session.is_character_unlocked("gabriel") == true, "GameSession confirma Gabriel desbloqueado")
+	_assert(session.is_character_unlocked("guilherme") == true, "GameSession confirma Guilherme desbloqueado para novo jogo")
+	_assert(session.is_character_unlocked("gabriel") == false, "GameSession confirma Gabriel bloqueado para novo jogo")
 	_assert(session.is_character_unlocked("andre") == false, "GameSession confirma André bloqueado")
 	_assert(session.is_character_unlocked("juliana") == false, "GameSession confirma Juliana bloqueada")
 
 	var can_select_gabriel: bool = session.select_character("gabriel")
-	_assert(can_select_gabriel == true, "session.select_character('gabriel') é aceito com sucesso")
-	_assert(session.selected_character_id == "gabriel", "selected_character_id agora é 'gabriel'")
+	_assert(can_select_gabriel == false, "session.select_character('gabriel') é rejeitado em novo jogo (bloqueado)")
+
+	var can_select_guilherme: bool = session.select_character("guilherme")
+	_assert(can_select_guilherme == true, "session.select_character('guilherme') é aceito com sucesso")
+	_assert(session.selected_character_id == "guilherme", "selected_character_id agora é 'guilherme'")
 
 	var can_select_andre: bool = session.select_character("andre")
 	_assert(can_select_andre == false, "session.select_character('andre') é rejeitado (bloqueado)")
-	_assert(session.selected_character_id == "gabriel", "selected_character_id permanece inalterado em 'gabriel'")
+	_assert(session.selected_character_id == "guilherme", "selected_character_id permanece inalterado em 'guilherme'")

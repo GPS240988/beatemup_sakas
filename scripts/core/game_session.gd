@@ -47,7 +47,7 @@ const CHARACTERS: Dictionary = {
 	"gabriel": {
 		"name": "Gabriel",
 		"title": "Atirador Veloz",
-		"unlocked": true,
+		"unlocked": false,
 		"preview_path": "res://assets/sprites/characters/gabriel/idle.png",
 		"strength": 1,
 		"speed": 4,

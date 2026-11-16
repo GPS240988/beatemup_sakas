@@ -213,7 +213,7 @@ func _test_bullet_single_hit_and_evasion() -> void:
 func _test_gabriel_combo_chain_structure() -> void:
 	print("\n--- 5. Validando Estrutura do Combo de 4 Movimentos (Etapa 04) ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
@@ -274,7 +274,7 @@ func _test_gabriel_combo_chain_structure() -> void:
 func _test_gabriel_combo_damage_budget() -> void:
 	print("\n--- 6. Validando Orçamento de Dano Efetivo do Combo (64.0 Total) ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
@@ -300,7 +300,7 @@ func _test_gabriel_combo_damage_budget() -> void:
 func _test_gabriel_combo_progression() -> void:
 	print("\n--- 7. Validando Progressão Confiável do Combo 4 Passos e Prioridade de Pickup ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
@@ -345,7 +345,7 @@ func _test_gabriel_combo_progression() -> void:
 func _test_gabriel_hit_confirmation_and_contextual_melee() -> void:
 	print("\n--- 7b. Validando Golpe Contextual Melee e Hit Confirmation Estrito ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
@@ -406,7 +406,7 @@ func _test_gabriel_hit_confirmation_and_contextual_melee() -> void:
 func _test_gabriel_recovery_commitment_and_input_buffer() -> void:
 	print("\n--- 7c. Validando Cadência de Recuperação e Buffer de Entrada ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
@@ -429,7 +429,7 @@ func _test_gabriel_recovery_commitment_and_input_buffer() -> void:
 	_assert(player.get("_combo_step") == 1, "Input bufferizado executa no término da recuperação e avança combo")
 	
 	# Testa Guilherme: cancela recuperação imediatamente ao apertar J
-	session.select_character("guilherme")
+	session.selected_character_id = "guilherme"
 	var g_player: PlayerController = player_scene.instantiate() as PlayerController
 	root.add_child(g_player)
 	g_player._execute_combo_attack(0)
@@ -444,7 +444,7 @@ func _test_gabriel_recovery_commitment_and_input_buffer() -> void:
 func _test_target_safety_exclusions_and_muzzle_offset() -> void:
 	print("\n--- 7d. Validando Exclusões de Alvos e Alcance Efetivo do Muzzle ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var bullet_scene: PackedScene = load("res://scenes/actors/projectiles/player_bullet.tscn")
 	var bullet = bullet_scene.instantiate()
@@ -533,7 +533,7 @@ func _test_standalone_hero_loading_without_session() -> void:
 func _test_gabriel_mobility_and_aerial() -> void:
 	print("\n--- 8. Validando Mobilidade e Salto Tático (Etapa 05) ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
@@ -571,7 +571,7 @@ func _test_gabriel_mobility_and_aerial() -> void:
 func _test_guilherme_zero_regression() -> void:
 	print("\n--- 9. Validando Zero Regressão em Guilherme ---")
 	var session = _ensure_game_session()
-	session.select_character("guilherme")
+	session.selected_character_id = "guilherme"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
