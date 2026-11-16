@@ -33,6 +33,10 @@ func _run_all_tests() -> void:
 	_test_gabriel_combo_chain_structure()
 	_test_gabriel_combo_damage_budget()
 	_test_gabriel_combo_progression()
+	_test_gabriel_hit_confirmation_and_contextual_melee()
+	_test_gabriel_recovery_commitment_and_input_buffer()
+	_test_target_safety_exclusions_and_muzzle_offset()
+	_test_standalone_hero_loading_without_session()
 	_test_gabriel_mobility_and_aerial()
 	_test_guilherme_zero_regression()
 	
@@ -228,7 +232,7 @@ func _test_gabriel_combo_chain_structure() -> void:
 	_assert(is_equal_approx(atk1.get("depth_tolerance"), 24.0), "Passo 1 tolerância de profundidade é 24 px")
 	_assert(is_equal_approx(atk1.get("startup"), 0.03), "Passo 1 startup é 0.03s")
 	_assert(is_equal_approx(atk1.get("active"), 0.08), "Passo 1 active é 0.08s")
-	_assert(is_equal_approx(atk1.get("recovery"), 0.12), "Passo 1 recovery é 0.12s")
+	_assert(is_equal_approx(atk1.get("recovery"), 0.20), "Passo 1 recovery é 0.20s")
 	_assert(atk1.get("can_knockdown") == false, "Passo 1 NÃO causa knockdown")
 	
 	# Passo 2
@@ -240,7 +244,7 @@ func _test_gabriel_combo_chain_structure() -> void:
 	_assert(is_equal_approx(atk2.get("depth_tolerance"), 26.0), "Passo 2 tolerância de profundidade é 26 px")
 	_assert(is_equal_approx(atk2.get("startup"), 0.04), "Passo 2 startup é 0.04s")
 	_assert(is_equal_approx(atk2.get("active"), 0.10), "Passo 2 active é 0.10s")
-	_assert(is_equal_approx(atk2.get("recovery"), 0.15), "Passo 2 recovery é 0.15s")
+	_assert(is_equal_approx(atk2.get("recovery"), 0.24), "Passo 2 recovery é 0.24s")
 	_assert(atk2.get("can_knockdown") == false, "Passo 2 NÃO causa knockdown")
 	
 	# Passo 3
@@ -261,7 +265,7 @@ func _test_gabriel_combo_chain_structure() -> void:
 	_assert(is_equal_approx(atk4.get("depth_tolerance"), 30.0), "Passo 4 tolerância de profundidade é 30 px")
 	_assert(is_equal_approx(atk4.get("startup"), 0.05), "Passo 4 startup é 0.05s")
 	_assert(is_equal_approx(atk4.get("active"), 0.12), "Passo 4 active é 0.12s")
-	_assert(is_equal_approx(atk4.get("recovery"), 0.32), "Passo 4 recovery é 0.32s")
+	_assert(is_equal_approx(atk4.get("recovery"), 0.40), "Passo 4 recovery é 0.40s")
 	_assert(atk4.get("can_knockdown") == true, "Passo 4 CAUSA knockdown no alvo")
 	
 	player.queue_free()
@@ -310,9 +314,18 @@ func _test_gabriel_combo_progression() -> void:
 	var step2: int = player._advance_combo_step()
 	_assert(step2 == 2, "Avanço de 1 para 2 é consistente")
 	
+	# Sem confirmação de acerto no passo 3 (melee físico):
 	player.set("_combo_step", 2)
+	player.set("_gabriel_step3_confirmed", false)
+	var step_fail: int = player._advance_combo_step()
+	_assert(step_fail == 0, "Gabriel sem confirmação física do passo 3 reinicia no passo 0 (Disparo Rápido)")
+	
+	# Com confirmação de acerto no passo 3 (melee físico em inimigo vivo):
+	player.set("_combo_step", 2)
+	player.set("_gabriel_step3_confirmed", true)
 	var step3: int = player._advance_combo_step()
-	_assert(step3 == 3, "Gabriel avança para o passo 3 (Heavy/Final) com 100% de garantia sem queda aleatória")
+	_assert(step3 == 3, "Gabriel com confirmação física avança para o passo 3 (Rajada Final)")
+	_assert(player.get("_gabriel_step3_confirmed") == false, "Confirmação é consumida após avançar")
 	
 	player.set("_combo_step", 3)
 	var step4: int = player._advance_combo_step()
@@ -326,6 +339,194 @@ func _test_gabriel_combo_progression() -> void:
 	_assert(player.has_method("_try_consume_nearby_pickup"), "Método de prioridade de coleta _try_consume_nearby_pickup está presente")
 	
 	pickup.queue_free()
+	player.queue_free()
+
+
+func _test_gabriel_hit_confirmation_and_contextual_melee() -> void:
+	print("\n--- 7b. Validando Golpe Contextual Melee e Hit Confirmation Estrito ---")
+	var session = _ensure_game_session()
+	session.select_character("gabriel")
+	
+	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
+	var player: PlayerController = player_scene.instantiate() as PlayerController
+	root.add_child(player)
+	player.global_position = Vector2(200.0, 300.0)
+	player.facing_direction = 1.0
+	player.set("_combo_window_timer", 0.0)
+	
+	# Cria inimigo vivo alinhado à frente
+	var enemy = CharacterBody2D.new()
+	enemy.name = "TestEnemy"
+	enemy.add_to_group("enemies")
+	enemy.global_position = Vector2(250.0, 300.0) # dx = 50 <= 75 range, dy = 0
+	var health = HealthComponent.new()
+	health.max_health = 100.0
+	health.current_health = 100.0
+	enemy.add_child(health)
+	root.add_child(enemy)
+	
+	# Teste 1: J perto de inimigo alinhado sem combo ativo -> aciona golpe contextual melee (pistolada)
+	player._on_attack_button_pressed()
+	_assert(player.get("_is_contextual_melee") == true, "Golpe contextual melee acionado quando próximo e alinhado")
+	_assert(player.get("_combo_window_timer") == 0.0, "Golpe contextual melee NÃO abre janela de combo")
+	_assert(player.get("_gabriel_step3_confirmed") == false, "Golpe contextual melee NÃO confirma finalizer")
+	
+	# Ao encerrar o golpe contextual:
+	player._on_attack_ended()
+	_assert(player.get("_is_contextual_melee") == false, "Ao terminar golpe contextual melee, estado contextual é desativado")
+	_assert(player.combat_state == PlayerController.CombatState.NORMAL, "Retorna para estado normal")
+	
+	# Teste 2: Confirmação física no passo 2 do combo principal
+	player.set("_is_contextual_melee", false)
+	player.set("_combo_step", 2)
+	player.set("_gabriel_step3_confirmed", false)
+	
+	# Acerto físico em inimigo vivo -> confirma!
+	player._on_melee_target_hit(enemy, 12.0)
+	_assert(player.get("_gabriel_step3_confirmed") == true, "Acerto físico melee no passo 2 confirma passo 3")
+	
+	# Teste 3: Destrutíveis NÃO confirmam o finalizer
+	player.set("_gabriel_step3_confirmed", false)
+	var prop = Node2D.new()
+	prop.add_to_group("destructibles")
+	root.add_child(prop)
+	player._on_melee_target_hit(prop, 12.0)
+	_assert(player.get("_gabriel_step3_confirmed") == false, "Acerto em prop destrutível NÃO confirma finalizer")
+	
+	# Teste 4: Projétil atrasado NÃO confirma o finalizer
+	player.set("_gabriel_step3_confirmed", false)
+	player._on_projectile_hit(enemy, 14.0)
+	_assert(player.get("_gabriel_step3_confirmed") == false, "Disparo/projétil atrasado NÃO confirma finalizer")
+	
+	prop.queue_free()
+	enemy.queue_free()
+	player.queue_free()
+
+
+func _test_gabriel_recovery_commitment_and_input_buffer() -> void:
+	print("\n--- 7c. Validando Cadência de Recuperação e Buffer de Entrada ---")
+	var session = _ensure_game_session()
+	session.select_character("gabriel")
+	
+	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
+	var player: PlayerController = player_scene.instantiate() as PlayerController
+	root.add_child(player)
+	
+	# Inicia ataque de Gabriel
+	player._execute_combo_attack(0)
+	_assert(player.melee_attack.is_attacking == true, "Ataque iniciado")
+	
+	# Simula fase de recuperação: Gabriel NÃO deve cancelar o golpe; deve bufferizar!
+	player.melee_attack.current_phase = MeleeAttack.Phase.RECOVERY
+	player.set("_input_buffered", false)
+	player._on_attack_button_pressed()
+	
+	_assert(player.get("_input_buffered") == true, "Gabriel bufferiza comando de ataque durante a recuperação")
+	_assert(player.melee_attack.is_attacking == true, "Gabriel NÃO cancela a recuperação do ataque")
+	
+	# Ao chamar _on_attack_ended, o buffer é consumido e encadeia o próximo golpe
+	player._on_attack_ended()
+	_assert(player.get("_combo_step") == 1, "Input bufferizado executa no término da recuperação e avança combo")
+	
+	# Testa Guilherme: cancela recuperação imediatamente ao apertar J
+	session.select_character("guilherme")
+	var g_player: PlayerController = player_scene.instantiate() as PlayerController
+	root.add_child(g_player)
+	g_player._execute_combo_attack(0)
+	g_player.melee_attack.current_phase = MeleeAttack.Phase.RECOVERY
+	g_player._on_attack_button_pressed()
+	_assert(g_player.get("_combo_step") == 1, "Guilherme mantém cancelamento imediato de recuperação")
+	
+	g_player.queue_free()
+	player.queue_free()
+
+
+func _test_target_safety_exclusions_and_muzzle_offset() -> void:
+	print("\n--- 7d. Validando Exclusões de Alvos e Alcance Efetivo do Muzzle ---")
+	var session = _ensure_game_session()
+	session.select_character("gabriel")
+	
+	var bullet_scene: PackedScene = load("res://scenes/actors/projectiles/player_bullet.tscn")
+	var bullet = bullet_scene.instantiate()
+	root.add_child(bullet)
+	bullet.projectile_lane_y = 300.0
+	bullet.depth_tolerance = 24.0
+	
+	# Alvo: Player
+	var p = Node2D.new()
+	p.add_to_group("player")
+	p.add_to_group("damageable")
+	p.global_position = Vector2(100.0, 300.0)
+	root.add_child(p)
+	_assert(bullet.test_hit_candidate(p) == false, "Projétil NÃO atinge nó do grupo 'player'")
+	
+	# Alvo: NPC
+	var npc = Node2D.new()
+	npc.add_to_group("npcs")
+	npc.add_to_group("damageable")
+	npc.global_position = Vector2(100.0, 300.0)
+	root.add_child(npc)
+	_assert(bullet.test_hit_candidate(npc) == false, "Projétil NÃO atinge nó do grupo 'npcs'")
+	
+	# Alvo: Civilian
+	var civ = Node2D.new()
+	civ.add_to_group("civilians")
+	civ.add_to_group("damageable")
+	civ.global_position = Vector2(100.0, 300.0)
+	root.add_child(civ)
+	_assert(bullet.test_hit_candidate(civ) == false, "Projétil NÃO atinge nó do grupo 'civilians'")
+	
+	# Alvo: Ally
+	var ally = Node2D.new()
+	ally.add_to_group("allies")
+	ally.add_to_group("damageable")
+	ally.global_position = Vector2(100.0, 300.0)
+	root.add_child(ally)
+	_assert(bullet.test_hit_candidate(ally) == false, "Projétil NÃO atinge nó do grupo 'allies'")
+	
+	# Alvo: Inimigo morto
+	var dead_enemy = Node2D.new()
+	dead_enemy.add_to_group("enemies")
+	dead_enemy.add_to_group("damageable")
+	dead_enemy.set("is_dead", true)
+	dead_enemy.global_position = Vector2(100.0, 300.0)
+	root.add_child(dead_enemy)
+	_assert(bullet.test_hit_candidate(dead_enemy) == false, "Projétil NÃO atinge inimigo com is_dead = true")
+	
+	# Offset do cano (Muzzle offset):
+	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
+	var player: PlayerController = player_scene.instantiate() as PlayerController
+	root.add_child(player)
+	player.global_position = Vector2(200.0, 300.0)
+	var spawned_b = player._spawn_single_bullet(player.get("_combo_attacks")[0])
+	_assert(spawned_b != null, "Projétil disparado com sucesso")
+	# Alcance base = 280, offset cano = 45 -> alcance máximo efetivo = 235 px
+	_assert(is_equal_approx(spawned_b.max_range, 235.0), "max_range compensa offset do cano (280 - 45 = 235 px)")
+	
+	spawned_b.queue_free()
+	p.queue_free()
+	npc.queue_free()
+	civ.queue_free()
+	ally.queue_free()
+	dead_enemy.queue_free()
+	bullet.queue_free()
+	player.queue_free()
+
+
+func _test_standalone_hero_loading_without_session() -> void:
+	print("\n--- 7e. Validando Instanciação Standalone e Modificadores ---")
+	# Cria PlayerController diretamente com hero_data atribuído antes de _ready
+	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
+	var player: PlayerController = player_scene.instantiate() as PlayerController
+	var g_data = load("res://resources/heroes/gabriel_data.tres")
+	player.hero_data = g_data
+	root.add_child(player)
+	
+	_assert(player.is_gabriel(), "Instanciação standalone reconhece Gabriel via hero_data")
+	_assert(is_equal_approx(player.get("_str_mult"), 0.80), "Multiplicador de força seguro 0.80 aplicado")
+	_assert(is_equal_approx(player.get("_spd_mult"), 1.30), "Multiplicador de velocidade seguro 1.30 aplicado")
+	_assert(is_equal_approx(player.get("_tec_mult"), 1.00), "Multiplicador de técnica seguro 1.00 aplicado")
+	
 	player.queue_free()
 
 

@@ -1362,17 +1362,21 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   - Artefato visual PixelFX: Spritesheet de alta fidelidade `bullet-tracer` (`assets/sprites/Efeitos/pixelfx/bullet-tracer.png`), 18 frames em 30 FPS, integrado ao nó `Sprite2D` com `hframes = 2` e `vframes = 9`.
 
 - **Combo Exclusivo de 4 Movimentos com Botão Principal (`J`)**:
-  - `Passo 1 (Disparo Rápido)`: 1 projétil balístico, dano efetivo 14.0, alcance 280 px, profundidade 24 px, startup 0.03s, active 0.08s, recovery 0.12s, hitstop 2 frames, sem knockdown.
-  - `Passo 2 (Rajada Dupla)`: 2 projéteis semiautomáticos intervalados por 0.06s, dano efetivo 7.0 cada (14.0 total), alcance 300 px, profundidade 26 px, startup 0.04s, active 0.10s, recovery 0.15s, hitstop 2 frames, sem knockdown.
+  - `Passo 1 (Disparo Rápido)`: 1 projétil balístico, dano efetivo 14.0, alcance 280 px, profundidade 24 px, startup 0.03s, active 0.08s, recovery 0.20s, hitstop 2 frames, sem knockdown.
+  - `Passo 2 (Rajada Dupla)`: 2 projéteis semiautomáticos intervalados por 0.06s, dano efetivo 7.0 cada (14.0 total), alcance 300 px, profundidade 26 px, startup 0.04s, active 0.10s, recovery 0.24s, hitstop 2 frames, sem knockdown.
   - `Passo 3 (Pistolada / Coronhada)`: Golpe corpo a corpo físico desferido com a coronha da arma utilizando o componente `MeleeAttack` (`is_projectile = false`), dano efetivo 12.0, alcance 75 px, profundidade 28 px, startup 0.03s, active 0.10s, recovery 0.16s, hitstop 3 frames, sem knockdown.
-  - `Passo 4 (Rajada Final)`: 1 projétil balístico pesado com recuo, dano efetivo 24.0, alcance 320 px, profundidade 30 px, startup 0.05s, active 0.12s, recovery 0.32s, hitstop 5 frames, causando **Knockdown** garantido.
-  - `Garantia de Progressão Completa`: Diferente de Guilherme (que aplica a regra canônica de 20% para entrar no Heavy), Gabriel avança do Passo 3 para o Passo 4 com 100% de garantia linear, permitindo vivenciar o combo de 4 etapas fluidamente.
-  - `Prioridade de Coleta Contextual`: Ao pressionar `J` perto de um consumível de vida (`coca_pickup`), a coleta do item tem prioridade estrita sobre o disparo da pistola.
+  - `Passo 4 (Rajada Final)`: 1 projétil balístico pesado com recuo, dano efetivo 24.0, alcance 320 px, profundidade 30 px, startup 0.05s, active 0.12s, recovery 0.40s, hitstop 5 frames, causando **Knockdown** garantido.
+  - `Hit Confirmation Estrito para o Finisher (Passo 4)`: O Passo 4 só é executado caso o Passo 3 (ataque físico de coronhada) confirme acerto em um inimigo vivo (`_gabriel_step3_confirmed = true`). Se o Passo 3 errar, atingir apenas props ou se a janela expirar, pressionar `J` reinicia no Passo 0 (Disparo Rápido). Projéteis atrasados e ataques contextuais jamais confirmam o Passo 3.
+  - `Golpe Contextual Melee Defensivo`: Ao pressionar `J` sem combo ativo (`_combo_window_timer <= 0.0`) na presença de inimigo vivo, alinhado e próximo (alcance $\le 85$ px, profundidade $\le 24$ px), Gabriel desfere a coronhada imediatamente em vez de atirar. Trata-se de recurso isolado para abrir espaço: não abre janela de combo e não confirma o Passo 4.
+  - `Compromisso de Recuperação & Buffer de Entrada`: Para evitar tiros e recuos sem custo, Gabriel não cancela a recuperação de seus ataques com novas pressões de `J`; comandos dados durante o golpe são bufferizados e executam apenas ao fim do ciclo de recuperação. Guilherme preserva o cancelamento de recuperação tradicional.
+  - `Compensação de Offset do Cano (Muzzle Offset)`: O alcance máximo de viagem do projétil subtrai o deslocamento do marcador do cano (`maxf(20.0, raw_range - muzzle_offset_x)`), assegurando que o tiro alcance rigorosamente a distância pretendida a partir da origem do jogador.
+  - `Blindagem Estrita de Alvos`: O projétil rejeita nós nos grupos `player`, `npcs`, `civilians` e `allies`, bem como inimigos mortos (`is_dead = true`) ou props quebrados (`is_broken = true`), atingindo apenas alvos válidos e consumindo-se em um único impacto.
+  - `Prioridade de Coleta Contextual`: Ao pressionar `J` perto de um consumível de vida (`coca_pickup`), a coleta do item tem prioridade estrita sobre o combate.
 
 - **Mobilidade e Salto Tático (`Space` / `attack_aerial`)**:
   - Velocidades calibradas: `speed_x = 260.0`, `speed_y = 190.0` que, multiplicadas pelo modificador de Velocidade 4 ($1.30\times$), entregam exatamente 338.0 px/s horizontal e 247.0 px/s vertical.
   - Impulso de Salto Tático: Impulso vertical `aerial_jump_v_velocity = -320.0` e impulso horizontal à frente de 200.0 px/s.
-  - Disparo Aéreo Balístico: Dispara projétil no ar (dano efetivo 24.0, alcance 160 px, profundidade 28 px) originado do `MuzzleMarker` acompanhando a projeção do nó `Visual` no ar, sem ativar hitbox corpo a corpo simultânea.
+  - Disparo Aéreo Balístico: Dispara projétil no ar (dano efetivo 24.0, alcance 160 px, profundidade 28 px) originado do `MuzzleMarker` acompanhando a projeção do nó `Visual` no ar, com compensação do offset de cano e sem ativar hitbox corpo a corpo simultânea.
   - Bloqueio estrito de reativação: Jogador não pode acionar novo salto ou golpe aéreo enquanto já estiver no ar (`_is_jumping = true`).
   - Restauração ao tocar o solo: Ao atingir o solo (`visual_root.position.y >= 0.0`), zera a velocidade vertical e restaura o estado para `CombatState.NORMAL`.
 

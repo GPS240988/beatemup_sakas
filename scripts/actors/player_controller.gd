@@ -72,6 +72,8 @@ var _state_timer: float = 0.0
 var _hitstop_timer: float = 0.0
 var _is_invulnerable: bool = false
 var _input_buffered: bool = false
+var _gabriel_step3_confirmed: bool = false
+var _is_contextual_melee: bool = false
 
 # Controle do sistema de combos com botão único (Combo 1 -> Combo 2 -> Combo 3 -> Finisher)
 var _combo_step: int = 0
@@ -117,15 +119,20 @@ func _ready() -> void:
 	_ensure_fallback_inputs()
 
 	var session = get_node_or_null("/root/GameSession")
-	var char_id: String = "guilherme"
+	var char_id: String = ""
 	if session != null and "selected_character_id" in session and session.selected_character_id != "":
 		char_id = str(session.selected_character_id).to_lower()
+	elif hero_data != null and "hero_id" in hero_data and hero_data.hero_id != "":
+		char_id = str(hero_data.hero_id).to_lower()
+	else:
+		char_id = "guilherme"
 
-	var hero_path := "res://resources/heroes/%s_data.tres" % char_id
-	if ResourceLoader.exists(hero_path):
-		hero_data = load(hero_path)
-	elif hero_data == null and ResourceLoader.exists("res://resources/heroes/guilherme_data.tres"):
-		hero_data = load("res://resources/heroes/guilherme_data.tres")
+	if hero_data == null or (session != null and "selected_character_id" in session and session.selected_character_id != "" and hero_data.hero_id.to_lower() != char_id):
+		var hero_path := "res://resources/heroes/%s_data.tres" % char_id
+		if ResourceLoader.exists(hero_path):
+			hero_data = load(hero_path)
+		elif ResourceLoader.exists("res://resources/heroes/guilherme_data.tres"):
+			hero_data = load("res://resources/heroes/guilherme_data.tres")
 
 	var frames_path := "res://resources/characters/%s_sprite_frames.tres" % char_id
 	if ResourceLoader.exists(frames_path) and anim_sprite != null:
@@ -191,8 +198,8 @@ func is_gabriel() -> bool:
 func _apply_character_stat_modifiers() -> void:
 	var session = get_node_or_null("/root/GameSession")
 	var char_id: String = "guilherme"
-	if session != null and "selected_character_id" in session:
-		char_id = session.selected_character_id
+	if session != null and "selected_character_id" in session and session.selected_character_id != "":
+		char_id = str(session.selected_character_id).to_lower()
 	elif hero_data != null and hero_data.hero_id != "":
 		char_id = hero_data.hero_id.to_lower()
 
@@ -204,10 +211,24 @@ func _apply_character_stat_modifiers() -> void:
 		_str_mult = session.get_strength_multiplier(char_id)
 		_spd_mult = session.get_speed_multiplier(char_id)
 		_tec_mult = session.get_technique_multiplier(char_id)
-	elif hero_data != null:
-		_str_mult = 1.0 + (float(hero_data.strength) - 3.0) * 0.10
-		_spd_mult = 1.0 + (float(hero_data.speed) - 3.0) * 0.10
-		_tec_mult = 1.0 + (float(hero_data.technique) - 3.0) * 0.08
+	else:
+		match char_id:
+			"gabriel":
+				_str_mult = 0.80
+				_spd_mult = 1.30
+				_tec_mult = 1.00
+			"alessandro":
+				_str_mult = 0.90
+				_spd_mult = 1.10
+				_tec_mult = 1.24
+			"emmanuelle":
+				_str_mult = 1.20
+				_spd_mult = 0.90
+				_tec_mult = 0.92
+			_:
+				_str_mult = 1.00
+				_spd_mult = 1.00
+				_tec_mult = 1.00
 
 	# Aplica modificadores de velocidade de locomoção
 	speed_x *= _spd_mult
@@ -472,6 +493,7 @@ func _physics_process(delta: float) -> void:
 		_combo_window_timer -= delta
 		if _combo_window_timer <= 0.0 and (melee_attack == null or not melee_attack.is_attacking):
 			_combo_step = 0
+			_gabriel_step3_confirmed = false
 			if combo_hits > 0:
 				combo_hits = 0
 				combo_changed.emit(0)
@@ -629,26 +651,99 @@ func _on_attack_button_pressed() -> void:
 		return
 
 	if melee_attack != null and melee_attack.is_attacking:
-		# Se a janela de acerto ativa ou fase de startup ainda estiver em curso, armazena no buffer
-		if melee_attack.is_active_window or melee_attack.current_phase in [MeleeAttack.Phase.STARTUP, MeleeAttack.Phase.ACTIVE]:
+		if is_gabriel():
+			# Gabriel: não cancela a recuperação do ataque; bufferiza o input
 			_input_buffered = true
 			return
 		else:
-			# Na janela de recuperação: cancela e encadeia o próximo golpe imediatamente
-			melee_attack.cancel_attack()
-			_input_buffered = false
-			if _combo_attacks.size() > 0:
-				_combo_step = _advance_combo_step()
-			_execute_combo_attack(_combo_step)
-			return
+			# Guilherme: se em startup ou ativo, bufferiza; na recuperação cancela imediatamente
+			if melee_attack.is_active_window or melee_attack.current_phase in [MeleeAttack.Phase.STARTUP, MeleeAttack.Phase.ACTIVE]:
+				_input_buffered = true
+				return
+			else:
+				melee_attack.cancel_attack()
+				_input_buffered = false
+				if _combo_attacks.size() > 0:
+					_combo_step = _advance_combo_step()
+				_execute_combo_attack(_combo_step)
+				return
+
+	# Ataque contextual melee para Gabriel quando fora de combo ativo
+	if _combo_window_timer <= 0.0 and is_gabriel():
+		var melee_range: float = 85.0
+		var depth_tol: float = 24.0
+		if _combo_attacks.size() > 2 and _combo_attacks[2] != null:
+			melee_range = float(_combo_attacks[2].get("horizontal_range"))
+			depth_tol = float(_combo_attacks[2].get("depth_tolerance"))
+		var enemy = _find_contextual_melee_enemy(melee_range, depth_tol)
+		if enemy != null:
+			if _execute_contextual_melee_attack():
+				return
 
 	# Avança no combo se estiver dentro da janela
 	if _combo_window_timer > 0.0 and _combo_attacks.size() > 0:
 		_combo_step = _advance_combo_step()
 	else:
 		_combo_step = 0
+		_gabriel_step3_confirmed = false
 
 	_execute_combo_attack(_combo_step)
+
+
+## Busca inimigo vivo, alinhado em profundidade e à frente para golpe melee contextual
+func _find_contextual_melee_enemy(melee_range: float = 85.0, depth_tol: float = 24.0) -> Node:
+	var closest_enemy: Node = null
+	var closest_dist: float = INF
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var enemies := tree.get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		var enemy_health := _find_health_component(enemy)
+		if enemy_health != null and enemy_health.is_dead:
+			continue
+		var enemy_node2d := enemy as Node2D
+		if enemy_node2d == null:
+			continue
+		var enemy_pos := enemy_node2d.global_position
+		# Verificação de profundidade (eixo Y)
+		var dy := absf(enemy_pos.y - global_position.y)
+		if dy > depth_tol:
+			continue
+		# Verificação de orientação e alcance horizontal (eixo X)
+		var dx := (enemy_pos.x - global_position.x) * facing_direction
+		if dx < -15.0 or dx > melee_range:
+			continue
+		var dist := global_position.distance_to(enemy_pos)
+		if dist < closest_dist:
+			closest_dist = dist
+			closest_enemy = enemy
+	return closest_enemy
+
+
+## Executa o golpe contextual melee defensivo de Gabriel (não avança combo nem libera finalizer)
+func _execute_contextual_melee_attack() -> bool:
+	if melee_attack == null or _combo_attacks.size() <= 2:
+		return false
+	var atk: Resource = _combo_attacks[2]
+	if atk == null:
+		return false
+
+	_is_contextual_melee = true
+	_gabriel_step3_confirmed = false
+	_combo_step = 2
+	_combo_window_timer = 0.0
+	_current_attack_anim = atk.get("animation")
+	melee_attack.apply_attack_data(atk)
+
+	if melee_attack.execute_attack(facing_direction):
+		combat_state = CombatState.ATTACKING
+		state_changed.emit("Pistolada")
+		return true
+	_is_contextual_melee = false
+	return false
 
 
 ## Tenta consumir um item próximo. Retorna true somente quando um item foi consumido.
@@ -669,14 +764,21 @@ const HEAVY_FINISHER_CHANCE: float = 0.20
 func _advance_combo_step() -> int:
 	if _combo_attacks.is_empty():
 		return 0
-	# Se já está no último passo (heavy), reinicia
+	# Se já está no último passo, reinicia
 	if _combo_step >= _combo_attacks.size() - 1:
+		_gabriel_step3_confirmed = false
 		return 0
 	var next_step: int = _combo_step + 1
-	# Quando o próximo passo seria o heavy (step 3): Gabriel sempre completa o combo; Guilherme aplica a chance de 20%
+	# Quando o próximo passo é o heavy/finalizer (step 3):
 	if next_step == 3:
 		if is_gabriel():
-			return 3
+			# Gabriel só avança para o finisher se confirmou acerto físico do step 3 (pistolada)
+			if _gabriel_step3_confirmed:
+				_gabriel_step3_confirmed = false
+				return 3
+			else:
+				_gabriel_step3_confirmed = false
+				return 0  # Reinicia no disparo rápido (step 0)
 		if randf() <= HEAVY_FINISHER_CHANCE:
 			return 3
 		else:
@@ -1010,6 +1112,23 @@ func _on_attack_ended() -> void:
 	if health_component != null and health_component.is_dead:
 		return
 
+	if _is_contextual_melee:
+		_is_contextual_melee = false
+		_gabriel_step3_confirmed = false
+		_combo_step = 0
+		_combo_window_timer = 0.0
+		if melee_attack != null:
+			melee_attack.is_attacking = false
+		combat_state = CombatState.NORMAL
+		state_changed.emit("Normal")
+		if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
+			if not _is_jumping and not _is_guarding:
+				anim_sprite.play("idle")
+		if _input_buffered:
+			_input_buffered = false
+			_on_attack_button_pressed()
+		return
+
 	# Se houver input bufferizado na janela, encadeia o próximo golpe imediatamente
 	if _input_buffered:
 		_input_buffered = false
@@ -1019,7 +1138,6 @@ func _on_attack_ended() -> void:
 			_combo_step = _advance_combo_step()
 			_execute_combo_attack(_combo_step)
 			return
-
 
 	if melee_attack != null:
 		melee_attack.is_attacking = false
@@ -1032,6 +1150,7 @@ func _on_attack_ended() -> void:
 	else:
 		_combo_window_timer = 0.0
 		_combo_step = 0
+		_gabriel_step3_confirmed = false
 
 	if anim_sprite != null and (anim_sprite.animation in [&"punch", &"kick", &"heavy"]):
 		if not _is_jumping and not _is_guarding:
@@ -1082,11 +1201,16 @@ func _spawn_single_bullet(atk: Resource, bullet_dmg: float = -1.0) -> Area2D:
 		return null
 	
 	var actual_dmg: float = bullet_dmg if bullet_dmg > 0.0 else float(atk.get("damage"))
+	var raw_range: float = float(atk.get("horizontal_range")) if atk.get("horizontal_range") != null else 280.0
+	var muzzle_pos: Vector2 = _get_muzzle_global_position()
+	var muzzle_offset_x: float = absf(muzzle_pos.x - global_position.x)
+	var effective_bullet_range: float = maxf(20.0, raw_range - muzzle_offset_x)
+
 	bullet.set("attacker", self)
 	bullet.set("projectile_lane_y", global_position.y)
 	bullet.set("direction", Vector2(facing_direction, 0.0))
 	bullet.set("damage", actual_dmg)
-	bullet.set("max_range", float(atk.get("horizontal_range")) if atk.get("horizontal_range") != null else 280.0)
+	bullet.set("max_range", effective_bullet_range)
 	bullet.set("depth_tolerance", float(atk.get("depth_tolerance")) if atk.get("depth_tolerance") != null else 24.0)
 	bullet.set("can_knockdown", bool(atk.get("can_knockdown")))
 	bullet.set("hitstop_duration", atk.call("get_hitstop_duration") if atk.has_method("get_hitstop_duration") else 0.033)
@@ -1094,7 +1218,7 @@ func _spawn_single_bullet(atk: Resource, bullet_dmg: float = -1.0) -> Area2D:
 	bullet.set("knockback_force", float(atk.get("knockback")) if atk.get("knockback") != null else 30.0)
 	bullet.set("impact_profile", str(atk.get("impact_profile")) if atk.get("impact_profile") != null else "projectile")
 	
-	bullet.global_position = _get_muzzle_global_position()
+	bullet.global_position = muzzle_pos
 	
 	var target_parent: Node = get_parent()
 	if target_parent == null:
@@ -1115,11 +1239,15 @@ func _spawn_aerial_bullet(dmg: float, rng: float, depth: float) -> Area2D:
 	if bullet == null:
 		return null
 	
+	var muzzle_pos: Vector2 = _get_muzzle_global_position()
+	var muzzle_offset_x: float = absf(muzzle_pos.x - global_position.x)
+	var effective_bullet_range: float = maxf(20.0, rng - muzzle_offset_x)
+
 	bullet.set("attacker", self)
 	bullet.set("projectile_lane_y", global_position.y)
 	bullet.set("direction", Vector2(facing_direction, 0.0))
 	bullet.set("damage", dmg)
-	bullet.set("max_range", rng)
+	bullet.set("max_range", effective_bullet_range)
 	bullet.set("depth_tolerance", depth)
 	bullet.set("can_knockdown", true)
 	bullet.set("hitstop_duration", 0.05)
@@ -1127,7 +1255,7 @@ func _spawn_aerial_bullet(dmg: float, rng: float, depth: float) -> Area2D:
 	bullet.set("knockback_force", 60.0)
 	bullet.set("impact_profile", "kick")
 	
-	bullet.global_position = _get_muzzle_global_position()
+	bullet.global_position = muzzle_pos
 	
 	var target_parent: Node = get_parent()
 	if target_parent == null:
@@ -1148,15 +1276,34 @@ func _get_muzzle_global_position() -> Vector2:
 	return global_position + Vector2(facing_direction * 45.0, -115.0)
 
 
-func _on_projectile_hit(target: Node, dmg: float) -> void:
-	_on_melee_target_hit(target, dmg)
+## Processa acertos de projéteis (disparos à distância)
+func _on_projectile_hit(target: Node, _dmg: float) -> void:
+	combo_hits += 1
+	combo_changed.emit(combo_hits)
+	_charge_special_on_hit(target)
 
 
-## Processa acertos de golpe: incrementa combo e carrega a barra de Special
+## Processa acertos de golpe corpo a corpo (físicos)
 func _on_melee_target_hit(target: Node, _dmg: float) -> void:
 	combo_hits += 1
 	combo_changed.emit(combo_hits)
+	_charge_special_on_hit(target)
 
+	# Confirmação de acerto físico do passo 3 do combo de Gabriel (Pistolada)
+	# Regras estritas:
+	# 1. Apenas Gabriel
+	# 2. Apenas durante o passo 2 do combo principal (_combo_step == 2)
+	# 3. NÃO confirma se for golpe contextual melee (_is_contextual_melee == false)
+	# 4. Apenas inimigo válido e vivo (NÃO confirma em props/destrutíveis, npcs ou aliados)
+	if is_gabriel() and not _is_contextual_melee and _combo_step == 2:
+		if target != null and is_instance_valid(target) and target.is_in_group("enemies"):
+			var enemy_health := _find_health_component(target)
+			if enemy_health == null or not enemy_health.is_dead:
+				_gabriel_step3_confirmed = true
+
+
+## Carrega o medidor de especial respeitando proteções estritas
+func _charge_special_on_hit(target: Node) -> void:
 	# Proteções estritas do medidor de Golpe Especial:
 	# 1. Não carrega durante o próprio Especial
 	if combat_state == CombatState.SPECIAL:
@@ -1170,21 +1317,16 @@ func _on_melee_target_hit(target: Node, _dmg: float) -> void:
 	if target == self:
 		return
 
-	# 4. NPCs civis não geram carga
-	if target.is_in_group("npcs") or target.is_in_group("civilians"):
+	# 4. NPCs civis e aliados não geram carga
+	if target.is_in_group("npcs") or target.is_in_group("civilians") or target.is_in_group("allies"):
 		return
 
 	# 5. Apenas inimigos vivos geram carga
 	if not target.is_in_group("enemies"):
 		return
 
-	var health: Node = null
-	if target.has_node("HealthComponent"):
-		health = target.get_node("HealthComponent")
-	elif "health_component" in target:
-		health = target.health_component
-
-	if health != null and "is_dead" in health and health.is_dead:
+	var health := _find_health_component(target)
+	if health != null and health.is_dead:
 		return
 
 	current_special = clampf(current_special + SPECIAL_CHARGE_PER_HIT, 0.0, max_special)

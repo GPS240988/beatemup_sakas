@@ -71,8 +71,8 @@ func _on_body_entered(body: Node) -> void:
 	if _has_hit or body == null:
 		return
 	
-	# Ignora o atacante e outros atores que possuem hurtbox própria
-	if body == attacker or body.is_in_group("player") or body.is_in_group("actors"):
+	# Ignora o atacante e outros atores/personagens amigáveis para não colidir como obstáculo de cenário
+	if body == attacker or body.is_in_group("player") or body.is_in_group("npcs") or body.is_in_group("civilians") or body.is_in_group("allies") or body.is_in_group("actors"):
 		return
 	
 	# Obstáculo sólido do cenário atingido (Layer 2)
@@ -95,6 +95,23 @@ func _try_hit(collider: Node) -> bool:
 	var target_actor: Node = _find_target_actor(collider)
 	if target_actor == null or target_actor == attacker:
 		return false
+	
+	# Exclusões explícitas por segurança (jogador, NPCs e civis jamais sofrem dano de projétil)
+	if target_actor.is_in_group("player") or target_actor.is_in_group("npcs") or target_actor.is_in_group("civilians") or target_actor.is_in_group("allies"):
+		return false
+	
+	# Se for inimigo, valida se está vivo
+	if target_actor.is_in_group("enemies"):
+		var health_comp: Node = target_actor.get_node_or_null("HealthComponent")
+		if health_comp != null and "is_dead" in health_comp and health_comp.is_dead:
+			return false
+		if "is_dead" in target_actor and target_actor.is_dead:
+			return false
+	
+	# Se for prop destrutível, valida se não foi destruído
+	if target_actor.is_in_group("destructibles") or target_actor.is_in_group("destructible_props"):
+		if "is_broken" in target_actor and target_actor.is_broken:
+			return false
 	
 	# Regra de profundidade 2.5D: compara a posição Y dos pés no chão do alvo com a linha de tiro
 	var target_pos: Vector2 = target_actor.global_position if target_actor is Node2D else global_position
@@ -160,9 +177,18 @@ func test_hit_candidate(candidate: Node) -> bool:
 func _find_target_actor(start_node: Node) -> Node:
 	var candidate: Node = start_node
 	while candidate != null:
-		if candidate.is_in_group("enemies") or candidate.is_in_group("destructibles") or candidate.is_in_group("destructible_props") or candidate.is_in_group("damageable"):
-			if not candidate.is_in_group("player"):
-				return candidate
+		# Exclusões prioritárias estritas: player, npcs, civis e aliados
+		if candidate.is_in_group("player") or candidate.is_in_group("npcs") or candidate.is_in_group("civilians") or candidate.is_in_group("allies"):
+			return null
+
+		# Inimigos válidos
+		if candidate.is_in_group("enemies"):
+			return candidate
+
+		# Objetos destrutíveis aprovados conforme o Damage Contract
+		if candidate.is_in_group("destructibles") or candidate.is_in_group("destructible_props"):
+			return candidate
+
 		candidate = candidate.get_parent()
 	return null
 
