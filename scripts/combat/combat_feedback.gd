@@ -247,15 +247,16 @@ static func play_menu_sound(context_node: Node, action: String = "move") -> void
 
 ## Gera partículas de impacto direcionais (CPUParticles2D) e efeitos visuais animados (Pixel Art HD)
 ## Utiliza ObjectPool leve para eliminar picos de alocação/destruição durante combos intensos no mobile.
-static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, profile: String = "punch", region: String = "") -> void:
+static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, profile: String = "punch", region: String = "") -> AnimatedSprite2D:
 	if parent == null or not parent.is_inside_tree():
-		return
+		return null
 
 	var scene_root: Node = parent.get_tree().current_scene if parent.get_tree() != null else parent
 	if scene_root == null:
 		scene_root = parent
 
 	# 1. Faíscas animadas em Pixel Art HD dos Beat 'em Ups clássicos via ObjectPool
+	var effect_sprite: AnimatedSprite2D = null
 	var vfx_frames: SpriteFrames = load("res://scenes/vfx/hit_effects_frames.tres") as SpriteFrames
 	if vfx_frames != null:
 		var spark_pool := ObjectPoolClass.get_or_create(
@@ -272,7 +273,6 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 			8
 		)
 
-		var effect_sprite: AnimatedSprite2D = null
 		if spark_pool != null and spark_pool.has_method("acquire"):
 			effect_sprite = spark_pool.call("acquire") as AnimatedSprite2D
 
@@ -331,6 +331,15 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 				anim_name = &"impactoazul"
 				sprite_scale = 0.95
 				visual_offset = Vector2(46.0, 27.0)
+			"projectile", "bullet", "bullet_impact":
+				if vfx_frames.has_animation(&"bullet_impact"):
+					anim_name = &"bullet_impact"
+					sprite_scale = 0.85
+					visual_offset = Vector2.ZERO
+				else:
+					anim_name = &"impacto"
+					sprite_scale = 0.70
+					visual_offset = Vector2(43.0, 35.0)
 			_:
 				anim_name = &"impacto"
 				sprite_scale = 0.70
@@ -339,7 +348,7 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 		var facing_sign: float = -1.0 if direction.x < 0.0 else 1.0
 		effect_sprite.offset = Vector2(visual_offset.x * facing_sign, visual_offset.y)
 		effect_sprite.scale = Vector2(sprite_scale * facing_sign, sprite_scale)
-		effect_sprite.rotation = 0.0 if anim_name in [&"blunt_hit", &"hit_spark", &"crit_hit"] else randf_range(-0.25, 0.25)
+		effect_sprite.rotation = 0.0 if anim_name in [&"blunt_hit", &"hit_spark", &"crit_hit", &"bullet_impact", &"muzzle_pistol"] else randf_range(-0.25, 0.25)
 		if not effect_sprite.is_inside_tree():
 			parent.add_child(effect_sprite)
 
@@ -485,6 +494,8 @@ static func spawn_hit_spark(parent: Node, pos: Vector2, direction: Vector2, prof
 					p.queue_free()
 		)
 
+	return effect_sprite
+
 
 ## Gera nuvem de poeira de impacto no solo (Knockdown / Aterrissagem)
 static func spawn_dust(parent: Node, pos: Vector2, scale_factor: float = 0.65) -> void:
@@ -509,6 +520,92 @@ static func spawn_dust(parent: Node, pos: Vector2, scale_factor: float = 0.65) -
 			if is_instance_valid(dust):
 				dust.queue_free()
 		)
+
+
+## Gera o efeito de muzzle flash (clarão/fumaça de disparo da pistola) em Pixel Art HD
+static func spawn_muzzle_flash(parent: Node, pos: Vector2, direction: Vector2) -> AnimatedSprite2D:
+	if parent == null or not parent.is_inside_tree():
+		return null
+
+	var scene_root: Node = parent.get_tree().current_scene if parent.get_tree() != null else parent
+	if scene_root == null:
+		scene_root = parent
+
+	var vfx_frames: SpriteFrames = load("res://scenes/vfx/hit_effects_frames.tres") as SpriteFrames
+	if vfx_frames == null or not vfx_frames.has_animation(&"muzzle_pistol"):
+		return
+
+	var muzzle_pool := ObjectPoolClass.get_or_create(
+		scene_root,
+		"_Pool_MuzzleFlashes",
+		null,
+		func():
+			var spr := AnimatedSprite2D.new()
+			spr.name = "AnimatedMuzzleFlash"
+			spr.top_level = true
+			spr.sprite_frames = vfx_frames
+			spr.z_index = 55
+			return spr,
+		6
+	)
+
+	var effect_sprite: AnimatedSprite2D = null
+	if muzzle_pool != null and muzzle_pool.has_method("acquire"):
+		effect_sprite = muzzle_pool.call("acquire") as AnimatedSprite2D
+
+	if effect_sprite == null:
+		effect_sprite = AnimatedSprite2D.new()
+		effect_sprite.name = "AnimatedMuzzleFlash"
+		effect_sprite.top_level = true
+		effect_sprite.sprite_frames = vfx_frames
+		effect_sprite.z_index = 55
+		parent.add_child(effect_sprite)
+
+	var facing_sign: float = -1.0 if direction.x < 0.0 else 1.0
+	effect_sprite.global_position = pos
+	effect_sprite.scale = Vector2(0.85 * facing_sign, 0.85)
+	effect_sprite.offset = Vector2(15.0 * facing_sign, 0.0)
+
+	if not effect_sprite.is_inside_tree():
+		parent.add_child(effect_sprite)
+
+	effect_sprite.play(&"muzzle_pistol")
+
+	var spr_ref: WeakRef = weakref(effect_sprite)
+	var pool_ref: WeakRef = weakref(muzzle_pool)
+
+	var on_muzzle_finished: Callable = func():
+		var spr: AnimatedSprite2D = spr_ref.get_ref() as AnimatedSprite2D
+		var pool: Node = pool_ref.get_ref() as Node
+		if spr != null and is_instance_valid(spr):
+			if pool != null and is_instance_valid(pool) and pool.has_method("release"):
+				pool.call("release", spr)
+			else:
+				spr.queue_free()
+
+	effect_sprite.animation_finished.connect(on_muzzle_finished, Object.CONNECT_ONE_SHOT)
+
+	var frame_count: int = vfx_frames.get_frame_count(&"muzzle_pistol")
+	var anim_speed: float = vfx_frames.get_animation_speed(&"muzzle_pistol")
+	var anim_duration: float = float(frame_count) / maxf(anim_speed, 1.0)
+	var safety_duration: float = maxf(anim_duration + 0.15, 0.4)
+
+	var tree: SceneTree = parent.get_tree() if parent.is_inside_tree() else Engine.get_main_loop() as SceneTree
+	if tree != null:
+		var safety_timer: SceneTreeTimer = tree.create_timer(safety_duration)
+		safety_timer.timeout.connect(func():
+			if spr_ref == null:
+				return
+			var spr: AnimatedSprite2D = spr_ref.get_ref() as AnimatedSprite2D
+			var pool: Node = pool_ref.get_ref() as Node if pool_ref != null else null
+			if spr != null and is_instance_valid(spr) and spr.is_playing():
+				if pool != null and is_instance_valid(pool) and pool.has_method("release"):
+					pool.call("release", spr)
+				else:
+					spr.queue_free()
+		)
+
+	return effect_sprite
 
 
 ## Produz flash visual rápido na entidade (modulação clara momentânea)

@@ -77,7 +77,7 @@ func _on_body_entered(body: Node) -> void:
 	
 	# Obstáculo sólido do cenário atingido (Layer 2)
 	_has_hit = true
-	CombatFeedbackClass.spawn_hit_spark(self, global_position, direction, "light", "upper_torso")
+	CombatFeedbackClass.spawn_hit_spark(self, global_position, direction, "projectile", "upper_torso")
 	CombatFeedbackClass.play_impact_sound(self, "light")
 	queue_free()
 
@@ -155,7 +155,8 @@ func _try_hit(collider: Node) -> bool:
 	
 	if applied:
 		CombatFeedbackClass.apply_hitstop(attacker, target_actor, hitstop_duration)
-		CombatFeedbackClass.spawn_hit_spark(self, global_position, direction, impact_profile, "upper_torso")
+		var vfx_prof: String = "projectile" if impact_profile in ["punch", "projectile"] else impact_profile
+		CombatFeedbackClass.spawn_hit_spark(self, global_position, direction, vfx_prof, "upper_torso")
 		CombatFeedbackClass.play_impact_sound(self, impact_profile)
 		if can_knockdown or impact_profile == "finisher":
 			CombatFeedbackClass.trigger_screen_shake(self, 6.0, 0.22)

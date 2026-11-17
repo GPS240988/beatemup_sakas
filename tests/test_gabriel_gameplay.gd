@@ -500,8 +500,8 @@ func _test_target_safety_exclusions_and_muzzle_offset() -> void:
 	player.global_position = Vector2(200.0, 300.0)
 	var spawned_b = player._spawn_single_bullet(player.get("_combo_attacks")[0])
 	_assert(spawned_b != null, "Projétil disparado com sucesso")
-	# Alcance base = 280, offset cano = 45 -> alcance máximo efetivo = 235 px
-	_assert(is_equal_approx(spawned_b.max_range, 235.0), "max_range compensa offset do cano (280 - 45 = 235 px)")
+	# Alcance base = 280, offset cano = 74 -> alcance máximo efetivo = 206 px
+	_assert(is_equal_approx(spawned_b.max_range, 206.0), "max_range compensa offset do cano (280 - 74 = 206 px)")
 	
 	spawned_b.queue_free()
 	p.queue_free()
@@ -559,7 +559,7 @@ func _test_gabriel_mobility_and_aerial() -> void:
 	_assert(visual != null, "Nó Visual presente")
 	var muzzle: Node2D = visual.get_node_or_null("MuzzleMarker") as Node2D
 	_assert(muzzle != null, "MuzzleMarker presente sob Visual")
-	_assert(is_equal_approx(muzzle.position.x, 45.0) and is_equal_approx(muzzle.position.y, -115.0), "MuzzleMarker posicionado na coordenada correta do cano da pistola")
+	_assert(is_equal_approx(muzzle.position.x, 74.0) and is_equal_approx(muzzle.position.y, -172.0), "MuzzleMarker posicionado na coordenada correta do cano da pistola")
 	
 	# Validação do cálculo de posição global de tiro considerando projeção visual
 	var muzzle_gpos: Vector2 = player._get_muzzle_global_position()

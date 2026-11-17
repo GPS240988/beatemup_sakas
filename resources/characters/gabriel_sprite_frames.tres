@@ -22,12 +22,25 @@
 [ext_resource type="Texture2D" uid="uid://f3jyh7ht5uhn" path="res://assets/sprites/characters/gabriel/jump_atk_02.png" id="20_jump_atk_02"]
 [ext_resource type="Texture2D" uid="uid://gqxuss0vtvyy" path="res://assets/sprites/characters/gabriel/jump_atk_03.png" id="21_jump_atk_03"]
 [ext_resource type="Texture2D" uid="uid://c85rhjk8c8eu4" path="res://assets/sprites/characters/gabriel/jump_atk_04.png" id="22_jump_atk_04"]
+[ext_resource type="Texture2D" uid="uid://dsxj2c6nb6rud" path="res://assets/sprites/characters/gabriel/walk_01.png" id="23_walk_01"]
+[ext_resource type="Texture2D" uid="uid://4irgh1fs4pvm" path="res://assets/sprites/characters/gabriel/walk_02.png" id="24_walk_02"]
+[ext_resource type="Texture2D" uid="uid://b0tqsopd1ve3y" path="res://assets/sprites/characters/gabriel/walk_03.png" id="25_walk_03"]
+[ext_resource type="Texture2D" uid="uid://vu8mcju1i82u" path="res://assets/sprites/characters/gabriel/walk_04.png" id="26_walk_04"]
+[ext_resource type="Texture2D" uid="uid://6rrbj0bwjahe" path="res://assets/sprites/characters/gabriel/hurt_01.png" id="27_hurt_01"]
+[ext_resource type="Texture2D" uid="uid://c0nf8boxwk547" path="res://assets/sprites/characters/gabriel/hurt_02.png" id="28_hurt_02"]
+[ext_resource type="Texture2D" uid="uid://dw7ao2djkc50g" path="res://assets/sprites/characters/gabriel/fall_01.png" id="29_fall_01"]
+[ext_resource type="Texture2D" uid="uid://cmnmhbo26eomt" path="res://assets/sprites/characters/gabriel/fall_02.png" id="30_fall_02"]
+[ext_resource type="Texture2D" uid="uid://uu42kunkprfv" path="res://assets/sprites/characters/gabriel/fall_03.png" id="31_fall_03"]
+[ext_resource type="Texture2D" uid="uid://7i1wylx8winb" path="res://assets/sprites/characters/gabriel/getup_01.png" id="32_getup_01"]
+[ext_resource type="Texture2D" uid="uid://eka0e87758ak" path="res://assets/sprites/characters/gabriel/getup_02.png" id="33_getup_02"]
+[ext_resource type="Texture2D" uid="uid://c5lloojtwv125" path="res://assets/sprites/characters/gabriel/death_01.png" id="34_death_01"]
+[ext_resource type="Texture2D" uid="uid://fpfgkiw73rja" path="res://assets/sprites/characters/gabriel/guard_01.png" id="35_guard_01"]
 
 [resource]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_idle")
+"texture": ExtResource("34_death_01")
 }],
 "loop": 0,
 "name": &"death",
@@ -35,7 +48,13 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_idle")
+"texture": ExtResource("29_fall_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30_fall_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_fall_03")
 }],
 "loop": 0,
 "name": &"fall",
@@ -43,7 +62,10 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_idle")
+"texture": ExtResource("32_getup_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("33_getup_02")
 }],
 "loop": 0,
 "name": &"getup",
@@ -51,7 +73,7 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_idle")
+"texture": ExtResource("35_guard_01")
 }],
 "loop": 1,
 "name": &"guard",
@@ -82,7 +104,10 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_idle")
+"texture": ExtResource("27_hurt_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_hurt_02")
 }],
 "loop": 0,
 "name": &"hurt",
@@ -185,9 +210,18 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_idle")
+"texture": ExtResource("23_walk_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_walk_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_walk_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26_walk_04")
 }],
 "loop": 1,
 "name": &"walk",
-"speed": 5.0
+"speed": 8.0
 }]

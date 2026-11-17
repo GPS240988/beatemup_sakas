@@ -132,7 +132,7 @@ func _test_sprite_frames_animations() -> void:
 func _test_player_animation_playback_and_transitions() -> void:
 	print("\n--- 3. Validando Execução de Animações e Transição de Volta para Idle ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController
@@ -186,7 +186,7 @@ func _test_player_animation_playback_and_transitions() -> void:
 func _test_horizontal_mirroring() -> void:
 	print("\n--- 4. Validando Espelhamento Horizontal sem Duplicação de Sprites ---")
 	var session = _ensure_game_session()
-	session.select_character("gabriel")
+	session.selected_character_id = "gabriel"
 	
 	var player_scene: PackedScene = load("res://scenes/actors/player/player.tscn")
 	var player: PlayerController = player_scene.instantiate() as PlayerController

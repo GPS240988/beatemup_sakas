@@ -349,7 +349,7 @@ func _update_selection_frame(char_id: String) -> void:
 
 func _update_stats_display(char_id: String) -> void:
 	var game_session = get_node_or_null("/root/GameSession")
-	var is_unlocked: bool = (char_id == "guilherme")
+	var is_unlocked: bool = (char_id == "guilherme" or char_id == "gabriel")
 	if game_session != null and game_session.has_method("is_character_unlocked"):
 		is_unlocked = game_session.is_character_unlocked(char_id)
 
@@ -414,7 +414,7 @@ func _update_mobile_action() -> void:
 	elif session != null and session.CHARACTERS.has(current_hover_id):
 		is_unlocked = bool(session.CHARACTERS[current_hover_id].get("unlocked", false))
 	else:
-		is_unlocked = (current_hover_id == "guilherme")
+		is_unlocked = (current_hover_id == "guilherme" or current_hover_id == "gabriel")
 	var hero_name := current_hover_id.to_upper()
 	var mobile_label := "CONFIRMAR " + hero_name if is_unlocked else "BLOQUEADO: " + hero_name
 	MobileScreenAction.set_action_state(
@@ -443,7 +443,7 @@ func _on_confirm_pressed() -> void:
 	elif session != null and session.CHARACTERS.has(current_hover_id):
 		is_unlocked = bool(session.CHARACTERS[current_hover_id].get("unlocked", false))
 	else:
-		is_unlocked = (current_hover_id == "guilherme")
+		is_unlocked = (current_hover_id == "guilherme" or current_hover_id == "gabriel")
 
 	if not is_unlocked:
 		_deny_character_selection()

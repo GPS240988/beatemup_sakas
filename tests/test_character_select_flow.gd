@@ -31,7 +31,7 @@ func _run_tests() -> void:
 
 	# 2. Validação do estado de novo jogo em GameSession
 	_assert(session.is_character_unlocked("guilherme") == true, "Guilherme deve estar DESBLOQUEADO para novo jogo")
-	_assert(session.is_character_unlocked("gabriel") == false, "Gabriel deve estar BLOQUEADO para novo jogo")
+	_assert(session.is_character_unlocked("gabriel") == true, "Gabriel deve estar DESBLOQUEADO para novo jogo")
 	_assert(session.is_character_unlocked("andre") == false, "André deve estar BLOQUEADO para novo jogo")
 	_assert(session.is_character_unlocked("juliana") == false, "Juliana deve estar BLOQUEADA para novo jogo")
 
@@ -60,25 +60,46 @@ func _run_tests() -> void:
 	menu.call("_select_character_by_index", 1, false, 1)
 	_assert(menu.get("current_index") == 1, "Índice deve ser 1 (Gabriel)")
 	_assert(menu.get("current_hover_id") == "gabriel", "Herói focado deve ser 'gabriel'")
-	_assert(btn_confirm.disabled == true, "Botão btn_confirm deve estar BLOQUEADO/DESABILITADO para Gabriel")
-	_assert(btn_confirm.text.contains("BLOQUEADO"), "Texto do botão deve indicar 'BLOQUEADO' para Gabriel (atual='%s')" % btn_confirm.text)
-	_assert(status_label.text.contains("BLOQUEADO"), "StatusLabel deve indicar 'BLOQUEADO' para Gabriel")
+	_assert(btn_confirm.disabled == false, "Botão btn_confirm deve estar HABILITADO para Gabriel")
+	_assert(btn_confirm.text.contains("GABRIEL"), "Texto do botão deve indicar 'GABRIEL' (atual='%s')" % btn_confirm.text)
+	_assert(status_label.text.contains("DISPONÍVEL"), "StatusLabel deve indicar 'DISPONÍVEL' para Gabriel")
 
-	# 6. Tenta confirmar Gabriel com Enter ou Clique (deve ser rejeitado)
+	# 6. Confirma Gabriel com clique ou método (deve ser aceito e selecionar Gabriel)
 	session.selected_character_id = ""
 	menu.call("_on_confirm_pressed")
-	_assert(session.selected_character_id == "", "Confirmação de Gabriel deve ser rejeitada, GameSession não deve selecionar Gabriel")
-	_assert(menu.get("_is_transitioning_scene") == false, "Menu NÃO deve avançar de cena ao tentar selecionar Gabriel")
+	_assert(session.selected_character_id == "gabriel", "Confirmação de Gabriel deve ser aceita, GameSession registra Gabriel")
+	_assert(menu.get("_is_transitioning_scene") == true, "Menu DEVE avançar de cena ao selecionar Gabriel")
+
+	# Reseta transição para testar evento Enter no Gabriel
+	menu.set("_is_transitioning_scene", false)
+	session.selected_character_id = ""
 
 	# 7. Simula evento de Input (Enter) no Gabriel
 	var key_event := InputEventKey.new()
 	key_event.keycode = KEY_ENTER
 	key_event.pressed = true
 	menu.call("_unhandled_input", key_event)
-	_assert(session.selected_character_id == "", "Tecla Enter em Gabriel bloqueado NÃO deve avançar o jogo")
-	_assert(menu.get("_is_transitioning_scene") == false, "Tecla Enter em Gabriel NÃO deve iniciar transição")
+	_assert(session.selected_character_id == "gabriel", "Tecla Enter em Gabriel DEVE selecionar Gabriel e avançar o jogo")
+	_assert(menu.get("_is_transitioning_scene") == true, "Tecla Enter em Gabriel DEVE iniciar transição")
 
-	# 8. Retorna para Guilherme (índice 0)
+	# Reseta transição para testar herói bloqueado (André - índice 2)
+	menu.set("_is_transitioning_scene", false)
+
+	# 8. Alterna para André (índice 2) - Bloqueado
+	menu.call("_select_character_by_index", 2, false, 1)
+	_assert(menu.get("current_index") == 2, "Índice deve ser 2 (André)")
+	_assert(menu.get("current_hover_id") == "andre", "Herói focado deve ser 'andre'")
+	_assert(btn_confirm.disabled == true, "Botão btn_confirm deve estar BLOQUEADO para André")
+	_assert(btn_confirm.text.contains("BLOQUEADO"), "Texto do botão deve indicar 'BLOQUEADO' para André")
+	_assert(status_label.text.contains("BLOQUEADO"), "StatusLabel deve indicar 'BLOQUEADO' para André")
+
+	# 9. Tenta confirmar André com Enter ou Clique (deve ser rejeitado)
+	session.selected_character_id = ""
+	menu.call("_on_confirm_pressed")
+	_assert(session.selected_character_id == "", "Confirmação de André deve ser rejeitada")
+	_assert(menu.get("_is_transitioning_scene") == false, "Menu NÃO deve avançar ao tentar selecionar André")
+
+	# 10. Retorna para Guilherme (índice 0)
 	menu.call("_select_character_by_index", 0, false, -1)
 	_assert(menu.get("current_index") == 0, "Índice deve retornar a 0 (Guilherme)")
 	_assert(menu.get("current_hover_id") == "guilherme", "Herói focado deve ser 'guilherme'")

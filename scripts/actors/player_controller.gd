@@ -170,7 +170,7 @@ func _ready() -> void:
 	if visual_root != null and visual_root.get_node_or_null("MuzzleMarker") == null:
 		var marker := Marker2D.new()
 		marker.name = "MuzzleMarker"
-		marker.position = Vector2(45.0, -115.0)
+		marker.position = Vector2(74.0, -172.0)
 		visual_root.add_child(marker)
 
 	if punch_visual != null:
@@ -1228,6 +1228,7 @@ func _spawn_single_bullet(atk: Resource, bullet_dmg: float = -1.0) -> Area2D:
 	if target_parent != null:
 		target_parent.add_child(bullet)
 	
+	CombatFeedbackClass.spawn_muzzle_flash(self, muzzle_pos, Vector2(facing_direction, 0.0))
 	CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_SOCO_1, 0.45, 0.02)
 	return bullet
 
@@ -1265,6 +1266,7 @@ func _spawn_aerial_bullet(dmg: float, rng: float, depth: float) -> Area2D:
 	if target_parent != null:
 		target_parent.add_child(bullet)
 	
+	CombatFeedbackClass.spawn_muzzle_flash(self, muzzle_pos, Vector2(facing_direction, 0.0))
 	CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_JUMPKICK, 0.45, 0.02)
 	return bullet
 
@@ -1274,8 +1276,8 @@ func _get_muzzle_global_position() -> Vector2:
 		var marker: Node2D = visual_root.get_node_or_null("MuzzleMarker") as Node2D
 		if marker != null:
 			return marker.global_position
-		return visual_root.to_global(Vector2(45.0, -115.0))
-	return global_position + Vector2(facing_direction * 45.0, -115.0)
+		return visual_root.to_global(Vector2(74.0, -172.0))
+	return global_position + Vector2(facing_direction * 74.0, -172.0)
 
 
 ## Processa acertos de projéteis (disparos à distância)
