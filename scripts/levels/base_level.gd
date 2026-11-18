@@ -881,6 +881,9 @@ func capture_world_snapshot() -> Dictionary:
 			player_data["combat_state"] = int(p.combat_state)
 		if "current_continues" in p:
 			player_data["continues"] = p.current_continues
+		var grenade_handler: Node = p.get_node_or_null("GrenadeHandler")
+		if grenade_handler != null and "grenades_remaining" in grenade_handler:
+			player_data["grenades_remaining"] = int(grenade_handler.get("grenades_remaining"))
 		snapshot["player"] = player_data
 
 	# --- INIMIGOS VIVOS ---
@@ -984,6 +987,10 @@ func restore_world_snapshot(snapshot: Dictionary) -> void:
 			var session = get_node_or_null("/root/GameSession")
 			if session != null and "current_continues" in session:
 				session.current_continues = p.current_continues
+
+		var grenade_handler: Node = p.get_node_or_null("GrenadeHandler")
+		if grenade_handler != null and pd.has("grenades_remaining") and grenade_handler.has_method("set_grenades_remaining"):
+			grenade_handler.call("set_grenades_remaining", int(pd.get("grenades_remaining", 2)))
 
 		# Atualiza câmera imediatamente para a posição restaurada do jogador
 		if camera != null:

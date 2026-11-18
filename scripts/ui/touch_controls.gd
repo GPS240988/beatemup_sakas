@@ -20,6 +20,7 @@ const TEX_ATTACK: Texture2D = preload("res://assets/ui/mobile/button_attack.png"
 const TEX_KICK: Texture2D = preload("res://assets/ui/mobile/button_kick.png")
 const TEX_SPECIAL: Texture2D = preload("res://assets/ui/mobile/button_special.png")
 const TEX_BLOCK: Texture2D = preload("res://assets/ui/mobile/button_block.png")
+const TEX_GRENADE: Texture2D = preload("res://assets/ui/mobile/button_grenade.png")
 const TEX_PAUSE: Texture2D = preload("res://assets/ui/mobile/button_pause.png")
 const TEX_DPAD_BASE: Texture2D = preload("res://assets/ui/mobile/mobile_dpad_base.png")
 const TEX_DPAD_ARROWS: Texture2D = preload("res://assets/ui/mobile/mobile_dpad_arrows.png")
@@ -36,6 +37,7 @@ var combo_btn_pos: Vector2 = Vector2.ZERO    # Ataque principal (J)
 var aerial_btn_pos: Vector2 = Vector2.ZERO   # Voadora (Space)
 var special_btn_pos: Vector2 = Vector2.ZERO  # Especial (E)
 var guard_btn_pos: Vector2 = Vector2.ZERO    # Bloqueio (K)
+var grenade_btn_pos: Vector2 = Vector2.ZERO  # Granada (Gabriel / H)
 var block_btn_pos: Vector2:                  # Alias para guard_btn_pos
 	get:
 		return guard_btn_pos
@@ -50,6 +52,7 @@ var combo_btn_radius: float = 68.0           # Maior botão do conjunto
 var aerial_btn_radius: float = 46.0          # Botão menor (voadora)
 var special_btn_radius: float = 52.0         # Botão intermediário com aura de fogo
 var guard_btn_radius: float = 46.0           # Botão superior (bloqueio)
+var grenade_btn_radius: float = 44.0
 var block_btn_radius: float:                 # Alias para guard_btn_radius
 	get:
 		return guard_btn_radius
@@ -65,6 +68,7 @@ var _combo_touch_index: int = -1
 var _aerial_touch_index: int = -1
 var _special_touch_index: int = -1
 var _guard_touch_index: int = -1
+var _grenade_touch_index: int = -1
 var _pause_touch_index: int = -1
 
 # Estados de pressionamento para feedback tátil visual
@@ -73,6 +77,7 @@ var _combo_pressed: bool = false
 var _aerial_pressed: bool = false
 var _special_pressed: bool = false
 var _guard_pressed: bool = false
+var _grenade_pressed: bool = false
 var _pause_pressed: bool = false
 
 
@@ -85,6 +90,7 @@ func _ready() -> void:
 	if not resized.is_connected(_recalculate_layout):
 		resized.connect(_recalculate_layout)
 	call_deferred("_recalculate_layout")
+	call_deferred("_bind_grenade_handler")
 
 
 func _exit_tree() -> void:
@@ -123,7 +129,7 @@ func _recalculate_layout() -> void:
 		return
 
 	var area: Vector2 = get_rect().size
-	if area.x <= 1.0 or area.y <= 1.0:
+	if (area.x <= 1.0 or area.y <= 1.0) and is_inside_tree():
 		area = get_viewport_rect().size
 	if area.x <= 1.0 or area.y <= 1.0:
 		area = REFERENCE_VIEWPORT
@@ -141,6 +147,7 @@ func _recalculate_layout() -> void:
 	aerial_btn_radius = 46.0 * _layout_scale     # Voadora (Space)
 	special_btn_radius = 52.0 * _layout_scale    # Especial (E)
 	guard_btn_radius = 46.0 * _layout_scale      # Bloqueio (K)
+	grenade_btn_radius = 44.0 * _layout_scale
 	pause_btn_size = Vector2(52.0, 52.0) * _layout_scale
 
 	# Direcional: quadrante inferior esquerdo
@@ -157,6 +164,8 @@ func _recalculate_layout() -> void:
 	aerial_btn_pos = Vector2(area.x - 305.0 * _layout_scale, area.y - 85.0 * _layout_scale)
 	# 4. Especial (E): intermediário entre voadora, bloqueio e ataque
 	special_btn_pos = Vector2(area.x - 215.0 * _layout_scale, area.y - 175.0 * _layout_scale)
+	# 5. Granada (H): acima e à esquerda do Especial, sem sobrepor os demais botões
+	grenade_btn_pos = Vector2(area.x - 350.0 * _layout_scale, area.y - 235.0 * _layout_scale)
 
 	# Botão de Pause: canto superior direito abaixo do avatar do EnemyHUD (Y >= 78px) para não sobrepor o inimigo
 	var pause_margin_top: float = 86.0 * _layout_scale
@@ -170,6 +179,7 @@ func _recalculate_layout() -> void:
 		guard_btn_pos.x -= delta_x
 		aerial_btn_pos.x -= delta_x
 		special_btn_pos.x -= delta_x
+		grenade_btn_pos.x -= delta_x
 
 	queue_redraw()
 
@@ -227,7 +237,18 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
 			queue_redraw()
 			return
 
-		# 6. Bloqueio K (Superior do agrupamento com seta para cima)
+		# 6. Granada H — botão contextual exclusivo de Gabriel, com estoque limitado.
+		if _is_gabriel_selected() and _get_grenades_remaining() > 0 and _grenade_touch_index == -1 and event.position.distance_to(grenade_btn_pos) <= grenade_btn_radius * 1.20:
+			_grenade_touch_index = event.index
+			_grenade_pressed = true
+			var player_node: Node = get_tree().get_first_node_in_group("player") if get_tree() != null else null
+			var grenade_handler: Node = player_node.get_node_or_null("GrenadeHandler") if player_node != null else null
+			if grenade_handler != null and grenade_handler.has_method("throw_grenade"):
+				grenade_handler.call("throw_grenade")
+			queue_redraw()
+			return
+
+		# 7. Bloqueio K (Superior do agrupamento com seta para cima)
 		if _guard_touch_index == -1 and event.position.distance_to(guard_btn_pos) <= guard_btn_radius * 1.20:
 			_guard_touch_index = event.index
 			_guard_pressed = true
@@ -260,6 +281,12 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
 			_guard_touch_index = -1
 			_guard_pressed = false
 			Input.action_release("guard")
+			queue_redraw()
+		if event.index == _grenade_touch_index:
+			_grenade_touch_index = -1
+			_grenade_pressed = false
+			if InputMap.has_action("throw_grenade"):
+				Input.action_release("throw_grenade")
 			queue_redraw()
 		if event.index == _pause_touch_index:
 			_pause_touch_index = -1
@@ -327,12 +354,14 @@ func release_all_virtual_actions() -> void:
 	_aerial_touch_index = -1
 	_special_touch_index = -1
 	_guard_touch_index = -1
+	_grenade_touch_index = -1
 	_pause_touch_index = -1
 	_joystick_knob_offset = Vector2.ZERO
 	_combo_pressed = false
 	_aerial_pressed = false
 	_special_pressed = false
 	_guard_pressed = false
+	_grenade_pressed = false
 	_pause_pressed = false
 	_release_direction_inputs()
 	Input.action_release("attack")
@@ -342,6 +371,8 @@ func release_all_virtual_actions() -> void:
 	Input.action_release("attack_special")
 	Input.action_release("special")
 	Input.action_release("guard")
+	if InputMap.has_action("throw_grenade"):
+		Input.action_release("throw_grenade")
 	queue_redraw()
 
 
@@ -397,6 +428,11 @@ func _draw() -> void:
 
 	# Bloqueio (K) — Aro metálico e seta para cima
 	_draw_button_texture(TEX_BLOCK, guard_btn_pos, guard_btn_radius, _guard_pressed)
+
+	# Granada H — ícone tático contextual com contador de cargas (somente Gabriel)
+	if _is_gabriel_selected():
+		_draw_button_texture(TEX_GRENADE, grenade_btn_pos, grenade_btn_radius, _grenade_pressed)
+		draw_string(ThemeDB.fallback_font, grenade_btn_pos + Vector2(18.0, 30.0) * _layout_scale, "x%d" % _get_grenades_remaining(), HORIZONTAL_ALIGNMENT_CENTER, 34.0 * _layout_scale, int(14.0 * _layout_scale), Color(0.65, 1.0, 0.78, 1.0))
 
 	# 3. Botão de Pause no topo direito
 	_draw_pause_button()
@@ -455,3 +491,42 @@ func _draw_pause_button() -> void:
 	var modulate_color: Color = Color(1.35, 1.35, 1.35, 1.0) if _pause_pressed else Color.WHITE
 
 	draw_texture_rect(TEX_PAUSE, rect, false, modulate_color)
+
+
+func _bind_grenade_handler() -> void:
+	if get_tree() == null:
+		return
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var player: Node = get_tree().get_first_node_in_group("player")
+	if player == null:
+		return
+	var handler: Node = player.get_node_or_null("GrenadeHandler")
+	if handler != null and handler.has_signal("grenades_changed"):
+		if not handler.is_connected("grenades_changed", _on_grenades_changed):
+			handler.connect("grenades_changed", _on_grenades_changed)
+	queue_redraw()
+
+
+func _on_grenades_changed(_remaining: int, _maximum: int) -> void:
+	queue_redraw()
+
+
+func _is_gabriel_selected() -> bool:
+	var session: Node = get_node_or_null("/root/GameSession")
+	if session != null and "selected_character_id" in session:
+		return str(session.get("selected_character_id")).to_lower() == "gabriel"
+	var player: Node = get_tree().get_first_node_in_group("player") if get_tree() != null else null
+	return player != null and player.has_method("is_gabriel") and bool(player.call("is_gabriel"))
+
+
+func _get_grenades_remaining() -> int:
+	if get_tree() == null:
+		return 2
+	var player: Node = get_tree().get_first_node_in_group("player")
+	if player != null:
+		var handler: Node = player.get_node_or_null("GrenadeHandler")
+		if handler != null and "grenades_remaining" in handler:
+			return int(handler.get("grenades_remaining"))
+	return 2

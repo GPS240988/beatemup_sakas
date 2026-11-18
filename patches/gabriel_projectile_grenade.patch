@@ -1,0 +1,356 @@
+diff --git a/scripts/actors/player_controller.gd b/scripts/actors/player_controller.gd
+index 0000000..0000000 100644
+--- a/scripts/actors/player_controller.gd
++++ b/scripts/actors/player_controller.gd
+@@ -288,7 +288,7 @@ func _build_combo_chain() -> void:
+ 		g_atk2.set("impact_profile", "punch")
+ 		g_atk2.set("is_projectile", true)
+ 		g_atk2.set("projectile_count", 2)
+-		g_atk2.set("projectile_interval", 0.06)
++		g_atk2.set("projectile_interval", 0.16)
+ 		g_atk2.preferred_regions.assign(["upper_torso", "head"])
+ 		g_atk2.hitbox_offset_y = hero_data.punch2_hitbox_offset_y if hero_data and "punch2_hitbox_offset_y" in hero_data else -110.0
+ 		_combo_attacks.append(g_atk2)
+diff --git a/scenes/actors/player/player.tscn b/scenes/actors/player/player.tscn
+index 0000000..0000000 100644
+--- a/scenes/actors/player/player.tscn
++++ b/scenes/actors/player/player.tscn
+@@ -33,6 +33,7 @@
+ [ext_resource type="Texture2D" uid="uid://cxxc41aro60a5" path="res://assets/sprites/characters/guilherme/heavy_04.png" id="32_heavy4"]
+ [ext_resource type="Texture2D" uid="uid://blq3ab3dyf8uw" path="res://assets/sprites/characters/guilherme/heavy_05.png" id="33_heavy5"]
+ [ext_resource type="Texture2D" uid="uid://yrgc0elce4uq" path="res://assets/sprites/characters/guilherme/heavy_06.png" id="34_heavy6"]
++[ext_resource type="Script" path="res://scripts/actors/grenade_handler.gd" id="35_grenade_handler"]
+ 
+ [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
+ radius = 12.0
+@@ -358,2 +358,5 @@
+ [node name="MuzzleMarker" type="Marker2D" parent="Visual"]
+ position = Vector2(74, -172)
++
++[node name="GrenadeHandler" type="Node" parent="."]
++script = ExtResource("35_grenade_handler")
+diff --git a/scenes/actors/projectiles/player_bullet.tscn b/scenes/actors/projectiles/player_bullet.tscn
+index 0000000..0000000 100644
+--- a/scenes/actors/projectiles/player_bullet.tscn
++++ b/scenes/actors/projectiles/player_bullet.tscn
+@@ -13,5 +13,6 @@ monitorable = false
+ 
+ [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
++position = Vector2(-14, 0)
+ shape = SubResource("RectangleShape2D_bullet")
+ 
+ [node name="Sprite2D" type="Sprite2D" parent="."]
+diff --git a/scripts/actors/projectiles/player_bullet.gd b/scripts/actors/projectiles/player_bullet.gd
+index 0000000..0000000 100644
+--- a/scripts/actors/projectiles/player_bullet.gd
++++ b/scripts/actors/projectiles/player_bullet.gd
+@@ -19,10 +19,15 @@ extends Area2D
+ @export var hitstun_duration: float = 0.20
+ @export var knockback_force: float = 30.0
+ @export var impact_profile: String = "projectile"
++@export var flight_settle_duration: float = 0.18
++@export var flight_target_offset_y: float = -126.0
+ 
+ var attacker: Node = null
+ var projectile_lane_y: float = 0.0
+ var direction: Vector2 = Vector2.RIGHT
++var _flight_start_y: float = 0.0
++var _flight_target_y: float = 0.0
++var _flight_elapsed: float = 0.0
+ 
+ var _distance_traveled: float = 0.0
+ var _has_hit: bool = false
+@@ -43,6 +47,9 @@ func _ready() -> void:
+ 	
+ 	if direction.x < 0.0:
+ 		scale.x = -1.0
++	_flight_start_y = global_position.y
++	_flight_target_y = projectile_lane_y + flight_target_offset_y
++	_flight_elapsed = 0.0
+ 
+ 
+ func _process(delta: float) -> void:
+@@ -61,7 +68,12 @@ func _physics_process(delta: float) -> void:
+ 		return
+ 	
+ 	var step_dist: float = speed * delta
+-	global_position += direction * step_dist
++	global_position.x += direction.x * step_dist
++	if _flight_elapsed < flight_settle_duration:
++		_flight_elapsed = minf(flight_settle_duration, _flight_elapsed + delta)
++		var settle_t: float = clampf(_flight_elapsed / maxf(flight_settle_duration, 0.001), 0.0, 1.0)
++		settle_t = settle_t * settle_t * (3.0 - 2.0 * settle_t)
++		global_position.y = lerpf(_flight_start_y, _flight_target_y, settle_t)
+ 	_distance_traveled += step_dist
+ 	
+ 	if _distance_traveled >= max_range:
+@@ -125,5 +138,6 @@ func _try_hit(collider: Node) -> bool:
+ 	# Projétil atinge alvo único — consome o tiro imediatamente
+ 	_has_hit = true
++	var impact_pos: Vector2 = _resolve_target_contact_point(collider, target_actor)
+ 	
+ 	var damage_info := DamageInfoClass.new(
+ 		damage,
+@@ -140,7 +154,7 @@ func _try_hit(collider: Node) -> bool:
+ 		hitstop_duration,
+ 		impact_profile,
+ 		"upper_torso",
+-		global_position
++		impact_pos
+ 	)
+ 	
+ 	var applied: bool = false
+@@ -153,6 +167,6 @@ func _try_hit(collider: Node) -> bool:
+ 	if applied:
+ 		CombatFeedbackClass.apply_hitstop(attacker, target_actor, hitstop_duration)
+ 		var vfx_prof: String = "projectile" if impact_profile in ["punch", "projectile"] else impact_profile
+-		CombatFeedbackClass.spawn_hit_spark(self, global_position, direction, vfx_prof, "upper_torso")
++		CombatFeedbackClass.spawn_hit_spark(self, impact_pos, direction, vfx_prof, "upper_torso")
+ 		CombatFeedbackClass.play_impact_sound(self, impact_profile)
+ 		if can_knockdown or impact_profile == "finisher":
+@@ -168,6 +182,31 @@ func _try_hit(collider: Node) -> bool:
+ 	queue_free()
+ 	return applied
+ 
++
++## Resolve o contato na face da Hurtbox voltada para o projétil.
++## O CollisionShape2D fornece o limite real: não se usa o centro do ator nem o centro do tiro.
++func _resolve_target_contact_point(collider: Node, target_actor: Node) -> Vector2:
++	var hurtbox: Area2D = collider as Area2D
++	if hurtbox == null and target_actor != null:
++		hurtbox = target_actor.get_node_or_null("Hurtbox") as Area2D
++	var shape_node: CollisionShape2D = null
++	if hurtbox != null:
++		shape_node = hurtbox.get_node_or_null("CollisionShape2D") as CollisionShape2D
++	if shape_node != null and shape_node.shape != null:
++		var bounds: Rect2 = shape_node.shape.get_rect()
++		var incoming_side: float = -1.0 if direction.x >= 0.0 else 1.0
++		var local_y: float = clampf(
++			shape_node.to_local(global_position).y,
++			bounds.position.y,
++			bounds.end.y
++		)
++		var local_contact := Vector2(incoming_side * bounds.size.x * 0.5, local_y)
++		return shape_node.to_global(local_contact)
++	if target_actor is Node2D:
++		var fallback: Node2D = target_actor as Node2D
++		return fallback.global_position + Vector2(-signf(direction.x) * 16.0, -110.0)
++	return global_position
++
+ 
+ ## Método público para testes pontuais e validações diretas
+ func test_hit_candidate(candidate: Node) -> bool:
+diff --git a/scripts/ui/touch_controls.gd b/scripts/ui/touch_controls.gd
+index 0000000..0000000 100644
+--- a/scripts/ui/touch_controls.gd
++++ b/scripts/ui/touch_controls.gd
+@@ -19,3 +19,4 @@ const TEX_KICK: Texture2D = preload("res://assets/ui/mobile/button_kick.png")
+ const TEX_SPECIAL: Texture2D = preload("res://assets/ui/mobile/button_special.png")
+ const TEX_BLOCK: Texture2D = preload("res://assets/ui/mobile/button_block.png")
++const TEX_GRENADE: Texture2D = preload("res://assets/ui/mobile/button_grenade.png")
+ const TEX_PAUSE: Texture2D = preload("res://assets/ui/mobile/button_pause.png")
+@@ -36,4 +37,5 @@ var combo_btn_pos: Vector2 = Vector2.ZERO    # Ataque principal (J)
+ var aerial_btn_pos: Vector2 = Vector2.ZERO   # Voadora (Space)
+ var special_btn_pos: Vector2 = Vector2.ZERO  # Especial (E)
+ var guard_btn_pos: Vector2 = Vector2.ZERO    # Bloqueio (K)
++var grenade_btn_pos: Vector2 = Vector2.ZERO  # Granada (Gabriel / H)
+ var block_btn_pos: Vector2:
+@@ -58,3 +60,4 @@ var aerial_btn_radius: float = 46.0          # Botão menor (voadora)
+ var special_btn_radius: float = 52.0         # Botão intermediário com aura de fogo
+ var guard_btn_radius: float = 46.0           # Botão superior (bloqueio)
++var grenade_btn_radius: float = 44.0
+ var block_btn_radius: float:
+@@ -76,3 +79,4 @@ var _aerial_touch_index: int = -1
+ var _special_touch_index: int = -1
+ var _guard_touch_index: int = -1
++var _grenade_touch_index: int = -1
+ var _pause_touch_index: int = -1
+@@ -84,3 +88,4 @@ var _aerial_pressed: bool = false
+ var _special_pressed: bool = false
+ var _guard_pressed: bool = false
++var _grenade_pressed: bool = false
+ var _pause_pressed: bool = false
+@@ -85,3 +89,4 @@ func _ready() -> void:
+ 	if not resized.is_connected(_recalculate_layout):
+ 		resized.connect(_recalculate_layout)
+ 	call_deferred("_recalculate_layout")
++	call_deferred("_bind_grenade_handler")
+@@ -140,3 +145,4 @@ func _recalculate_layout() -> void:
+ 	special_btn_radius = 52.0 * _layout_scale    # Especial (E)
+ 	guard_btn_radius = 46.0 * _layout_scale      # Bloqueio (K)
++	grenade_btn_radius = 44.0 * _layout_scale
+ 	pause_btn_size = Vector2(52.0, 52.0) * _layout_scale
+@@ -157,4 +163,6 @@ func _recalculate_layout() -> void:
+ 	# 4. Especial (E): intermediário entre voadora, bloqueio e ataque
+ 	special_btn_pos = Vector2(area.x - 215.0 * _layout_scale, area.y - 175.0 * _layout_scale)
++	# 5. Granada (H): acima e à esquerda do Especial, sem sobrepor os demais botões
++	grenade_btn_pos = Vector2(area.x - 350.0 * _layout_scale, area.y - 235.0 * _layout_scale)
+ 
+ 	# Botão de Pause: canto superior direito abaixo do avatar do EnemyHUD (Y >= 78px) para não sobrepor o inimigo
+@@ -171,3 +179,4 @@ func _recalculate_layout() -> void:
+ 		guard_btn_pos.x -= delta_x
+ 		aerial_btn_pos.x -= delta_x
+ 		special_btn_pos.x -= delta_x
++		grenade_btn_pos.x -= delta_x
+@@ -224,5 +233,16 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
+ 			queue_redraw()
+ 			return
+ 
++		# 6. Granada H — botão contextual exclusivo de Gabriel, com estoque limitado.
++		if _is_gabriel_selected() and _get_grenades_remaining() > 0 and _grenade_touch_index == -1 and event.position.distance_to(grenade_btn_pos) <= grenade_btn_radius * 1.20:
++			_grenade_touch_index = event.index
++			_grenade_pressed = true
++			var player_node: Node = get_tree().get_first_node_in_group("player") if get_tree() != null else null
++			var grenade_handler: Node = player_node.get_node_or_null("GrenadeHandler") if player_node != null else null
++			if grenade_handler != null and grenade_handler.has_method("throw_grenade"):
++				grenade_handler.call("throw_grenade")
++			queue_redraw()
++			return
++
+ 		# 6. Bloqueio K (Superior do agrupamento com seta para cima)
+ 		if _guard_touch_index == -1 and event.position.distance_to(guard_btn_pos) <= guard_btn_radius * 1.20:
+@@ -269,3 +291,8 @@ func _handle_touch(event: InputEventScreenTouch) -> void:
+ 			Input.action_release("guard")
+ 			queue_redraw()
++		if event.index == _grenade_touch_index:
++			_grenade_touch_index = -1
++			_grenade_pressed = false
++			Input.action_release("throw_grenade")
++			queue_redraw()
+ 		if event.index == _pause_touch_index:
+@@ -334,2 +361,3 @@ func release_all_virtual_actions() -> void:
+ 	_guard_touch_index = -1
++	_grenade_touch_index = -1
+ 	_pause_touch_index = -1
+@@ -342,2 +370,3 @@ func release_all_virtual_actions() -> void:
+ 	_guard_pressed = false
++	_grenade_pressed = false
+ 	_pause_pressed = false
+@@ -354,2 +383,4 @@ func release_all_virtual_actions() -> void:
+ 	Input.action_release("guard")
++	if InputMap.has_action("throw_grenade"):
++		Input.action_release("throw_grenade")
+ 	queue_redraw()
+@@ -402,4 +432,8 @@ func _draw() -> void:
+ 	# Bloqueio (K) — Aro metálico e seta para cima
+ 	_draw_button_texture(TEX_BLOCK, guard_btn_pos, guard_btn_radius, _guard_pressed)
++	# Granada H — ícone tático contextual com contador de cargas
++	if _is_gabriel_selected():
++		_draw_button_texture(TEX_GRENADE, grenade_btn_pos, grenade_btn_radius, _grenade_pressed)
++		draw_string(ThemeDB.fallback_font, grenade_btn_pos + Vector2(18.0, 30.0) * _layout_scale, "x%d" % _get_grenades_remaining(), HORIZONTAL_ALIGNMENT_CENTER, 34.0 * _layout_scale, int(14.0 * _layout_scale), Color(0.65, 1.0, 0.78, 1.0))
+ 
+ 	# 3. Botão de Pause no topo direito
+@@ -468,5 +502,44 @@ func _draw_pause_button() -> void:
+ 
+ 	var rect := Rect2(p - draw_size * 0.5, draw_size)
+ 	var modulate_color: Color = Color(1.35, 1.35, 1.35, 1.0) if _pause_pressed else Color.WHITE
+ 
+ 	draw_texture_rect(TEX_PAUSE, rect, false, modulate_color)
++
++
++func _bind_grenade_handler() -> void:
++	if get_tree() == null:
++		return
++	await get_tree().process_frame
++	if not is_inside_tree():
++		return
++	var player: Node = get_tree().get_first_node_in_group("player")
++	if player == null:
++		return
++	var handler: Node = player.get_node_or_null("GrenadeHandler")
++	if handler != null and handler.has_signal("grenades_changed"):
++		if not handler.is_connected("grenades_changed", _on_grenades_changed):
++			handler.connect("grenades_changed", _on_grenades_changed)
++	queue_redraw()
++
++
++func _on_grenades_changed(_remaining: int, _maximum: int) -> void:
++	queue_redraw()
++
++
++func _is_gabriel_selected() -> bool:
++	var session: Node = get_node_or_null("/root/GameSession")
++	if session != null and "selected_character_id" in session:
++		return str(session.get("selected_character_id")).to_lower() == "gabriel"
++	var player: Node = get_tree().get_first_node_in_group("player") if get_tree() != null else null
++	return player != null and player.has_method("is_gabriel") and bool(player.call("is_gabriel"))
++
++
++func _get_grenades_remaining() -> int:
++	if get_tree() == null:
++		return 2
++	var player: Node = get_tree().get_first_node_in_group("player")
++	if player != null:
++		var handler: Node = player.get_node_or_null("GrenadeHandler")
++		if handler != null and "grenades_remaining" in handler:
++			return int(handler.get("grenades_remaining"))
++	return 2
+diff --git a/scripts/ui/prototype_hud.gd b/scripts/ui/prototype_hud.gd
+index 0000000..0000000 100644
+--- a/scripts/ui/prototype_hud.gd
++++ b/scripts/ui/prototype_hud.gd
+@@ -48,4 +48,4 @@ func _ready() -> void:
+ 		if _is_mobile_runtime():
+ 			label_controls.visible = false
+ 		else:
+-			label_controls.text = "PC: [WASD] Mover | [J] Soco | [K] Chute | [O] Especial | [Espaço] Voadora | [Esc] Pausa"
++			label_controls.text = "PC: [WASD] Mover | [J] Combo | [K] Guarda | [H] Granada (Gabriel) / Guarda (outros) | [O] Especial | [Espaço] Voadora | [Esc] Pausa"
+diff --git a/GAME_RULES.md b/GAME_RULES.md
+index 0000000..0000000 100644
+--- a/GAME_RULES.md
++++ b/GAME_RULES.md
+@@ -124,6 +124,6 @@
+     - `W / A / S / D` e `Setas Direcionais`: Movimentação 2.5D do personagem nos eixos X e Y.
+     - `J`: Golpe básico / Combo de pancadaria (Jab -> Cross -> Kick -> Finisher). O encadeamento é contínuo e consistente tanto parado quanto em movimento via cancelamento de recuperação e buffer de entrada.
+     - `Espaço`: Voadora do personagem (`jump_kick` / `execute_aerial`).
+     - `O`: Golpe Especial de área (`execute_special`).
+-    - `K` e `H`: Bloqueio defensivo / Guarda (`guard`).
++    - `K`: Bloqueio defensivo / Guarda (`guard`) para todos os personagens. `H`: granada de Gabriel (`throw_grenade`); nos demais personagens, preserva o bloqueio legado.
+     - `Esc`: Pausar a partida abrindo o Menu de Pausa Transparente (`scenes/ui/pause_menu.tscn`).
+@@ -348,6 +348,7 @@
+    - **Botão de Salto / Voadora** (`jump` / `attack_aerial`):
+      - Mapeamento: Tecla `Espaço`, Gamepad `JOY_BUTTON_A` (Botão A / Cruz), e Botão Touch Voadora.
+      - Projeta o nó `Visual` no eixo Y (`Y < 0`). Ataque no ar dispara o golpe aéreo (`jump_atk`).
+-   - **Botão de Guarda** (`guard`):
+-     - Mapeamento: Teclas `K` e `H`, Gamepad `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) e `JOY_BUTTON_LEFT_STICK` (L3), e Botão Touch Bloqueio.
++   - **Botão de Guarda** (`guard`):
++     - Mapeamento: Tecla `K`, Gamepad `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) e `JOY_BUTTON_LEFT_STICK` (L3), e Botão Touch Bloqueio. `H` permanece guarda apenas para personagens que não sejam Gabriel.
+      - Reduz 70% do dano recebido, anula knockback e cancela transições de queda.
++   - **Granada de Gabriel** (`throw_grenade`): Tecla `H` no Desktop e botão contextual no TouchControls; duas cargas por mapa; pavio de 2 s; dano em inimigos e props destrutíveis e dano autoinfligido quando Gabriel permanecer no raio.
+@@ -856,3 +857,4 @@
+       - `button_special.png`: Ícone de corte de fogo/energia em gradiente branco/amarelo/laranja/vermelho, contorno com aura de chamas. Mapeado para **Tecla E** e **Tecla O** (`attack_special` e `special`).
+-      - `button_block.png`: Silhueta branca de voadora marcial, aro metálico azulado. Mapeado para **Tecla K** e **Tecla H** (`guard`).
++      - `button_block.png`: Silhueta branca de voadora marcial, aro metálico azulado. Mapeado para **Tecla K** (`guard`).
++      - `button_grenade.png`: Ícone pixel-art de granada com aro verde neon, exibido somente para Gabriel; contador de cargas `x2` / `x1` / `x0`.
+       - `button_pause.png`: Quadrado com cantos arredondados, fundo azul-marinho translúcido, aro metálico azulado, duas barras verticais brancas paralelas. Posicionado no canto superior direito dentro da safe area.
+@@ -1291,5 +1293,6 @@
+ | **Combo Básico** (`attack`, `attack_punch`) | `J` | `JOY_BUTTON_X` (X / Quadrado) + `JOY_BUTTON_RIGHT_SHOULDER` (RB / R1) | Botão Punho |
+ | **Voadora / Salto Aéreo** (`jump`, `attack_aerial`) | `Espaço` | `JOY_BUTTON_A` (A / Cruz) | Botão Voadora |
+ | **Golpe Especial** (`special`, `attack_special`) | `O`, `E` | `JOY_BUTTON_Y` (Y / Triângulo) + `JOY_BUTTON_B` (B / Círculo) | Botão Especial |
+-| **Bloqueio / Guarda** (`guard`) | `K`, `H` | `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) + `JOY_BUTTON_LEFT_STICK` (L3) | Botão Bloqueio |
++| **Bloqueio / Guarda** (`guard`) | `K` (e `H` para os outros heróis) | `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) + `JOY_BUTTON_LEFT_STICK` (L3) | Botão Bloqueio |
++| **Granada (Gabriel)** (`throw_grenade`) | `H` | — | Botão Granada contextual |
+ | **Pausa no Gameplay** (`pause`) | `ESC` | `JOY_BUTTON_START` (Start / Options / Menu) | Botão Pause (Topo Dir.) |
+diff --git a/scripts/levels/base_level.gd b/scripts/levels/base_level.gd
+index 0000000..0000000 100644
+--- a/scripts/levels/base_level.gd
++++ b/scripts/levels/base_level.gd
+@@ -882,3 +882,6 @@ func capture_world_snapshot() -> Dictionary:
+ 		if "current_continues" in p:
+ 			player_data["continues"] = p.current_continues
++		var grenade_handler: Node = p.get_node_or_null("GrenadeHandler")
++		if grenade_handler != null and "grenades_remaining" in grenade_handler:
++			player_data["grenades_remaining"] = int(grenade_handler.get("grenades_remaining"))
+ 		snapshot["player"] = player_data
+@@ -982,7 +982,11 @@ func restore_world_snapshot(snapshot: Dictionary) -> void:
+ 		if "current_continues" in p and pd.has("continues"):
+ 			p.current_continues = int(pd["continues"])
+ 			var session = get_node_or_null("/root/GameSession")
+ 			if session != null and "current_continues" in session:
+ 				session.current_continues = p.current_continues
++
++		var grenade_handler: Node = p.get_node_or_null("GrenadeHandler")
++		if grenade_handler != null and pd.has("grenades_remaining") and grenade_handler.has_method("set_grenades_remaining"):
++			grenade_handler.call("set_grenades_remaining", int(pd.get("grenades_remaining", 2)))
+ 
+ 		# Atualiza câmera imediatamente para a posição restaurada do jogador

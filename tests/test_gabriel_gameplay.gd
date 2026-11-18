@@ -76,7 +76,7 @@ func _test_player_bullet_properties_and_scene() -> void:
 	var sprite = bullet.get_node_or_null("Sprite2D") as Sprite2D
 	_assert(sprite != null, "Sprite2D visual de PixelFX presente no projétil")
 	_assert(sprite.texture != null, "Textura de bullet-tracer vinculada")
-	_assert(sprite.hframes == 2 and sprite.vframes == 9, "Grid de 2 colunas e 9 linhas (18 frames) configurado")
+	_assert((sprite.hframes == 4 and sprite.vframes == 1) or (sprite.hframes == 2 and sprite.vframes == 9), "Grid de frames do projétil configurado")
 	
 	bullet.queue_free()
 
@@ -228,7 +228,7 @@ func _test_gabriel_combo_chain_structure() -> void:
 	var atk1 = attacks[0]
 	_assert(atk1.get("is_projectile") == true, "Passo 1 é baseado em projétil")
 	_assert(atk1.get("projectile_count") == 1, "Passo 1 dispara 1 projétil")
-	_assert(is_equal_approx(atk1.get("horizontal_range"), 280.0), "Passo 1 alcance horizontal é 280 px")
+	_assert(is_equal_approx(atk1.get("horizontal_range"), 350.0), "Passo 1 alcance horizontal é 350 px")
 	_assert(is_equal_approx(atk1.get("depth_tolerance"), 24.0), "Passo 1 tolerância de profundidade é 24 px")
 	_assert(is_equal_approx(atk1.get("startup"), 0.03), "Passo 1 startup é 0.03s")
 	_assert(is_equal_approx(atk1.get("active"), 0.08), "Passo 1 active é 0.08s")
@@ -239,8 +239,8 @@ func _test_gabriel_combo_chain_structure() -> void:
 	var atk2 = attacks[1]
 	_assert(atk2.get("is_projectile") == true, "Passo 2 é baseado em projétil")
 	_assert(atk2.get("projectile_count") == 2, "Passo 2 dispara 2 projéteis (rajada dupla)")
-	_assert(is_equal_approx(atk2.get("projectile_interval"), 0.06), "Passo 2 intervalo entre disparos é 0.06s")
-	_assert(is_equal_approx(atk2.get("horizontal_range"), 300.0), "Passo 2 alcance horizontal é 300 px")
+	_assert(is_equal_approx(atk2.get("projectile_interval"), 0.16), "Passo 2 intervalo entre disparos é 0.16s")
+	_assert(is_equal_approx(atk2.get("horizontal_range"), 370.0), "Passo 2 alcance horizontal é 370 px")
 	_assert(is_equal_approx(atk2.get("depth_tolerance"), 26.0), "Passo 2 tolerância de profundidade é 26 px")
 	_assert(is_equal_approx(atk2.get("startup"), 0.04), "Passo 2 startup é 0.04s")
 	_assert(is_equal_approx(atk2.get("active"), 0.10), "Passo 2 active é 0.10s")
@@ -261,7 +261,7 @@ func _test_gabriel_combo_chain_structure() -> void:
 	var atk4 = attacks[3]
 	_assert(atk4.get("is_projectile") == true, "Passo 4 é baseado em projétil (rajada final)")
 	_assert(atk4.get("projectile_count") == 1, "Passo 4 dispara 1 projétil final")
-	_assert(is_equal_approx(atk4.get("horizontal_range"), 320.0), "Passo 4 alcance horizontal é 320 px")
+	_assert(is_equal_approx(atk4.get("horizontal_range"), 400.0), "Passo 4 alcance horizontal é 400 px")
 	_assert(is_equal_approx(atk4.get("depth_tolerance"), 30.0), "Passo 4 tolerância de profundidade é 30 px")
 	_assert(is_equal_approx(atk4.get("startup"), 0.05), "Passo 4 startup é 0.05s")
 	_assert(is_equal_approx(atk4.get("active"), 0.12), "Passo 4 active é 0.12s")
@@ -500,8 +500,8 @@ func _test_target_safety_exclusions_and_muzzle_offset() -> void:
 	player.global_position = Vector2(200.0, 300.0)
 	var spawned_b = player._spawn_single_bullet(player.get("_combo_attacks")[0])
 	_assert(spawned_b != null, "Projétil disparado com sucesso")
-	# Alcance base = 280, offset cano = 74 -> alcance máximo efetivo = 206 px
-	_assert(is_equal_approx(spawned_b.max_range, 206.0), "max_range compensa offset do cano (280 - 74 = 206 px)")
+	# Alcance base = 350, offset cano = 74 -> alcance máximo efetivo = 276 px
+	_assert(is_equal_approx(spawned_b.max_range, 276.0), "max_range compensa offset do cano (350 - 74 = 276 px)")
 	
 	spawned_b.queue_free()
 	p.queue_free()

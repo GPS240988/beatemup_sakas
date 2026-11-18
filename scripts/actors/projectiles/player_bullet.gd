@@ -7,6 +7,7 @@ extends Area2D
 
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
+const GabrielGunVFXClass = preload("res://scripts/combat/gabriel_gun_vfx.gd")
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 
 @export var speed: float = 700.0
@@ -18,7 +19,6 @@ const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 @export var hitstun_duration: float = 0.20
 @export var knockback_force: float = 30.0
 @export var impact_profile: String = "projectile"
-
 var attacker: Node = null
 var projectile_lane_y: float = 0.0
 var direction: Vector2 = Vector2.RIGHT
@@ -45,6 +45,9 @@ func _ready() -> void:
 	
 	if direction.x < 0.0:
 		scale.x = -1.0
+
+	# Núcleo branco-quente sobre o clarão PixelFX amplo já disparado pelo PlayerController.
+	GabrielGunVFXClass.spawn_muzzle_core(self, global_position, direction)
 
 
 func _process(delta: float) -> void:
@@ -77,7 +80,7 @@ func _on_body_entered(body: Node) -> void:
 	
 	# Obstáculo sólido do cenário atingido (Layer 2)
 	_has_hit = true
-	CombatFeedbackClass.spawn_hit_spark(self, global_position, direction, "projectile", "upper_torso")
+	GabrielGunVFXClass.spawn_bullet_impact(self, global_position, direction, false)
 	CombatFeedbackClass.play_impact_sound(self, "light")
 	queue_free()
 
@@ -128,6 +131,7 @@ func _try_hit(collider: Node) -> bool:
 	
 	# Projétil atinge alvo único — consome o tiro imediatamente
 	_has_hit = true
+	var impact_pos: Vector2 = _resolve_target_contact_point(collider, target_actor)
 	
 	var damage_info := DamageInfoClass.new(
 		damage,
@@ -142,7 +146,7 @@ func _try_hit(collider: Node) -> bool:
 		hitstop_duration,
 		impact_profile,
 		"upper_torso",
-		global_position
+		impact_pos
 	)
 	
 	var applied: bool = false
@@ -155,8 +159,8 @@ func _try_hit(collider: Node) -> bool:
 	
 	if applied:
 		CombatFeedbackClass.apply_hitstop(attacker, target_actor, hitstop_duration)
-		var vfx_prof: String = "projectile" if impact_profile in ["punch", "projectile"] else impact_profile
-		CombatFeedbackClass.spawn_hit_spark(self, global_position, direction, vfx_prof, "upper_torso")
+		var heavy_impact: bool = can_knockdown or impact_profile == "finisher"
+		GabrielGunVFXClass.spawn_bullet_impact(self, impact_pos, direction, heavy_impact)
 		CombatFeedbackClass.play_impact_sound(self, impact_profile)
 		if can_knockdown or impact_profile == "finisher":
 			CombatFeedbackClass.trigger_screen_shake(self, 6.0, 0.22)
@@ -168,6 +172,36 @@ func _try_hit(collider: Node) -> bool:
 	
 	queue_free()
 	return applied
+
+
+## Resolve o contato na face da Hurtbox voltada para o projétil.
+## O CollisionShape2D fornece o limite real: não se usa o centro do ator nem o centro do tiro.
+func _resolve_target_contact_point(collider: Node, target_actor: Node) -> Vector2:
+	var hurtbox: Area2D = collider as Area2D
+	if hurtbox == null and target_actor != null:
+		hurtbox = target_actor.get_node_or_null("Hurtbox") as Area2D
+	var shape_node: CollisionShape2D = null
+	if hurtbox != null:
+		shape_node = hurtbox.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if shape_node == null:
+			for child: Node in hurtbox.get_children():
+				if child is CollisionShape2D:
+					shape_node = child as CollisionShape2D
+					break
+	if shape_node != null and shape_node.shape != null:
+		var bounds: Rect2 = shape_node.shape.get_rect()
+		var incoming_side: float = -1.0 if direction.x >= 0.0 else 1.0
+		var local_y: float = clampf(
+			shape_node.to_local(global_position).y,
+			bounds.position.y,
+			bounds.end.y
+		)
+		var local_contact := Vector2(incoming_side * bounds.size.x * 0.5, local_y)
+		return shape_node.to_global(local_contact)
+	if target_actor is Node2D:
+		var fallback: Node2D = target_actor as Node2D
+		return fallback.global_position + Vector2(-signf(direction.x) * 16.0, -110.0)
+	return global_position
 
 
 ## Método público para testes pontuais e validações diretas

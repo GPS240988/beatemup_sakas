@@ -184,6 +184,13 @@ func _ready() -> void:
 	_apply_character_stat_modifiers()
 	_build_combo_chain()
 
+	if get_node_or_null("GrenadeHandler") == null:
+		var gh_script: GDScript = load("res://scripts/actors/grenade_handler.gd") as GDScript
+		if gh_script != null:
+			var gh: Node = gh_script.new()
+			gh.name = "GrenadeHandler"
+			add_child(gh)
+
 
 func is_gabriel() -> bool:
 	if hero_data != null and hero_data.hero_id.to_lower() == "gabriel":
@@ -254,7 +261,7 @@ func _build_combo_chain() -> void:
 		g_atk1.set("active", hero_data.punch1_active if hero_data and "punch1_active" in hero_data else 0.08)
 		g_atk1.set("recovery", (hero_data.punch1_recovery if hero_data and "punch1_recovery" in hero_data else 0.12) / maxf(0.1, _tec_mult))
 		g_atk1.set("damage", (hero_data.punch1_damage if hero_data and "punch1_damage" in hero_data else 17.5) * _str_mult)
-		g_atk1.set("horizontal_range", hero_data.punch1_range if hero_data and "punch1_range" in hero_data else 280.0)
+		g_atk1.set("horizontal_range", hero_data.punch1_range if hero_data and "punch1_range" in hero_data else 350.0)
 		g_atk1.set("depth_tolerance", (hero_data.punch1_depth_tolerance if hero_data and "punch1_depth_tolerance" in hero_data else 24.0) * _tec_mult)
 		g_atk1.set("hitstun", hero_data.punch1_hitstun if hero_data and "punch1_hitstun" in hero_data else 0.20)
 		g_atk1.set("knockback", hero_data.punch1_knockback if hero_data and "punch1_knockback" in hero_data else 30.0)
@@ -278,7 +285,7 @@ func _build_combo_chain() -> void:
 		g_atk2.set("active", hero_data.punch2_active if hero_data and "punch2_active" in hero_data else 0.10)
 		g_atk2.set("recovery", (hero_data.punch2_recovery if hero_data and "punch2_recovery" in hero_data else 0.15) / maxf(0.1, _tec_mult))
 		g_atk2.set("damage", (hero_data.punch2_damage if hero_data and "punch2_damage" in hero_data else 17.5) * _str_mult)
-		g_atk2.set("horizontal_range", hero_data.punch2_range if hero_data and "punch2_range" in hero_data else 300.0)
+		g_atk2.set("horizontal_range", hero_data.punch2_range if hero_data and "punch2_range" in hero_data else 370.0)
 		g_atk2.set("depth_tolerance", (hero_data.punch2_depth_tolerance if hero_data and "punch2_depth_tolerance" in hero_data else 26.0) * _tec_mult)
 		g_atk2.set("hitstun", hero_data.punch2_hitstun if hero_data and "punch2_hitstun" in hero_data else 0.22)
 		g_atk2.set("knockback", hero_data.punch2_knockback if hero_data and "punch2_knockback" in hero_data else 45.0)
@@ -289,7 +296,7 @@ func _build_combo_chain() -> void:
 		g_atk2.set("impact_profile", "punch")
 		g_atk2.set("is_projectile", true)
 		g_atk2.set("projectile_count", 2)
-		g_atk2.set("projectile_interval", 0.06)
+		g_atk2.set("projectile_interval", 0.16)
 		g_atk2.preferred_regions.assign(["upper_torso", "head"])
 		g_atk2.hitbox_offset_y = hero_data.punch2_hitbox_offset_y if hero_data and "punch2_hitbox_offset_y" in hero_data else -110.0
 		_combo_attacks.append(g_atk2)
@@ -324,7 +331,7 @@ func _build_combo_chain() -> void:
 		g_atk4.set("active", hero_data.heavy4_active if hero_data and "heavy4_active" in hero_data else 0.12)
 		g_atk4.set("recovery", (hero_data.heavy4_recovery if hero_data and "heavy4_recovery" in hero_data else 0.32) / maxf(0.1, _tec_mult))
 		g_atk4.set("damage", (hero_data.heavy4_damage if hero_data and "heavy4_damage" in hero_data else 30.0) * _str_mult)
-		g_atk4.set("horizontal_range", hero_data.heavy4_range if hero_data and "heavy4_range" in hero_data else 320.0)
+		g_atk4.set("horizontal_range", hero_data.heavy4_range if hero_data and "heavy4_range" in hero_data else 400.0)
 		g_atk4.set("depth_tolerance", (hero_data.heavy4_depth_tolerance if hero_data and "heavy4_depth_tolerance" in hero_data else 30.0) * _tec_mult)
 		g_atk4.set("hitstun", hero_data.heavy4_hitstun if hero_data and "heavy4_hitstun" in hero_data else 0.35)
 		g_atk4.set("knockback", hero_data.heavy4_knockback if hero_data and "heavy4_knockback" in hero_data else 140.0)
@@ -994,7 +1001,7 @@ func _try_aerial_attack() -> void:
 			anim_sprite.play("jump_atk")
 		
 		var aerial_dmg: float = (hero_data.aerial_damage if hero_data and "aerial_damage" in hero_data else 30.0) * _str_mult
-		var aerial_rng: float = hero_data.aerial_range if hero_data and "aerial_range" in hero_data else 160.0
+		var aerial_rng: float = hero_data.aerial_range if hero_data and "aerial_range" in hero_data else 220.0
 		var aerial_depth: float = (hero_data.aerial_depth_tolerance if hero_data and "aerial_depth_tolerance" in hero_data else 28.0) * _tec_mult
 		var startup_t: float = hero_data.aerial_startup if hero_data and "aerial_startup" in hero_data else 0.03
 		
@@ -1612,7 +1619,11 @@ func _ensure_fallback_inputs() -> void:
 	_register_key_if_missing("jump", KEY_SPACE, KEY_NONE)
 	_register_joy_button_if_missing("jump", JOY_BUTTON_A)
 
-	_register_key_if_missing("guard", KEY_K, KEY_H)
+	if is_gabriel():
+		_register_key_if_missing("guard", KEY_K, KEY_NONE)
+		_register_key_if_missing("throw_grenade", KEY_H, KEY_NONE)
+	else:
+		_register_key_if_missing("guard", KEY_K, KEY_H)
 	_register_joy_button_if_missing("guard", JOY_BUTTON_LEFT_SHOULDER)
 	_register_joy_button_if_missing("guard", JOY_BUTTON_LEFT_STICK)
 

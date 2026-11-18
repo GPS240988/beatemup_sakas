@@ -125,7 +125,7 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    - `J`: Golpe básico / Combo de pancadaria (Jab -> Cross -> Kick -> Finisher). O encadeamento é contínuo e consistente tanto parado quanto em movimento via cancelamento de recuperação e buffer de entrada.
    - `Espaço`: Voadora do personagem (`jump_kick` / `execute_aerial`).
    - `O`: Golpe Especial de área (`execute_special`).
-   - `K` e `H`: Bloqueio defensivo / Guarda (`guard`).
+   - `K`: Bloqueio defensivo / Guarda (`guard`) para todos os personagens. `H`: granada de Gabriel (`throw_grenade`); nos demais personagens, preserva o bloqueio legado.
    - `Esc`: Pausar a partida abrindo o Menu de Pausa Transparente (`scenes/ui/pause_menu.tscn`).
 3. **Menu de Pausa In-Game e Salvamento Persistente**:
    - `pause_menu.tscn`: Renderizado em camada superior (`CanvasLayer` layer = 100) com fundo translúcido escuro (`Color(0.015, 0.02, 0.04, 0.78)`), preservando o cenário e os atores pausados ao fundo.
@@ -348,8 +348,9 @@ MapX (Node2D, script: base_level.gd)
     - Mapeamento: Tecla `Espaço`, Gamepad `JOY_BUTTON_A` (Botão A / Cruz), e Botão Touch Voadora.
     - Projeta o nó `Visual` no eixo Y (`Y < 0`). Ataque no ar dispara o golpe aéreo (`jump_atk`).
   - **Botão de Guarda** (`guard`):
-    - Mapeamento: Teclas `K` e `H`, Gamepad `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) e `JOY_BUTTON_LEFT_STICK` (L3), e Botão Touch Bloqueio.
+    - Mapeamento: Tecla `K`, Gamepad `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) e `JOY_BUTTON_LEFT_STICK` (L3), e Botão Touch Bloqueio. `H` permanece guarda apenas para personagens que não sejam Gabriel.
     - Reduz 70% do dano recebido, anula knockback e cancela transições de queda.
+  - **Granada de Gabriel** (`throw_grenade`): Tecla `H` no Desktop e botão contextual no TouchControls; duas cargas por mapa; pavio de 2 s; dano em inimigos e props destrutíveis e dano autoinfligido quando Gabriel permanecer no raio.
   - **Métodos Públicos Legados Preservados**: `execute_punch()`, `execute_kick()`, `execute_heavy()`, `execute_aerial()`.
 - **Reações Físicas do Jogador**:
   - `HURT`: Stagger com recuo físico e animação `hurt` ao receber golpes comuns.
@@ -856,7 +857,8 @@ MapX (Node2D, script: base_level.gd)
      - `button_attack.png`: Punho cerrado de alta definição, aro circular em laranja/vermelho neon, interior vidro escuro translúcido. É o maior botão do conjunto. Mapeado para **Tecla J** (`attack` e `attack_punch`).
      - `button_kick.png`: Silhueta branca de voadora marcial, aro metálico azulado, interior vidro escuro translúcido. Mapeado para **Tecla SPACE** (`attack_aerial` e `jump`).
      - `button_special.png`: Ícone de corte de fogo/energia em gradiente branco/amarelo/laranja/vermelho, contorno com aura de chamas. Mapeado para **Tecla E** e **Tecla O** (`attack_special` e `special`).
-     - `button_block.png`: Ícone de seta para cima em branco sólido, aro metálico azulado. Mapeado para **Tecla K** e **Tecla H** (`guard`).
+     - `button_block.png`: Ícone de seta para cima em branco sólido, aro metálico azulado. Mapeado para **Tecla K** (`guard`).
+     - `button_grenade.png`: Ícone pixel-art de granada com aro verde neon, exibido somente para Gabriel; contador de cargas `x2` / `x1` / `x0`.
      - `button_pause.png`: Quadrado com cantos arredondados, fundo azul-marinho translúcido, aro metálico azulado, duas barras verticais brancas paralelas. Posicionado no canto superior direito dentro da safe area.
      - `mobile_dpad_base.png`, `mobile_dpad_arrows.png`, `mobile_dpad_thumb.png`: Direcional analógico no quadrante inferior esquerdo com base circular translúcida ampliada (raio de 112px / diâmetro 224px), 4 setas indicadoras e knob central metálico ampliado (raio de 48px), calibrado para alta precisão e ergonomia no toque mobile.
    - *Disposição Assimétrica do Cluster de Combate*:
@@ -1291,7 +1293,8 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 | **Combo Básico** (`attack`, `attack_punch`) | `J` | `JOY_BUTTON_X` (X / Quadrado) + `JOY_BUTTON_RIGHT_SHOULDER` (RB / R1) | Botão Punho |
 | **Voadora / Salto Aéreo** (`jump`, `attack_aerial`) | `Espaço` | `JOY_BUTTON_A` (A / Cruz) | Botão Voadora |
 | **Golpe Especial** (`special`, `attack_special`) | `O`, `E` | `JOY_BUTTON_Y` (Y / Triângulo) + `JOY_BUTTON_B` (B / Círculo) | Botão Especial |
-| **Bloqueio / Guarda** (`guard`) | `K`, `H` | `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) + `JOY_BUTTON_LEFT_STICK` (L3) | Botão Bloqueio |
+| **Bloqueio / Guarda** (`guard`) | `K` (e `H` para os outros heróis) | `JOY_BUTTON_LEFT_SHOULDER` (LB / L1) + `JOY_BUTTON_LEFT_STICK` (L3) | Botão Bloqueio |
+| **Granada (Gabriel)** (`throw_grenade`) | `H` | — | Botão Granada contextual |
 | **Pausa no Gameplay** (`pause`) | `ESC` | `JOY_BUTTON_START` (Start / Options / Menu) | Botão Pause (Topo Dir.) |
 | **Reiniciar Fase** (`restart`) | `R` | `JOY_BUTTON_BACK` (Select / View / Share) | Botão Tentar Novamente |
 | **Confirmar em Menus** (`ui_accept`) | `Enter`, `Espaço` | `JOY_BUTTON_A` (A / Cruz) + `JOY_BUTTON_START` | Toque / Clique |

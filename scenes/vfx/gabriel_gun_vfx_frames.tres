@@ -1,0 +1,113 @@
+[gd_resource type="SpriteFrames" load_steps=15 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/Efeitos/gabriel/gabriel_muzzle_core.png" id="1_muzzle"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Efeitos/gabriel/gabriel_bullet_impact.png" id="2_impact"]
+
+[sub_resource type="AtlasTexture" id="MuzzleCore00"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(0, 0, 48, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="MuzzleCore01"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(48, 0, 48, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="MuzzleCore02"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(96, 0, 48, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="MuzzleCore03"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(144, 0, 48, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact00"]
+atlas = ExtResource("2_impact")
+region = Rect2(0, 0, 96, 96)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact01"]
+atlas = ExtResource("2_impact")
+region = Rect2(96, 0, 96, 96)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact02"]
+atlas = ExtResource("2_impact")
+region = Rect2(192, 0, 96, 96)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact03"]
+atlas = ExtResource("2_impact")
+region = Rect2(288, 0, 96, 96)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact04"]
+atlas = ExtResource("2_impact")
+region = Rect2(0, 96, 96, 96)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact05"]
+atlas = ExtResource("2_impact")
+region = Rect2(96, 96, 96, 96)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact06"]
+atlas = ExtResource("2_impact")
+region = Rect2(192, 96, 96, 96)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="BulletImpact07"]
+atlas = ExtResource("2_impact")
+region = Rect2(288, 96, 96, 96)
+filter_clip = true
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("MuzzleCore00")
+}, {
+"duration": 1.0,
+"texture": SubResource("MuzzleCore01")
+}, {
+"duration": 1.0,
+"texture": SubResource("MuzzleCore02")
+}, {
+"duration": 1.0,
+"texture": SubResource("MuzzleCore03")
+}],
+"loop": 0,
+"name": &"muzzle_core",
+"speed": 30.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("BulletImpact00")
+}, {
+"duration": 1.0,
+"texture": SubResource("BulletImpact01")
+}, {
+"duration": 1.0,
+"texture": SubResource("BulletImpact02")
+}, {
+"duration": 1.0,
+"texture": SubResource("BulletImpact03")
+}, {
+"duration": 1.0,
+"texture": SubResource("BulletImpact04")
+}, {
+"duration": 1.0,
+"texture": SubResource("BulletImpact05")
+}, {
+"duration": 1.0,
+"texture": SubResource("BulletImpact06")
+}, {
+"duration": 1.0,
+"texture": SubResource("BulletImpact07")
+}],
+"loop": 0,
+"name": &"bullet_impact",
+"speed": 30.0
+}]

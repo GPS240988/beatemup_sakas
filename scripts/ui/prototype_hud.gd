@@ -48,7 +48,7 @@ func _ready() -> void:
 		if _is_mobile_runtime():
 			label_controls.visible = false
 		else:
-			label_controls.text = "PC: [WASD] Mover | [J] Soco | [K] Chute | [O] Especial | [Espaço] Voadora | [Esc] Pausa"
+			label_controls.text = "PC: [WASD] Mover | [J] Combo | [K] Guarda | [H] Granada (Gabriel) / Guarda (outros) | [O] Especial | [Espaço] Voadora | [Esc] Pausa"
 
 	if banner_panel != null:
 		banner_panel.visible = false

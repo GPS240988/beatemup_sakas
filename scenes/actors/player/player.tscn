@@ -36,6 +36,7 @@
 [ext_resource type="Texture2D" uid="uid://cxxc41aro60a5" path="res://assets/sprites/characters/guilherme/heavy_04.png" id="32_heavy4"]
 [ext_resource type="Texture2D" uid="uid://blq3ab3dyf8uw" path="res://assets/sprites/characters/guilherme/heavy_05.png" id="33_heavy5"]
 [ext_resource type="Texture2D" uid="uid://yrgc0elce4uq" path="res://assets/sprites/characters/guilherme/heavy_06.png" id="34_heavy6"]
+[ext_resource type="Script" path="res://scripts/actors/grenade_handler.gd" id="35_grenade_handler"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
 radius = 12.0
@@ -284,3 +285,6 @@ polygon = PackedVector2Array(0, -14, 30, -8, 42, 0, 30, 8, 0, 14, 12, 0)
 
 [node name="MuzzleMarker" type="Marker2D" parent="Visual" unique_id=1084221935]
 position = Vector2(74, -172)
+
+[node name="GrenadeHandler" type="Node" parent="."]
+script = ExtResource("35_grenade_handler")
