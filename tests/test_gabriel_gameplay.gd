@@ -531,7 +531,7 @@ func _test_standalone_hero_loading_without_session() -> void:
 
 
 func _test_gabriel_mobility_and_aerial() -> void:
-	print("\n--- 8. Validando Mobilidade e Salto Tático (Etapa 05) ---")
+	print("\n--- 8. Validando Mobilidade e Dash Evasivo (Substituindo Salto) ---")
 	var session = _ensure_game_session()
 	session.selected_character_id = "gabriel"
 	
@@ -543,16 +543,18 @@ func _test_gabriel_mobility_and_aerial() -> void:
 	_assert(is_equal_approx(player.speed_x, 338.0), "Velocidade horizontal com 1.30x é 338.0 px/s (260 * 1.3)")
 	_assert(is_equal_approx(player.speed_y, 247.0), "Velocidade vertical com 1.30x é 247.0 px/s (190 * 1.3)")
 	
-	# Executa Salto Tático
+	# Executa Dash Evasivo (substitui salto convencional)
 	player._try_aerial_attack()
-	_assert(player.get("_is_jumping") == true, "Salto Tático ativa estado aéreo (_is_jumping = true)")
-	_assert(is_equal_approx(player.get("_jump_v_velocity"), -320.0), "Impulso vertical de salto é -320.0")
-	_assert(is_equal_approx(absf(player.velocity.x), 200.0), "Impulso horizontal frontal é 200.0 px/s")
+	_assert(player.is_dashing() == true, "Ação de salto ativa Dash Evasivo no Gabriel (is_dashing = true)")
+	_assert(player.get("_is_jumping") == false, "Gabriel NÃO realiza pulo convencional (_is_jumping = false)")
+	_assert(player.get("_is_invulnerable") == true, "Dash inicia com invulnerabilidade ativa")
+	_assert(is_equal_approx(player.dash_distance, 270.0), "Distância horizontal do dash configurada para 270 px")
+	_assert(is_equal_approx(player.dash_duration, 0.34), "Duração do dash configurada para 0.34s")
+	_assert(is_equal_approx(player.dash_cooldown, 0.80), "Recarga do dash configurada para 0.80s")
 	
-	# Validação de bloqueio de novo salto enquanto no ar
-	var prev_vel: float = player.get("_jump_v_velocity")
-	player._try_aerial_attack()
-	_assert(is_equal_approx(player.get("_jump_v_velocity"), prev_vel), "Não permite segundo salto enquanto já estiver no ar")
+	# Validação de bloqueio de novo dash enquanto ativo ou em cooldown
+	var dash_executed_again: bool = player.execute_dash()
+	_assert(not dash_executed_again, "Não permite segundo dash durante dash ativo ou em recarga")
 	
 	# Validação do MuzzleMarker
 	var visual: Node2D = player.get_node_or_null("Visual") as Node2D

@@ -1345,9 +1345,9 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   | **Passo 1 (Disparo Rápido)** | 17.50 | 14.00 | 280 px | 24 px | Disparo balístico reto, hitstun leve (0.20s). |
   | **Passo 2 (Rajada Dupla)** | 17.50 (2x 8.75) | 14.00 (2x 7.00) | 300 px | 26 px | Dois disparos rápidos em semi-automático. |
   | **Passo 3 (Pistolada Curta)** | 15.00 | 12.00 | 75 px | 28 px | Ataque físico com a coronha para abrir espaço. |
-  | **Passo 4 (Rajada Final)** | 30.00 | 24.00 | 320 px | 30 px | Tiro forte com recuo, causando **Knockdown**. |
+  | **Passo 4 (Rajada Final)** | 30.00 | 24.00 | 400 px | 30 px | Tiro forte com recuo, causando **Knockdown**. |
   | **Total do Combo** | **80.00** | **64.00** | — | — | Deixa Grunts com 16 HP em queda no solo. |
-  | **Ataque Aéreo (Espaço)** | 30.00 | 24.00 | 160 px | 24 px | Salto tático com disparo em ângulo descendente. |
+  | **Dash Evasivo (Espaço)** | 0.00 | 0.00 | 270 px | 24 px | Deslocamento veloz com afterimage (0.34s), atravessa inimigos, invuln 0.12s, recarga 0.80s, sem dano. |
   | **Golpe Especial (O)** | 62.50 | 50.00 | Global | Viewport | Apresentação cinematográfica de 2.50s com dano de área. |
 - **Arquitetura de Carregamento Modular de Heróis**:
   - `PlayerController` desacoplado: em `_ready()`, carrega dinamicamente `res://resources/heroes/%s_data.tres % char_id` e `res://resources/characters/%s_sprite_frames.tres % char_id`.
@@ -1376,10 +1376,35 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   - `Blindagem Estrita de Alvos`: O projétil rejeita nós nos grupos `player`, `npcs`, `civilians` e `allies`, bem como inimigos mortos (`is_dead = true`) ou props quebrados (`is_broken = true`), atingindo apenas alvos válidos e consumindo-se em um único impacto.
   - `Prioridade de Coleta Contextual`: Ao pressionar `J` perto de um consumível de vida (`coca_pickup`), a coleta do item tem prioridade estrita sobre o combate.
 
-- **Mobilidade e Salto Tático (`Space` / `attack_aerial`)**:
+- **Mobilidade, Dash Evasivo (`Space` / `attack_aerial` / Botão Dash) & Disparo em Movimento**:
   - Velocidades calibradas: `speed_x = 260.0`, `speed_y = 190.0` que, multiplicadas pelo modificador de Velocidade 4 ($1.30\times$), entregam exatamente 338.0 px/s horizontal e 247.0 px/s vertical.
-  - Impulso de Salto Tático: Impulso vertical `aerial_jump_v_velocity = -320.0` e impulso horizontal à frente de 200.0 px/s.
-  - Disparo Aéreo Balístico: Dispara projétil no ar (dano efetivo 24.0, alcance 160 px, profundidade 28 px) originado do `MuzzleMarker` acompanhando a projeção do nó `Visual` no ar, com compensação do offset de cano e sem ativar hitbox corpo a corpo simultânea.
-  - Bloqueio estrito de reativação: Jogador não pode acionar novo salto ou golpe aéreo enquanto já estiver no ar (`_is_jumping = true`).
-  - Restauração ao tocar o solo: Ao atingir o solo (`visual_root.position.y >= 0.0`), zera a velocidade vertical e restaura o estado para `CombatState.NORMAL`.
+  - **Substituição Exclusiva do Pulo**: Gabriel não possui pulo convencional. O comando anteriormente associado ao pulo (`Space`, Gamepad A ou botão touch dedicado `button_dash.png`) aciona o **Dash Evasivo Aprimorado** (`execute_dash()`).
+  - **Parâmetros Mecânicos do Dash Aprimorado**:
+    - Distância horizontal ampliada: **270 px** (faixa 260 a 280 px) em **0.34 s** (velocidade média de ~794 px/s; vertical proporcional 2.5D de ~580 px/s).
+    - Curva de Aceleração Explosiva: taxa instantânea $\text{accel} = 1.40 - 0.80\tau$ ($\tau \in [0, 1]$), com arrancada explosiva de ~1111 px/s desacelerando de forma contínua e suave até ~476 px/s.
+    - Janela de Invulnerabilidade Total (Iframes): ativa nos primeiros **0.12 s** de deslocamento (`_is_invulnerable = true`), anulando qualquer dano.
+    - Proteção de Atravessamento Corporal (Phasing): durante todo o deslocamento ativo ($t < 0.34\text{ s}$), colisões corporais e golpes melee dos adversários não interrompem nem ferem Gabriel. Projéteis, perigos ambientais (hazards) e ataques especiais continuam aplicando dano após os 0.12s.
+    - Recarga (Cooldown): **0.80 s** contados a partir da ativação (impede loops contínuos de esquiva).
+    - **Dois Dash Seguidos (Double Dash)**: Gabriel pode encadear até 2 dashes consecutivos caso pressione o comando de Dash (`Space`, Gamepad A ou Touch) duas vezes antes do término do tempo de recarga do primeiro dash (`_dash_count` até 2). Ao utilizar o segundo dash (ou ao expirar a recarga sem um segundo dash), a recarga completa de 0.80s é aplicada para restaurar as cargas.
+    - Recuperação: **0.08 s** pós-deslocamento antes de retornar ao estado `NORMAL`.
+    - Dano: nenhum (mobilidade tática e fuga de cercos).
+    - Capacidade de Atravessar Adversários (Phasing): Gabriel passa livremente por inimigos no trajeto sem ser travado nem empurrá-los.
+    - Bloqueio Estrito por Barreiras Físicas: paredes sólidas (Layer 2), limites do cenário e props sólidos bloqueiam rigidamente o deslocamento do Dash.
+    - Resolução Segura de Sobreposição Pós-Dash: caso termine na mesma coordenada de um adversário ($|dx| < 24$ px e $|dy| \le 18$ px), um afastamento de segurança (28 px horizontal) posiciona Gabriel de forma limpa, evitando travamentos mútuos.
+    - Efeito Visual de Sombra (Afterimage): projeta de 3 a 5 silhuetas residuais translúcidas (~0.068s de intervalo) reproduzindo a pose exata do sprite com tintura esmeralda (`#00FF66` / Color(0.40, 1.15, 0.80, 0.58)), esvanecendo via Tween em 0.12s.
+    - Sincronização de Animação: animação dedicada `dash` composta por 6 quadros (`dash_01.png` a `dash_06.png`) a 18.0 FPS.
+    - Direcional: segue a entrada direcional (eixos X e Y) ou a orientação atual (`facing_direction`) na ausência de comando.
+  - **Disparo em Movimento (Strafing / Kiting)**:
+    - Nos Passos 1 e 2 do combo principal (`shot_1` e `shot_2`), Gabriel pode se movimentar e atirar simultaneamente, preservando a velocidade de locomoção e a reprodução da animação de disparo.
+    - O Passo 3 (coronhada corpo a corpo) e o Passo 4 (rajada pesada com recuo) firmam os pés no solo para garantir comprometimento de impacto e leitura tática clara.
+  - **Isolamento e Compatibilidade**:
+    - Guilherme, André e demais personagens mantêm o pulo tradicional, a voadora com salto aéreo e o combate físico no solo inalterados.
+
+- **Efeitos Sonoros Dedicados (SFX) e Apresentação Cinematográfica do Gabriel**:
+  - `SFX_GABRIEL_TIRO_1` (`res://assets/audio/sfx/tiro1.mp3`): Disparo simples (Passo 0) e primeiro tiro da rajada dupla (Passo 1).
+  - `SFX_GABRIEL_TIRO_2` (`res://assets/audio/sfx/tiro2.mp3`): Segundo tiro da rajada dupla (Passo 1 sincronizado a 0.16s) e tiro potente com recuo (Passo 3).
+  - `SFX_GABRIEL_CORONHADA` (`res://assets/audio/sfx/coronhaada.mp3`): Empunhadura e saque da arma na transição do neutro para o ataque, e som de golpe físico do Passo 2 (coronhada / pistolada).
+  - `SFX_GABRIEL_DASH` (`res://assets/audio/sfx/dash_gabriel.mp3`): Som de propulsão rápida do Dash acionado no instante do comando.
+  - Sincronização Precisa: Sons de disparo ocorrem no momento da criação de cada projétil (`_spawn_single_bullet`), evitando loops ou reproduções duplicadas de rajada completa. Sons de impacto nos adversários (`play_impact_sound`) permanecem preservados e desacoplados dos disparos.
+  - Apresentação Cinematográfica do Especial: Arte oficial `assets/sprites/characters/gabriel/especial1_gabriel.webp` vinculada em `resources/heroes/gabriel_data.tres` (`special_presentation_texture`) e resolvida na classe `SpecialPresentation`.
 

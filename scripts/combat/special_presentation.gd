@@ -128,6 +128,9 @@ func _resolve_hero_texture() -> Texture2D:
 	var hero_path := "res://assets/sprites/characters/%s/especial_1_%s.webp" % [hero_id, hero_id]
 	if ResourceLoader.exists(hero_path):
 		return load(hero_path) as Texture2D
+	var hero_path_alt := "res://assets/sprites/characters/%s/especial1_%s.webp" % [hero_id, hero_id]
+	if ResourceLoader.exists(hero_path_alt):
+		return load(hero_path_alt) as Texture2D
 
 	return null
 

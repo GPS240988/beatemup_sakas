@@ -27,6 +27,14 @@ extends Resource
 @export var aerial_hitbox_offset_y: float = -130.0
 @export var aerial_depth_tolerance: float = 28.0
 
+@export_group("Dash Evasivo")
+@export var has_dash: bool = false
+@export var dash_distance: float = 270.0
+@export var dash_duration: float = 0.34
+@export var dash_invulnerable_duration: float = 0.12
+@export var dash_cooldown: float = 0.80
+@export var dash_recovery_duration: float = 0.08
+
 @export_group("Golpe Especial")
 @export var special_max_charge: float = 100.0
 @export var special_initial_charge: float = 0.0

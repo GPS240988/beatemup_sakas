@@ -104,6 +104,11 @@ const SFX_MENU_DENIED: String = "res://assets/audio/sfx/Opção Bloqueada_sfx_de
 const SFX_NARRATIVE_HUM: String = "res://assets/audio/sfx/deep_intro_hum.mp3"
 const SFX_NARRATIVE_GLITCH: String = "res://assets/audio/sfx/glitch_static.mp3"
 
+const SFX_GABRIEL_TIRO_1: String = "res://assets/audio/sfx/tiro1.mp3"
+const SFX_GABRIEL_TIRO_2: String = "res://assets/audio/sfx/tiro2.mp3"
+const SFX_GABRIEL_CORONHADA: String = "res://assets/audio/sfx/coronhaada.mp3"
+const SFX_GABRIEL_DASH: String = "res://assets/audio/sfx/dash_gabriel.mp3"
+
 static var _sound_cache: Dictionary = {}
 static var _punch_toggle: bool = false
 static var _hurt_toggle: bool = false
@@ -191,8 +196,26 @@ static func play_impact_sound(context_node: Node, profile: String = "punch") -> 
 			play_sound(context_node, SFX_FINALIZADOR, 1.5, 0.03)
 		"special":
 			play_sound(context_node, SFX_ESPECIAL, 2.5, 0.02)
+		"coronhada":
+			play_sound(context_node, SFX_GABRIEL_CORONHADA, 0.5, 0.04)
 		_:
 			play_sound(context_node, SFX_SOCO_2, -0.5, 0.05)
+
+
+## Reproduz som de disparo de arma de fogo do Gabriel sincronizado por projétil
+static func play_gabriel_gunshot(context_node: Node, shot_index: int = 0) -> AudioStreamPlayer:
+	var path := SFX_GABRIEL_TIRO_1 if shot_index == 0 else SFX_GABRIEL_TIRO_2
+	return play_sound(context_node, path, 0.5, 0.03)
+
+
+## Reproduz som do Dash Evasivo do Gabriel
+static func play_gabriel_dash(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_GABRIEL_DASH, 0.0, 0.04)
+
+
+## Reproduz som de empunhadura / preparação / saque de arma do Gabriel
+static func play_gabriel_handling(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_GABRIEL_CORONHADA, -1.0, 0.05)
 
 
 ## Reproduz o som de dor / reação a golpe dos inimigos de rua

@@ -35,6 +35,12 @@
 [ext_resource type="Texture2D" uid="uid://eka0e87758ak" path="res://assets/sprites/characters/gabriel/getup_02.png" id="33_getup_02"]
 [ext_resource type="Texture2D" uid="uid://c5lloojtwv125" path="res://assets/sprites/characters/gabriel/death_01.png" id="34_death_01"]
 [ext_resource type="Texture2D" uid="uid://fpfgkiw73rja" path="res://assets/sprites/characters/gabriel/guard_01.png" id="35_guard_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/gabriel/dash_01.png" id="36_dash_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/gabriel/dash_02.png" id="37_dash_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/gabriel/dash_03.png" id="38_dash_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/gabriel/dash_04.png" id="39_dash_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/gabriel/dash_05.png" id="40_dash_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/gabriel/dash_06.png" id="41_dash_06"]
 
 [resource]
 animations = [{
@@ -224,4 +230,27 @@ animations = [{
 "loop": 1,
 "name": &"walk",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("36_dash_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("37_dash_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("38_dash_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("39_dash_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("40_dash_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("41_dash_06")
+}],
+"loop": 0,
+"name": &"dash",
+"speed": 18.0
 }]

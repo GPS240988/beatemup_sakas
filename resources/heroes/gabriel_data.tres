@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="HeroData" format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/hero_data.gd" id="1_herodata"]
+[ext_resource type="Texture2D" uid="uid://cvdxody111aug" path="res://assets/sprites/characters/gabriel/especial1_gabriel.webp" id="2_special_tex"]
 
 [resource]
 script = ExtResource("1_herodata")
@@ -19,6 +20,12 @@ aerial_recovery = 0.2
 aerial_forward_velocity = 200.0
 aerial_hitbox_offset_y = -130.0
 aerial_depth_tolerance = 28.0
+has_dash = true
+dash_distance = 270.0
+dash_duration = 0.34
+dash_invulnerable_duration = 0.12
+dash_cooldown = 0.80
+dash_recovery_duration = 0.08
 special_max_charge = 100.0
 special_initial_charge = 0.0
 special_charge_per_hit = 3.5
@@ -26,6 +33,7 @@ special_damage = 62.5
 special_prop_damage = 50.0
 special_knockback = 160.0
 special_hitstun = 0.5
+special_presentation_texture = ExtResource("2_special_tex")
 special_title = ""
 special_theme_color = Color(0.15, 0.95, 0.6, 0.9)
 special_presentation_duration = 2.5

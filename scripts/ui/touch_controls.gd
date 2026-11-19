@@ -18,6 +18,7 @@ const REFERENCE_VIEWPORT: Vector2 = Vector2(1280.0, 720.0)
 # Assets visuais dedicados (Pixel Art HD neon dark glass)
 const TEX_ATTACK: Texture2D = preload("res://assets/ui/mobile/button_attack.png")
 const TEX_KICK: Texture2D = preload("res://assets/ui/mobile/button_kick.png")
+const TEX_DASH: Texture2D = preload("res://assets/ui/mobile/button_dash.png")
 const TEX_SPECIAL: Texture2D = preload("res://assets/ui/mobile/button_special.png")
 const TEX_BLOCK: Texture2D = preload("res://assets/ui/mobile/button_block.png")
 const TEX_GRENADE: Texture2D = preload("res://assets/ui/mobile/button_grenade.png")
@@ -420,8 +421,11 @@ func _draw() -> void:
 	# Punho (J) — Maior botão, aro laranja neon
 	_draw_button_texture(TEX_ATTACK, combo_btn_pos, combo_btn_radius, _combo_pressed)
 
-	# Voadora (Space) — Aro metálico azulado, silhueta voadora
-	_draw_button_texture(TEX_KICK, aerial_btn_pos, aerial_btn_radius, _aerial_pressed)
+	# Voadora (Space) para Guilherme / Dash Evasivo para Gabriel
+	if _is_gabriel_selected():
+		_draw_button_texture(TEX_DASH, aerial_btn_pos, aerial_btn_radius, _aerial_pressed)
+	else:
+		_draw_button_texture(TEX_KICK, aerial_btn_pos, aerial_btn_radius, _aerial_pressed)
 
 	# Especial (E) — Contorno de fogo e energia
 	_draw_button_texture(TEX_SPECIAL, special_btn_pos, special_btn_radius, _special_pressed)

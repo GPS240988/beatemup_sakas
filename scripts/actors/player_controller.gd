@@ -50,6 +50,13 @@ enum CombatState {
 @export var jump_force: float = 460.0
 @export var jump_gravity: float = 1350.0
 
+## Parâmetros do Dash Evasivo (Exclusivo do Gabriel)
+@export var dash_distance: float = 270.0
+@export var dash_duration: float = 0.34
+@export var dash_invulnerable_duration: float = 0.12
+@export var dash_cooldown: float = 0.80
+@export var dash_recovery_duration: float = 0.08
+
 const AttackDataClass = preload("res://scripts/combat/attack_data.gd")
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
@@ -87,6 +94,15 @@ var _jump_v_velocity: float = 0.0
 
 # Controle de guarda
 var _is_guarding: bool = false
+
+# Controle do Dash Evasivo (Gabriel)
+var _is_dashing: bool = false
+var _dash_count: int = 0
+var _dash_timer: float = 0.0
+var _dash_cooldown_timer: float = 0.0
+var _dash_direction: Vector2 = Vector2.RIGHT
+var _dash_afterimage_timer: float = 0.0
+const DASH_AFTERIMAGE_INTERVAL: float = 0.068
 
 # Interação contextual: J vira interação apenas quando há um objeto ao alcance.
 var _nearby_interactable: Node = null
@@ -151,6 +167,16 @@ func _ready() -> void:
 			max_special = hero_data.special_max_charge
 		if "special_initial_charge" in hero_data:
 			current_special = hero_data.special_initial_charge
+		if "dash_distance" in hero_data:
+			dash_distance = hero_data.dash_distance
+		if "dash_duration" in hero_data:
+			dash_duration = hero_data.dash_duration
+		if "dash_invulnerable_duration" in hero_data:
+			dash_invulnerable_duration = hero_data.dash_invulnerable_duration
+		if "dash_cooldown" in hero_data:
+			dash_cooldown = hero_data.dash_cooldown
+		if "dash_recovery_duration" in hero_data:
+			dash_recovery_duration = hero_data.dash_recovery_duration
 
 	if session != null and "current_continues" in session:
 		current_continues = int(session.current_continues)
@@ -495,6 +521,12 @@ func _physics_process(delta: float) -> void:
 		player_moved.emit(global_position, velocity)
 		return
 
+	# Decrementa o tempo de recarga do Dash do Gabriel
+	if _dash_cooldown_timer > 0.0:
+		_dash_cooldown_timer = maxf(0.0, _dash_cooldown_timer - delta)
+		if _dash_cooldown_timer <= 0.0:
+			_dash_count = 0
+
 	# Decrementa a janela de encadeamento de combo
 	if _combo_window_timer > 0.0:
 		_combo_window_timer -= delta
@@ -563,6 +595,55 @@ func _physics_process(delta: float) -> void:
 		_:
 			pass
 
+	# Processa deslocamento do Dash Evasivo do Gabriel
+	if _is_dashing:
+		_dash_timer += delta
+		if _dash_timer <= dash_invulnerable_duration:
+			_is_invulnerable = true
+		else:
+			_is_invulnerable = false
+
+		if _dash_timer < dash_duration:
+			var t_norm: float = clampf(_dash_timer / maxf(dash_duration, 0.001), 0.0, 1.0)
+			# Curva de aceleração explosiva: impulso vigoroso inicial (1.40x) com transição fluida
+			var accel_factor: float = 1.40 - 0.80 * t_norm
+			var base_spd_x: float = dash_distance / maxf(dash_duration, 0.001)
+			var dash_spd_x: float = base_spd_x * accel_factor
+			var dash_spd_y: float = dash_spd_x * (speed_y / maxf(speed_x, 1.0))
+			velocity = Vector2(_dash_direction.x * dash_spd_x, _dash_direction.y * dash_spd_y)
+
+			# Gera silhuetas residuais de sombra (Afterimage) durante o deslocamento
+			_dash_afterimage_timer += delta
+			if _dash_afterimage_timer >= DASH_AFTERIMAGE_INTERVAL:
+				_dash_afterimage_timer -= DASH_AFTERIMAGE_INTERVAL
+				_spawn_dash_afterimage()
+
+			# Deslocamento contínuo: atravessa adversários livremente; colide com mundo e obstáculos
+			move_and_slide()
+			if enable_manual_bounds:
+				_clamp_to_bounds()
+		elif _dash_timer < dash_duration + dash_recovery_duration:
+			_is_invulnerable = false
+			velocity = velocity.move_toward(Vector2.ZERO, 3800.0 * delta)
+			move_and_slide()
+			if enable_manual_bounds:
+				_clamp_to_bounds()
+		else:
+			_is_dashing = false
+			_is_invulnerable = false
+			velocity = Vector2.ZERO
+			_resolve_dash_finish_overlap()
+			state_changed.emit("Normal")
+			if anim_sprite != null and not (health_component != null and health_component.is_dead):
+				var inp: Vector2 = _get_movement_input()
+				if inp != Vector2.ZERO:
+					_update_animation("walk")
+				else:
+					_update_animation("idle")
+
+		player_moved.emit(global_position, velocity)
+		return
+
 	# Processa física de salto 2.5D no nó Visual
 	if _is_jumping:
 		_jump_v_velocity += jump_gravity * delta
@@ -617,14 +698,30 @@ func _physics_process(delta: float) -> void:
 			_on_attack_button_pressed()
 			return
 
-	# Se estiver executando ataque no solo, mantém os pés firmes no solo
-	if melee_attack != null and melee_attack.is_attacking and not _is_jumping:
-		velocity = Vector2.ZERO
-		move_and_slide()
-		if enable_manual_bounds:
-			_clamp_to_bounds()
-		player_moved.emit(global_position, velocity)
-		return
+	# Se estiver executando ataque no solo, verifica se é Gabriel disparando em movimento
+	if melee_attack != null and melee_attack.is_attacking and not _is_jumping and not _is_dashing:
+		# Gabriel pode se mover e atirar simultaneamente nos passos 0 e 1 (disparo simples e duplo)
+		if is_gabriel() and _combo_step in [0, 1] and not _is_contextual_melee:
+			var move_input: Vector2 = _get_movement_input()
+			if move_input != Vector2.ZERO:
+				velocity.x = move_input.x * speed_x
+				velocity.y = move_input.y * speed_y
+				_update_facing_direction(move_input.x)
+			else:
+				velocity = Vector2.ZERO
+			move_and_slide()
+			if enable_manual_bounds:
+				_clamp_to_bounds()
+			player_moved.emit(global_position, velocity)
+			return
+		else:
+			# Guilherme e ataques com comprometimento físico (Passo 2 Coronhada e Passo 3 Recuo pesado)
+			velocity = Vector2.ZERO
+			move_and_slide()
+			if enable_manual_bounds:
+				_clamp_to_bounds()
+			player_moved.emit(global_position, velocity)
+			return
 
 	# Leitura do movimento dos eixos
 	var input_vector: Vector2 = _get_movement_input()
@@ -814,7 +911,15 @@ func _execute_combo_attack(step: int) -> bool:
 		_combo_window_timer = 0.0
 
 	if melee_attack.execute_attack(facing_direction):
+		var was_attacking: bool = (combat_state == CombatState.ATTACKING)
 		combat_state = CombatState.ATTACKING
+		if is_gabriel():
+			if _combo_step == 0 and not was_attacking:
+				# Som de empunhadura / saque da arma no início do combate
+				CombatFeedbackClass.play_gabriel_handling(self)
+			elif _combo_step == 2:
+				# Som de preparação / golpe da coronhada
+				CombatFeedbackClass.play_gabriel_handling(self)
 		var titles: Array[String] = []
 		if is_gabriel():
 			titles.assign(["Disparo", "Rajada", "Pistolada", "Final"])
@@ -966,8 +1071,11 @@ func _apply_global_special_impact() -> void:
 			prop.take_damage(prop_info)
 
 
-## Executa o pulo padrão do herói
+## Executa o pulo padrão do herói (Gabriel substitui permanentemente por Dash Evasivo)
 func _try_jump() -> void:
+	if is_gabriel():
+		execute_dash()
+		return
 	if _is_jumping or (melee_attack != null and melee_attack.is_attacking):
 		return
 	_is_jumping = true
@@ -975,8 +1083,12 @@ func _try_jump() -> void:
 	_update_animation("jump")
 
 
-## Executa o Ataque Aéreo (voadora em salto frontal para Guilherme / Salto Tático com disparo para Gabriel)
+## Executa o Ataque Aéreo (voadora em salto frontal para Guilherme / Dash Evasivo para Gabriel)
 func _try_aerial_attack() -> void:
+	if is_gabriel():
+		execute_dash()
+		return
+
 	if melee_attack == null:
 		return
 	# Bloqueio estrito: só permite nova voadora quando o personagem estiver no chão e sem ataque ativo
@@ -985,30 +1097,6 @@ func _try_aerial_attack() -> void:
 	if melee_attack.is_attacking:
 		return
 	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
-		return
-
-	if is_gabriel():
-		_is_jumping = true
-		_jump_v_velocity = hero_data.aerial_jump_v_velocity if hero_data and "aerial_jump_v_velocity" in hero_data else -320.0
-		_current_attack_anim = &"jump_atk"
-		var fwd_vel: float = hero_data.aerial_forward_velocity if hero_data and "aerial_forward_velocity" in hero_data else 200.0
-		velocity.x = facing_direction * fwd_vel
-		
-		combat_state = CombatState.ATTACKING
-		state_changed.emit("Salto Tático")
-		
-		if anim_sprite != null:
-			anim_sprite.play("jump_atk")
-		
-		var aerial_dmg: float = (hero_data.aerial_damage if hero_data and "aerial_damage" in hero_data else 30.0) * _str_mult
-		var aerial_rng: float = hero_data.aerial_range if hero_data and "aerial_range" in hero_data else 220.0
-		var aerial_depth: float = (hero_data.aerial_depth_tolerance if hero_data and "aerial_depth_tolerance" in hero_data else 28.0) * _tec_mult
-		var startup_t: float = hero_data.aerial_startup if hero_data and "aerial_startup" in hero_data else 0.03
-		
-		get_tree().create_timer(startup_t).timeout.connect(func():
-			if is_instance_valid(self) and (health_component == null or not health_component.is_dead):
-				_spawn_aerial_bullet(aerial_dmg, aerial_rng, aerial_depth)
-		)
 		return
 
 	_is_jumping = true
@@ -1060,7 +1148,129 @@ func execute_heavy() -> void:
 
 
 func execute_aerial() -> void:
-	_try_aerial_attack()
+	if is_gabriel():
+		execute_dash()
+	else:
+		_try_aerial_attack()
+
+
+func is_dashing() -> bool:
+	return _is_dashing
+
+
+func execute_dash() -> bool:
+	if not is_gabriel():
+		return false
+	if health_component != null and health_component.is_dead:
+		return false
+	if combat_state in [CombatState.FALL, CombatState.DOWNED, CombatState.GETUP, CombatState.SPECIAL, CombatState.DEAD]:
+		return false
+	if _is_guarding:
+		return false
+	# Permite dar dois dashes seguidos caso aperte espaço duas vezes antes de terminar o cooldown do primeiro
+	if _dash_count >= 2:
+		return false
+	if _dash_count == 1:
+		# Segundo dash consecutivo: debounce de 0.05s para evitar acionamento duplo no mesmo frame
+		if _is_dashing and _dash_timer < 0.05:
+			return false
+	elif _dash_count == 0:
+		if _dash_cooldown_timer > 0.0:
+			return false
+
+	# Cancela ataque em andamento se estiver em recuperação para fuga rápida
+	if melee_attack != null and melee_attack.is_attacking:
+		melee_attack.cancel_attack()
+	_input_buffered = false
+
+	_dash_count += 1
+	_is_dashing = true
+	_dash_timer = 0.0
+	_dash_cooldown_timer = dash_cooldown
+	_is_invulnerable = true
+	_dash_afterimage_timer = 0.0
+
+	var input_vector: Vector2 = _get_movement_input()
+	if input_vector != Vector2.ZERO:
+		_dash_direction = input_vector.normalized()
+		if input_vector.x != 0.0:
+			_update_facing_direction(input_vector.x)
+	else:
+		_dash_direction = Vector2(facing_direction, 0.0)
+
+	if anim_sprite != null and anim_sprite.sprite_frames != null and anim_sprite.sprite_frames.has_animation("dash"):
+		anim_sprite.play("dash")
+
+	# Gera a silhueta residual inicial de partida
+	_spawn_dash_afterimage()
+
+	CombatFeedbackClass.play_gabriel_dash(self)
+	state_changed.emit("Dash")
+	return true
+
+
+func get_dash_count() -> int:
+	return _dash_count
+
+
+## Instancia uma silhueta de sombra (Afterimage) de alta fidelidade
+func _spawn_dash_afterimage() -> void:
+	if anim_sprite == null or anim_sprite.sprite_frames == null:
+		return
+	var cur_anim: StringName = anim_sprite.animation
+	var cur_frame: int = anim_sprite.frame
+	if not anim_sprite.sprite_frames.has_animation(cur_anim):
+		return
+	var tex: Texture2D = anim_sprite.sprite_frames.get_frame_texture(cur_anim, cur_frame)
+	if tex == null:
+		return
+
+	var ghost := Sprite2D.new()
+	ghost.texture = tex
+	ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ghost.global_position = anim_sprite.global_position
+	ghost.scale = visual_root.scale if visual_root != null else Vector2(facing_direction, 1.0)
+	ghost.z_index = z_index - 1
+	ghost.z_as_relative = false
+	ghost.modulate = Color(0.40, 1.15, 0.80, 0.58)
+
+	var parent_node: Node = get_parent()
+	if parent_node == null:
+		parent_node = get_tree().current_scene
+	if parent_node == null:
+		ghost.queue_free()
+		return
+	parent_node.add_child(ghost)
+
+	var tween: Tween = ghost.create_tween()
+	tween.tween_property(ghost, "modulate:a", 0.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(ghost.queue_free)
+
+
+## Previne travamento ou sobreposição física permanente ao terminar dentro do raio de um adversário
+func _resolve_dash_finish_overlap() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var enemies: Array[Node] = tree.get_nodes_in_group("enemies")
+	for enemy: Node in enemies:
+		if enemy == null or not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		var enemy_health: Node = enemy.get_node_or_null("HealthComponent")
+		if enemy_health != null and "is_dead" in enemy_health and bool(enemy_health.get("is_dead")):
+			continue
+		if "is_dead" in enemy and bool(enemy.get("is_dead")):
+			continue
+		var enemy_pos: Vector2 = (enemy as Node2D).global_position
+		# Verifica se terminou na mesma faixa de profundidade 2.5D
+		if absf(enemy_pos.y - global_position.y) <= 18.0:
+			var dx: float = global_position.x - enemy_pos.x
+			if absf(dx) < 24.0:
+				var push_dir: float = signf(_dash_direction.x) if _dash_direction.x != 0.0 else (1.0 if dx >= 0.0 else -1.0)
+				global_position.x = enemy_pos.x + push_dir * 28.0
+				if enable_manual_bounds:
+					_clamp_to_bounds()
+				break
 
 
 func _try_attack() -> void:
@@ -1189,18 +1399,21 @@ func _spawn_combo_projectiles(atk: Resource) -> void:
 	var interval: float = float(atk.get("projectile_interval")) if atk.get("projectile_interval") != null else 0.0
 	var bullet_dmg: float = float(atk.get("damage")) / float(maxi(1, count))
 	
-	_spawn_single_bullet(atk, bullet_dmg)
+	# Disparo inicial sincronizado
+	var first_shot_idx: int = 1 if _combo_step >= 3 else 0
+	_spawn_single_bullet(atk, bullet_dmg, first_shot_idx)
 	
 	if count > 1:
 		for i in range(1, count):
 			var delay: float = interval * float(i)
+			var shot_idx: int = i
 			get_tree().create_timer(delay).timeout.connect(func():
 				if is_instance_valid(self) and (health_component == null or not health_component.is_dead):
-					_spawn_single_bullet(atk, bullet_dmg)
+					_spawn_single_bullet(atk, bullet_dmg, shot_idx)
 			)
 
 
-func _spawn_single_bullet(atk: Resource, bullet_dmg: float = -1.0) -> Area2D:
+func _spawn_single_bullet(atk: Resource, bullet_dmg: float = -1.0, shot_index: int = 0) -> Area2D:
 	var bullet_scene: PackedScene = load("res://scenes/actors/projectiles/player_bullet.tscn")
 	if bullet_scene == null:
 		return null
@@ -1236,7 +1449,10 @@ func _spawn_single_bullet(atk: Resource, bullet_dmg: float = -1.0) -> Area2D:
 		target_parent.add_child(bullet)
 	
 	CombatFeedbackClass.spawn_muzzle_flash(self, muzzle_pos, Vector2(facing_direction, 0.0))
-	CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_SOCO_1, 0.45, 0.02)
+	if is_gabriel():
+		CombatFeedbackClass.play_gabriel_gunshot(self, shot_index)
+	else:
+		CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_SOCO_1, 0.45, 0.02)
 	return bullet
 
 
@@ -1274,7 +1490,10 @@ func _spawn_aerial_bullet(dmg: float, rng: float, depth: float) -> Area2D:
 		target_parent.add_child(bullet)
 	
 	CombatFeedbackClass.spawn_muzzle_flash(self, muzzle_pos, Vector2(facing_direction, 0.0))
-	CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_JUMPKICK, 0.45, 0.02)
+	if is_gabriel():
+		CombatFeedbackClass.play_gabriel_gunshot(self, 0)
+	else:
+		CombatFeedbackClass.play_sound(self, CombatFeedbackClass.SFX_JUMPKICK, 0.45, 0.02)
 	return bullet
 
 
@@ -1511,6 +1730,17 @@ func take_damage(damage_input: Variant) -> bool:
 	if _is_invulnerable or combat_state == CombatState.SPECIAL:
 		return false
 
+	# Proteção contra contato corporal/melee durante o atravessamento do Dash
+	# Projéteis, hazards e especiais continuam afetando se o iframe inicial (0.12s) já tiver expirado
+	if _is_dashing and _dash_timer < dash_duration:
+		var is_contact_or_melee: bool = true
+		if damage_input != null and not (damage_input is float or damage_input is int):
+			var dtype = damage_input.get("damage_type")
+			if dtype != null and str(dtype) in ["projectile", "hazard", "special"]:
+				is_contact_or_melee = false
+		if is_contact_or_melee:
+			return false
+
 	var amount: float = 0.0
 	var can_kd: bool = false
 	var knockback: float = 80.0
@@ -1519,9 +1749,14 @@ func take_damage(damage_input: Variant) -> bool:
 	if damage_input is float or damage_input is int:
 		amount = float(damage_input)
 	elif damage_input != null:
-		amount = float(damage_input.get("amount"))
-		can_kd = bool(damage_input.get("can_knockdown"))
-		knockback = float(damage_input.get("knockback_force"))
+		var amt = damage_input.get("amount")
+		if amt != null:
+			amount = float(amt)
+		var kd_val = damage_input.get("can_knockdown")
+		can_kd = (kd_val == true)
+		var kb_val = damage_input.get("knockback_force")
+		if kb_val != null:
+			knockback = float(kb_val)
 		if damage_input.get("direction") != null:
 			hit_dir = damage_input.get("direction")
 
@@ -1538,10 +1773,11 @@ func take_damage(damage_input: Variant) -> bool:
 	if health_component.is_dead:
 		return true
 
-	# Cancela ataque ativo ao receber dano
+	# Cancela ataque ativo e dash ao receber dano
 	if melee_attack != null:
 		melee_attack.cancel_attack()
 	_input_buffered = false
+	_is_dashing = false
 
 	var knock_sign: float = hit_dir.x if hit_dir.x != 0.0 else -facing_direction
 
