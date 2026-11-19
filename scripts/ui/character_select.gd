@@ -13,6 +13,7 @@ extends Control
 ## Suporta Teclado (A/D, Setas, Enter, Esc), Gamepad, Mouse e Toque nos 4 heróis.
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
+const MAP_MENU_SCENE: String = "res://scenes/ui/map_menu.tscn"
 const LOADING_SCREEN_SCENE: String = "res://scenes/ui/loading_screen.tscn"
 const DIFFICULTY_SELECT_SCENE: String = "res://scenes/ui/difficulty_select.tscn"
 const FIRST_LEVEL_SCENE: String = "res://scenes/levels/map_1.tscn"
@@ -98,7 +99,15 @@ func _ready() -> void:
 	if MobileScreenAction.is_mobile_runtime():
 		_apply_mobile_fullscreen_layout()
 
-	_select_character_by_index(0, false, 0)
+	var start_idx := 0
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and session.has_meta("map_entry_context") and str(session.get_meta("map_entry_context")) == "replay":
+		if "selected_character_id" in session and not str(session.selected_character_id).is_empty():
+			var found_idx := HERO_ORDER.find(str(session.selected_character_id).to_lower())
+			if found_idx >= 0:
+				start_idx = found_idx
+
+	_select_character_by_index(start_idx, false, 0)
 	_mobile_action_button = MobileScreenAction.add_primary_action(
 		self, "ESCOLHER GUILHERME", Callable(self, "_on_confirm_pressed"), Color(0.0, 0.82, 0.88, 1.0), btn_confirm
 	)
@@ -499,6 +508,17 @@ func _on_back_pressed() -> void:
 		return
 	_is_transitioning_scene = true
 	_play_sound(_sfx_denied)
+
+	# Se estiver no fluxo de REPLAY, retorna ao mapa em vez do menu principal
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and session.has_meta("map_entry_context") and str(session.get_meta("map_entry_context")) == "replay":
+		# Limpa o contexto de replay ao cancelar
+		session.remove_meta("replay_stage_index")
+		session.remove_meta("replay_stage_scene")
+		session.set_meta("map_entry_context", "continue")
+		get_tree().change_scene_to_file(MAP_MENU_SCENE)
+		return
+
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 

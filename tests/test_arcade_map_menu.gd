@@ -1,13 +1,13 @@
 # tests/test_arcade_map_menu.gd
 extends SceneTree
 
-## Teste Automatizado da Nova Interface do Mapa da Vila (Arcade Map Menu)
+## Teste Automatizado da Interface do Mapa da Vila (Master Map Menu Unificado)
 ## Valida:
 ## 1. Carregamento da cena e nós fundamentais (%BtnBack, %BtnPlayStage, etc.)
-## 2. Geração e propriedades dos 4 pontos de fase (01, B, 02, 03)
+## 2. Geração e propriedades dos 6 pontos de fase (1-1, 1-2, 1-3, 1-4, B, 02)
 ## 3. Seleção de fase e atualização de dados no card do rodapé
-## 4. Desbloqueio inicial da Fase 01 e do Bônus 1 (GARAGEM)
-## 5. Roteamento: 01 -> map_1.tscn / loading_screen.tscn; B -> bonus_garage.tscn
+## 4. Desbloqueio inicial da Fase 1-1 e do Bônus (GARAGEM)
+## 5. Roteamento das localidades (map_1 a map_4, bonus_garage)
 ## 6. Comportamento do botão Voltar (%BtnBack)
 
 const MAP_MENU_SCENE_PATH: String = "res://scenes/ui/map_menu.tscn"
@@ -18,7 +18,7 @@ var failed: int = 0
 
 func _init() -> void:
 	print("\n========================================================")
-	print(" INICIANDO TESTE: ARCADE MAP MENU (SELEÇÃO DE FASES)")
+	print(" INICIANDO TESTE: MASTER MAP MENU (SELEÇÃO DIRETA DE FASES)")
 	print("========================================================\n")
 
 	_run_tests()
@@ -68,63 +68,74 @@ func _run_tests() -> void:
 	_assert(bg_texture != null, "TextureRect %BackgroundTexture deve existir")
 	if bg_texture != null and bg_texture.texture != null:
 		var tex_path = bg_texture.texture.resource_path
-		_assert("sakas-map.webp" in tex_path or "Mapa.webp" in tex_path, "Textura do mapa deve ser sakas-map.webp ou Mapa.webp: %s" % tex_path)
+		_assert("mapa_base.webp" in tex_path or "sakas-map.webp" in tex_path or "Mapa.webp" in tex_path, "Textura do mapa deve ser mapa_base.webp ou fallback: %s" % tex_path)
 
 	# 2. Configuração inicial
-	_assert(map_menu.get("_selected_index") == 0, "A fase inicialmente selecionada deve ser o índice 0 (Fase 1)")
+	_assert(map_menu.get("_selected_index") == 0, "A fase inicialmente selecionada deve ser o índice 0 (Fase 1-1)")
 	if stage_number_lbl != null:
-		_assert(stage_number_lbl.text == "01", "Número da fase inicial deve ser '01'")
+		_assert(stage_number_lbl.text == "1-1" or stage_number_lbl.text == "01", "Número da fase inicial deve ser '1-1'")
 	if stage_title_lbl != null:
-		_assert(stage_title_lbl.text == "O REENCONTRO", "Título da fase inicial deve ser 'O REENCONTRO'")
+		_assert(stage_title_lbl.text == "A LOCADORA", "Título da fase inicial deve ser 'A LOCADORA'")
 
-	# 3. Validação dos marcadores gerados
+	# 3. Validação dos marcadores gerados (1-1, 1-2, 1-3, 1-4, B, 02)
 	var hotspot_nodes: Array = map_menu.get("_hotspot_nodes")
-	_assert(hotspot_nodes.size() == 4, "Devem existir 4 marcadores de fase no mapa (encontrados %d)" % hotspot_nodes.size())
+	_assert(hotspot_nodes.size() == 6, "Devem existir 6 marcadores de fase no mapa (encontrados %d)" % hotspot_nodes.size())
 
 	# 4. Desbloqueio inicial
-	_assert(map_menu.is_stage_unlocked(0) == true, "Fase 01 deve estar desbloqueada inicialmente")
-	_assert(map_menu.is_stage_unlocked(1) == true, "Fase B (BÔNUS / GARAGEM) deve estar desbloqueada inicialmente")
-	_assert(map_menu.is_stage_unlocked(2) == false, "Fase 02 (HAPPEN) deve estar bloqueada no mapa")
-	_assert(map_menu.is_stage_unlocked(3) == false, "Fase 03 (METRÔ) deve estar bloqueada no mapa")
+	_assert(map_menu.is_stage_unlocked(0) == true, "Fase 1-1 deve estar desbloqueada inicialmente")
+	_assert(map_menu.is_stage_unlocked(4) == true, "Fase B (BÔNUS / GARAGEM) deve estar desbloqueada quando session.unlock_bonus_stage() foi chamado")
+	_assert(map_menu.is_stage_unlocked(5) == false, "Fase 02 (HAPPEN) deve estar bloqueada inicialmente")
 
-	# 5. Seleção da Fase Bônus (índice 1)
-	map_menu._select_stage(1, false)
-	_assert(map_menu.get("_selected_index") == 1, "Índice selecionado deve ser 1 após _select_stage(1)")
+	# 5. Seleção da Fase Bônus (índice 4)
+	map_menu._select_stage(4, false)
+	_assert(map_menu.get("_selected_index") == 4, "Índice selecionado deve ser 4 após _select_stage(4)")
 	if stage_number_lbl != null:
 		_assert(stage_number_lbl.text == "B", "Número da fase deve ser 'B' após selecionar bônus")
 	if stage_title_lbl != null:
 		_assert(stage_title_lbl.text == "GARAGEM", "Título da fase deve ser 'GARAGEM' após selecionar bônus")
 
-	# 6. Seleção da Fase 1 novamente (índice 0)
+	# 6. Seleção da Fase 1-1 novamente (índice 0)
 	map_menu._select_stage(0, false)
 	_assert(map_menu.get("_selected_index") == 0, "Índice selecionado deve retornar a 0")
 	if stage_number_lbl != null:
-		_assert(stage_number_lbl.text == "01", "Número da fase deve retornar a '01'")
+		_assert(stage_number_lbl.text == "1-1", "Número da fase deve retornar a '1-1'")
 	if stage_title_lbl != null:
-		_assert(stage_title_lbl.text == "O REENCONTRO", "Título da fase deve retornar a 'O REENCONTRO'")
+		_assert(stage_title_lbl.text == "A LOCADORA", "Título da fase deve retornar a 'A LOCADORA'")
 
-	# 6.1. Seleção da Fase 2 (índice 2) — deve estar bloqueada
-	map_menu._select_stage(2, false)
-	_assert(map_menu.get("_selected_index") == 2, "Índice selecionado deve ser 2 após _select_stage(2)")
-	_assert(map_menu.is_stage_unlocked(2) == false, "Estágio 2 selecionado deve reportar is_stage_unlocked == false")
+	# 6.1. Seleção da Fase 2 (índice 5) — deve estar bloqueada
+	map_menu._select_stage(5, false)
+	_assert(map_menu.get("_selected_index") == 5, "Índice selecionado deve ser 5 após _select_stage(5)")
+	_assert(map_menu.is_stage_unlocked(5) == false, "Estágio 02 selecionado deve reportar is_stage_unlocked == false")
 	if btn_play_stage != null:
-		_assert(btn_play_stage.get("disabled") == true, "Botão JOGAR FASE deve estar desabilitado para o Estágio 2")
+		_assert(btn_play_stage.get("disabled") == true, "Botão JOGAR FASE deve estar desabilitado para o Estágio 02")
 	if map_status_lbl != null:
-		_assert("BLOQUEADA" in map_status_lbl.text, "Status label deve indicar que a fase está bloqueada")
+		_assert("BLOQUEADO" in map_status_lbl.text or "BLOQUEADA" in map_status_lbl.text, "Status label deve indicar que a fase está bloqueada")
 
-	# Retorna para Fase 01
+	# Retorna para Fase 1-1
 	map_menu._select_stage(0, false)
 
 	# 7. Verificação dos alvos de roteamento das fases
 	var configs: Array = map_menu.STAGE_CONFIGS
-	_assert(configs.size() >= 2, "Devem existir pelo menos 2 configurações de estágio")
-	if configs.size() >= 2:
-		var cfg_01 = configs[0]
-		_assert(cfg_01["id"] == "01", "ID do estágio 0 deve ser '01'")
-		_assert("map_1.tscn" in str(cfg_01["scene"]), "Cena do estágio 01 deve ser map_1.tscn")
+	_assert(configs.size() >= 5, "Devem existir pelo menos 5 configurações de estágio")
+	if configs.size() >= 5:
+		var cfg_11 = configs[0]
+		_assert(cfg_11["id"] == "1-1", "ID do estágio 0 deve ser '1-1'")
+		_assert("map_1.tscn" in str(cfg_11["scene"]), "Cena do estágio 1-1 deve ser map_1.tscn")
 
-		var cfg_b = configs[1]
-		_assert(cfg_b["id"] == "B", "ID do estágio 1 deve ser 'B'")
+		var cfg_12 = configs[1]
+		_assert(cfg_12["id"] == "1-2", "ID do estágio 1 deve ser '1-2'")
+		_assert("map_2.tscn" in str(cfg_12["scene"]), "Cena do estágio 1-2 deve ser map_2.tscn")
+
+		var cfg_13 = configs[2]
+		_assert(cfg_13["id"] == "1-3", "ID do estágio 2 deve ser '1-3'")
+		_assert("map_3.tscn" in str(cfg_13["scene"]), "Cena do estágio 1-3 deve ser map_3.tscn")
+
+		var cfg_14 = configs[3]
+		_assert(cfg_14["id"] == "1-4", "ID do estágio 3 deve ser '1-4'")
+		_assert("map_4.tscn" in str(cfg_14["scene"]), "Cena do estágio 1-4 deve ser map_4.tscn")
+
+		var cfg_b = configs[4]
+		_assert(cfg_b["id"] == "B", "ID do estágio 4 deve ser 'B'")
 		_assert("bonus_garage.tscn" in str(cfg_b["scene"]), "Cena do estágio B deve ser bonus_garage.tscn")
 
 	# 8. Validação do botão voltar

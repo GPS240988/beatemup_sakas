@@ -81,12 +81,15 @@ func _run_tests() -> void:
 
 	# No modo Novo Jogo (campaign), stage 0 está liberado para iniciar história
 	map_menu.set("_entry_context", "campaign")
-	_assert(map_menu.is_stage_unlocked(0) == true, "Modo campaign: Stage 0 é desbloqueado para iniciar história")
+	_assert(map_menu.is_stage_unlocked(0) == true, "Modo campaign: Stage 0 (1-1) é desbloqueado para iniciar história")
 
-	# No modo Continuar (continue), clicar no hotspot 0 abre o seletor de mapas
+	# No modo Continuar (continue), valida o gating direto de cada localidade no mapa mestre
 	map_menu.set("_entry_context", "continue")
-	map_menu._on_hotspot_clicked(0)
-	_assert(map_menu._is_in_section_select == true, "Modo continue: Clicar no Estágio 1 abre o seletor de seções")
+	session.max_unlocked_map = 2
+	_assert(map_menu.is_stage_unlocked(0) == true, "Modo continue com max_unlocked_map=2: 1-1 está desbloqueado diretamente no mapa")
+	_assert(map_menu.is_stage_unlocked(1) == true, "Modo continue com max_unlocked_map=2: 1-2 está desbloqueado diretamente no mapa")
+	_assert(map_menu.is_stage_unlocked(2) == false, "Modo continue com max_unlocked_map=2: 1-3 permanece bloqueado no mapa")
+	_assert(map_menu.is_stage_unlocked(3) == false, "Modo continue com max_unlocked_map=2: 1-4 permanece bloqueado no mapa")
 
 	map_menu.queue_free()
 

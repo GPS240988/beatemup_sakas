@@ -75,30 +75,63 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
      ↓ [Confirmar Herói Guilherme]
    DifficultySelect (difficulty_select.tscn) — com assets/backgrounds/dificuldade.webp
      ↓ [Confirmar Normal ou Difícil]
-   MapMenu (map_menu.tscn) — com assets/backgrounds/Mapa.webp (também acessível pelo Menu Principal)
-     ↓ [Qualquer Tecla / Clique / Toque para Avançar]
+   MapMenu (map_menu.tscn) — com assets/backgrounds/mapa_base.webp (Menu Mestre Unificado para Novo Jogo e Continuar)
+     ↓ [Confirmar Fase 1-1 / Iniciar História]
    LoadingScreen / Instruções (loading_screen.tscn) — com assets/backgrounds/Instruções_1.webp
      ↓ [Qualquer Tecla / Clique para Continuar]
    Abertura Narrativa Cinemática (NarrativeDirector — Saka's: A Última Ficha)
      ↓ [Avanço Automático / [Espaço] / [ESC] Pular]
-   Fase 1 (scenes/levels/map_1.tscn)
+   Fase 1-1: A Locadora (scenes/levels/map_1.tscn)
    ```
    *Nota de Navegação Inversa e Abertura Narrativa*:
-   - Ao iniciar um **NOVO JOGO**, a abertura narrativa é disparada logo após as instruções ao transicionar para a Fase 1.
-   - Ao **CONTINUAR** partida salva (save slot), a flag `GameSession.has_played_intro = true` impede estritamente a reprodução automática do prólogo.
+   - Ao iniciar um **NOVO JOGO** (`map_entry_context == "campaign"`), a Fase 1-1 ("A Locadora") inicia a campanha canônica pela narrativa/story_intro.
+   - Ao **CONTINUAR** partida salva (save slot ou menu Continuar), a tela de Mapa Mestre (`map_menu.tscn`) carrega a progressão persistida e disponibiliza diretamente as localidades desbloqueadas (1-1 A Locadora, 1-2 Balcão da Locadora, 1-3 Travessa da Locadora, 1-4 Torquato Tasso, B Garagem).
+   - O modal intermediário `StageSectionSelect` foi eliminado da tela de mapa: os 4 pontos são componentes visuais `MapStagePoint` dispostos diretamente sobre a rota do cenário limpo `mapa_base.webp`.
    - Na tela de instruções (`loading_screen.tscn`), [ESC] ou 'Voltar' retorna ao Mapa (`map_menu.tscn`).
    - Na tela de Mapa (`map_menu.tscn`), se acessada durante a campanha (após seleção de dificuldade), [ESC] retorna a `difficulty_select.tscn`. Se acessada diretamente pelo Menu Principal, retorna a `main_menu.tscn`.
-   - Na tela de Mapa, qualquer toque/clique na tela ou confirmação arcade [Enter]/[Espaço] avança para `loading_screen.tscn` (Instruções_1).
+   - Navegação no Mapa: Teclado (`A/D`, Setas), Gamepad, Mouse e Touch selecionam as localidades com seta arcade animada flutuante e exibem detalhes no painel inferior.
+   - **Fluxo de Replay ("REJOGAR FASE")**:
+     - Ao clicar no botão "REJOGAR FASE" em qualquer fase já concluída, o fluxo direciona o jogador para a tela de Seleção de Personagem (`character_select.tscn`) e em seguida para a Seleção de Dificuldade (`difficulty_select.tscn`).
+     - Isso permite ao jogador rejogar fases anteriores experimentando outros heróis (ex: Guilherme, Gabriel) e alterando a dificuldade (Normal, Difícil).
+     - Durante o fluxo de replay, pressionar [ESC] / Voltar na Seleção de Personagem retorna com segurança ao Mapa Mestre (`map_menu.tscn`), restaurando o contexto anterior sem redirecionar ao Menu Principal.
+     - Ao confirmar a dificuldade na Seleção de Dificuldade durante o replay, a fase selecionada para rejogabilidade é iniciada diretamente, aplicando as novas configurações de herói e dificuldade e reiniciando a progressão local da fase (HP cheio e Especial zerado).
+
+   *Arquitetura Cinemática de Navegação em Dois Níveis (`map_menu.tscn`)*:
+   - **Nível A — Visão Geral da Campanha (`NavState.OVERVIEW`)**:
+     - Exibição panorâmica integral do mapa `mapa_base.webp` (1920×1080) na escala base `1280.0 / 1920.0 = 0.666667` (sem bordas pretas).
+     - Exibe exclusivamente os marcadores de estágio principais: Estágio 01, Garagem Bônus (com arte especial diferenciada) e Estágio 02 (inabilitado / bloqueado).
+     - Os 4 sub-mapas internos do Estágio 01 (1-2, 1-3, 1-4) permanecem estritamente ocultos no Nível A.
+     - Ao clicar ou confirmar sobre o Estágio 01, o zoom-in ocorre expandindo os 4 mapas (transição para Nível B).
+     - Estágios futuros ainda não desenvolvidos (Estágio 02) permanecem inabilitados com ícone de cadeado.
+   - **Nível B — Navegação Interna do Stage 01 (`NavState.STAGE_NAVIGATION`)**:
+     - Aproximação de câmera calibrada (~1.42× da escala base = ~0.9467, nitidez nativa 1:1 HD Pixel Art).
+     - Expansão visual das 4 localidades do Estágio 01: 1-1 A Locadora, 1-2 Balcão da Locadora, 1-3 Travessa da Locadora e 1-4 Torquato Tasso.
+     - Navegação direcional sequencial estrita entre as missões (1-1 ↔ 1-2 ↔ 1-3 ↔ 1-4).
+     - Pressionar [ESC] ou clicar em Voltar restaura o Nível A (Overview) via zoom-out suave, ocultando novamente os sub-mapas e mostrando somente os estágios; no Nível A, Voltar sai para o Menu Principal.
+   - **Arte Especial e Exclusiva das Fases Bônus**:
+     - As fases Bônus são mantidas visíveis no Nível A, apresentando formato geométrico distintivo (joia/losango chanfrado com cantos assimétricos 8px/26px, diferenciando-se do círculo padrão).
+     - Borda em Ouro reluzente (`Color(1.0, 0.84, 0.2)`), fundo em Rubi/Púrpura arcade (`Color(0.24, 0.03, 0.16)`), ícone de estrela brilhante `★` e banner `★ BÔNUS ★`.
+   - **Normalização da Seta de Seleção (Seta Única Piscante)**:
+     - Eliminação de qualquer seta secundária ou duplicada sobreposta nos nós de fase.
+     - Exibição exclusiva da seta arcade animada central (`MovingArrow`), operando com movimento vertical suave (bobbing) e efeito piscante arcade contínuo (`_arrow_blink_tween` alternando opacidade a 0.16s).
+   - **Câmera Virtual, Clamping e Retargeting**:
+     - O centro visual de interesse é posicionado na faixa superior da tela (38% da altura) para não conflitar com a HUD fixa.
+     - A translação da câmera é matematicamente delimitada aos eixos `[1280 - 1920 * zoom, 0.0]` e `[720 - 1080 * zoom, 0.0]`, impedindo qualquer descolamento de borda.
+     - Comandos direcionais contínuos interrompem tweens de câmera em andamento de forma suave (`retarget`), recalculando a trajetória sem trancos ou solavancos.
+   - **Painel Narrativo Fixo (`%NarrativePanel`)**:
+     - HUD fixa na tela (`UILayer`, independente do pan/zoom do mapa) com acabamento Dark Premium Medieval.
+     - Contém: Identificação/Badge (`MISSÃO 1-X` / `ESTÁGIO 01` / `ESTÁGIO BÔNUS` / `ESTÁGIO 02`), Título Narrativo canônico, Sinopse multi-linha, Objetivo da missão e Badge de Estado (`DISPONÍVEL`, `CONCLUÍDO`, `BLOQUEADO`).
+     - Textos narrativos derivados exclusivamente do cânone oficial do jogo (`story_intro_map1.tres`, `story_intro_fase1_2.gd`, `story_intro_fase1_3.gd`, `story_intro_fase1_4.gd`, `bonus_garage_intro.tres`).
 
    *Sequência Canônica de Transição Cinemática do Mapa e Desbloqueio da Fase 2*:
    ```text
-   Fase 1-4: O Bar da Vila (map_4.tscn)
+   Fase 1-4: Torquato Tasso (map_4.tscn)
      ↓ [Conclusão da seção / ExitArea / Intercepção em BaseLevel._advance_to_next_map()]
    Transição Cinemática do Mapa — Etapa 1: Ponto 1 -> Bônus 1 (scenes/ui/map_transition.tscn mode=0)
-     ├── Fade In suave do mapa em tela cheia (16:9, Mapa.webp, 0.8s)
-     ├── Seta arcade parte do Ponto 1 (cobridor procedural oculta a seta impressa original)
-     ├── Movimento fluido via Tween + Path2D pelo traçado vermelho até o Bônus 1 (1.8s)
-     ├── Chegada ao Bônus 1 (574, 338): destaque visual (MapUnlockVFX), bobbing sobre a caixa de presente
+     ├── Fade In suave do mapa em tela cheia (16:9, mapa_base.webp, 0.8s)
+     ├── Seta arcade parte do Ponto 1
+     ├── Movimento fluido via Tween + Path2D pelo traçado até o Bônus 1 (1.8s)
+     ├── Chegada ao Bônus 1 (578, 282): destaque visual (MapUnlockVFX)
      ├── Cadeado do Ponto 2 permanece fechado / bloqueado
      ├── Registro em GameSession (bonus_stage_unlocked = true)
      ├── Fade Out suave (0.6s)
@@ -107,8 +140,8 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
      ↓ [Destruição dos 2 veículos ou término do tempo de 40s / BaseLevel._advance_to_next_map()]
    Transição Cinemática do Mapa — Etapa 2: Bônus 1 -> Ponto 2 (scenes/ui/map_transition.tscn mode=1)
      ├── Fade In suave do mapa
-     ├── Seta arcade parte do Bônus 1 pelo trajeto vermelho até o Ponto 2 (1.8s)
-     ├── Chegada ao Ponto 2 (870, 265): remoção/cobertura do cadeado, feedback visual dourado (MapUnlockVFX) e áudio de desbloqueio
+     ├── Seta arcade parte do Bônus 1 pelo trajeto até o Ponto 2 (1.8s)
+     ├── Chegada ao Ponto 2 (870, 265): feedback visual dourado (MapUnlockVFX) e áudio de desbloqueio
      ├── Registro em GameSession (stage_2_unlocked = true) com persistência em user://campaign_progression.json
      ├── Bobbing suave contínuo da seta sobre o Ponto 2
      ├── Fade Out suave (0.6s)
@@ -116,10 +149,19 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    Créditos / Vitória (scenes/ui/credits.tscn)
    ```
    *Visualização Dinâmica no Menu de Mapa (`map_menu.tscn`)*:
-   - Ao acessar "Mapa" no Menu Principal, o estado reflete fielmente o progresso salvo:
-     - No início de um novo jogo: seta sobre o Ponto 1 e cadeado no Ponto 2 visível.
-     - Se o Bônus 1 foi alcançado: seta sobre o Bônus 1 e cadeado no Ponto 2 visível.
-     - Se a Fase 2 foi desbloqueada: seta sobre o Ponto 2 e cadeado removido.
+   - Apresenta 6 localidades sobre o fundo limpo `mapa_base.webp`:
+     - 1-1 A Locadora (`map_1.tscn`): início da campanha / rua.
+     - 1-2 Balcão da Locadora (`map_2.tscn`): interior da locadora.
+     - 1-3 Travessa da Locadora (`map_3.tscn`): beco e emboscada.
+     - 1-4 Torquato Tasso (`map_4.tscn`): bar da vila e Alessandro.
+     - B Garagem (`bonus_garage.tscn`): fase de bônus especial (ícone de presente).
+     - 02 Happen: estágio 02 (desbloqueado após bônus).
+   - Estados visuais de cada localidade:
+     - **Disponível**: borda e medalhão com brilho ciano vibrante.
+     - **Concluído**: destaque dourado Dark Premium Medieval.
+     - **Bônus**: medalhão magenta/ouro com ícone de presente `🎁`.
+     - **Bloqueado**: desbotado com ícone de cadeado `🔒`.
+     - **Selecionado**: anel arcade vermelho neon brilhante com seta flutuante e pulsação suave.
 2. **Contrato de Comandos Restritos de Jogabilidade**:
    - `W / A / S / D` e `Setas Direcionais`: Movimentação 2.5D do personagem nos eixos X e Y.
    - `J`: Golpe básico / Combo de pancadaria (Jab -> Cross -> Kick -> Finisher). O encadeamento é contínuo e consistente tanto parado quanto em movimento via cancelamento de recuperação e buffer de entrada.

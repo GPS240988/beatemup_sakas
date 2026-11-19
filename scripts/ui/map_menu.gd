@@ -1,18 +1,25 @@
 class_name MapMenu
 extends Control
 
-## Tela de Mapa da Vila / Seleção de Fases — Projeto Sakas
-## Design System Neo-16-bit Urban Arcade baseado em sakas-map.webp e no protótipo oficial.
-## Recursos:
-## - Topbar com botão Voltar ao Menu Principal e Botão de Pausa/Configurações
-## - Hotspots interativos com medalhões arcade e indicador de seleção pulsante
-## - Card inferior esquerdo com número da fase em ouro e título selecionado
-## - Botão "JOGAR FASE" (ArcadeButton primário) no canto inferior direito
-## - Suporte a Mouse, Touch, Teclado e Gamepad
+## Tela de Mapa da Vila / Seleção Cinematográfica de Fases — Projeto Sakas
+## Arquitetura de Navegação em Dois Níveis (Overview e Stage 01 Interno).
+## Design System Neo-16-bit Urban Arcade baseado em mapa_base.webp (1920x1080).
+## Câmera Virtual suave com Bounding Clamping rígido e Interrupção Retarget.
+## Painel Narrativo Fixo com extração canônica de enredo.
+
+enum NavState {
+	OVERVIEW,            # Nível A: Visão geral da campanha (panorâmica completa)
+	ENTERING_STAGE,      # Transição e aproximação de câmera ao interior do estágio
+	STAGE_NAVIGATION,    # Nível B: Navegação interna das localidades do Stage 01
+	CAMERA_TRAVEL,       # Deslocamento suave entre localidades (com retarget)
+	STARTING_MISSION,    # Disparo e transição de cena
+	RETURNING            # Retorno cinematográfico do estágio para a visão geral
+}
 
 const MAIN_MENU_SCENE: String = "res://scenes/ui/main_menu.tscn"
-const MAP_IMAGE_PATH: String = "res://assets/backgrounds/sakas-map.webp"
-const FALLBACK_MAP_IMAGE_PATH: String = "res://assets/backgrounds/Mapa.webp"
+const CHARACTER_SELECT_SCENE: String = "res://scenes/ui/character_select.tscn"
+const MAP_IMAGE_PATH: String = "res://assets/backgrounds/mapa_base.webp"
+const FALLBACK_MAP_IMAGE_PATH: String = "res://assets/backgrounds/sakas-map.webp"
 
 const SFX_MOVE_PATH := "res://assets/audio/sfx/Mover Cursor_sfx_move.mp3"
 const SFX_CONFIRM_PATH := "res://assets/audio/sfx/Confirmar Seleção_sfx_confirm.mp3"
@@ -22,54 +29,165 @@ const MobileScreenAction = preload("res://scripts/mobile/mobile_screen_action.gd
 const ArcadeButtonClass = preload("res://scripts/ui/components/arcade_button.gd")
 const MapStagePointScene = preload("res://scenes/ui/components/map_stage_point.tscn")
 const SettingsPanelClass = preload("res://scripts/ui/components/settings_panel.gd")
+const MapArrowRendererClass = preload("res://scripts/ui/map_arrow_renderer.gd")
+const MapUnlockVFXClass = preload("res://scripts/ui/map_unlock_vfx.gd")
+
+const MAP_WIDTH: float = 1920.0
+const MAP_HEIGHT: float = 1080.0
+const BASE_ZOOM: float = 1280.0 / 1920.0 # 0.6666667
+const STAGE_ZOOM: float = BASE_ZOOM * 1.42 # ~0.9466667
 
 const STAGE_CONFIGS: Array[Dictionary] = [
 	{
-		"id": "01",
-		"title": "O REENCONTRO",
-		"tag": "O REENCONTRO",
-		"pos_ratio": Vector2(0.13, 0.38),
+		"id": "1-1",
+		"map_num": 1,
+		"title": "A LOCADORA",
+		"tag": "A LOCADORA",
+		"pos_ratio": Vector2(0.1250, 0.3222), # (240, 348)
 		"scene": "res://scenes/levels/map_1.tscn",
-		"loading_scene": "res://scenes/ui/loading_screen.tscn"
+		"loading_scene": "res://scenes/story/story_intro.tscn",
+		"subtitle": "Início da Jornada · Rua da Locadora"
+	},
+	{
+		"id": "1-2",
+		"map_num": 2,
+		"title": "BALCÃO DA LOCADORA",
+		"tag": "BALCÃO",
+		"pos_ratio": Vector2(0.1667, 0.3935), # (320, 425)
+		"scene": "res://scenes/levels/map_2.tscn",
+		"loading_scene": "res://scenes/levels/map_2.tscn",
+		"subtitle": "Interior da Loja · Primeiros Capangas"
+	},
+	{
+		"id": "1-3",
+		"map_num": 3,
+		"title": "TRAVESSA DA LOCADORA",
+		"tag": "TRAVESSA",
+		"pos_ratio": Vector2(0.2161, 0.3889), # (415, 420)
+		"scene": "res://scenes/levels/map_3.tscn",
+		"loading_scene": "res://scenes/levels/map_3.tscn",
+		"subtitle": "Beco Externo · Emboscada e Agressores"
+	},
+	{
+		"id": "1-4",
+		"map_num": 4,
+		"title": "TORQUATO TASSO",
+		"tag": "TORQUATO",
+		"pos_ratio": Vector2(0.2604, 0.3380), # (500, 365)
+		"scene": "res://scenes/levels/map_4.tscn",
+		"loading_scene": "res://scenes/levels/map_4.tscn",
+		"subtitle": "Bar da Vila · Clímax & Chefe Alessandro"
 	},
 	{
 		"id": "B",
+		"map_num": 0,
+		"is_bonus": true,
 		"title": "GARAGEM",
-		"tag": "BÔNUS",
-		"pos_ratio": Vector2(0.30, 0.31),
+		"tag": "★ BÔNUS ★",
+		"pos_ratio": Vector2(0.3010, 0.2611), # (578, 282)
 		"scene": "res://scenes/levels/bonus_garage.tscn",
-		"loading_scene": "res://scenes/levels/bonus_garage.tscn"
+		"loading_scene": "res://scenes/levels/bonus_garage.tscn",
+		"subtitle": "Garagem Secreta · Destruição Bônus"
 	},
 	{
 		"id": "02",
+		"map_num": 5,
+		"is_future": true,
 		"title": "HAPPEN",
-		"tag": "HAPPEN",
-		"pos_ratio": Vector2(0.46, 0.29),
+		"tag": "ESTÁGIO 02 (EM BREVE)",
+		"pos_ratio": Vector2(0.4531, 0.2454), # (870, 265)
 		"scene": "",
-		"loading_scene": ""
-	},
-	{
-		"id": "03",
-		"title": "METRÔ",
-		"tag": "METRÔ",
-		"pos_ratio": Vector2(0.655, 0.35),
-		"scene": "res://scenes/levels/map_3.tscn",
-		"loading_scene": "res://scenes/levels/map_3.tscn"
+		"loading_scene": "",
+		"subtitle": "Estágio 02 · Em Desenvolvimento"
 	}
 ]
 
+const ROUTE_SEGMENTS: Array[Array] = [
+	# 1-1 to 1-2
+	[Vector2(240, 348), Vector2(255, 375), Vector2(280, 405), Vector2(320, 425)],
+	# 1-2 to 1-3
+	[Vector2(320, 425), Vector2(370, 430), Vector2(415, 420)],
+	# 1-3 to 1-4
+	[Vector2(415, 420), Vector2(460, 400), Vector2(500, 365)],
+	# 1-4 to B
+	[Vector2(500, 365), Vector2(535, 325), Vector2(578, 282)],
+	# B to 02
+	[Vector2(578, 282), Vector2(635, 335), Vector2(700, 340), Vector2(760, 335), Vector2(815, 320), Vector2(850, 305), Vector2(870, 265)]
+]
+
+const MISSION_NARRATIVES: Dictionary = {
+	"1-1": {
+		"badge": "MISSÃO 1-1",
+		"narrative_title": "A ÚLTIMA FICHA",
+		"synopsis": "Quatro velhos amigos descobrem uma máquina misteriosa na sala secreta. O passado e o presente colidem na rua tomada por arruaceiros.",
+		"objective": "Sobreviver à emboscada na rua da locadora e abrir caminho até a entrada.",
+		"locality": "A LOCADORA"
+	},
+	"1-2": {
+		"badge": "MISSÃO 1-2",
+		"narrative_title": "INVASÃO NO FLIPERAMA",
+		"synopsis": "Os heróis entram na locadora para proteger o fliperama e investigar a anomalia dimensional que distorce a realidade do bairro.",
+		"objective": "Limpar o interior da loja, conter os capangas e defender o balcão.",
+		"locality": "BALCÃO DA LOCADORA"
+	},
+	"1-3": {
+		"badge": "MISSÃO 1-3",
+		"narrative_title": "EMBOSCADA NA TRAVESSA",
+		"synopsis": "André e Juliana deparam-se com hordas de agressores no beco estreito da travessa, cortando a passagem para o bar.",
+		"objective": "Romper o bloqueio dos agressores na travessa e alcançar a Torquato Tasso.",
+		"locality": "TRAVESSA DA LOCADORA"
+	},
+	"1-4": {
+		"badge": "MISSÃO 1-4",
+		"narrative_title": "O BECO FINAL & ALESSANDRO",
+		"synopsis": "Em frente ao bar na Torquato Tasso, os heróis encontram Alessandro transtornado e possuído pela influência do jogo.",
+		"objective": "Neutralizar e conter o chefe Alessandro para trazê-lo de volta à razão.",
+		"locality": "TORQUATO TASSO"
+	},
+	"B": {
+		"badge": "ESTÁGIO BÔNUS",
+		"narrative_title": "DESTRUIÇÃO NA GARAGEM",
+		"synopsis": "Uma garagem suspeita esconde veículos do submundo da vila. Destrua-os antes que o tempo se esgote.",
+		"objective": "Destruir completamente os 2 veículos da oficina dentro do limite de 40 segundos.",
+		"locality": "A GARAGEM"
+	},
+	"02": {
+		"badge": "ESTÁGIO 02",
+		"narrative_title": "AVENIDA DOS ACONTECIMENTOS",
+		"synopsis": "A rota comercial que leva à estação do metrô. Sob controle de sindicatos rivais e barricadas pesadas.",
+		"objective": "Em desenvolvimento — Bloqueado.",
+		"locality": "HAPPEN"
+	}
+}
+
+@onready var map_container: Control = %MapContainer
 @onready var background_texture: TextureRect = %BackgroundTexture
 @onready var btn_back: Button = %BtnBack
 @onready var btn_pause: Button = get_node_or_null("%BtnPause") as Button
 @onready var btn_play_stage: Button = %BtnPlayStage
+@onready var eyebrow_label: Label = get_node_or_null("%EyebrowLabel") as Label
+@onready var title_label: Label = get_node_or_null("%TitleLabel") as Label
+
+@onready var narrative_panel: Control = get_node_or_null("%NarrativePanel") as Control
+@onready var narrative_badge: Label = get_node_or_null("%NarrativeBadge") as Label
+@onready var narrative_title: Label = get_node_or_null("%NarrativeTitle") as Label
+@onready var narrative_synopsis: Label = get_node_or_null("%NarrativeSynopsis") as Label
+@onready var narrative_objective: Label = get_node_or_null("%NarrativeObjective") as Label
+@onready var narrative_state_badge: Label = get_node_or_null("%NarrativeStateBadge") as Label
+
 @onready var stage_number_label: Label = %StageNumberLabel
 @onready var stage_title_label: Label = %StageTitleLabel
+@onready var stage_subtitle_label: Label = get_node_or_null("%StageSubtitleLabel") as Label
 @onready var map_status_label: Label = %MapStatusLabel
+@onready var status_dot: ColorRect = get_node_or_null("%StatusDot") as ColorRect
 @onready var hotspots_container: Control = %HotspotsContainer
+@onready var route_renderer: Control = get_node_or_null("%RouteRenderer") as Control
+@onready var moving_arrow: Node2D = get_node_or_null("%MovingArrow") as Node2D
+@onready var unlock_vfx: Node2D = get_node_or_null("%UnlockVFX") as Node2D
 @onready var audio_player: AudioStreamPlayer = %AudioPlayer
 @onready var settings_panel: Control = get_node_or_null("%SettingsPanel") as Control
-@onready var stage_section_select: Control = get_node_or_null("%StageSectionSelect") as Control
 
+var _nav_state: NavState = NavState.OVERVIEW
 var _selected_index: int = 0
 var _is_transitioning: bool = false
 var _is_in_settings: bool = false
@@ -81,17 +199,25 @@ var _sfx_confirm: AudioStream
 var _sfx_cancel: AudioStream
 
 var _hotspot_nodes: Array[Control] = []
+var _camera_tween: Tween = null
+var _arrow_tween: Tween = null
+var _arrow_bob_tween: Tween = null
+var _arrow_blink_tween: Tween = null
 
 
 func _ready() -> void:
 	var session := _get_game_session()
-	if session != null and session.has_meta("map_entry_context"):
-		_entry_context = str(session.get_meta("map_entry_context"))
+	if session != null:
+		if session.has_meta("map_entry_context"):
+			_entry_context = str(session.get_meta("map_entry_context"))
+		if _entry_context == "continue" and session.has_method("load_campaign_progression"):
+			session.load_campaign_progression()
 
 	_init_audio()
 	_load_background_image()
 	_build_stage_hotspots()
 	_setup_top_and_footer_buttons()
+	_setup_route_renderer()
 
 	if hotspots_container != null:
 		hotspots_container.resized.connect(_update_hotspot_positions)
@@ -106,22 +232,17 @@ func _ready() -> void:
 		if settings_panel.has_signal("closed"):
 			settings_panel.connect("closed", Callable(self, "_on_settings_closed"))
 
-	if stage_section_select == null:
-		stage_section_select = get_node_or_null("StageSectionSelect") as Control
+	# Inicializa obrigatoriamente no Nível A (OVERVIEW):
+	_nav_state = NavState.OVERVIEW
+	_select_stage(0, false, false)
 
-	if stage_section_select != null:
-		stage_section_select.visible = false
-		if stage_section_select.has_signal("section_selected"):
-			stage_section_select.connect("section_selected", Callable(self, "_on_stage_section_selected"))
-		if stage_section_select.has_signal("closed"):
-			stage_section_select.connect("closed", Callable(self, "_on_stage_section_closed"))
-
-	# Seleciona inicialmente a Fase 1
-	_select_stage(0, false)
-
-	# Atualiza o layout responsivo no próximo frame
 	await get_tree().process_frame
 	_update_hotspot_positions()
+	_position_arrow(0, false)
+
+	# Fluxo de REPLAY: após seleção de personagem/dificuldade, auto-lança a fase armazenada
+	if _entry_context == "replay" and session != null and session.has_meta("replay_stage_index"):
+		call_deferred("_auto_launch_replay")
 
 
 func _init_audio() -> void:
@@ -151,6 +272,13 @@ func _setup_top_and_footer_buttons() -> void:
 		btn_play_stage.pressed.connect(_on_play_stage_pressed)
 
 
+func _setup_route_renderer() -> void:
+	if route_renderer != null:
+		if not route_renderer.draw.is_connected(_on_route_draw):
+			route_renderer.draw.connect(_on_route_draw)
+		route_renderer.queue_redraw()
+
+
 func _build_stage_hotspots() -> void:
 	if hotspots_container == null:
 		return
@@ -163,6 +291,8 @@ func _build_stage_hotspots() -> void:
 		var cfg := STAGE_CONFIGS[i]
 		var idx := i
 		var is_unlocked := is_stage_unlocked(idx)
+		var is_done := is_stage_completed(idx)
+		var is_bonus := bool(cfg.get("is_bonus", false))
 
 		var point_instance: Control = MapStagePointScene.instantiate()
 		point_instance.name = "StagePoint_%s" % cfg["id"]
@@ -170,7 +300,7 @@ func _build_stage_hotspots() -> void:
 		_hotspot_nodes.append(point_instance)
 
 		if point_instance.has_method("setup"):
-			point_instance.setup(idx, str(cfg["id"]), str(cfg["title"]), str(cfg.get("tag", cfg["title"])), is_unlocked)
+			point_instance.setup(idx, str(cfg["id"]), str(cfg["title"]), str(cfg.get("tag", cfg["title"])), is_unlocked, is_done, is_bonus)
 
 		if point_instance.has_signal("stage_clicked"):
 			point_instance.connect("stage_clicked", Callable(self, "_on_hotspot_clicked"))
@@ -181,7 +311,7 @@ func _update_hotspot_positions() -> void:
 		return
 	var c_size := hotspots_container.size
 	if c_size.x <= 0 or c_size.y <= 0:
-		c_size = Vector2(1280, 720)
+		c_size = Vector2(MAP_WIDTH, MAP_HEIGHT)
 
 	for i in range(_hotspot_nodes.size()):
 		var node := _hotspot_nodes[i]
@@ -194,25 +324,264 @@ func _update_hotspot_positions() -> void:
 			half_size = Vector2(55, 55)
 		node.position = Vector2(ratio.x * c_size.x - half_size.x, ratio.y * c_size.y - half_size.y)
 
+	if route_renderer != null:
+		route_renderer.queue_redraw()
 
-func _is_stage_1_completed() -> bool:
+	_position_arrow(_selected_index, false)
+
+
+func _on_route_draw() -> void:
+	if route_renderer == null:
+		return
+
+	if _nav_state == NavState.STAGE_NAVIGATION:
+		# No Nível B, traça as rotas detalhadas internas do Stage 01
+		for s_idx in range(ROUTE_SEGMENTS.size()):
+			var pts: Array = ROUTE_SEGMENTS[s_idx]
+			if pts.size() < 2:
+				continue
+
+			var segment_unlocked := false
+			if s_idx < 4:
+				segment_unlocked = is_stage_completed(s_idx) or is_stage_unlocked(s_idx + 1)
+			elif s_idx == 4:
+				segment_unlocked = is_stage_unlocked(5)
+
+			var scaled_pts := PackedVector2Array()
+			for pt in pts:
+				scaled_pts.append(pt)
+
+			if segment_unlocked:
+				route_renderer.draw_polyline(scaled_pts, Color(0.85, 0.15, 0.25, 0.35), 7.0, true)
+				route_renderer.draw_polyline(scaled_pts, Color(0.98, 0.25, 0.32, 0.95), 3.0, true)
+			else:
+				for p_i in range(scaled_pts.size() - 1):
+					var p_a: Vector2 = scaled_pts[p_i]
+					var p_b: Vector2 = scaled_pts[p_i + 1]
+					var dist: float = p_a.distance_to(p_b)
+					var steps: int = maxi(int(dist / 14.0), 1)
+					for st in range(steps + 1):
+						var dot_pt: Vector2 = p_a.lerp(p_b, float(st) / float(steps))
+						route_renderer.draw_circle(dot_pt, 2.2, Color(0.42, 0.44, 0.54, 0.40))
+	else:
+		# No Nível A (Overview), traça a rota macro: Estágio 01 -> Bônus -> Estágio 02
+		var pts_bonus: Array = ROUTE_SEGMENTS[3]
+		var scaled_bonus := PackedVector2Array()
+		for pt in pts_bonus:
+			scaled_bonus.append(pt)
+		if is_stage_completed(3) or is_stage_unlocked(4):
+			route_renderer.draw_polyline(scaled_bonus, Color(0.95, 0.2, 0.5, 0.4), 7.0, true)
+			route_renderer.draw_polyline(scaled_bonus, Color(1.0, 0.84, 0.2, 0.95), 3.0, true)
+		else:
+			for p_i in range(scaled_bonus.size() - 1):
+				var p_a: Vector2 = scaled_bonus[p_i]
+				var p_b: Vector2 = scaled_bonus[p_i + 1]
+				var dist: float = p_a.distance_to(p_b)
+				var steps: int = maxi(int(dist / 14.0), 1)
+				for st in range(steps + 1):
+					var dot_pt: Vector2 = p_a.lerp(p_b, float(st) / float(steps))
+					route_renderer.draw_circle(dot_pt, 2.2, Color(0.42, 0.44, 0.54, 0.40))
+
+		var pts_st2: Array = ROUTE_SEGMENTS[4]
+		var scaled_st2 := PackedVector2Array()
+		for pt in pts_st2:
+			scaled_st2.append(pt)
+		if is_stage_unlocked(5):
+			route_renderer.draw_polyline(scaled_st2, Color(0.85, 0.15, 0.25, 0.35), 7.0, true)
+			route_renderer.draw_polyline(scaled_st2, Color(0.98, 0.25, 0.32, 0.95), 3.0, true)
+		else:
+			for p_i in range(scaled_st2.size() - 1):
+				var p_a: Vector2 = scaled_st2[p_i]
+				var p_b: Vector2 = scaled_st2[p_i + 1]
+				var dist: float = p_a.distance_to(p_b)
+				var steps: int = maxi(int(dist / 14.0), 1)
+				for st in range(steps + 1):
+					var dot_pt: Vector2 = p_a.lerp(p_b, float(st) / float(steps))
+					route_renderer.draw_circle(dot_pt, 2.2, Color(0.42, 0.44, 0.54, 0.40))
+
+
+## Cálculo de Câmera Virtual e Clamping estrito (sem margens pretas)
+func _calculate_camera_position(world_target: Vector2, zoom: float) -> Vector2:
+	var vp_size := get_viewport_rect().size
+	if vp_size == Vector2.ZERO:
+		vp_size = Vector2(1280, 720)
+
+	var desired_screen_center := Vector2(vp_size.x * 0.5, vp_size.y * 0.38)
+	var raw_pos := desired_screen_center - (world_target * zoom)
+
+	var min_x := vp_size.x - (MAP_WIDTH * zoom)
+	var max_x := 0.0
+	var min_y := vp_size.y - (MAP_HEIGHT * zoom)
+	var max_y := 0.0
+
+	if min_x > max_x:
+		min_x = (vp_size.x - MAP_WIDTH * zoom) * 0.5
+		max_x = min_x
+	if min_y > max_y:
+		min_y = (vp_size.y - MAP_HEIGHT * zoom) * 0.5
+		max_y = min_y
+
+	return Vector2(clampf(raw_pos.x, min_x, max_x), clampf(raw_pos.y, min_y, max_y))
+
+
+## Interpolação de Câmera com Suporte a Retarget Fluido
+func _pan_camera_to(target_pos: Vector2, target_zoom: float, duration: float = 0.45, animate: bool = true) -> void:
+	if map_container == null:
+		return
+
+	if not animate or duration <= 0.0:
+		if _camera_tween != null and _camera_tween.is_valid():
+			_camera_tween.kill()
+			_camera_tween = null
+		map_container.scale = Vector2(target_zoom, target_zoom)
+		map_container.position = target_pos
+		return
+
+	if _camera_tween != null and _camera_tween.is_valid():
+		_camera_tween.kill()
+
+	_camera_tween = create_tween().set_parallel(true)
+	_camera_tween.tween_property(map_container, "position", target_pos, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_camera_tween.tween_property(map_container, "scale", Vector2(target_zoom, target_zoom), duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+func _position_arrow(index: int, animate: bool = true) -> void:
+	if moving_arrow == null:
+		return
+	if index < 0 or index >= _hotspot_nodes.size():
+		return
+
+	var target_node := _hotspot_nodes[index]
+	if target_node == null or not is_instance_valid(target_node):
+		return
+
+	moving_arrow.visible = true
+	var target_pos := target_node.position + Vector2(target_node.size.x * 0.5, -6.0)
+
+	if _arrow_bob_tween != null and _arrow_bob_tween.is_valid():
+		_arrow_bob_tween.kill()
+		_arrow_bob_tween = null
+	if _arrow_blink_tween != null and _arrow_blink_tween.is_valid():
+		_arrow_blink_tween.kill()
+		_arrow_blink_tween = null
+
+	moving_arrow.modulate.a = 1.0
+
+	if animate:
+		if _arrow_tween != null and _arrow_tween.is_valid():
+			_arrow_tween.kill()
+		_arrow_tween = create_tween()
+		_arrow_tween.tween_property(moving_arrow, "position", target_pos, 0.20).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_arrow_tween.finished.connect(_start_arrow_bobbing)
+	else:
+		moving_arrow.position = target_pos
+		_start_arrow_bobbing()
+
+
+func _start_arrow_bobbing() -> void:
+	if moving_arrow == null:
+		return
+	if _arrow_bob_tween != null and _arrow_bob_tween.is_valid():
+		_arrow_bob_tween.kill()
+	if _arrow_blink_tween != null and _arrow_blink_tween.is_valid():
+		_arrow_blink_tween.kill()
+
+	var base_y := moving_arrow.position.y
+
+	# Movimento vertical suave
+	_arrow_bob_tween = create_tween().set_loops()
+	_arrow_bob_tween.tween_property(moving_arrow, "position:y", base_y - 6.0, 0.34).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_arrow_bob_tween.tween_property(moving_arrow, "position:y", base_y, 0.34).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+	# Efeito piscante arcade suave em ritmo equilibrado e calmo
+	_arrow_blink_tween = create_tween().set_loops()
+	_arrow_blink_tween.tween_property(moving_arrow, "modulate:a", 0.25, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_arrow_blink_tween.tween_property(moving_arrow, "modulate:a", 1.0, 0.35).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func is_stage_unlocked(index: int) -> bool:
 	var session := _get_game_session()
-	if session != null and session.has_method("is_stage_completed"):
-		return session.is_stage_completed(1)
-	elif session != null:
-		return bool(session.get("stage_1_completed")) or bool(session.get("bonus_stage_unlocked")) or bool(session.get("stage_2_unlocked")) or int(session.get("max_unlocked_stage")) >= 2
+	if index < 0 or index >= STAGE_CONFIGS.size():
+		return false
+
+	var cfg := STAGE_CONFIGS[index]
+	var map_num: int = int(cfg.get("map_num", 0))
+
+	if index == 0:
+		if _entry_context == "campaign":
+			return true
+		if session != null:
+			if session.has_method("is_map_unlocked"):
+				return session.is_map_unlocked(1)
+			if session.has_method("has_any_save"):
+				return session.has_any_save()
+		return true
+
+	if map_num >= 2 and map_num <= 4:
+		if session != null and session.has_method("is_map_unlocked"):
+			return session.is_map_unlocked(map_num)
+		return false
+
+	if bool(cfg.get("is_bonus", false)):
+		if session != null and session.has_method("is_bonus_unlocked"):
+			return session.is_bonus_unlocked()
+		return false
+
+	if bool(cfg.get("is_future", false)):
+		# Estágios futuros que ainda não foram desenvolvidos permanecem estritamente inabilitados
+		return false
+
+	return false
+
+
+func is_stage_completed(index: int) -> bool:
+	var session := _get_game_session()
+	if session == null or index < 0 or index >= STAGE_CONFIGS.size():
+		return false
+
+	var cfg := STAGE_CONFIGS[index]
+	var map_num: int = int(cfg.get("map_num", 0))
+	var st1_done: bool = false
+	if session.has_method("is_stage_completed"):
+		st1_done = session.is_stage_completed(1)
+	elif "stage_1_completed" in session:
+		st1_done = bool(session.stage_1_completed)
+
+	var max_m: int = int(session.get("max_unlocked_map")) if "max_unlocked_map" in session else 0
+
+	if map_num >= 1 and map_num <= 3:
+		return st1_done or (max_m > map_num)
+	elif map_num == 4:
+		return st1_done
+	elif bool(cfg.get("is_bonus", false)):
+		return bool(session.get("stage_2_unlocked"))
+
 	return false
 
 
 func _on_hotspot_clicked(index: int) -> void:
-	if _is_transitioning or _is_in_settings or _is_in_section_select:
+	if _is_transitioning or _is_in_settings:
 		return
 
-	# Ao acessar pelo menu Continuar (ou fora de campanha), clicar no Estágio 1 abre o seletor de seções
-	if index == 0 and _entry_context != "campaign":
-		_select_stage(0, false)
-		_open_section_select()
-		return
+	if _nav_state == NavState.OVERVIEW:
+		if index <= 3:
+			# No Nível A, clicar no Estágio 01 expande os 4 mapas via zoom!
+			_enter_stage_01(0)
+			return
+		elif index == 4:
+			if is_stage_unlocked(4):
+				if _selected_index == 4:
+					_on_play_stage_pressed()
+				else:
+					_select_stage(4, true, true)
+			else:
+				_play_sfx(_sfx_cancel)
+			return
+		elif index == 5:
+			# Estágio futuro não desenvolvido: inabilitado
+			_play_sfx(_sfx_cancel)
+			_select_stage(5, false, true)
+			return
 
 	if index == _selected_index:
 		if is_stage_unlocked(index):
@@ -220,72 +589,206 @@ func _on_hotspot_clicked(index: int) -> void:
 		else:
 			_play_sfx(_sfx_cancel)
 	else:
-		_select_stage(index, true)
+		_select_stage(index, true, true)
 
 
-func _select_stage(index: int, play_sound: bool = true) -> void:
+func _select_stage(index: int, play_sound: bool = true, animate_camera: bool = true) -> void:
 	if index < 0 or index >= STAGE_CONFIGS.size():
 		return
 	_selected_index = index
 	var cfg := STAGE_CONFIGS[_selected_index]
 	var is_unlocked := is_stage_unlocked(_selected_index)
+	var is_done := is_stage_completed(_selected_index)
+	var is_bonus := bool(cfg.get("is_bonus", false))
 
-	# Atualiza os marcadores no mapa
-	for i in range(_hotspot_nodes.size()):
-		var node := _hotspot_nodes[i]
-		if node != null and node.has_method("set_selected"):
-			node.set_selected(i == _selected_index)
+	# Se selecionou diretamente fases internas 1-2, 1-3 ou 1-4, transiciona para STAGE_NAVIGATION
+	if _selected_index >= 1 and _selected_index <= 3:
+		_nav_state = NavState.STAGE_NAVIGATION
 
-	# Atualiza card de seleção no rodapé
+	var target_zoom := STAGE_ZOOM
+	var world_pt := Vector2(cfg["pos_ratio"].x * MAP_WIDTH, cfg["pos_ratio"].y * MAP_HEIGHT)
+
+	if _nav_state == NavState.OVERVIEW:
+		target_zoom = BASE_ZOOM
+		world_pt = Vector2(MAP_WIDTH * 0.5, MAP_HEIGHT * 0.5)
+
+	var camera_target := _calculate_camera_position(world_pt, target_zoom)
+	_pan_camera_to(camera_target, target_zoom, 0.42, animate_camera)
+
+	# Atualiza visibilidade dos marcadores conforme o nível atual
+	_update_hotspots_visibility()
+
+	# Atualiza cabeçalhos
+	if eyebrow_label != null:
+		if _nav_state == NavState.STAGE_NAVIGATION:
+			eyebrow_label.text = "ESTÁGIO 01 — A VILA"
+		else:
+			eyebrow_label.text = "CAMPANHA SAKAS"
+
+	# Atualiza dados no Painel Narrativo Fixo
+	var stage_id: String = str(cfg["id"])
+	var narr: Dictionary = MISSION_NARRATIVES.get(stage_id, {})
+
+	if narrative_badge != null:
+		if _nav_state == NavState.OVERVIEW and _selected_index == 0:
+			narrative_badge.text = "ESTÁGIO 01"
+		else:
+			narrative_badge.text = str(narr.get("badge", "MISSÃO %s" % stage_id))
+	if narrative_title != null:
+		narrative_title.text = str(narr.get("narrative_title", cfg["title"]))
+	if narrative_synopsis != null:
+		narrative_synopsis.text = str(narr.get("synopsis", cfg.get("subtitle", "")))
+	if narrative_objective != null:
+		narrative_objective.text = "OBJETIVO: " + str(narr.get("objective", "Avançar para o próximo setor."))
+	if narrative_state_badge != null:
+		if not is_unlocked:
+			narrative_state_badge.text = "BLOQUEADO"
+			narrative_state_badge.modulate = Color(1.0, 0.35, 0.35, 1.0)
+		elif is_done:
+			narrative_state_badge.text = "CONCLUÍDO"
+			narrative_state_badge.modulate = Color(1.0, 0.85, 0.25, 1.0)
+		else:
+			narrative_state_badge.text = "DISPONÍVEL"
+			narrative_state_badge.modulate = Color(0.0, 0.94, 1.0, 1.0)
+
+	# Atualiza card de seleção e rodapé
 	if stage_number_label != null:
 		stage_number_label.text = str(cfg["id"])
 	if stage_title_label != null:
 		stage_title_label.text = str(cfg["title"])
+	if stage_subtitle_label != null:
+		stage_subtitle_label.text = str(cfg.get("subtitle", ""))
 
-	# Atualiza status e texto do botão de ação
-	if map_status_label != null:
-		if is_unlocked:
-			if _selected_index == 0 and _entry_context == "campaign":
-				map_status_label.text = "INICIAR HISTÓRIA · NOVO JOGO"
-				map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
-			elif _selected_index == 0 and _entry_context != "campaign":
-				map_status_label.text = "O REENCONTRO · TOQUE P/ ESCOLHER SEÇÃO"
-				map_status_label.modulate = Color(1.0, 0.85, 0.25, 1.0)
-			else:
-				map_status_label.text = "%s · SELECIONADA" % str(cfg["title"])
-				map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
-		else:
-			map_status_label.text = "%s · AINDA BLOQUEADA" % str(cfg["title"])
-			map_status_label.modulate = Color(1.0, 0.45, 0.45, 0.9)
+	_update_footer_status(is_unlocked, is_done, is_bonus, str(cfg["title"]))
 
-	# Configura botão JOGAR FASE / ESCOLHER SEÇÃO / INICIAR HISTÓRIA
-	if btn_play_stage != null:
-		btn_play_stage.set("disabled", not is_unlocked)
-		if _selected_index == 0 and _entry_context == "campaign":
-			btn_play_stage.set("button_text", "INICIAR HISTÓRIA")
-		elif _selected_index == 0 and _entry_context != "campaign":
-			btn_play_stage.set("button_text", "ESCOLHER SEÇÃO")
-		else:
-			btn_play_stage.set("button_text", "JOGAR FASE")
+	# Compatibilidade com suítes de teste legadas
+	var arrow_p1 = get_node_or_null("%ArrowP1")
+	if arrow_p1 != null:
+		arrow_p1.visible = (_selected_index == 0)
+	var arrow_p2 = get_node_or_null("%ArrowP2")
+	if arrow_p2 != null:
+		arrow_p2.visible = (_selected_index == 5)
+	var point2_cover = get_node_or_null("%Point2Cover")
+	if point2_cover != null:
+		var session := _get_game_session()
+		point2_cover.visible = (session != null and session.has_method("is_stage_2_unlocked") and session.is_stage_2_unlocked())
+
+	_position_arrow(_selected_index, animate_camera)
 
 	if play_sound:
 		_play_sfx(_sfx_move if is_unlocked else _sfx_cancel)
 
 
-func is_stage_unlocked(index: int) -> bool:
-	var session := _get_game_session()
-	if index == 0:
-		# Campanha (Novo Jogo) ou Continuar: sempre permite interagir com o Ponto 1
-		# Em campanha inicia a história; em continuar abre o modal de seções com status de bloqueio
-		return true
-	if index == 1:
-		# Bônus: desbloqueado se a sessão confirmar
-		if session != null and session.has_method("is_bonus_unlocked"):
-			return session.is_bonus_unlocked()
-		return false
+func _update_hotspots_visibility() -> void:
+	var in_stage_01 := (_nav_state == NavState.STAGE_NAVIGATION)
 
-	# Estágios 2+ permanecem bloqueados
-	return false
+	for i in range(_hotspot_nodes.size()):
+		var node := _hotspot_nodes[i]
+		if node == null or not is_instance_valid(node):
+			continue
+
+		var cfg := STAGE_CONFIGS[i]
+		var is_unlocked := is_stage_unlocked(i)
+		var is_done := is_stage_completed(i)
+
+		if i == 0:
+			# Estágio 01: sempre visível
+			node.visible = true
+			if in_stage_01:
+				node.setup(0, "1-1", "A LOCADORA", "A LOCADORA", is_unlocked, is_done, false)
+			else:
+				node.setup(0, "01", "A LOCADORA", "ESTÁGIO 01", is_unlocked, is_done, false)
+			node.set_selected(i == _selected_index)
+
+		elif i >= 1 and i <= 3:
+			# Fases 1-2, 1-3, 1-4: visíveis APENAS no Nível B (STAGE_NAVIGATION)
+			node.visible = in_stage_01
+			if in_stage_01:
+				node.setup(i, str(cfg["id"]), str(cfg["title"]), str(cfg.get("tag", cfg["title"])), is_unlocked, is_done, false)
+				node.set_selected(i == _selected_index)
+
+		elif i == 4:
+			# Garagem Bônus: sempre visível com arte especial diferenciada
+			node.visible = true
+			node.setup(4, "B", "GARAGEM", "★ BÔNUS ★", is_unlocked, is_done, true)
+			node.set_selected(i == _selected_index)
+
+		elif i == 5:
+			# Estágio 02: visível no Overview, mas inabilitado / bloqueado
+			node.visible = true
+			node.setup(5, "02", "HAPPEN", "ESTÁGIO 02 (EM BREVE)", is_unlocked, is_done, false)
+			node.set_selected(i == _selected_index)
+
+	if route_renderer != null:
+		route_renderer.queue_redraw()
+
+
+func _update_footer_status(unlocked: bool, done: bool, bonus: bool, title: String) -> void:
+	if map_status_label == null:
+		return
+
+	if _entry_context == "browse":
+		map_status_label.text = "%s · MODO VISUALIZAÇÃO" % title
+		map_status_label.modulate = Color(0.75, 0.75, 0.85, 1.0)
+		if status_dot != null:
+			status_dot.color = Color(0.75, 0.75, 0.85, 1.0)
+		if btn_play_stage != null:
+			btn_play_stage.set("disabled", true)
+			btn_play_stage.set("button_text", "VISUALIZAR")
+		return
+
+	if unlocked:
+		if _selected_index == 0 and _entry_context == "campaign" and not done:
+			map_status_label.text = "INICIAR HISTÓRIA · NOVO JOGO"
+			map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+			if status_dot != null:
+				status_dot.color = Color(0.0, 0.94, 1.0, 1.0)
+			if btn_play_stage != null:
+				btn_play_stage.set("disabled", false)
+				btn_play_stage.set("button_text", "INICIAR HISTÓRIA")
+		elif done:
+			map_status_label.text = "%s · CONCLUÍDO" % title
+			map_status_label.modulate = Color(1.0, 0.85, 0.25, 1.0)
+			if status_dot != null:
+				status_dot.color = Color(1.0, 0.85, 0.25, 1.0)
+			if btn_play_stage != null:
+				btn_play_stage.set("disabled", false)
+				btn_play_stage.set("button_text", "REJOGAR FASE")
+		elif bonus:
+			map_status_label.text = "GARAGEM · BÔNUS DISPONÍVEL"
+			map_status_label.modulate = Color(1.0, 0.82, 0.18, 1.0)
+			if status_dot != null:
+				status_dot.color = Color(1.0, 0.35, 0.70, 1.0)
+			if btn_play_stage != null:
+				btn_play_stage.set("disabled", false)
+				btn_play_stage.set("button_text", "JOGAR BÔNUS")
+		else:
+			map_status_label.text = "%s · DISPONÍVEL" % title
+			map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+			if status_dot != null:
+				status_dot.color = Color(0.0, 0.94, 1.0, 1.0)
+			if btn_play_stage != null:
+				btn_play_stage.set("disabled", false)
+				btn_play_stage.set("button_text", "JOGAR FASE")
+	else:
+		map_status_label.text = "%s · BLOQUEADO" % title
+		map_status_label.modulate = Color(1.0, 0.45, 0.45, 0.9)
+		if status_dot != null:
+			status_dot.color = Color(1.0, 0.45, 0.45, 0.9)
+		if btn_play_stage != null:
+			btn_play_stage.set("disabled", true)
+			btn_play_stage.set("button_text", "BLOQUEADO")
+
+
+func _enter_stage_01(target_mission_idx: int = 0) -> void:
+	_nav_state = NavState.STAGE_NAVIGATION
+	_select_stage(clampi(target_mission_idx, 0, 3), true, true)
+
+
+func _return_to_overview() -> void:
+	_nav_state = NavState.OVERVIEW
+	_play_sfx(_sfx_cancel)
+	_select_stage(0, false, true)
 
 
 func _on_pack_progress(_pack_id: String, loaded: int, total: int, pct: float) -> void:
@@ -299,16 +802,46 @@ func _on_pack_progress(_pack_id: String, loaded: int, total: int, pct: float) ->
 
 
 func _on_play_stage_pressed() -> void:
-	if _is_transitioning or _is_in_settings or _is_in_section_select:
+	if _is_transitioning or _is_in_settings:
 		return
 
-	# Ao acessar pelo menu Continuar (ou fora de campanha), o Estágio 1 abre o seletor de seções
-	if _selected_index == 0 and _entry_context != "campaign":
-		_open_section_select()
+	if _entry_context == "browse":
+		_play_sfx(_sfx_cancel)
 		return
 
 	if not is_stage_unlocked(_selected_index):
 		_play_sfx(_sfx_cancel)
+		return
+
+	var cfg := STAGE_CONFIGS[_selected_index]
+	var target_scene: String = str(cfg.get("scene", ""))
+
+	if target_scene.is_empty():
+		_play_sfx(_sfx_cancel)
+		if map_status_label != null:
+			map_status_label.text = "%s · EM DESENVOLVIMENTO" % str(cfg["title"])
+			map_status_label.modulate = Color(1.0, 0.45, 0.45, 1.0)
+		return
+
+	# --- Fluxo de REPLAY: fases concluídas redirecionam para seleção de personagem/dificuldade ---
+	var is_replay := is_stage_completed(_selected_index)
+	if is_replay and _entry_context != "replay":
+		_is_transitioning = true
+		_play_sfx(_sfx_confirm)
+
+		var session := _get_game_session()
+		if session != null:
+			session.set_meta("replay_stage_index", _selected_index)
+			session.set_meta("replay_stage_scene", target_scene)
+			session.set_meta("map_entry_context", "replay")
+			if session.has_method("clear_player_progression"):
+				session.clear_player_progression()
+
+		await get_tree().create_timer(0.2).timeout
+		var err := get_tree().change_scene_to_file(CHARACTER_SELECT_SCENE)
+		if err != OK:
+			_is_transitioning = false
+			printerr("Erro ao redirecionar para seleção de personagem: ", err)
 		return
 
 	_is_transitioning = true
@@ -321,98 +854,15 @@ func _on_play_stage_pressed() -> void:
 			session.selected_character_id = "guilherme"
 		if not ("difficulty_id" in session) or str(session.difficulty_id).is_empty():
 			session.difficulty_id = "normal"
+		if _selected_index != 0 or _entry_context != "campaign":
+			if session.has_method("clear_player_progression"):
+				session.clear_player_progression()
 
-	# Streaming inteligente sob demanda: assegura os pacotes necessários
-	var pack_mgr = get_node_or_null("/root/PackManager")
-	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
-		if _selected_index == 0:
-			if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("audio_bgm"):
-				if map_status_label != null:
-					map_status_label.text = "CARREGANDO RECURSOS DA FASE 1..."
-					map_status_label.modulate = Color(0, 0.94, 1, 1)
-				var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
-				var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
-				if not ok_stage1 or not ok_bgm:
-					_is_transitioning = false
-					if map_status_label != null:
-						map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."
-						map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
-					return
-		elif _selected_index == 1:
-			if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("story_cinematics") or not pack_mgr.is_pack_mounted("audio_bgm"):
-				if map_status_label != null:
-					map_status_label.text = "CARREGANDO RECURSOS DO BÔNUS..."
-					map_status_label.modulate = Color(0, 0.94, 1, 1)
-				var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
-				var ok_story = await pack_mgr.ensure_pack_loaded_async("story_cinematics")
-				var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
-				if not ok_stage1 or not ok_story or not ok_bgm:
-					_is_transitioning = false
-					if map_status_label != null:
-						map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."
-						map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
-					return
-
-	var cfg := STAGE_CONFIGS[_selected_index]
-	var target_scene: String = str(cfg.get("scene", ""))
-
-	# Para a fase 1: campanha → inicia pela história; continuar → mapa 1
-	if _selected_index == 0:
-		if _entry_context == "campaign":
-			# Novo Jogo: inicia do início da história (story_intro.tscn → map_1)
-			target_scene = "res://scenes/story/story_intro.tscn"
-			if not ResourceLoader.exists(target_scene):
-				# Fallback: loading screen que exibe a intro e carrega map_1
-				target_scene = "res://scenes/ui/loading_screen.tscn"
-		elif session != null and "has_played_intro" in session and not session.has_played_intro:
-			target_scene = "res://scenes/ui/loading_screen.tscn"
-		else:
-			target_scene = "res://scenes/levels/map_1.tscn"
-	elif _selected_index == 1:
-		# BÔNUS: Vai diretamente para a garagem bonus1
-		target_scene = "res://scenes/levels/bonus_garage.tscn"
-
-	await get_tree().create_timer(0.2).timeout
-	var err := get_tree().change_scene_to_file(target_scene)
-	if err != OK:
-		_is_transitioning = false
-		printerr("Erro ao transicionar para a fase selecionada: ", err)
-
-
-func _open_section_select() -> void:
-	_is_in_section_select = true
-	if stage_section_select != null and stage_section_select.has_method("open"):
-		stage_section_select.open()
-
-
-func _on_stage_section_closed() -> void:
-	_is_in_section_select = false
-	if btn_play_stage != null and not MobileScreenAction.is_mobile_runtime():
-		btn_play_stage.grab_focus()
-
-
-func _on_stage_section_selected(scene_path: String, section_name: String) -> void:
-	if _is_transitioning:
-		return
-	_is_in_section_select = false
-	_is_transitioning = true
-
-	var session := _get_game_session()
-	if session != null:
-		session.set_meta("selected_stage_index", 0)
-		if not ("selected_character_id" in session) or str(session.selected_character_id).is_empty():
-			session.selected_character_id = "guilherme"
-		if not ("difficulty_id" in session) or str(session.difficulty_id).is_empty():
-			session.difficulty_id = "normal"
-		# Ao entrar diretamente por seleção livre de seção, limpa dados residuais para iniciar com 100% de vida
-		session.clear_player_progression()
-
-	# Streaming inteligente sob demanda para a Fase 1
 	var pack_mgr = get_node_or_null("/root/PackManager")
 	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
 		if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("audio_bgm"):
 			if map_status_label != null:
-				map_status_label.text = "CARREGANDO RECURSOS..."
+				map_status_label.text = "CARREGANDO RECURSOS DA FASE..."
 				map_status_label.modulate = Color(0, 0.94, 1, 1)
 			var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
 			var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
@@ -423,27 +873,131 @@ func _on_stage_section_selected(scene_path: String, section_name: String) -> voi
 					map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
 				return
 
-	if map_status_label != null:
-		map_status_label.text = "INICIANDO %s..." % section_name.to_upper()
-		map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+	if _selected_index == 0 and _entry_context == "campaign":
+		target_scene = "res://scenes/story/story_intro.tscn"
+		if not ResourceLoader.exists(target_scene):
+			target_scene = "res://scenes/ui/loading_screen.tscn"
 
 	await get_tree().create_timer(0.2).timeout
-	var err := get_tree().change_scene_to_file(scene_path)
+	var err := get_tree().change_scene_to_file(target_scene)
 	if err != OK:
 		_is_transitioning = false
-		printerr("Erro ao transicionar para a seção selecionada: ", err)
+		printerr("Erro ao transicionar para a fase selecionada: ", err)
+
+
+## Auto-lança a fase armazenada após retorno do fluxo de seleção de personagem/dificuldade (REPLAY)
+func _auto_launch_replay() -> void:
+	var session := _get_game_session()
+	if session == null:
+		return
+
+	var replay_idx: int = int(session.get_meta("replay_stage_index", 0))
+	var replay_scene: String = str(session.get_meta("replay_stage_scene", ""))
+
+	# Limpa os metadados de replay para evitar loop
+	session.remove_meta("replay_stage_index")
+	session.remove_meta("replay_stage_scene")
+
+	if replay_scene.is_empty() or replay_idx < 0 or replay_idx >= STAGE_CONFIGS.size():
+		return
+
+	# Seleciona visualmente a fase de replay e entra no Stage 01 se necessário
+	if replay_idx >= 0 and replay_idx <= 3:
+		_nav_state = NavState.STAGE_NAVIGATION
+		_select_stage(replay_idx, false, false)
+		_update_hotspots_visibility()
+	else:
+		_select_stage(replay_idx, false, false)
+
+	await get_tree().process_frame
+
+	# Lança a fase diretamente
+	_is_transitioning = true
+	_play_sfx(_sfx_confirm)
+
+	session.set_meta("selected_stage_index", replay_idx)
+	if session.has_method("clear_player_progression"):
+		session.clear_player_progression()
+
+	# Carrega pacotes necessários
+	var pack_mgr = get_node_or_null("/root/PackManager")
+	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+		if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("audio_bgm"):
+			if map_status_label != null:
+				map_status_label.text = "CARREGANDO RECURSOS DA FASE..."
+				map_status_label.modulate = Color(0, 0.94, 1, 1)
+			var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
+			var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
+			if not ok_stage1 or not ok_bgm:
+				_is_transitioning = false
+				if map_status_label != null:
+					map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."
+					map_status_label.modulate = Color(1.0, 0.35, 0.35, 1.0)
+				return
+
+	await get_tree().create_timer(0.3).timeout
+	var err := get_tree().change_scene_to_file(replay_scene)
+	if err != OK:
+		_is_transitioning = false
+		printerr("Erro ao auto-lançar fase de replay: ", err)
+
+
+## Compatibilidade para rotinas de teste e atalhos de transição
+func select_point(point_index: int) -> void:
+	if point_index == 1:
+		_select_stage(0, false, false)
+	elif point_index == 2:
+		_select_stage(5, false, false)
+	elif point_index == 3:
+		_select_stage(4, false, false)
+	elif point_index >= 0 and point_index < STAGE_CONFIGS.size():
+		_select_stage(point_index, false, false)
+
+
+func is_opened_from_menu() -> bool:
+	return _entry_context == "browse"
+
+
+func _on_confirm_pressed() -> void:
+	if _entry_context == "browse":
+		_on_back_pressed()
+	else:
+		_on_play_stage_pressed()
+
+
+func _handle_point_click(_click_pos: Vector2) -> void:
+	if _entry_context == "browse":
+		_on_back_pressed()
+	else:
+		_on_play_stage_pressed()
+
+
+func _select_point(idx: int) -> void:
+	_select_stage(idx, false, false)
 
 
 func _on_back_pressed() -> void:
-	if _is_transitioning or _is_in_settings or _is_in_section_select:
+	if _is_transitioning or _is_in_settings:
 		return
-	_is_transitioning = true
-	_play_sfx(_sfx_cancel)
-	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+	if _entry_context == "browse":
+		_is_transitioning = true
+		_play_sfx(_sfx_cancel)
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		return
+
+	# No Nível B, retorna ao Nível A (Overview) via zoom out
+	if _nav_state == NavState.STAGE_NAVIGATION:
+		_return_to_overview()
+	else:
+		# No Nível A, retorna ao menu principal
+		_is_transitioning = true
+		_play_sfx(_sfx_cancel)
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
 func _on_pause_pressed() -> void:
-	if _is_transitioning or _is_in_settings or _is_in_section_select:
+	if _is_transitioning or _is_in_settings:
 		return
 	_play_sfx(_sfx_confirm)
 	_open_settings()
@@ -463,7 +1017,7 @@ func _on_settings_closed(_origin: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _is_transitioning or _is_in_settings or _is_in_section_select:
+	if _is_transitioning or _is_in_settings:
 		return
 
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
@@ -477,14 +1031,37 @@ func _unhandled_input(event: InputEvent) -> void:
 		_navigate_stages(-1)
 	elif event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)):
 		_safe_handle_input()
-		_on_play_stage_pressed()
+		if _nav_state == NavState.OVERVIEW:
+			if _selected_index == 0:
+				_enter_stage_01(0)
+			elif _selected_index == 4 and is_stage_unlocked(4):
+				_on_play_stage_pressed()
+			else:
+				_play_sfx(_sfx_cancel)
+		else:
+			_on_play_stage_pressed()
+	elif event is InputEventScreenTouch and event.pressed:
+		_safe_handle_input()
+		if is_stage_unlocked(_selected_index):
+			_on_play_stage_pressed()
 
 
 func _navigate_stages(delta: int) -> void:
-	var next_idx := (_selected_index + delta) % STAGE_CONFIGS.size()
-	if next_idx < 0:
-		next_idx += STAGE_CONFIGS.size()
-	_select_stage(next_idx, true)
+	if _nav_state == NavState.STAGE_NAVIGATION:
+		# Navegação interna sequencial do Stage 01 (1-1 <-> 1-2 <-> 1-3 <-> 1-4)
+		var next_idx := clampi(_selected_index + delta, 0, 3)
+		if next_idx != _selected_index:
+			_select_stage(next_idx, true, true)
+	else:
+		# Navegação geral no Overview: Estágio 01 (0), Bônus (4), Estágio 02 (5)
+		var overview_indices: Array[int] = [0, 4, 5]
+		var cur_pos := overview_indices.find(_selected_index)
+		if cur_pos == -1:
+			cur_pos = 0
+		var next_pos := (cur_pos + delta) % overview_indices.size()
+		if next_pos < 0:
+			next_pos += overview_indices.size()
+		_select_stage(overview_indices[next_pos], true, true)
 
 
 func _safe_handle_input() -> void:

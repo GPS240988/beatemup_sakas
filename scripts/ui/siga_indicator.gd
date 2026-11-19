@@ -8,6 +8,7 @@ extends Control
 
 @export var delay_before_appear: float = 0.35
 @export var pulse_duration: float = 0.32
+@export var text: String = "SIGA →"
 
 @onready var vamos_control: Control = get_node_or_null("%VamosControl") as Control
 @onready var vamos_rect: TextureRect = get_node_or_null("%VamosRect") as TextureRect

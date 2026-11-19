@@ -13,8 +13,8 @@ enum TransitionMode {
 	FULL_PREVIEW = 2
 }
 
-const MAP_IMAGE_PATH: String = "res://assets/backgrounds/Mapa.webp"
-const FALLBACK_MAP_IMAGE_PATH: String = "res://assets/backgrounds/mapa.webp"
+const MAP_IMAGE_PATH: String = "res://assets/backgrounds/mapa_base.webp"
+const FALLBACK_MAP_IMAGE_PATH: String = "res://assets/backgrounds/Mapa.webp"
 const DEFAULT_BONUS_SCENE: String = "res://scenes/levels/bonus_garage.tscn"
 const DEFAULT_CREDITS_SCENE: String = "res://scenes/ui/credits.tscn"
 

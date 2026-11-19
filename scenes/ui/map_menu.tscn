@@ -1,7 +1,7 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/map_menu.gd" id="1_map_menu_script"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/sakas-map.webp" id="2_sakas_map_bg"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/mapa_base.webp" id="2_sakas_map_bg"]
 [ext_resource type="FontFile" path="res://assets/fonts/barlow_condensed_bold.ttf" id="3_barlow_bold"]
 [ext_resource type="FontFile" path="res://assets/fonts/barlow_condensed_extrabold_italic.ttf" id="4_barlow_extra_italic"]
 [ext_resource type="FontFile" path="res://assets/fonts/press_start_2p.ttf" id="5_press_start_font"]
@@ -10,7 +10,8 @@
 [ext_resource type="Texture2D" path="res://assets/ui/menu/icon_play.png" id="8_play_icon"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/arcade_button.tscn" id="9_arcade_btn_scene"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/settings_panel.tscn" id="10_settings_panel_scene"]
-[ext_resource type="PackedScene" path="res://scenes/ui/components/stage_section_select.tscn" id="11_section_select_scene"]
+[ext_resource type="Script" path="res://scripts/ui/map_arrow_renderer.gd" id="11_arrow_script"]
+[ext_resource type="Script" path="res://scripts/ui/map_unlock_vfx.gd" id="12_unlock_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_icon_button"]
 bg_color = Color(0.09, 0.082, 0.239, 0.95)
@@ -41,6 +42,33 @@ colors = PackedColorArray(0.012, 0.02, 0.078, 0, 0.016, 0.024, 0.078, 0.96)
 gradient = SubResource("Gradient_bottom_overlay")
 fill_to = Vector2(0, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_hud"]
+bg_color = Color(0.035, 0.04, 0.095, 0.93)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.78, 0.65, 0.22, 0.85)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.8)
+shadow_size = 8
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+bg_color = Color(0, 0.941, 1, 0.16)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.941, 1, 0.75)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [node name="MapMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -59,19 +87,55 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.02, 0.02, 0.05, 1)
 
-[node name="BackgroundTexture" type="TextureRect" parent="."]
+[node name="MapContainer" type="Control" parent="."]
 unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 1
+
+[node name="BackgroundTexture" type="TextureRect" parent="MapContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+texture = ExtResource("2_sakas_map_bg")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="RouteRenderer" type="Control" parent="MapContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="HotspotsContainer" type="Control" parent="MapContainer"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+
+[node name="MovingArrow" type="Node2D" parent="MapContainer"]
+unique_name_in_owner = true
+visible = false
+script = ExtResource("11_arrow_script")
+
+[node name="UnlockVFX" type="Node2D" parent="MapContainer"]
+unique_name_in_owner = true
+script = ExtResource("12_unlock_script")
+
+[node name="UILayer" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_sakas_map_bg")
-expand_mode = 1
-stretch_mode = 6
+mouse_filter = 2
 
-[node name="TopGradient" type="TextureRect" parent="."]
+[node name="TopGradient" type="TextureRect" parent="UILayer"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -81,30 +145,20 @@ mouse_filter = 2
 texture = SubResource("GradientTexture2D_top")
 expand_mode = 1
 
-[node name="BottomGradient" type="TextureRect" parent="."]
+[node name="BottomGradient" type="TextureRect" parent="UILayer"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -140.0
+offset_top = -220.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 texture = SubResource("GradientTexture2D_bottom")
 expand_mode = 1
 
-[node name="HotspotsContainer" type="Control" parent="."]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="TopBar" type="Control" parent="."]
+[node name="TopBar" type="Control" parent="UILayer"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -115,7 +169,7 @@ offset_bottom = 96.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="HBox" type="HBoxContainer" parent="TopBar"]
+[node name="HBox" type="HBoxContainer" parent="UILayer/TopBar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -124,7 +178,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 20
 
-[node name="BtnBack" type="Button" parent="TopBar/HBox"]
+[node name="BtnBack" type="Button" parent="UILayer/TopBar/HBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
@@ -135,19 +189,21 @@ icon = ExtResource("6_back_icon")
 icon_alignment = 1
 expand_icon = true
 
-[node name="TitlesVBox" type="VBoxContainer" parent="TopBar/HBox"]
+[node name="TitlesVBox" type="VBoxContainer" parent="UILayer/TopBar/HBox"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 0
 
-[node name="EyebrowLabel" type="Label" parent="TopBar/HBox/TitlesVBox"]
+[node name="EyebrowLabel" type="Label" parent="UILayer/TopBar/HBox/TitlesVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.941, 1, 1)
 theme_override_fonts/font = ExtResource("3_barlow_bold")
 theme_override_font_sizes/font_size = 14
-text = "ESCOLHA SEU DESTINO"
+text = "ESTÁGIO 01 — A VILA"
 
-[node name="TitleLabel" type="Label" parent="TopBar/HBox/TitlesVBox"]
+[node name="TitleLabel" type="Label" parent="UILayer/TopBar/HBox/TitlesVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.969, 0.902, 1)
 theme_override_colors/font_shadow_color = Color(0.769, 0.082, 0.271, 1)
@@ -157,12 +213,12 @@ theme_override_fonts/font = ExtResource("4_barlow_extra_italic")
 theme_override_font_sizes/font_size = 42
 text = "MAPA DA VILA"
 
-[node name="Spacer" type="Control" parent="TopBar/HBox"]
+[node name="Spacer" type="Control" parent="UILayer/TopBar/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="BtnPause" type="Button" parent="TopBar/HBox"]
+[node name="BtnPause" type="Button" parent="UILayer/TopBar/HBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(52, 52)
 layout_mode = 2
@@ -173,35 +229,124 @@ icon = ExtResource("7_pause_icon")
 icon_alignment = 1
 expand_icon = true
 
-[node name="Footer" type="Control" parent="."]
+[node name="NarrativePanel" type="PanelContainer" parent="UILayer"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = -106.0
-offset_right = -32.0
-offset_bottom = -18.0
+offset_left = 24.0
+offset_top = -196.0
+offset_right = -24.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_unified_hud")
+
+[node name="Margin" type="MarginContainer" parent="UILayer/NarrativePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 12
+
+[node name="MainHBox" type="HBoxContainer" parent="UILayer/NarrativePanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 22
+
+[node name="DossierVBox" type="VBoxContainer" parent="UILayer/NarrativePanel/Margin/MainHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BadgePanel" type="PanelContainer" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox/HeaderHBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_badge")
+
+[node name="BadgeMargin" type="MarginContainer" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox/HeaderHBox/BadgePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 3
+
+[node name="NarrativeBadge" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox/HeaderHBox/BadgePanel/BadgeMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941, 1, 1)
+theme_override_fonts/font = ExtResource("5_press_start_font")
+theme_override_font_sizes/font_size = 9
+text = "MISSÃO 1-1"
+
+[node name="NarrativeTitle" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox/HeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.969, 0.902, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("4_barlow_extra_italic")
+theme_override_font_sizes/font_size = 24
+text = "A ÚLTIMA FICHA"
+
+[node name="HeaderSpacer" type="Control" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="HBox" type="HBoxContainer" parent="Footer"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 24
-
-[node name="SelectionCard" type="HBoxContainer" parent="Footer/HBox"]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="StageNumberLabel" type="Label" parent="Footer/HBox/SelectionCard"]
+[node name="NarrativeStateBadge" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox/HeaderHBox"]
 unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941, 1, 1)
+theme_override_fonts/font = ExtResource("3_barlow_bold")
+theme_override_font_sizes/font_size = 13
+text = "DISPONÍVEL"
+
+[node name="NarrativeSynopsis" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.88, 0.9, 0.98, 1)
+theme_override_fonts/font = ExtResource("3_barlow_bold")
+theme_override_font_sizes/font_size = 16
+text = "Quatro velhos amigos descobrem uma máquina misteriosa na sala secreta. O passado e o presente colidem na rua tomada por arruaceiros."
+autowrap_mode = 2
+
+[node name="NarrativeObjective" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/DossierVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941, 1, 1)
+theme_override_fonts/font = ExtResource("3_barlow_bold")
+theme_override_font_sizes/font_size = 14
+text = "OBJETIVO: Sobreviver à emboscada na rua da locadora e abrir caminho até a entrada."
+autowrap_mode = 2
+
+[node name="Divider" type="ColorRect" parent="UILayer/NarrativePanel/Margin/MainHBox"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+color = Color(0.3, 0.4, 0.65, 0.35)
+
+[node name="Footer" type="VBoxContainer" parent="UILayer/NarrativePanel/Margin/MainHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="SelectionCard" type="HBoxContainer" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StageNumberLabel" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/SelectionCard"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 0)
 layout_mode = 2
 size_flags_vertical = 1
 theme_override_colors/font_color = Color(1, 0.678, 0.118, 1)
@@ -209,22 +354,23 @@ theme_override_colors/font_shadow_color = Color(0.624, 0.071, 0.173, 1)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 3
 theme_override_fonts/font = ExtResource("4_barlow_extra_italic")
-theme_override_font_sizes/font_size = 58
-text = "01"
+theme_override_font_sizes/font_size = 44
+text = "1-1"
 vertical_alignment = 1
 
-[node name="SelectionDetailsVBox" type="VBoxContainer" parent="Footer/HBox/SelectionCard"]
+[node name="SelectionDetailsVBox" type="VBoxContainer" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/SelectionCard"]
 layout_mode = 2
+size_flags_horizontal = 3
 alignment = 1
 
-[node name="SmallCardLabel" type="Label" parent="Footer/HBox/SelectionCard/SelectionDetailsVBox"]
+[node name="SmallCardLabel" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/SelectionCard/SelectionDetailsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.941, 1, 1)
 theme_override_fonts/font = ExtResource("5_press_start_font")
-theme_override_font_sizes/font_size = 9
-text = "FASE SELECIONADA"
+theme_override_font_sizes/font_size = 8
+text = "LOCALIDADE SELECIONADA"
 
-[node name="StageTitleLabel" type="Label" parent="Footer/HBox/SelectionCard/SelectionDetailsVBox"]
+[node name="StageTitleLabel" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/SelectionCard/SelectionDetailsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
@@ -232,36 +378,24 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_fonts/font = ExtResource("4_barlow_extra_italic")
-theme_override_font_sizes/font_size = 26
-text = "O REENCONTRO"
+theme_override_font_sizes/font_size = 20
+text = "A LOCADORA"
 
-[node name="StatusContainer" type="HBoxContainer" parent="Footer/HBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 1
-theme_override_constants/separation = 10
-
-[node name="StatusDot" type="ColorRect" parent="Footer/HBox/StatusContainer"]
-custom_minimum_size = Vector2(8, 8)
-layout_mode = 2
-size_flags_vertical = 4
-color = Color(0, 0.941, 1, 1)
-
-[node name="MapStatusLabel" type="Label" parent="Footer/HBox/StatusContainer"]
+[node name="StageSubtitleLabel" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/SelectionCard/SelectionDetailsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.788, 0.8, 0.894, 1)
+theme_override_colors/font_color = Color(0.749, 0.765, 0.851, 1)
 theme_override_fonts/font = ExtResource("3_barlow_bold")
-theme_override_font_sizes/font_size = 15
-text = "FASE 1 DISPONÍVEL"
-vertical_alignment = 1
+theme_override_font_sizes/font_size = 12
+text = "Início da Jornada · Rua da Locadora"
 
-[node name="PlayBtnContainer" type="Control" parent="Footer/HBox"]
-custom_minimum_size = Vector2(260, 54)
+[node name="PlayBtnContainer" type="Control" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer"]
+custom_minimum_size = Vector2(340, 56)
 layout_mode = 2
+size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="BtnPlayStage" parent="Footer/HBox/PlayBtnContainer" instance=ExtResource("9_arcade_btn_scene")]
+[node name="BtnPlayStage" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/PlayBtnContainer" instance=ExtResource("9_arcade_btn_scene")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -275,12 +409,28 @@ button_text = "JOGAR FASE"
 is_primary = true
 icon_texture = ExtResource("8_play_icon")
 
-[node name="SettingsPanel" parent="." instance=ExtResource("10_settings_panel_scene")]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
+[node name="StatusContainer" type="HBoxContainer" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
 
-[node name="StageSectionSelect" parent="." instance=ExtResource("11_section_select_scene")]
+[node name="StatusDot" type="ColorRect" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/StatusContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0, 0.941, 1, 1)
+
+[node name="MapStatusLabel" type="Label" parent="UILayer/NarrativePanel/Margin/MainHBox/Footer/StatusContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.788, 0.8, 0.894, 1)
+theme_override_fonts/font = ExtResource("3_barlow_bold")
+theme_override_font_sizes/font_size = 12
+text = "FASE 1-1 DISPONÍVEL"
+vertical_alignment = 1
+
+[node name="SettingsPanel" parent="." instance=ExtResource("10_settings_panel_scene")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -288,3 +438,27 @@ layout_mode = 1
 [node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
 unique_name_in_owner = true
 bus = &"Master"
+
+[node name="CompatibilityLayer" type="Control" parent="UILayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ArrowP1" type="Control" parent="UILayer/CompatibilityLayer"]
+unique_name_in_owner = true
+visible = true
+layout_mode = 0
+
+[node name="ArrowP2" type="Control" parent="UILayer/CompatibilityLayer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+
+[node name="Point2Cover" type="Control" parent="UILayer/CompatibilityLayer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0

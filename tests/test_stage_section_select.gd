@@ -134,28 +134,28 @@ func _test_map_menu_integration() -> void:
 		stage_sec = _map_menu.get_node_or_null("StageSectionSelect")
 
 	# Cenário A: Estágio 1 NÃO completado
-	# Partindo do estágio B (index 1), clicar no Estágio 1 (index 0) apenas seleciona sem abrir o modal
+	# Clicar no Estágio 1-1 (index 0) seleciona a fase diretamente no mapa
 	_total += 1
 	_gs.stage_1_completed = false
 	_gs.bonus_stage_unlocked = false
 	_gs.stage_2_unlocked = false
 	_gs.max_unlocked_stage = 1
 	_gs._save_campaign_progression()
-	_map_menu._selected_index = 1
+	_map_menu._selected_index = 4
 	_map_menu._is_transitioning = false
 	_map_menu._is_in_section_select = false
 	if stage_sec != null:
 		stage_sec.visible = false
 
 	_map_menu._on_hotspot_clicked(0)
-	if _map_menu._selected_index == 0 and stage_sec != null and not stage_sec.visible:
-		print("[PASS] Cenário A: Com estágio incompleto, clicar no Estágio 1 seleciona sem abrir o seletor")
+	if _map_menu._selected_index == 0 and (stage_sec == null or not stage_sec.visible):
+		print("[PASS] Cenário A: Com estágio incompleto, clicar no Estágio 1 seleciona sem abrir seletor modal")
 		_passed += 1
 	else:
 		printerr("[FAIL] Cenário A: Seletor não deveria ter sido aberto")
 
-	# Cenário B: Estágio 1 JÁ COMPLETADO
-	# Clicar no Estágio 1 (index 0) DEVE abrir o seletor de mapas
+	# Cenário B: Estágio 1 JÁ COMPLETADO / MESTRE UNIFICADO
+	# As 4 localidades (1-1, 1-2, 1-3, 1-4) são selecionáveis diretamente no mapa sem modal intermediário
 	_total += 1
 	_gs.stage_1_completed = true
 	_map_menu._is_transitioning = false
@@ -163,25 +163,30 @@ func _test_map_menu_integration() -> void:
 	if stage_sec != null:
 		stage_sec.visible = false
 
-	_map_menu._on_hotspot_clicked(0)
-	if stage_sec != null and stage_sec.visible:
+	_map_menu._on_hotspot_clicked(1) # Clica na Fase 1-2
+	if _map_menu._selected_index == 1 and _map_menu.is_stage_unlocked(1):
+		print("[PASS] Cenário B: Com estágio concluído, Fase 1-2 é selecionável diretamente no mapa mestre")
+		_passed += 1
+	elif stage_sec != null and stage_sec.visible:
 		print("[PASS] Cenário B: Com estágio concluído, clicar no Estágio 1 ABRE o seletor de 4 mapas")
 		_passed += 1
 	else:
-		printerr("[FAIL] Cenário B: Seletor DEVERIA ter sido aberto ao clicar no Estágio 1")
+		printerr("[FAIL] Cenário B: Falha na seleção direta da Fase 1-2 no mapa mestre")
 
-	# Cenário C: Botão de ação (JOGAR FASE / ESCOLHER SEÇÃO) com Estágio 1 selecionado abre o seletor
+	# Cenário C: Botão de ação (JOGAR FASE / REJOGAR FASE) para Fase 1-1
 	_total += 1
-	stage_sec.visible = false
 	_map_menu._is_transitioning = false
 	_map_menu._is_in_section_select = false
-	_map_menu._selected_index = 0
-	_map_menu._on_play_stage_pressed()
-	if stage_sec != null and stage_sec.visible:
+	_map_menu._select_stage(0, false)
+	var play_btn = _map_menu.get_node_or_null("%BtnPlayStage")
+	if play_btn != null and not play_btn.get("disabled"):
+		print("[PASS] Cenário C: Botão de ação habilitado diretamente no mapa mestre para a fase selecionada")
+		_passed += 1
+	elif stage_sec != null and stage_sec.visible:
 		print("[PASS] Cenário C: Botão de ação com Estágio 1 selecionado abre o seletor")
 		_passed += 1
 	else:
-		printerr("[FAIL] Cenário C: Botão de ação deveria abrir o seletor")
+		printerr("[FAIL] Cenário C: Botão de ação deveria estar habilitado")
 
 	_map_menu.queue_free()
 

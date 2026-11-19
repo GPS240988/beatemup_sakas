@@ -77,7 +77,11 @@ func _ready() -> void:
 		if not get_viewport().size_changed.is_connected(_update_layout_geometry):
 			get_viewport().size_changed.connect(_update_layout_geometry)
 
-	_select_difficulty("normal", false)
+	var initial_diff := "normal"
+	var gs = get_node_or_null("/root/GameSession")
+	if gs != null and "difficulty_id" in gs and str(gs.difficulty_id) in ["normal", "dificil"]:
+		initial_diff = str(gs.difficulty_id)
+	_select_difficulty(initial_diff, false)
 	if MobileScreenAction.is_mobile_runtime():
 		# No mobile, o toque direto nos cards seleciona/confirma; sem dock buttons.
 		if btn_start_game != null:
@@ -303,13 +307,49 @@ func _on_start_pressed() -> void:
 	_play_sound(_sfx_confirm)
 
 	var game_session = get_node_or_null("/root/GameSession")
+	var is_replay: bool = false
+	var replay_target: String = ""
+
 	if game_session != null:
-		game_session.set_meta("map_entry_context", "campaign")
-		game_session.difficulty_id = current_difficulty
-		game_session.difficulty_selected.emit(current_difficulty)
+		var current_context: String = ""
+		if game_session.has_meta("map_entry_context"):
+			current_context = str(game_session.get_meta("map_entry_context"))
+
+		if current_context == "replay":
+			is_replay = true
+			if game_session.has_meta("replay_stage_scene"):
+				replay_target = str(game_session.get_meta("replay_stage_scene"))
+			game_session.remove_meta("replay_stage_index")
+			game_session.remove_meta("replay_stage_scene")
+			game_session.set_meta("map_entry_context", "continue")
+
+		if is_replay:
+			if game_session.has_method("select_difficulty"):
+				game_session.select_difficulty(current_difficulty)
+			else:
+				game_session.difficulty_id = current_difficulty
+				game_session.difficulty_selected.emit(current_difficulty)
+			if game_session.has_method("clear_player_progression"):
+				game_session.clear_player_progression()
+		else:
+			game_session.set_meta("map_entry_context", "campaign")
+			game_session.difficulty_id = current_difficulty
+			game_session.difficulty_selected.emit(current_difficulty)
 
 	_safe_handle_input()
 	await get_tree().create_timer(0.15).timeout
+
+	if is_replay and not replay_target.is_empty():
+		var pack_mgr = get_node_or_null("/root/PackManager")
+		if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
+			await pack_mgr.ensure_pack_loaded_async("stage1")
+			await pack_mgr.ensure_pack_loaded_async("audio_bgm")
+
+		var err := get_tree().change_scene_to_file(replay_target)
+		if err == OK:
+			return
+		printerr("Erro ao carregar a fase de replay: ", err)
+
 	var err := get_tree().change_scene_to_file(MAP_MENU_SCENE)
 	if err != OK:
 		err = get_tree().change_scene_to_file(INSTRUCTIONS_SCENE)

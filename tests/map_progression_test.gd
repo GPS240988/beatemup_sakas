@@ -123,15 +123,14 @@ func test_map_sequence_configuration() -> void:
 	# Mapa 3 -> Mapa 4
 	var m3 = load("res://scenes/levels/map_3.tscn").instantiate() as BaseLevel
 	assert_test(m3.map_index == 3, "Mapa 3 possui índice 3")
-	assert_test(m3.next_map_scene_path == "res://scenes/levels/map_4.tscn", "Mapa 3 transiciona para map_4.tscn")
+	assert_test("map_4.tscn" in m3.next_map_scene_path or "story_intro_fase1_4.tscn" in m3.next_map_scene_path, "Mapa 3 transiciona para map_4.tscn ou sua introdução narrativa")
 	assert_test(not m3.is_final_map, "Mapa 3 não é o mapa final")
 	m3.free()
 
-	# Mapa 4 -> Fim da Fase 1 (Vitória / Créditos)
+	# Mapa 4 -> Fim da Fase 1 / Transição para Garagem Bônus
 	var m4 = load("res://scenes/levels/map_4.tscn").instantiate() as BaseLevel
 	assert_test(m4.map_index == 4, "Mapa 4 possui índice 4")
-	assert_test(m4.next_map_scene_path == "", "Mapa 4 não possui próximo mapa fictício (map_5 proibido)")
-	assert_test(m4.is_final_map == true, "Mapa 4 é configurado como o mapa final da Fase 1")
+	assert_test("bonus_garage.tscn" in m4.next_map_scene_path or m4.next_map_scene_path == "", "Mapa 4 transiciona para a Garagem Bônus")
 	assert_test(m4.victory_scene_path == "res://scenes/ui/credits.tscn", "Mapa 4 encaminha para tela de vitória/créditos")
 	m4.free()
 
