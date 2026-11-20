@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://d223sptjoemgr" path="res://scripts/ui/difficulty_select.gd" id="1_diff_select_script"]
 [ext_resource type="Texture2D" uid="uid://dqix3lr26fch1" path="res://assets/backgrounds/dificuldade.webp" id="2_diff_normal_bg"]
-[ext_resource type="Texture2D" uid="uid://btw6p13qp43ok" path="res://assets/backgrounds/dificuldade_dificil.webp" id="3_diff_dificil_bg"]
 
 [node name="DifficultySelect" type="Control" unique_id=237043450]
 layout_mode = 3
@@ -34,19 +33,6 @@ texture = ExtResource("2_diff_normal_bg")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="BackgroundDificil" type="TextureRect" parent="." unique_id=2097688507]
-unique_name_in_owner = true
-modulate = Color(1, 1, 1, 0)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("3_diff_dificil_bg")
-expand_mode = 1
-stretch_mode = 5
-
 [node name="ClickZones" type="Control" parent="." unique_id=1332910208]
 layout_mode = 1
 anchors_preset = 15
@@ -55,23 +41,33 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="Card_facil" type="Button" parent="ClickZones" unique_id=1376267977]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 173.0
+offset_top = 258.0
+offset_right = 483.0
+offset_bottom = 558.0
+mouse_default_cursor_shape = 2
+flat = true
+
 [node name="Card_normal" type="Button" parent="ClickZones" unique_id=1376267978]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 220.0
-offset_top = 260.0
-offset_right = 650.0
-offset_bottom = 560.0
+offset_left = 500.0
+offset_top = 265.0
+offset_right = 808.0
+offset_bottom = 565.0
 mouse_default_cursor_shape = 2
 flat = true
 
 [node name="Card_dificil" type="Button" parent="ClickZones" unique_id=1310654021]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 650.0
-offset_top = 260.0
-offset_right = 1040.0
-offset_bottom = 560.0
+offset_left = 822.0
+offset_top = 262.0
+offset_right = 1157.0
+offset_bottom = 562.0
 mouse_default_cursor_shape = 2
 flat = true
 

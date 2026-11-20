@@ -153,14 +153,15 @@ func _ready() -> void:
 	if hurtbox_area != null:
 		hurtbox_area.body_entered.connect(_on_hurtbox_body_entered)
 
-	# Vida base ajustada considerando dificuldade (GameSession: normal=1.0, dificil=2.1)
-	var health_mult: float = 1.0
-	if is_inside_tree():
-		var session = get_node_or_null("/root/GameSession") as GameSessionClass
-		if session != null:
-			var diff_data: Dictionary = session.DIFFICULTIES.get(session.difficulty_id, {})
-			health_mult = float(diff_data.get("enemy_health_mult", 1.0))
-	if health_component != null:
+	# Mantém a compatibilidade histórica de Normal/Difícil. No Fácil, a escala
+	# global fica exclusivamente sob responsabilidade do CombatDirector.
+	var selected_difficulty: String = "normal"
+	var session = get_node_or_null("/root/GameSession") as GameSessionClass
+	if session != null:
+		selected_difficulty = str(session.difficulty_id)
+	if selected_difficulty != "facil" and health_component != null:
+		var diff_data: Dictionary = session.DIFFICULTIES.get(selected_difficulty, {}) if session != null else {}
+		var health_mult: float = float(diff_data.get("enemy_health_mult", 1.0))
 		health_component.max_health = base_health * health_mult
 		health_component.current_health = base_health * health_mult
 
@@ -187,14 +188,13 @@ func _ensure_internal_refs() -> void:
 	if health_component == null:
 		health_component = get_node_or_null("HealthComponent") as HealthComponent
 		if health_component != null:
-			var health_mult: float = 1.0
-			if is_inside_tree():
-				var session = get_node_or_null("/root/GameSession") as GameSessionClass
-				if session != null:
-					var diff_data: Dictionary = session.DIFFICULTIES.get(session.difficulty_id, {})
-					health_mult = float(diff_data.get("enemy_health_mult", 1.0))
-			health_component.max_health = base_health * health_mult
-			health_component.current_health = base_health * health_mult
+			var session = get_node_or_null("/root/GameSession") as GameSessionClass
+			var selected_difficulty: String = str(session.difficulty_id) if session != null else "normal"
+			if selected_difficulty != "facil":
+				var diff_data: Dictionary = session.DIFFICULTIES.get(selected_difficulty, {}) if session != null else {}
+				var health_mult: float = float(diff_data.get("enemy_health_mult", 1.0))
+				health_component.max_health = base_health * health_mult
+				health_component.current_health = base_health * health_mult
 	if melee_attack == null:
 		melee_attack = get_node_or_null("MeleeAttack") as MeleeAttack
 	if hurtbox_area == null:

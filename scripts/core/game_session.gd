@@ -107,6 +107,12 @@ const SKINS: Dictionary = {
 
 ## Dificuldades disponíveis
 const DIFFICULTIES: Dictionary = {
+	"facil": {
+		"name": "Fácil",
+		"description": "Mais tempo para aprender e reagir",
+		"enemy_health_mult": 0.75,
+		"enemy_damage_mult": 0.65
+	},
 	"normal": {
 		"name": "Normal",
 		"description": "Desafio equilibrado",

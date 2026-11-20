@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="StorySequence" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="StorySequence" format=3 uid="uid://c37182o0fj67j"]
 
-[ext_resource type="Script" path="res://scripts/events/story_event.gd" id="1_event"]
-[ext_resource type="Script" path="res://scripts/events/story_sequence.gd" id="2_sequence"]
+[ext_resource type="Script" uid="uid://cui1xsniw4o15" path="res://scripts/events/story_event.gd" id="1_event"]
+[ext_resource type="Script" uid="uid://ce5rfrdbai2vl" path="res://scripts/events/story_sequence.gd" id="2_sequence"]
 
 [sub_resource type="Resource" id="Resource_stage2_call"]
 script = ExtResource("1_event")
@@ -15,24 +15,18 @@ entry_effect = "slow_zoom"
 exit_effect = "crossfade"
 transition_duration = 0.45
 pause_after = 0.25
-zoom_start = 1.0
 zoom_end = 1.015
-safe_framing = true
 
 [sub_resource type="Resource" id="Resource_stage2_machine"]
 script = ExtResource("1_event")
 id = "stage2_machine_silent"
 event_type = "revelation"
 image_path = "res://assets/backgrounds/maps/fase2/story_happen_fase2_1.webp"
-texts = Array[String]([])
 duration_per_text = 4.5
 entry_effect = "crossfade"
 exit_effect = "crossfade"
 transition_duration = 0.45
 pause_after = 0.2
-zoom_start = 1.0
-zoom_end = 1.0
-safe_framing = true
 hide_panel_initially = true
 
 [sub_resource type="Resource" id="Resource_stage2_decision"]
@@ -44,10 +38,8 @@ texts = Array[String](["Se eu não me engano, esse lugar é uma antiga pizzaria 
 speakers = Array[String](["GABRIEL", "GUILHERME", "GABRIEL"])
 duration_per_text = 4.0
 entry_effect = "quick_dialogue_crossfade"
-exit_effect = "fade_out"
 transition_duration = 0.45
 pause_after = 0.3
-safe_framing = true
 
 [resource]
 script = ExtResource("2_sequence")

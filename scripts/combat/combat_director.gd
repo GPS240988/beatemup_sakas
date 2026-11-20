@@ -158,8 +158,14 @@ func apply_difficulty_profile(profile: Resource) -> void:
 	token_timeout_seconds = profile.token_timeout_seconds
 
 	var session = get_node_or_null("/root/GameSession")
-	if session != null and "difficulty_id" in session and str(session.difficulty_id).to_lower() == "dificil":
-		token_timeout_seconds = profile.token_timeout_seconds * 0.85
+	if session != null and "difficulty_id" in session:
+		var selected_difficulty: String = str(session.difficulty_id).to_lower()
+		if selected_difficulty == "dificil":
+			token_timeout_seconds = profile.token_timeout_seconds * 0.85
+		elif selected_difficulty == "facil":
+			# No modo Fácil, apenas um inimigo recebe iniciativa por vez.
+			max_attack_tokens = 1
+			max_simultaneous_active_enemy_attacks = 1
 
 	for enemy in registered_enemies:
 		_apply_profile_to_enemy(enemy)
@@ -193,11 +199,16 @@ func _apply_profile_to_enemy(enemy: CharacterBody2D) -> void:
 
 	var base_windup: float = float(enemy.get_meta("base_attack_windup", enemy.get("attack_windup_seconds")))
 	var base_cooldown: float = float(enemy.get_meta("base_attack_cooldown", enemy.get("attack_cooldown")))
+	if not enemy.has_meta("base_recovery_duration") and enemy.get("recovery_duration") != null:
+		enemy.set_meta("base_recovery_duration", float(enemy.get("recovery_duration")))
+	var base_recovery: float = float(enemy.get_meta("base_recovery_duration", enemy.get("recovery_duration")))
 
 	# Integração do Modo de Dificuldade Global (GameSession: Normal vs Difícil)
 	var global_hp_mult: float = 1.0
 	var global_dmg_mult: float = 1.0
 	var global_aggression_mult: float = 1.0
+	var global_telegraph_mult: float = 1.0
+	var global_recovery_mult: float = 1.0
 	var session = get_node_or_null("/root/GameSession")
 	if session != null and "difficulty_id" in session:
 		var diff_id: String = str(session.difficulty_id).to_lower()
@@ -207,12 +218,19 @@ func _apply_profile_to_enemy(enemy: CharacterBody2D) -> void:
 			global_dmg_mult = float(diff_data.get("enemy_damage_mult", 1.0))
 			if diff_id == "dificil":
 				global_aggression_mult = 1.25
+			elif diff_id == "facil":
+				# Menor prontidão ofensiva e aviso mais longo para ampliar a reação.
+				global_aggression_mult = 0.75
+				global_telegraph_mult = 1.20
+				global_recovery_mult = 1.25
 
 	if enemy.get("attack_windup_seconds") != null:
 		var windup_speed: float = 1.15 if global_aggression_mult > 1.0 else 1.0
-		enemy.attack_windup_seconds = (base_windup * difficulty_profile.telegraph_duration_multiplier) / windup_speed
+		enemy.attack_windup_seconds = (base_windup * difficulty_profile.telegraph_duration_multiplier * global_telegraph_mult) / windup_speed
 	if enemy.get("attack_cooldown") != null:
 		enemy.attack_cooldown = base_cooldown / maxf(0.1, difficulty_profile.attack_frequency_multiplier * global_aggression_mult)
+	if global_recovery_mult != 1.0 and enemy.get("recovery_duration") != null:
+		enemy.set("recovery_duration", base_recovery * global_recovery_mult)
 
 	if enemy.get("health_component") != null:
 		var hc: HealthComponent = enemy.health_component
