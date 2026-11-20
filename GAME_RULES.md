@@ -33,6 +33,11 @@ Beat 'em up 2.5D arcade clássico inspirado nos títulos dos anos 90, ambientado
 2. **Engenharia de Software e DevOps Sênior**:
    - GDScript fortemente tipado, desacoplamento por composição e componentes modulares.
    - Garantia de 60 FPS contínuos em Desktop e Mobile, ausência de vazamento de memória e suíte automatizada de testes headless (`godot_console.exe --headless -s tests/...`).
+3. **Diretrizes de Engenharia de Código e Economia de Tokens (Karpathy Guidelines)**:
+   - **Think Before Coding (Pensar Antes de Codificar)**: Explicite suposições antes de implementar. Em caso de ambiguidade ou múltiplos caminhos, apresente as opções de forma concisa em vez de adivinhar silenciosamente.
+   - **Simplicity First (Simplicidade em Primeiro Lugar)**: Escreva estritamente o código mínimo necessário para resolver o problema com robustez. Zero código especulativo, zero abstrações prematuras para uso único e zero tratamento defensivo para cenários impossíveis (economia drástica de tokens e contexto).
+   - **Surgical Changes (Alterações Cirúrgicas)**: Altere única e exclusivamente os blocos e arquivos diretamente relacionados à solicitação. Não refatore nem "melhore" código adjacente que já esteja funcionando. Cada linha alterada deve ter rastreabilidade direta com o objetivo do usuário.
+   - **Goal-Driven Execution (Execução Orientada a Metas e Testes)**: Defina critérios de sucesso claros e mensuráveis antes de codificar. Valide cada alteração executando testes pontuais headless (`godot_console.exe --headless -s tests/<teste>.gd`), garantindo zero regressões antes de concluir a entrega.
 
 ### 1.2.1. Contrato de Direção de Arte — Vila Prudente Temporal
 `STATUS: PLANNED`
@@ -69,40 +74,46 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
    ```text
    TitleScreen (title_screen.tscn)
      ↓ [Toque / Espaço / Enter]
-   MainMenu (main_menu.tscn) — Botão 'Selecionar Personagens' DESABILITADO
-     ↓ [Novo Jogo / Iniciar]
-   CharacterSelect (character_select.tscn)
-     ↓ [Confirmar Herói Guilherme]
-   DifficultySelect (difficulty_select.tscn) — com assets/backgrounds/dificuldade.webp
-     ↓ [Confirmar Normal ou Difícil]
-   MapMenu (map_menu.tscn) — com assets/backgrounds/mapa_base.webp (Menu Mestre Unificado para Novo Jogo e Continuar)
-     ↓ [Confirmar Fase 1-1 / Iniciar História]
-   LoadingScreen / Instruções (loading_screen.tscn) — com assets/backgrounds/Instruções_1.webp
-     ↓ [Qualquer Tecla / Clique para Continuar]
-   Abertura Narrativa Cinemática (NarrativeDirector — Saka's: A Última Ficha)
-     ↓ [Avanço Automático / [Espaço] / [ESC] Pular]
-   Fase 1-1: A Locadora (scenes/levels/map_1.tscn)
+   MainMenu (main_menu.tscn) — JOGAR / CONTINUAR / CONFIGURAÇÕES / SAIR
+     ├── [JOGAR / NOVO JOGO]
+     │     ↓ reset da sessão em memória (sem apagar o save persistido)
+     │   CharacterSelect (character_select.tscn)
+     │     ↓ [Confirmar personagem]
+     │   DifficultySelect (difficulty_select.tscn) — Fácil / Normal / Difícil
+     │     ↓ [Confirmar dificuldade]
+     │   MapMenu (map_menu.tscn) — contexto campaign
+     │     ↓ [Iniciar História]
+     │   Abertura Narrativa (res://scenes/story/story_intro.tscn)
+     │     ↓
+     │   Fase 1-1: A Locadora (scenes/levels/map_1.tscn)
+     │
+     └── [CONTINUAR]
+           ↓ carregar progressão persistida da campanha
+         MapMenu (map_menu.tscn) — contexto continue (sem CharacterSelect/DifficultySelect)
    ```
-   *Nota de Navegação Inversa e Abertura Narrativa*:
-   - Ao iniciar um **NOVO JOGO** (`map_entry_context == "campaign"`), a Fase 1-1 ("A Locadora") inicia a campanha canônica pela narrativa/story_intro.
-   - Ao **CONTINUAR** partida salva (save slot ou menu Continuar), a tela de Mapa Mestre (`map_menu.tscn`) carrega a progressão persistida e disponibiliza diretamente as localidades desbloqueadas (1-1 A Locadora, 1-2 Balcão da Locadora, 1-3 Travessa da Locadora, 1-4 Torquato Tasso, B Garagem).
-   - O modal intermediário `StageSectionSelect` foi eliminado da tela de mapa: os 4 pontos são componentes visuais `MapStagePoint` dispostos diretamente sobre a rota do cenário limpo `mapa_base.webp`.
-   - Na tela de instruções (`loading_screen.tscn`), [ESC] ou 'Voltar' retorna ao Mapa (`map_menu.tscn`).
-   - Na tela de Mapa (`map_menu.tscn`), se acessada durante a campanha (após seleção de dificuldade), [ESC] retorna a `difficulty_select.tscn`. Se acessada diretamente pelo Menu Principal, retorna a `main_menu.tscn`.
-   - Navegação no Mapa: Teclado (`A/D`, Setas), Gamepad, Mouse e Touch selecionam as localidades com seta arcade animada flutuante e exibem detalhes no painel inferior.
-   - **Fluxo de Replay ("REJOGAR FASE")**:
-     - Ao clicar no botão "REJOGAR FASE" em qualquer fase já concluída, o fluxo direciona o jogador para a tela de Seleção de Personagem (`character_select.tscn`) e em seguida para a Seleção de Dificuldade (`difficulty_select.tscn`).
-     - Isso permite ao jogador rejogar fases anteriores experimentando outros heróis (ex: Guilherme, Gabriel) e alterando a dificuldade (Normal, Difícil).
-     - Durante o fluxo de replay, pressionar [ESC] / Voltar na Seleção de Personagem retorna com segurança ao Mapa Mestre (`map_menu.tscn`), restaurando o contexto anterior sem redirecionar ao Menu Principal.
-     - Ao confirmar a dificuldade na Seleção de Dificuldade durante o replay, a fase selecionada para rejogabilidade é iniciada diretamente, aplicando as novas configurações de herói e dificuldade e reiniciando a progressão local da fase (HP cheio e Especial zerado).
+   *Nota de Navegação, Contextos de Entrada e Abertura Narrativa*:
+    - **NOVO JOGO** (`map_entry_context == "campaign"`): `main_menu.gd` redefine o estado de campanha em memória, sem apagar o arquivo persistido utilizado por CONTINUAR. Em seguida, abre `character_select.tscn`, `difficulty_select.tscn` e `map_menu.tscn`. A dificuldade escolhida é exibida no cabeçalho do Mapa Mestre; ao iniciar a primeira localidade, o mapa abre diretamente `story_intro.tscn` antes da Fase 1-1.
+    - **CONTINUAR** (`map_entry_context == "continue"`): `main_menu.gd` carrega a progressão persistida e abre diretamente `map_menu.tscn`, sem passar pela seleção de personagem ou de dificuldade. O mapa também recarrega a progressão ao iniciar nesse contexto.
+    - **Exceção visual de debug no CONTINUAR**: os seis pontos configurados no mapa são apresentados como desbloqueados para inspeção: 1-1, 1-2, 1-3, 1-4, Garagem Bônus 1 e Estágio 02 — Happen. Essa liberação é apenas visual/de navegação e não altera flags de conclusão, progressão persistida ou arquivo de save. Happen pode ser selecionado para inspeção, mas não pode iniciar gameplay enquanto sua configuração não possuir uma cena jogável (`scene` vazia).
+    - **Progressão normal do NOVO JOGO**: permanece sujeita aos desbloqueios reais da campanha; a exceção de debug não é aplicada ao contexto `campaign`.
+    - O modal intermediário `StageSectionSelect` foi eliminado da tela de mapa: os pontos são componentes visuais `MapStagePoint` dispostos diretamente sobre a rota do cenário limpo `mapa_base.webp`.
+    - Na tela de instruções (`loading_screen.tscn`), [ESC] ou 'Voltar' retorna ao Mapa (`map_menu.tscn`).
+    - Na tela de Mapa (`map_menu.tscn`), [ESC] ou Voltar retorna do Nível B ao Overview; no Overview, retorna ao Menu Principal. A exceção de retorno à `difficulty_select.tscn` não se aplica ao fluxo atual de mapa.
+    - Navegação no Mapa: Teclado (`A/D`, Setas), Gamepad, Mouse e Touch selecionam as localidades com seta arcade animada flutuante e exibem detalhes no painel inferior.
+    - **Fluxo de Replay ("REJOGAR FASE")**:
+      - Ao clicar no botão "REJOGAR FASE" em qualquer fase já concluída, o fluxo direciona o jogador para a tela de Seleção de Personagem (`character_select.tscn`) e em seguida para a Seleção de Dificuldade (`difficulty_select.tscn`).
+      - Isso permite ao jogador rejogar fases anteriores experimentando outros heróis (ex: Guilherme, Gabriel) e alterando a dificuldade (Fácil, Normal ou Difícil).
+      - Durante o fluxo de replay, pressionar [ESC] / Voltar na Seleção de Personagem retorna com segurança ao Mapa Mestre (`map_menu.tscn`), restaurando o contexto anterior sem redirecionar ao Menu Principal.
+      - Ao confirmar a dificuldade na Seleção de Dificuldade durante o replay, a fase selecionada para rejogabilidade é iniciada diretamente, aplicando as novas configurações de herói e dificuldade e reiniciando a progressão local da fase (HP cheio e Especial zerado).
 
    *Arquitetura Cinemática de Navegação em Dois Níveis (`map_menu.tscn`)*:
    - **Nível A — Visão Geral da Campanha (`NavState.OVERVIEW`)**:
      - Exibição panorâmica integral do mapa `mapa_base.webp` (1920×1080) na escala base `1280.0 / 1920.0 = 0.666667` (sem bordas pretas).
-     - Exibe exclusivamente os marcadores de estágio principais: Estágio 01, Garagem Bônus (com arte especial diferenciada) e Estágio 02 (inabilitado / bloqueado).
+     - Exibe exclusivamente os marcadores de estágio principais: Estágio 01, Garagem Bônus (com arte especial diferenciada) e Estágio 02 — Happen.
+     - No contexto `continue`, os três marcadores do Overview ficam visualmente disponíveis para inspeção; no contexto de campanha, aplicam-se os desbloqueios reais.
      - Os 4 sub-mapas internos do Estágio 01 (1-2, 1-3, 1-4) permanecem estritamente ocultos no Nível A.
      - Ao clicar ou confirmar sobre o Estágio 01, o zoom-in ocorre expandindo os 4 mapas (transição para Nível B).
-     - Estágios futuros ainda não desenvolvidos (Estágio 02) permanecem inabilitados com ícone de cadeado.
+     - No contexto `campaign`, estágios futuros ainda não desenvolvidos (Estágio 02) permanecem bloqueados com ícone de cadeado. No contexto `continue`, Happen recebe apenas liberação visual de debug e continua sem possibilidade de iniciar gameplay enquanto não houver cena jogável.
    - **Nível B — Navegação Interna do Stage 01 (`NavState.STAGE_NAVIGATION`)**:
      - Aproximação de câmera calibrada (~1.42× da escala base = ~0.9467, nitidez nativa 1:1 HD Pixel Art).
      - Expansão visual das 4 localidades do Estágio 01: 1-1 A Locadora, 1-2 Balcão da Locadora, 1-3 Travessa da Locadora e 1-4 Torquato Tasso.
@@ -155,7 +166,7 @@ PROGRESSION (ExitArea, SigaIndicator, LoadingScreen, Troca de Níveis)
      - 1-3 Travessa da Locadora (`map_3.tscn`): beco e emboscada.
      - 1-4 Torquato Tasso (`map_4.tscn`): bar da vila e Alessandro.
      - B Garagem (`bonus_garage.tscn`): fase de bônus especial (ícone de presente).
-     - 02 Happen: estágio 02 (desbloqueado após bônus).
+     - 02 Happen: Estágio 02; no fluxo normal de campanha, desbloqueado após a Garagem Bônus. No CONTINUAR, recebe também liberação visual temporária para debug, sem iniciar gameplay.
    - Estados visuais de cada localidade:
      - **Disponível**: borda e medalhão com brilho ciano vibrante.
      - **Concluído**: destaque dourado Dark Premium Medieval.
@@ -875,17 +886,24 @@ MapX (Node2D, script: base_level.gd)
    - **Desktop preservado**: No desktop, a proporção 16:9 clássica (`ratio = 1.777778`, `STRETCH_KEEP_ASPECT_CENTERED`, `scale_factor = minf(...)`) é mantida estritamente inalterada.
    - Nos mapas da Fase 1, `mobile_base_level.gd` realiza clamp dinâmico de câmera e cálculo de zoom adaptativo (`_apply_mobile_camera_bounds`), impedindo vazamento de margens cinzas além da arte do mapa em qualquer proporção de tela.
 
-3. **UX & Seleção de Dificuldade Desobstruída ("Dark Premium Medieval")**:
-   - As cartas de dificuldade possuem hitboxes responsivas calculadas em runtime via `_get_background_rendered_rect()`.
-   - **Arte Limpa sem Textos Centralizados Sobrepostos**: Rótulos e badges redundantes no meio da tela foram completamente removidos (`btn_start_game.text = ""` e `_selection_badge.visible = false`). A arte cinematográfica oficial (`dificuldade.webp` vs `dificuldade_dificil.webp`) comunica o modo ativo de forma visualmente nobre através de crossfade suave e responsivo.
-   - Atualização dinâmica da ação contextual mobile no dock inferior (`INICIAR NO MODO NORMAL` vs `INICIAR NO MODO DIFÍCIL`), garantindo resposta tátil imediata em cliques e toques.
+3. **UX & Seleção de Dificuldade (Fácil / Normal / Difícil)**:
+   - A tela `difficulty_select.tscn` utiliza a arte única `assets/backgrounds/dificuldade.webp`, com três áreas interativas alinhadas às opções pintadas: **Fácil** (`facil`), **Normal** (`normal`) e **Difícil** (`dificil`).
+   - As hitboxes são calculadas em runtime por `_get_background_rendered_rect()` e `_update_layout_geometry()`, respeitando a área efetivamente renderizada do background em Desktop e Mobile.
+   - A seleção é indicada por um retículo aberto de quatro cantos e marcadores centrais, desenhado em camadas de neon. As cores identificam os modos: verde para Fácil, vermelho para Normal e azul/ciano para Difícil.
+   - Ao abrir a tela e após cada seleção, o retículo recebe destaque reforçado por **2 segundos** (quatro ciclos de pulso de 0,5 s); em seguida, retorna ao pulso discreto contínuo, mantendo a opção selecionada claramente identificável.
+   - A ação contextual do dock mobile acompanha a opção selecionada (`CONFIRMAR: FÁCIL`, `CONFIRMAR: NORMAL` ou `CONFIRMAR: DIFÍCIL`). No Desktop, os controles de confirmação e retorno permanecem posicionados sobre a arte.
+   - `GameSession.DIFFICULTIES` define os multiplicadores: Fácil (`enemy_health_mult = 0.75`, `enemy_damage_mult = 0.65`); Normal (`enemy_health_mult = 1.0`, `enemy_damage_mult = 1.0`); Difícil (`enemy_health_mult = 2.1`, `enemy_damage_mult = 1.95`). A dificuldade é armazenada em `GameSession.difficulty_id` ao confirmar.
 
 3.1. **Regras de Navegação e Menu Principal (Desktop e Mobile)**:
-   - **Opção 'Personagens' (`BtnCharSelect`)**: Desabilitada permanentemente tanto no modo Desktop quanto no Mobile (`disabled = true`). Clicar ou ativar a opção não executa ação nem transição.
-   - **Opção 'Configurações' (`BtnSettings`)**: Habilitada na apresentação visual mobile e desktop, comportando-se a princípio como no-op ao ser clicada (sem travamento, sem ruído de recusa e sem alterar o estado do jogo, idêntica ao desktop).
+   - **Opção JOGAR (`BtnPlay`)**: Inicia o fluxo de NOVO JOGO, redefinindo o estado da campanha em memória e abrindo a seleção de personagem.
+   - **Opção CONTINUAR (`BtnContinue`)**: Carrega a progressão persistida e abre diretamente o Mapa Mestre no contexto `continue`.
+   - **Opção CONFIGURAÇÕES (`BtnSettings`)**: Abre o painel integrado de configurações do Menu Principal.
+   - **Opção SAIR (`BtnQuit`)**: Encerra o jogo no Desktop ou invoca a saída Web.
    - **Menu de Mapa (`MapMenu`)**:
-     - *Acesso via Menu Principal (Browse)*: Ao ser acessado através da opção "MAPA" do Menu Principal (`map_entry_context = "browse"`), o mapa atua em modo de consulta/visualização e o acionamento de qualquer botão, tecla ou toque na tela retorna diretamente ao Menu Principal (`res://scenes/ui/main_menu.tscn`).
-     - *Acesso por Campanha / Outros Fluxos (Novo Jogo, Continuar, Próximo Mapa)*: Segue o fluxo canônico de jogo — permite navegar pela trilha com setas/cliques nas fases desbloqueadas, confirmação ([Enter], [Espaço] ou clique na fase) avança para a fase correspondente (`loading_screen.tscn` / `map_X.tscn`), e cancelar/voltar ([ESC] ou botão Voltar) retorna à tela de seleção de dificuldade (`difficulty_select.tscn`).
+     - *Acesso via Menu Principal (Browse)*: Ao ser acessado através da opção de visualização do Menu Principal (`map_entry_context = "browse"`), o mapa atua em modo de consulta; Voltar retorna diretamente ao Menu Principal (`res://scenes/ui/main_menu.tscn`).
+     - *Acesso por Novo Jogo (`campaign`)*: Permite navegar pelas localidades conforme a progressão da campanha; iniciar a primeira fase abre a história. O cabeçalho do mapa identifica a dificuldade escolhida.
+     - *Acesso por Continuar (`continue`)*: Abre diretamente o Overview, sem seleção de personagem/dificuldade. Os seis pontos configurados recebem liberação visual de debug, sem gravação de progresso ou conclusão. Voltar no Overview retorna ao Menu Principal.
+     - *Navegação interna*: No Stage 01, [ESC] ou Voltar restaura o Overview; no Overview, Voltar retorna ao Menu Principal. Ao confirmar uma localidade jogável, o mapa carrega a cena correspondente; pontos sem cena configurada não iniciam gameplay.
    - **Reinício Seguro de Fase (`Tecla [R]`)**: O recarregamento de cena (`reload_current_scene()`) é estritamente blindado contra erros de ciclo de vida. `EnemyHUD`, `EnemyAI`, `CombatDirector` e `CombatFeedback` possuem proteções de `is_inside_tree()`, garantindo que reiniciar uma fase com inimigos ainda vivos não gere erros de nós órfãos ou ponteiros nulos no console.
 
 4. **Safe Area & Molduras de Diálogo**:
@@ -1139,14 +1157,21 @@ Uma funcionalidade, refatoração ou evolução arquitetural só pode ser consid
   - Fase 2 Desbloqueada: Seta sobre Ponto 2 (`Vector2(870, 265)`), Ponto 1 coberto, cadeado do Ponto 2 removido.
 
 ### 1.1. Regras de Gating, Desbloqueio Progressivo e Acesso por Save:
-- **Acesso pelo Menu sem Save (`not session.has_any_save()`)**:
-  - Ao acessar o mapa a partir do Menu Principal (`map_entry_context == "continue"` ou direto), se nenhum save existir em slots 1-4 nem na campanha, o carregamento direto do `map_1.tscn` é estritamente bloqueado.
-  - Ao clicar no Ponto 1 ou no botão de ação, o modal de seções (`StageSectionSelect`) exibe **todos os 4 mapas (Map 1, Map 2, Map 3 e Map 4) desabilitados/bloqueados**, com visual acinzentado/dimmed (`modulate = Color(0.45, 0.45, 0.50, 0.65)`), cursor padrão e bloqueio de cliques (`_play_sound(_sfx_cancel)`). O status informa *"NENHUM SAVE ENCONTRADO · USE NOVO JOGO NO MENU"*.
-- **Desbloqueio Progressivo de Mapas (1 a 4)**:
-  - Cada mapa só é habilitado para seleção individual quando o jogador efetivamente avança para o mapa seguinte durante o gameplay (`session.unlock_map(map_index + 1)` disparado em `BaseLevel._advance_to_next_map()`).
-  - Map 1 é liberado após alcançar o Map 2; Map 2 é liberado após alcançar o Map 3; Map 3 é liberado após alcançar o Map 4; Map 4 é liberado após a derrota de Alessandro / conclusão do estágio.
-- **Acesso pelo Fluxo "Novo Jogo" (Campanha)**:
-  - Quando o mapa é acessado através do fluxo Novo Jogo (`map_entry_context == "campaign"`, vindo de `main_menu.gd` → `character_select.gd` → `difficulty_select.gd`), o botão primário exibe *"INICIAR HISTÓRIA"* e o clique inicia obrigatoriamente do início da história (`res://scenes/story/story_intro.tscn`), garantindo a integridade narrativa antes do carregamento do `map_1.tscn`.
+- **Acesso pelo fluxo CONTINUAR (`map_entry_context == "continue"`)**:
+  - O Menu Principal carrega a progressão persistida da campanha e abre diretamente o `map_menu.tscn`.
+  - Para inspeção/debug, `is_stage_unlocked()` retorna `true` para os seis pontos configurados: 1-1, 1-2, 1-3, 1-4, Garagem Bônus 1 e Estágio 02 — Happen.
+  - Essa exceção altera somente a disponibilidade visual/de navegação. Não marca fases como concluídas, não altera os campos de progressão do `GameSession` e não grava o arquivo `user://campaign_progression.json`.
+  - Happen pode ser selecionado e inspecionado, mas o botão de início não carrega gameplay porque sua configuração de cena (`scene`) está vazia; a interface informa que o estágio está em desenvolvimento.
+- **Desbloqueio Progressivo de Mapas na campanha**:
+  - Fora da exceção visual do CONTINUAR, os mapas seguem os desbloqueios persistidos e as regras de campanha; o fluxo `campaign` não recebe desbloqueio automático de debug.
+  - O avanço normal continua sendo registrado pelos métodos de progressão do `GameSession`, acionados pelo fluxo de gameplay (`BaseLevel._advance_to_next_map()` e transições de estágio).
+- **Acesso pelo Fluxo NOVO JOGO (`map_entry_context == "campaign"`)**:
+  - `main_menu.gd` executa `GameSession.reset_session()` e prepara o estado de campanha novo em memória: zera os indicadores de conclusão/desbloqueio e metadados antigos de replay, mantendo o arquivo de progressão persistido intacto para o CONTINUAR.
+  - O fluxo segue `character_select.tscn` → `difficulty_select.tscn` → `map_menu.tscn`. A dificuldade selecionada fica em `GameSession.difficulty_id` e é exibida no cabeçalho do Mapa Mestre durante a campanha.
+  - O botão primário no ponto inicial exibe *"INICIAR HISTÓRIA"* e inicia `res://scenes/story/story_intro.tscn` (com fallback para `loading_screen.tscn` quando o recurso não existe), garantindo a abertura narrativa antes do gameplay de `map_1.tscn`.
+- **Persistência**:
+  - A progressão anterior não é apagada ao escolher NOVO JOGO. O arquivo persistido somente será atualizado quando a nova campanha efetivamente registrar um desbloqueio/conclusão pelos métodos normais de salvamento.
+
 
 ### 2. Indicador "VAMOS, MALACOS!" (`SigaIndicator`):
 - Todos os mapas de combate (`map_1.tscn`, `map_2.tscn`, `map_3.tscn`, `map_4.tscn`, `bonus_garage.tscn`) possuem o nó `SigaIndicator` instanciado.

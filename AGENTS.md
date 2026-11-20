@@ -124,3 +124,30 @@ Não diga que o projeto inteiro foi atualizado, testado ou empacotado quando som
 - Ao alterar controles, UI ou layout, considere toque, multitouch, diferentes proporções de tela, orientação, escala e áreas seguras.
 - Não remova controles de teclado, gamepad ou toque sem solicitação explícita.
 - Ao mudar uma tela ou fluxo, verifique os caminhos de navegação e retorno, inclusive a cena principal definida em `project.godot`.
+
+## 7. DIRETRIZES DE ENGENHARIA DE CÓDIGO E ECONOMIA DE TOKENS (KARPATHY GUIDELINES)
+
+Diretrizes obrigatórias para todas as tarefas de código neste repositório visando máxima assertividade, prevenção de sobre-engenharia e redução drástica no consumo de tokens e contexto:
+
+1. **Think Before Coding (Pensar Antes de Codificar)**:
+   - Explicite suposições antes de implementar. Não adivinhe silenciosamente diante de ambiguidades.
+   - Se houver caminhos alternativos ou dúvidas de escopo, apresente as opções de forma concisa.
+   - Se uma abordagem mais simples existir, proponha-a diretamente.
+
+2. **Simplicity First (Simplicidade em Primeiro Lugar)**:
+   - Escreva estritamente o código mínimo necessário para resolver o problema com robustez. Nada especulativo.
+   - Zero código de uso único com camadas abstratas prematuras.
+   - Zero tratamento defensivo para estados ou cenários impossíveis.
+   - Mantenha funções pequenas e com responsabilidade única. Se 50 linhas bastam, não escreva 200.
+
+3. **Surgical Changes (Alterações Cirúrgicas)**:
+   - Altere única e exclusivamente os blocos e arquivos diretamente relacionados à solicitação.
+   - Não refatore, reordene nem "melhore" código adjacente que já esteja funcionando.
+   - Preserve o estilo e convenções existentes no projeto.
+   - Cada linha alterada deve ter rastreabilidade direta com o objetivo do usuário.
+
+4. **Goal-Driven Execution (Execução Orientada a Metas e Validação por Testes)**:
+   - Defina critérios de sucesso claros e mensuráveis antes de codificar.
+   - Valide cada alteração executando testes pontuais headless (`godot_console.exe --headless -s tests/<teste>.gd`).
+   - Garanta zero regressões nas funcionalidades existentes antes de concluir a entrega.
+
