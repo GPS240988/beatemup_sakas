@@ -29,6 +29,8 @@ var _highlight_alpha: float = 1.0:
 		_highlight_alpha = value
 		_update_highlight_colors()
 var _pulse_tween: Tween = null
+var _emphasis_tween: Tween = null
+var _focus_strength: float = 1.0
 var _highlight_overlay: Node2D = null
 var _highlight_lines: Array[Line2D] = []
 
@@ -75,10 +77,7 @@ func _ready() -> void:
 	MobileScreenAction.add_secondary_action(self, "VOLTAR", Callable(self, "_on_back_pressed"), btn_back)
 	_update_mobile_action()
 	_create_highlight_overlay()
-
-	_pulse_tween = create_tween().set_loops()
-	_pulse_tween.tween_property(self, "_highlight_alpha", 0.42, 0.58).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_pulse_tween.tween_property(self, "_highlight_alpha", 1.0, 0.58).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_start_selection_emphasis()
 	call_deferred("_update_layout_geometry")
 
 
@@ -166,6 +165,8 @@ func _select_difficulty(diff_id: String, play_sfx: bool = true) -> void:
 	_update_mobile_action()
 	_update_highlight_geometry()
 	_update_highlight_colors()
+	if play_sfx:
+		_start_selection_emphasis()
 
 
 func _update_mobile_action() -> void:
@@ -240,7 +241,7 @@ func _update_highlight_geometry() -> void:
 		for layer in range(3):
 			var line_index: int = corner_index * 3 + layer
 			_highlight_lines[line_index].points = corner_paths[corner_index]
-			_highlight_lines[line_index].width = corner_widths[layer] * ui_scale
+			_highlight_lines[line_index].width = corner_widths[layer] * ui_scale * _focus_strength
 
 	# Pequenas marcas nos centros dos quatro lados criam leitura de autofocus,
 	# sem fechar o contorno nem cobrir os textos da opção.
@@ -258,7 +259,7 @@ func _update_highlight_geometry() -> void:
 		for layer in range(2):
 			var line_index: int = 12 + marker_index * 2 + layer
 			_highlight_lines[line_index].points = marker_paths[marker_index]
-			_highlight_lines[line_index].width = marker_widths[layer] * ui_scale
+			_highlight_lines[line_index].width = marker_widths[layer] * ui_scale * _focus_strength
 
 
 func _update_highlight_colors() -> void:
@@ -267,20 +268,55 @@ func _update_highlight_colors() -> void:
 	var color := _get_difficulty_color()
 	var pulse: float = clampf(_highlight_alpha, 0.0, 1.0)
 
-	# O núcleo permanece nítido; apenas as camadas externas respiram em brilho.
-	var corner_alphas: Array[float] = [0.14 * pulse, 0.38 * pulse, 0.96]
+	# O foco fica mais espesso e luminoso por 2 s após seleção/confirmação inicial.
+	# Depois retorna ao pulso discreto de repouso, sem perder a indicação selecionada.
+	var glow_boost: float = lerpf(1.0, 1.8, clampf((_focus_strength - 1.0) / 0.65, 0.0, 1.0))
+	var corner_alphas: Array[float] = [0.14 * pulse * glow_boost, 0.38 * pulse * glow_boost, 0.96]
 	for corner_index in range(4):
 		for layer in range(3):
 			var line_color := color
 			line_color.a = corner_alphas[layer]
 			_highlight_lines[corner_index * 3 + layer].default_color = line_color
 
-	var marker_alphas: Array[float] = [0.34 * pulse, 0.92]
+	var marker_alphas: Array[float] = [0.34 * pulse * glow_boost, 0.92]
 	for marker_index in range(4):
 		for layer in range(2):
 			var line_color := color
 			line_color.a = marker_alphas[layer]
 			_highlight_lines[12 + marker_index * 2 + layer].default_color = line_color
+
+
+func _start_selection_emphasis() -> void:
+	if _emphasis_tween != null and _emphasis_tween.is_valid():
+		_emphasis_tween.kill()
+	if _pulse_tween != null and _pulse_tween.is_valid():
+		_pulse_tween.kill()
+
+	_focus_strength = 1.65
+	_highlight_alpha = 1.0
+	_update_highlight_geometry()
+	_update_highlight_colors()
+
+	# Quatro ciclos de 0,5 s = 2 segundos de autofocus mais intenso.
+	_emphasis_tween = create_tween().set_loops(4)
+	_emphasis_tween.tween_property(self, "_highlight_alpha", 0.18, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_emphasis_tween.tween_property(self, "_highlight_alpha", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_emphasis_tween.finished.connect(_on_selection_emphasis_finished)
+
+
+func _on_selection_emphasis_finished() -> void:
+	_emphasis_tween = null
+	_focus_strength = 1.0
+	_update_highlight_geometry()
+	_start_idle_pulse()
+
+
+func _start_idle_pulse() -> void:
+	if _pulse_tween != null and _pulse_tween.is_valid():
+		_pulse_tween.kill()
+	_pulse_tween = create_tween().set_loops()
+	_pulse_tween.tween_property(self, "_highlight_alpha", 0.42, 0.58).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse_tween.tween_property(self, "_highlight_alpha", 1.0, 0.58).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _get_selected_button() -> Button:

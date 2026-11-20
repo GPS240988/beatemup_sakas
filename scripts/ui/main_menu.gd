@@ -205,8 +205,10 @@ func _activate_option(index: int) -> void:
 			_is_transitioning = true
 			_play_sfx(_sfx_confirm)
 			var session = get_node_or_null("/root/GameSession")
-			if session != null and session.has_method("reset_session"):
-				session.reset_session()
+			if session != null:
+				if session.has_method("reset_session"):
+					session.reset_session()
+				_prepare_new_campaign_state(session)
 			# Dispara prefetch/stream da história em segundo plano durante a seleção de personagem.
 			var pack_mgr = get_node_or_null("/root/PackManager")
 			if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
@@ -234,6 +236,35 @@ func _activate_option(index: int) -> void:
 			_play_sfx(_sfx_confirm)
 			await get_tree().create_timer(0.2).timeout
 			_quit_game()
+
+
+## Prepara uma campanha nova sem apagar a progressão persistida usada por CONTINUAR.
+## O estado em memória fica limpo; a gravação antiga só é substituída quando a nova
+## campanha realmente desbloquear conteúdo e salvar seu próprio progresso.
+func _prepare_new_campaign_state(session: Node) -> void:
+	if session == null:
+		return
+
+	if "stage_1_completed" in session:
+		session.set("stage_1_completed", false)
+	if "bonus_stage_unlocked" in session:
+		session.set("bonus_stage_unlocked", false)
+	if "stage_2_unlocked" in session:
+		session.set("stage_2_unlocked", false)
+	if "max_unlocked_stage" in session:
+		session.set("max_unlocked_stage", 1)
+	if "max_unlocked_map" in session:
+		session.set("max_unlocked_map", 0)
+	if "has_seen_bonus_transition" in session:
+		session.set("has_seen_bonus_transition", false)
+	if "has_seen_stage_2_transition" in session:
+		session.set("has_seen_stage_2_transition", false)
+
+	# Metadados antigos de replay não podem contaminar o fluxo de Novo Jogo.
+	for meta_key: StringName in [&"replay_stage_index", &"replay_stage_scene", &"selected_stage_index"]:
+		if session.has_meta(meta_key):
+			session.remove_meta(meta_key)
+	session.set_meta("map_entry_context", "campaign")
 
 
 func _open_settings() -> void:

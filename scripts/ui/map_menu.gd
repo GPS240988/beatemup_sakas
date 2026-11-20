@@ -155,7 +155,7 @@ const MISSION_NARRATIVES: Dictionary = {
 		"badge": "ESTÁGIO 02",
 		"narrative_title": "AVENIDA DOS ACONTECIMENTOS",
 		"synopsis": "A rota comercial que leva à estação do metrô. Sob controle de sindicatos rivais e barricadas pesadas.",
-		"objective": "Em desenvolvimento — Bloqueado.",
+		"objective": "Em desenvolvimento — Desbloqueado para debug.",
 		"locality": "HAPPEN"
 	}
 }
@@ -507,6 +507,11 @@ func is_stage_unlocked(index: int) -> bool:
 	var cfg := STAGE_CONFIGS[index]
 	var map_num: int = int(cfg.get("map_num", 0))
 
+	# No fluxo CONTINUAR, liberar todos os pontos existentes no mapa para debug.
+	# Esta exceção é apenas visual/de navegação: não grava progresso nem conclusão.
+	if _entry_context == "continue":
+		return true
+
 	if index == 0:
 		if _entry_context == "campaign":
 			return true
@@ -578,9 +583,13 @@ func _on_hotspot_clicked(index: int) -> void:
 				_play_sfx(_sfx_cancel)
 			return
 		elif index == 5:
-			# Estágio futuro não desenvolvido: inabilitado
-			_play_sfx(_sfx_cancel)
-			_select_stage(5, false, true)
+			# O Estágio 02 fica selecionável no CONTINUAR para inspeção/debug.
+			# A ausência de cena jogável continua impedindo o início da fase.
+			if is_stage_unlocked(5):
+				_select_stage(5, true, true)
+			else:
+				_play_sfx(_sfx_cancel)
+				_select_stage(5, false, true)
 			return
 
 	if index == _selected_index:
@@ -618,12 +627,15 @@ func _select_stage(index: int, play_sound: bool = true, animate_camera: bool = t
 	# Atualiza visibilidade dos marcadores conforme o nível atual
 	_update_hotspots_visibility()
 
-	# Atualiza cabeçalhos
+	# Atualiza cabeçalhos e mantém a dificuldade visível durante o Novo Jogo.
 	if eyebrow_label != null:
 		if _nav_state == NavState.STAGE_NAVIGATION:
 			eyebrow_label.text = "ESTÁGIO 01 — A VILA"
 		else:
 			eyebrow_label.text = "CAMPANHA SAKAS"
+		var difficulty_label: String = _get_campaign_difficulty_label()
+		if not difficulty_label.is_empty():
+			eyebrow_label.text += "  ·  DIFICULDADE: " + difficulty_label
 
 	# Atualiza dados no Painel Narrativo Fixo
 	var stage_id: String = str(cfg["id"])
@@ -677,6 +689,22 @@ func _select_stage(index: int, play_sound: bool = true, animate_camera: bool = t
 
 	if play_sound:
 		_play_sfx(_sfx_move if is_unlocked else _sfx_cancel)
+
+
+func _get_campaign_difficulty_label() -> String:
+	if _entry_context != "campaign":
+		return ""
+	var session := _get_game_session()
+	if session == null or not ("difficulty_id" in session):
+		return ""
+	match str(session.get("difficulty_id")).to_lower():
+		"facil":
+			return "FÁCIL"
+		"normal":
+			return "NORMAL"
+		"dificil":
+			return "DIFÍCIL"
+	return ""
 
 
 func _update_hotspots_visibility() -> void:
