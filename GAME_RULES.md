@@ -1401,10 +1401,17 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   - Script: `scripts/actors/projectiles/player_bullet.gd` | Cena: `scenes/actors/projectiles/player_bullet.tscn`.
   - Velocidade linear balística: 700.0 px/s no plano horizontal.
   - Colisões físicas: Layer 8 (Hitbox), Layer 2 (muros, obstáculos e móveis de cenário), Layer 3 (hurtboxes de inimigos).
+  - Envelope de Colisão Vertical 2.5D: O colisor do projétil (`CollisionShape2D`, tamanho `Vector2(28, 190)`, posição `Vector2(-14, 85)`) cobre verticalmente a silhueta corporal completa do alvo desde a altura do cano ($Y = -172$) até a linha do solo ($Y \in [-182, +8]$ em relação aos pés). Isso assegura intersecção física precisa com o chefe Alessandro (hurtbox $[-145, -5]$), capangas comuns ($[-165, -5]$) e props destrutíveis ($[-60, 0]$), evitando que o tiro passe por cima da hurtbox.
   - Alinhamento de profundidade 2.5D: O projétil armazena a coordenada Y do chão no momento do disparo (`projectile_lane_y`), comparando com os pés do alvo (`absf(target.global_position.y - projectile_lane_y) <= depth_tolerance`).
   - Evasão Aérea: Inimigos em salto (`_is_jumping` ou `Visual.position.y <= -12.0`) desviam do tiro por baixo, acionando feedback visual "MISS".
   - Consumo único: Projétil é destruído no primeiro impacto válido, eliminando perfuração infinita não intencional.
   - Artefato visual PixelFX: Spritesheet de alta fidelidade `bullet-tracer` (`assets/sprites/Efeitos/pixelfx/bullet-tracer.png`), 18 frames em 30 FPS, integrado ao nó `Sprite2D` com `hframes = 2` e `vframes = 9`.
+
+- **Granadas Arcade do Gabriel (`PlayerGrenade`)**:
+  - Script: `scripts/actors/projectiles/player_grenade.gd` | Cena: `scenes/actors/projectiles/player_grenade.tscn`.
+  - Detonação por Impacto Direto: Ao ser arremessada contra adversários (incluindo o chefe Alessandro) na mesma pista 2.5D ($|\Delta y| \le 36$ px e $|\Delta x| \le 40$ px), a granada detona imediatamente no primeiro contato com o corpo/hurtbox, aplicando dano radial concentrado, tremor de tela e interrupção.
+  - Pavio de 2.0s em Terreno Vazio: Caso não colida diretamente com inimigos durante a trajetória de arco e quique, a granada permanece ativa no chão acelerando o piscar até detonar no tempo oficial de 2.0 segundos.
+  - Dano e Efeitos: Dano radial em inimigos (46.0), props destrutíveis (56.0) e autoinfligido caso Gabriel permaneça no raio (30.0), respeitando o poise do chefe Alessandro (não causa queda no chefe, apenas em capangas comuns).
 
 - **Combo Exclusivo de 4 Movimentos com Botão Principal (`J`)**:
   - `Passo 1 (Disparo Rápido)`: 1 projétil balístico, dano efetivo 14.0, alcance 280 px, profundidade 24 px, startup 0.03s, active 0.08s, recovery 0.20s, hitstop 2 frames, sem knockdown.
@@ -1449,4 +1456,17 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   - `SFX_GABRIEL_DASH` (`res://assets/audio/sfx/dash_gabriel.mp3`): Som de propulsão rápida do Dash acionado no instante do comando.
   - Sincronização Precisa: Sons de disparo ocorrem no momento da criação de cada projétil (`_spawn_single_bullet`), evitando loops ou reproduções duplicadas de rajada completa. Sons de impacto nos adversários (`play_impact_sound`) permanecem preservados e desacoplados dos disparos.
   - Apresentação Cinematográfica do Especial: Arte oficial `assets/sprites/characters/gabriel/especial1_gabriel.webp` vinculada em `resources/heroes/gabriel_data.tres` (`special_presentation_texture`) e resolvida na classe `SpecialPresentation`.
+
+### 4. Normalização da Jogabilidade do Gabriel em Situações Especiais
+- **1. Evasão do Chefe Alessandro contra Tiros de Gabriel (`boss_alessandro_enhanced.gd`)**:
+  - Alessandro reconhece projéteis de Gabriel (`damage_type == "projectile"`) sob a mesma regra de evasão que golpes corpo a corpo (`_is_player_evadable_damage()`).
+  - Fora de janelas de contra-ataque ou encurralamento, Alessandro aplica exatamente a mesma taxa canônica de 80% de esquiva contra tiros na sua linha de ação ($|\Delta y| \le 48$ px e alcance de disparo até 450 px).
+  - Janelas de vulnerabilidade permanecem válidas: o chefe não desvia quando encurralado na parede (limites da arena), após sofrer o 4º acerto do combo ou durante aproximação rápida em alta velocidade pós-esquiva.
+- **2. Evasão das Trufas de Alessandro via Dash do Gabriel (`trufa.gd`)**:
+  - Enquanto Guilherme evade trufas saltando sobre elas (`_is_jumping`), Gabriel não pula e utiliza seu Dash Evasivo (`execute_dash()`).
+  - Ao executar o Dash (`is_dashing() == true` ou `_is_dashing == true`), a trufa colide de forma intangível, exibindo o texto arcade "MISS" dourado flutuante e sendo consumida sem causar dano ou interrupção a Gabriel.
+- **3. Dano de Projéteis nos Veículos da Fase Bônus (`player_bullet.gd` / `destructible_prop.gd`)**:
+  - Os disparos da pistola de Gabriel causam dano balístico direto nos carros da Garagem Bônus (`BonusCarOrange`, `BonusCarBlue`) e demais props destrutíveis na cena.
+  - O sistema de projéteis (`_on_body_entered`) não consome o tiro como obstáculo inerte de cenário ao atingir objetos dos grupos `destructibles`, `destructible_props` e `vehicles`, encaminhando para o contrato `take_damage()`.
+  - Tolerância de profundidade expandida para 52 px e mapeamento via `get_closest_contact_point()` / `get_impact_point()` garantem detecção limpa do impacto ao longo de todo o perímetro do veículo.
 

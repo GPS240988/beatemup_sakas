@@ -1,48 +1,7 @@
-[gd_scene format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/credits.gd" id="1_credits_script"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/creditos.webp" id="2_creditos_bg"]
-[ext_resource type="FontFile" uid="uid://c1s32gg3wbh72" path="res://assets/fonts/arcade_bold.ttf" id="3_arcade_font"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
-bg_color = Color(0.04, 0.03, 0.08, 0.88)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.78, 0.22, 0.95)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-shadow_color = Color(1, 0.78, 0.22, 0.35)
-shadow_size = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
-bg_color = Color(0.08, 0.06, 0.14, 0.96)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.90, 0.45, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-shadow_color = Color(1, 0.90, 0.45, 0.5)
-shadow_size = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_pressed"]
-bg_color = Color(0.12, 0.09, 0.20, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.70, 0.15, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
 
 [node name="Credits" type="Control"]
 layout_mode = 3
@@ -62,7 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("2_creditos_bg")
+texture = ExtResource("2_credits_bg")
 expand_mode = 1
 stretch_mode = 6
 
@@ -76,39 +35,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 expand = true
-loop = true
+loop = false
 bus = &"Master"
-
-[node name="BottomBarContainer" type="MarginContainer" parent="."]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -340.0
-offset_top = -84.0
-grow_horizontal = 0
-grow_vertical = 0
-theme_override_constants/margin_right = 36
-theme_override_constants/margin_bottom = 28
-
-[node name="BtnBack" type="Button" parent="BottomBarContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(280, 52)
-layout_mode = 2
-focus_mode = 2
-theme_override_colors/font_color = Color(1, 0.92, 0.65, 1)
-theme_override_colors/font_pressed_color = Color(1, 0.75, 0.2, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 0.85, 1)
-theme_override_colors/font_outline_color = Color(0.04, 0.03, 0.06, 1)
-theme_override_constants/outline_size = 5
-theme_override_fonts/font = ExtResource("3_arcade_font")
-theme_override_font_sizes/font_size = 20
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
-text = "◀ VOLTAR AO MENU"
 
 [node name="FadeOverlay" type="ColorRect" parent="."]
 unique_name_in_owner = true

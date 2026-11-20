@@ -1,17 +1,9 @@
-[gd_resource type="Resource" script_class="HeroData" format=3]
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://3do6o5vpef75"]
 
-[ext_resource type="Script" path="res://scripts/combat/hero_data.gd" id="1_8cke0"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/guilherme/especial_1_guilherme.webp" id="2_special_tex"]
+[ext_resource type="Script" uid="uid://d42pvkvwwusf" path="res://scripts/combat/hero_data.gd" id="1_8cke0"]
+[ext_resource type="Texture2D" uid="uid://dgsyp0ym34mjk" path="res://assets/sprites/characters/guilherme/especial_1_guilherme.webp" id="2_special_tex"]
 
 [resource]
 script = ExtResource("1_8cke0")
-hero_id = "guilherme"
-display_name = "Guilherme"
-punch1_damage = 10.0
-punch2_damage = 15.0
-kick3_damage = 20.0
-heavy4_damage = 35.0
+display_name = "Gabriel"
 special_presentation_texture = ExtResource("2_special_tex")
-special_title = ""
-special_theme_color = Color(0.95, 0.78, 0.15, 0.9)
-special_presentation_duration = 2.5

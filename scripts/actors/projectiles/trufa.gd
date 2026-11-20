@@ -47,9 +47,9 @@ func _on_hitbox_area_entered(area: Area2D) -> void:
 	if player_actor == null:
 		return
 
-	# O salto desloca apenas o nó Visual no eixo vertical; a origem física e a
-	# Hurtbox permanecem no chão. A trufa é anulada se o jogador estiver no ar.
-	if _is_player_jumping(player_actor):
+	# O salto desloca apenas o nó Visual no eixo vertical; o dash de Gabriel evade no plano do solo.
+	# A trufa é anulada se o jogador estiver no ar ou executando dash evasivo.
+	if _is_player_jumping(player_actor) or _is_player_dashing(player_actor):
 		_show_miss_feedback(player_actor)
 		_has_hit = true
 		queue_free()
@@ -101,6 +101,16 @@ func _is_player_jumping(player_actor: Node) -> bool:
 	# origem física e a Hurtbox continuam no plano do chão.
 	var player_visual: Node2D = player_actor.get_node_or_null("Visual") as Node2D
 	return player_visual != null and player_visual.position.y <= -12.0
+
+
+func _is_player_dashing(player_actor: Node) -> bool:
+	if player_actor == null:
+		return false
+	if player_actor.has_method("is_dashing") and bool(player_actor.call("is_dashing")):
+		return true
+	if player_actor.get("_is_dashing") == true:
+		return true
+	return false
 
 
 func _show_miss_feedback(player_actor: Node) -> void:

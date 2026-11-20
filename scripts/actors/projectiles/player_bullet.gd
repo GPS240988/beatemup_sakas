@@ -46,6 +46,14 @@ func _ready() -> void:
 	if direction.x < 0.0:
 		scale.x = -1.0
 
+	# Assegura cobertura vertical da coluna do corpo 2.5D do alvo a partir da altura do cano
+	var col_shape: CollisionShape2D = get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col_shape != null and col_shape.shape is RectangleShape2D:
+		var rect: RectangleShape2D = col_shape.shape as RectangleShape2D
+		if rect.size.y < 100.0:
+			rect.size = Vector2(rect.size.x, 190.0)
+			col_shape.position.y = 85.0
+
 	# Núcleo branco-quente sobre o clarão PixelFX amplo já disparado pelo PlayerController.
 	GabrielGunVFXClass.spawn_muzzle_core(self, global_position, direction)
 
@@ -66,6 +74,11 @@ func _physics_process(delta: float) -> void:
 	global_position += direction * step_dist
 	_distance_traveled += step_dist
 	
+	if not _has_hit and monitoring:
+		for area in get_overlapping_areas():
+			if _try_hit(area):
+				return
+	
 	if _distance_traveled >= max_range:
 		queue_free()
 
@@ -78,6 +91,11 @@ func _on_body_entered(body: Node) -> void:
 	if body == attacker or body.is_in_group("player") or body.is_in_group("npcs") or body.is_in_group("civilians") or body.is_in_group("allies") or body.is_in_group("actors"):
 		return
 	
+	# Se o corpo for um objeto destrutível ou veículo (ex: carros da fase bônus, caixas), tenta aplicar dano
+	if body.is_in_group("destructibles") or body.is_in_group("destructible_props") or body.is_in_group("vehicles") or body.has_method("take_damage"):
+		if _try_hit(body):
+			return
+
 	# Obstáculo sólido do cenário atingido (Layer 2)
 	_has_hit = true
 	GabrielGunVFXClass.spawn_bullet_impact(self, global_position, direction, false)
@@ -111,15 +129,20 @@ func _try_hit(collider: Node) -> bool:
 		if "is_dead" in target_actor and target_actor.is_dead:
 			return false
 	
-	# Se for prop destrutível, valida se não foi destruído
-	if target_actor.is_in_group("destructibles") or target_actor.is_in_group("destructible_props"):
-		if "is_broken" in target_actor and target_actor.is_broken:
+	# Se for prop destrutível ou veículo, valida se não foi destruído
+	var is_destructible_prop: bool = target_actor.is_in_group("destructibles") or target_actor.is_in_group("destructible_props") or target_actor.is_in_group("vehicles")
+	if is_destructible_prop:
+		if ("is_broken" in target_actor and target_actor.is_broken) or ("is_destroyed" in target_actor and target_actor.is_destroyed):
 			return false
 	
 	# Regra de profundidade 2.5D: compara a posição Y dos pés no chão do alvo com a linha de tiro
 	var target_pos: Vector2 = target_actor.global_position if target_actor is Node2D else global_position
+	if target_actor.has_method("get_closest_contact_point"):
+		target_pos = target_actor.call("get_closest_contact_point", Vector2(global_position.x, projectile_lane_y))
+	
+	var effective_depth_tol: float = maxf(depth_tolerance, 52.0) if is_destructible_prop else depth_tolerance
 	var depth_diff: float = absf(target_pos.y - projectile_lane_y)
-	if depth_diff > depth_tolerance:
+	if depth_diff > effective_depth_tol:
 		return false
 	
 	# Evasão aérea: se o alvo estiver no ar (salto), o tiro passa por baixo
@@ -177,6 +200,8 @@ func _try_hit(collider: Node) -> bool:
 ## Resolve o contato na face da Hurtbox voltada para o projétil.
 ## O CollisionShape2D fornece o limite real: não se usa o centro do ator nem o centro do tiro.
 func _resolve_target_contact_point(collider: Node, target_actor: Node) -> Vector2:
+	if target_actor != null and target_actor.has_method("get_impact_point"):
+		return target_actor.call("get_impact_point", global_position, direction.x)
 	var hurtbox: Area2D = collider as Area2D
 	if hurtbox == null and target_actor != null:
 		hurtbox = target_actor.get_node_or_null("Hurtbox") as Area2D
@@ -220,8 +245,8 @@ func _find_target_actor(start_node: Node) -> Node:
 		if candidate.is_in_group("enemies"):
 			return candidate
 
-		# Objetos destrutíveis aprovados conforme o Damage Contract
-		if candidate.is_in_group("destructibles") or candidate.is_in_group("destructible_props"):
+		# Objetos destrutíveis e veículos aprovados conforme o Damage Contract
+		if candidate.is_in_group("destructibles") or candidate.is_in_group("destructible_props") or candidate.is_in_group("vehicles") or candidate.is_in_group("damageable"):
 			return candidate
 
 		candidate = candidate.get_parent()

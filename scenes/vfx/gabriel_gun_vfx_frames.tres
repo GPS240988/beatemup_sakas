@@ -1,27 +1,7 @@
-[gd_resource type="SpriteFrames" load_steps=15 format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://bolqofrbk1hk6"]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/Efeitos/gabriel/gabriel_muzzle_core.png" id="1_muzzle"]
-[ext_resource type="Texture2D" path="res://assets/sprites/Efeitos/gabriel/gabriel_bullet_impact.png" id="2_impact"]
-
-[sub_resource type="AtlasTexture" id="MuzzleCore00"]
-atlas = ExtResource("1_muzzle")
-region = Rect2(0, 0, 48, 48)
-filter_clip = true
-
-[sub_resource type="AtlasTexture" id="MuzzleCore01"]
-atlas = ExtResource("1_muzzle")
-region = Rect2(48, 0, 48, 48)
-filter_clip = true
-
-[sub_resource type="AtlasTexture" id="MuzzleCore02"]
-atlas = ExtResource("1_muzzle")
-region = Rect2(96, 0, 48, 48)
-filter_clip = true
-
-[sub_resource type="AtlasTexture" id="MuzzleCore03"]
-atlas = ExtResource("1_muzzle")
-region = Rect2(144, 0, 48, 48)
-filter_clip = true
+[ext_resource type="Texture2D" uid="uid://dcmnrwcd16651" path="res://assets/sprites/Efeitos/gabriel/gabriel_muzzle_core.png" id="1_muzzle"]
+[ext_resource type="Texture2D" uid="uid://c3rw1hbc3ekeg" path="res://assets/sprites/Efeitos/gabriel/gabriel_bullet_impact.png" id="2_impact"]
 
 [sub_resource type="AtlasTexture" id="BulletImpact00"]
 atlas = ExtResource("2_impact")
@@ -63,25 +43,28 @@ atlas = ExtResource("2_impact")
 region = Rect2(288, 96, 96, 96)
 filter_clip = true
 
+[sub_resource type="AtlasTexture" id="MuzzleCore00"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(0, 0, 48, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="MuzzleCore01"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(48, 0, 48, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="MuzzleCore02"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(96, 0, 48, 48)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="MuzzleCore03"]
+atlas = ExtResource("1_muzzle")
+region = Rect2(144, 0, 48, 48)
+filter_clip = true
+
 [resource]
 animations = [{
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("MuzzleCore00")
-}, {
-"duration": 1.0,
-"texture": SubResource("MuzzleCore01")
-}, {
-"duration": 1.0,
-"texture": SubResource("MuzzleCore02")
-}, {
-"duration": 1.0,
-"texture": SubResource("MuzzleCore03")
-}],
-"loop": 0,
-"name": &"muzzle_core",
-"speed": 30.0
-}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("BulletImpact00")
@@ -109,5 +92,22 @@ animations = [{
 }],
 "loop": 0,
 "name": &"bullet_impact",
+"speed": 30.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("MuzzleCore00")
+}, {
+"duration": 1.0,
+"texture": SubResource("MuzzleCore01")
+}, {
+"duration": 1.0,
+"texture": SubResource("MuzzleCore02")
+}, {
+"duration": 1.0,
+"texture": SubResource("MuzzleCore03")
+}],
+"loop": 0,
+"name": &"muzzle_core",
 "speed": 30.0
 }]

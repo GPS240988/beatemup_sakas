@@ -1,0 +1,136 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/map_5_stage2.gd" id="1_stage2_level"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_3.webp" id="2_stage2_bg"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
+[ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="4_combat_director"]
+[ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="5_siga_scene"]
+[ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="6_hud_scene"]
+[ext_resource type="NavigationPolygon" path="res://scenes/levels/map_5_navpoly.tres" id="7_navpoly"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_director.gd" id="8_spawn_director"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_horizontal_boundary"]
+size = Vector2(2138, 36)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vertical_boundary"]
+size = Vector2(36, 240)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
+size = Vector2(72, 172)
+
+[node name="Map5" type="Node2D"]
+script = ExtResource("1_stage2_level")
+stage_number = 2
+section_number = 1
+map_name = "Estágio 02 - Rumo à HAPPEN"
+map_index = 1
+map_group = "fase2"
+camera_min_x = 640.0
+camera_max_x = 1498.0
+camera_fixed_y = 360.0
+camera_follow_speed = 12.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+position_smoothing_enabled = true
+position_smoothing_speed = 12.0
+
+[node name="Background" type="Node2D" parent="."]
+z_index = -10
+
+[node name="Far" type="Sprite2D" parent="Background"]
+texture = ExtResource("2_stage2_bg")
+centered = false
+texture_filter = 1
+
+[node name="Mid" type="Node2D" parent="Background"]
+
+[node name="BackProps" type="Node2D" parent="Background"]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = ExtResource("7_navpoly")
+
+[node name="StaticWorld" type="Node2D" parent="."]
+
+[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
+collision_layer = 2
+
+[node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(1069, 502)
+shape = SubResource("RectangleShape2D_horizontal_boundary")
+
+[node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(1069, 710)
+shape = SubResource("RectangleShape2D_horizontal_boundary")
+
+[node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(18, 610)
+shape = SubResource("RectangleShape2D_vertical_boundary")
+
+[node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(2120, 610)
+shape = SubResource("RectangleShape2D_vertical_boundary")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Props" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="StaticProps" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Destructibles" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Actors" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Player" parent="World/Actors" instance=ExtResource("3_player_scene")]
+position = Vector2(380, 628)
+
+[node name="Enemies" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="NPCs" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="SpawnPoint_Left" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(180, 625)
+script = ExtResource("9_spawn_point")
+point_id = "spawn_left_stage2"
+
+[node name="SpawnPoint_Mid" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1060, 625)
+script = ExtResource("9_spawn_point")
+point_id = "spawn_mid_stage2"
+
+[node name="SpawnPoint_Right" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1980, 625)
+script = ExtResource("9_spawn_point")
+point_id = "spawn_right_stage2"
+
+[node name="SpawnDirector" type="Node" parent="."]
+script = ExtResource("8_spawn_director")
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("4_combat_director")
+
+[node name="ExitArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+position = Vector2(2070, 610)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea"]
+shape = SubResource("RectangleShape2D_exit")
+
+[node name="SigaIndicator" parent="." instance=ExtResource("5_siga_scene")]
+
+[node name="PrototypeHud" parent="." instance=ExtResource("6_hud_scene")]

@@ -635,7 +635,7 @@ func take_damage(damage_input: Variant) -> bool:
 		return super.take_damage(damage_input)
 	if _special_behavior in [SpecialBehavior.MEAT_SEEKING, SpecialBehavior.MEAT_EATING]:
 		return false
-	if not _is_player_melee_damage(damage_input):
+	if not _is_player_evadable_damage(damage_input):
 		return super.take_damage(damage_input)
 
 	# 1. Encurralado, Alessandro deixa o jogador concluir um único combo de quatro
@@ -679,8 +679,8 @@ func take_damage(damage_input: Variant) -> bool:
 		return accepted_fast_hit
 
 	# 4. Fora da janela de contra-ataque, Alessandro mantém 80% de chance de
-	# esquivar dos golpes corpo a corpo do jogador.
-	if _evasion_cooldown <= 0.0 and _can_start_evasion():
+	# esquivar dos golpes/tiros do jogador.
+	if _evasion_cooldown <= 0.0 and _can_start_evasion_for_damage(damage_input):
 		if randf() < _get_evasion_chance():
 			_start_evasion()
 			if _special_behavior == SpecialBehavior.EVADING:
@@ -779,6 +779,34 @@ func _is_player_melee_damage(damage_input: Variant) -> bool:
 		return false
 	var attacker: Node = damage_input.get("attacker") as Node
 	return attacker != null and attacker == player_target and attacker.is_in_group("player")
+
+
+func _is_player_evadable_damage(damage_input: Variant) -> bool:
+	if not (damage_input is RefCounted):
+		return false
+	var dtype: String = str(damage_input.get("damage_type"))
+	if dtype != "melee" and dtype != "projectile":
+		return false
+	var attacker: Node = damage_input.get("attacker") as Node
+	return attacker != null and attacker == player_target and attacker.is_in_group("player")
+
+
+func _can_start_evasion_for_damage(damage_input: Variant) -> bool:
+	if _special_behavior != SpecialBehavior.NONE or not _is_player_target_valid():
+		return false
+	if current_state not in [State.FLANKING, State.WAITING, State.IDLE, State.ALIGNING_DEPTH, State.APPROACHING]:
+		return false
+	if melee_attack != null and melee_attack.is_attacking:
+		return false
+
+	var depth_distance: float = absf(player_target.global_position.y - global_position.y)
+	if depth_distance > EVADE_DEPTH_TOLERANCE:
+		return false
+
+	var horizontal_distance: float = absf(player_target.global_position.x - global_position.x)
+	var is_proj: bool = damage_input is RefCounted and str(damage_input.get("damage_type")) == "projectile"
+	var max_trigger_dist: float = 450.0 if is_proj else EVADE_TRIGGER_DISTANCE
+	return horizontal_distance <= max_trigger_dist
 
 
 func _is_fast_player_approach() -> bool:

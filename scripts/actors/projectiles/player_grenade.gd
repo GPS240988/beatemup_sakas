@@ -142,6 +142,61 @@ func _process(delta: float) -> void:
 
 	if _fuse_elapsed >= fuse_duration:
 		_detonate()
+		return
+
+	# Detecção de impacto direto contra inimigos ou o chefe Alessandro
+	_check_impact_collision()
+
+
+func _get_current_ground_position() -> Vector2:
+	if _settled:
+		return global_position
+	if _is_bouncing:
+		var bt: float = clampf(_bounce_elapsed / maxf(_bounce_duration, 0.001), 0.0, 1.0)
+		return _bounce_origin.lerp(_bounce_target, bt)
+	var flight_t: float = clampf(_flight_elapsed / maxf(flight_duration, 0.001), 0.0, 1.0)
+	return _flight_origin.lerp(_landing_position, flight_t)
+
+
+func _check_impact_collision() -> void:
+	if _detonated or not _launched or get_tree() == null:
+		return
+	
+	var current_ground: Vector2 = _get_current_ground_position()
+	var current_sprite_y: float = grenade_sprite.global_position.y if grenade_sprite != null else current_ground.y
+	
+	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemies")
+	for enemy: Node in enemies:
+		if enemy == null or not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		var health: Node = enemy.get_node_or_null("HealthComponent")
+		if health != null and "is_dead" in health and bool(health.get("is_dead")):
+			continue
+		if "is_dead" in enemy and bool(enemy.get("is_dead")):
+			continue
+		
+		var enemy_2d: Node2D = enemy as Node2D
+		var enemy_pos: Vector2 = enemy_2d.global_position
+		
+		# 1. Alinhamento de profundidade 2.5D no solo
+		var depth_diff: float = absf(enemy_pos.y - current_ground.y)
+		if depth_diff > 36.0:
+			continue
+		
+		# 2. Contato horizontal: verifica largura do corpo/hurtbox
+		var dist_x: float = absf(enemy_pos.x - current_ground.x)
+		if dist_x > 40.0:
+			continue
+		
+		# 3. Altura 2.5D: granada na altura do corpo do adversário (de Y=0 a Y=-200)
+		var height_above_feet: float = enemy_pos.y - current_sprite_y
+		if height_above_feet < -20.0 or height_above_feet > 220.0:
+			continue
+		
+		# Contato confirmado! Detona imediatamente no ponto de impacto
+		global_position = current_ground
+		_detonate()
+		return
 
 
 func _start_bounce() -> void:
@@ -158,6 +213,7 @@ func _detonate() -> void:
 	if _detonated:
 		return
 	_detonated = true
+	global_position = _get_current_ground_position()
 	if grenade_sprite != null:
 		grenade_sprite.visible = false
 	if explosion_sprite != null:

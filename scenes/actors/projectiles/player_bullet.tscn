@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/Efeitos/gabriel/gabriel_projectile.png" id="2_texture"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bullet"]
-size = Vector2(28, 16)
+size = Vector2(28, 190)
 
 [node name="PlayerBullet" type="Area2D" groups=["player_projectiles", "projectiles"]]
 collision_layer = 8
@@ -14,7 +14,7 @@ monitorable = false
 script = ExtResource("1_script")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(-14, 0)
+position = Vector2(-14, 85)
 shape = SubResource("RectangleShape2D_bullet")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
