@@ -1,0 +1,57 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/events/story_event.gd" id="story_event"]
+[ext_resource type="Script" path="res://scripts/events/story_sequence.gd" id="story_sequence"]
+
+[sub_resource type="Resource" id="Dialogue_Alessandro"]
+script = ExtResource("story_event")
+id = "phase2_1_dialogue_alessandro"
+event_type = "dialogue"
+image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
+texts = Array[String]( ["Vamos juntos. Ninguém se separa."] )
+speakers = Array[String]( ["ALESSANDRO"] )
+duration_per_text = 4.0
+entry_effect = "quick_dialogue_crossfade"
+transition_duration = 0.32
+pause_after = 0.25
+
+[sub_resource type="Resource" id="Dialogue_Guilherme"]
+script = ExtResource("story_event")
+id = "phase2_1_dialogue_guilherme"
+event_type = "dialogue"
+image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
+texts = Array[String]( ["..."] )
+speakers = Array[String]( ["GUILHERME"] )
+duration_per_text = 4.0
+entry_effect = "quick_dialogue_crossfade"
+transition_duration = 0.32
+pause_after = 0.25
+
+[sub_resource type="Resource" id="Dialogue_Andre"]
+script = ExtResource("story_event")
+id = "phase2_1_dialogue_andre"
+event_type = "dialogue"
+image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
+texts = Array[String]( ["O que ele falou?"] )
+speakers = Array[String]( ["ANDRÉ"] )
+duration_per_text = 4.0
+entry_effect = "quick_dialogue_crossfade"
+transition_duration = 0.32
+pause_after = 0.25
+
+[sub_resource type="Resource" id="Dialogue_Gabriel"]
+script = ExtResource("story_event")
+id = "phase2_1_dialogue_gabriel"
+event_type = "dialogue"
+image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
+texts = Array[String]( ["Não sei. Mas ele já tá indo."] )
+speakers = Array[String]( ["GABRIEL"] )
+duration_per_text = 4.0
+entry_effect = "quick_dialogue_crossfade"
+transition_duration = 0.32
+pause_after = 0.25
+
+[resource]
+script = ExtResource("story_sequence")
+sequence_id = "story_phase2_1_entry"
+events = Array[Resource]( [SubResource("Dialogue_Alessandro"), SubResource("Dialogue_Guilherme"), SubResource("Dialogue_Andre"), SubResource("Dialogue_Gabriel")] )

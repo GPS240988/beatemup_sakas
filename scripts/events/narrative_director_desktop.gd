@@ -124,6 +124,7 @@ func _prepare_dialogue_preview(ev: Resource) -> void:
 			_style_mobile_advance_button()
 	_dialogue_area.visible = true
 	_dialogue_area.modulate.a = 1.0
+	_apply_mobile_dialogue_contract()
 
 
 func _show_current_text_block(ev: Resource) -> void:
@@ -140,6 +141,11 @@ func _show_current_text_block(ev: Resource) -> void:
 	if _prompt_label != null:
 		_prompt_label.text = "►"
 		_prompt_label.add_theme_font_size_override("font_size", 22)
+
+	# O método-base reaplica LabelSettings e dimensões genéricas ao montar cada
+	# bloco. Reaplicamos aqui o contrato específico da narrativa mobile depois
+	# dessa montagem, antes do próximo frame ser desenhado.
+	_apply_mobile_dialogue_contract()
 
 
 func _configure_desktop_advance_prompt() -> void:
@@ -179,8 +185,55 @@ func _apply_responsive_layout() -> void:
 		return
 
 	if _is_mobile_runtime():
-		# Mantém o dimensionamento responsivo original do mobile.
-		super._apply_responsive_layout()
+		# Calcula a geometria mobile em uma única passagem. Não chama o layout-base
+		# para depois sobrescrever os anchors: isso evitaria ciclos de resize do ArtStage.
+		var viewport_size: Vector2 = _root_control.size
+		if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+			_desktop_layout_update_in_progress = false
+			return
+
+		var aspect_ratio: float = viewport_size.x / viewport_size.y
+		var is_portrait: bool = aspect_ratio < 1.0
+		var ultra_compact: bool = viewport_size.y < 420.0 and not is_portrait
+		var compact_landscape: bool = viewport_size.y < 600.0 and not is_portrait
+		# Aumenta a faixa vertical do diálogo em paisagem. Em telas baixas,
+		# reserva mais altura para falas multilinha sem comprimir o cabeçalho.
+		var mobile_art_bottom: float = 0.58 if is_portrait else (0.38 if ultra_compact else (0.48 if compact_landscape else 0.54))
+		var mobile_dialogue_top: float = 0.60 if is_portrait else mobile_art_bottom
+		var mobile_bottom_inset: float = 18.0 if is_portrait else (14.0 if ultra_compact else 20.0)
+
+		_art_stage.anchor_left = 0.0
+		_art_stage.anchor_top = 0.0
+		_art_stage.anchor_right = 1.0
+		_art_stage.anchor_bottom = mobile_art_bottom
+		_art_stage.offset_left = 0.0
+		_art_stage.offset_top = 0.0
+		_art_stage.offset_right = 0.0
+		_art_stage.offset_bottom = 0.0
+		_art_stage.clip_contents = true
+
+		_dialogue_area.anchor_left = 0.0
+		_dialogue_area.anchor_top = mobile_dialogue_top
+		_dialogue_area.anchor_right = 1.0
+		# Âncora em 100% com recuo em pixels: evita que a borda inferior
+		# dependa de arredondamento percentual em viewports mobile escalados.
+		_dialogue_area.anchor_bottom = 1.0
+		_dialogue_area.offset_left = 0.0
+		_dialogue_area.offset_top = 0.0
+		_dialogue_area.offset_right = 0.0
+		_dialogue_area.offset_bottom = -mobile_bottom_inset
+
+		var margin_h: float = 18.0
+		if aspect_ratio >= 1.95:
+			var ultrawide_extra: float = maxf(0.0, viewport_size.x - (viewport_size.y * (16.0 / 9.0)))
+			margin_h = clampf(ultrawide_extra * 0.25 + 24.0, 36.0, 84.0)
+		_dialogue_area.offset_left = margin_h
+		_dialogue_area.offset_right = -margin_h
+		_dialogue_area.add_theme_constant_override("margin_left", 0)
+		_dialogue_area.add_theme_constant_override("margin_right", 0)
+		_dialogue_area.add_theme_constant_override("margin_bottom", 0)
+
+		_apply_mobile_dialogue_contract()
 		_apply_desktop_presentation_mode()
 		_desktop_layout_update_in_progress = false
 		return
@@ -217,11 +270,106 @@ func _apply_responsive_layout() -> void:
 	_desktop_layout_update_in_progress = false
 
 
+func _apply_dialogue_density() -> void:
+	super._apply_dialogue_density()
+	_apply_mobile_dialogue_contract()
+
+
+func _apply_mobile_dialogue_contract() -> void:
+	if not _is_mobile_runtime() or _root_control == null or _dialogue_area == null:
+		return
+
+	var viewport_size: Vector2 = _root_control.size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+
+	var aspect_ratio: float = viewport_size.x / viewport_size.y
+	var is_portrait: bool = aspect_ratio < 1.0
+	var ultra_compact: bool = viewport_size.y < 420.0 and not is_portrait
+
+	# A geometria externa já foi calculada em uma única passagem por
+	# _apply_responsive_layout(). Aqui são normalizados apenas os elementos internos.
+	_dialogue_area.add_theme_constant_override("margin_bottom", 0)
+
+	var portrait_size: float = 40.0 if ultra_compact else 88.0
+	var speaker_size: int = 22 if ultra_compact else 28
+	var dialogue_size: int = 18 if ultra_compact else 26
+	var speaker_row_height: float = 34.0 if ultra_compact else 44.0
+	var line_spacing: int = 4 if ultra_compact else 8
+
+	if _speaker_portrait != null:
+		_speaker_portrait.custom_minimum_size = Vector2(portrait_size, portrait_size)
+		_speaker_portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_speaker_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_speaker_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_speaker_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	if _speaker_label != null:
+		if _speaker_label.label_settings == null:
+			_speaker_label.label_settings = StandardDialogueBox.create_speaker_settings(true)
+		_speaker_label.label_settings.font_size = speaker_size
+		_speaker_label.custom_minimum_size = Vector2(0.0, speaker_row_height)
+		_speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_speaker_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_speaker_label.add_theme_font_size_override("font_size", speaker_size)
+
+	if _dialogue_label != null:
+		if _dialogue_label.label_settings == null:
+			_dialogue_label.label_settings = StandardDialogueBox.create_dialogue_settings(true)
+		_dialogue_label.label_settings.font_size = dialogue_size
+		_dialogue_label.label_settings.line_spacing = line_spacing
+		_dialogue_label.custom_minimum_size = Vector2.ZERO
+		_dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_dialogue_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_dialogue_label.add_theme_font_size_override("font_size", dialogue_size)
+
+	if _dialogue_separator != null:
+		_dialogue_separator.custom_minimum_size = Vector2(0.0, 1.0)
+
+	var content_margin: MarginContainer = null
+	if _dialogue_frame != null:
+		content_margin = _dialogue_frame.get_node_or_null("FrameContent/ContentMargin") as MarginContainer
+	if content_margin != null:
+		# A StyleBoxTexture já fornece 14px de margem de conteúdo pelo 9-patch.
+		# Zera apenas o padding vertical duplicado do container interno.
+		content_margin.add_theme_constant_override("margin_top", 0)
+		content_margin.add_theme_constant_override("margin_bottom", 0)
+
+	var mobile_hbox: HBoxContainer = null
+	if _dialogue_frame != null:
+		mobile_hbox = _dialogue_frame.get_node_or_null("FrameContent/ContentMargin/MobileDialogueHBox") as HBoxContainer
+	if mobile_hbox != null:
+		mobile_hbox.add_theme_constant_override("separation", 14 if ultra_compact else 18)
+		var right_vbox := mobile_hbox.get_node_or_null("RightVBox") as VBoxContainer
+		if right_vbox != null:
+			right_vbox.add_theme_constant_override("separation", 3)
+
+	var frame_content: Control = null
+	if _dialogue_frame != null:
+		frame_content = _dialogue_frame.get_node_or_null("FrameContent") as Control
+	if frame_content != null:
+		# Mantém os elementos internos contidos na moldura.
+		frame_content.clip_contents = true
+
+	# A barra dourada inferior é desenhada por último para não ficar encoberta
+	# pela árvore dinâmica de conteúdo criada para o layout mobile.
+	if _dialogue_frame != null:
+		var bottom_accent := _dialogue_frame.get_node_or_null("FrameContent/BottomAccentBar") as ColorRect
+		if bottom_accent != null:
+			bottom_accent.visible = true
+			bottom_accent.z_index = 2
+			bottom_accent.move_to_front()
+
+
 func _align_dialogue_area_to_image() -> void:
 	if _arcade_fullscreen_mode:
 		return
 	if _is_mobile_runtime():
 		super._align_dialogue_area_to_image()
+		_apply_mobile_dialogue_contract()
 		return
 	if _dialogue_area == null:
 		return
