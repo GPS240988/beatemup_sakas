@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ui/narrative_director.tscn" id="1_base_director"]
+[ext_resource type="Script" path="res://scripts/events/narrative_director_stage2_happen.gd" id="2_happen_director"]
+
+[node name="NarrativeDirector" instance=ExtResource("1_base_director")]
+script = ExtResource("2_happen_director")

@@ -26,6 +26,7 @@ var max_unlocked_map: int = 0
 var has_seen_bonus_transition: bool = false
 var has_seen_stage_2_transition: bool = false
 var has_seen_fase1_4_intro: bool = false
+var has_seen_phase2_1_intro: bool = false
 var pending_transition_target: String = ""
 var pending_map_transition_mode: int = 0 # 0: POINT1_TO_BONUS, 1: BONUS_TO_POINT2, 2: FULL_PREVIEW
 const CAMPAIGN_SAVE_PATH: String = "user://campaign_progression.json"
@@ -174,6 +175,7 @@ func reset_session() -> void:
 	difficulty_id = ""
 	has_played_intro = false
 	has_seen_fase1_4_intro = false
+	has_seen_phase2_1_intro = false
 	current_continues = 1
 	pending_transition_target = ""
 	pending_map_transition_mode = 0
@@ -286,7 +288,8 @@ func _save_campaign_progression() -> void:
 		"max_unlocked_stage": max_unlocked_stage,
 		"max_unlocked_map": max_unlocked_map,
 		"has_seen_bonus_transition": has_seen_bonus_transition,
-		"has_seen_stage_2_transition": has_seen_stage_2_transition
+		"has_seen_stage_2_transition": has_seen_stage_2_transition,
+		"has_seen_phase2_1_intro": has_seen_phase2_1_intro
 	}
 	var file := FileAccess.open(CAMPAIGN_SAVE_PATH, FileAccess.WRITE)
 	if file != null:
@@ -316,6 +319,7 @@ func _load_campaign_progression() -> void:
 			max_unlocked_map = maxi(max_unlocked_map, 4)
 		has_seen_bonus_transition = bool(d.get("has_seen_bonus_transition", false))
 		has_seen_stage_2_transition = bool(d.get("has_seen_stage_2_transition", false))
+		has_seen_phase2_1_intro = bool(d.get("has_seen_phase2_1_intro", false))
 
 
 

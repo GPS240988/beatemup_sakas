@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/map_5_stage2.gd" id="1_stage2_level"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_3.webp" id="2_stage2_bg"]
@@ -9,6 +9,9 @@
 [ext_resource type="NavigationPolygon" path="res://scenes/levels/map_5_navpoly.tres" id="7_navpoly"]
 [ext_resource type="Script" path="res://scripts/spawning/spawn_director.gd" id="8_spawn_director"]
 [ext_resource type="Script" path="res://scripts/spawning/spawn_point.gd" id="9_spawn_point"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/fase2_3_pumps_foreground.png" id="10_pumps_foreground"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/fase2_3_canopy_pillars_foreground.png" id="11_canopy_pillars"]
+[ext_resource type="Script" path="res://scripts/components/y_depth_scaler_2d.gd" id="12_y_depth_scaler"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horizontal_boundary"]
 size = Vector2(2138, 36)
@@ -18,6 +21,12 @@ size = Vector2(36, 240)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
 size = Vector2(72, 172)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pump_island_left"]
+size = Vector2(280, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pump_island_right"]
+size = Vector2(315, 12)
 
 [node name="Map5" type="Node2D"]
 script = ExtResource("1_stage2_level")
@@ -56,6 +65,18 @@ navigation_polygon = ExtResource("7_navpoly")
 [node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
 collision_layer = 2
 
+[node name="PumpsCollision" type="StaticBody2D" parent="StaticWorld"]
+collision_layer = 2
+collision_mask = 0
+
+[node name="LeftIsland" type="CollisionShape2D" parent="StaticWorld/PumpsCollision"]
+position = Vector2(542, 450)
+shape = SubResource("RectangleShape2D_pump_island_left")
+
+[node name="RightIsland" type="CollisionShape2D" parent="StaticWorld/PumpsCollision"]
+position = Vector2(941.5, 450)
+shape = SubResource("RectangleShape2D_pump_island_right")
+
 [node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
 position = Vector2(1069, 502)
 shape = SubResource("RectangleShape2D_horizontal_boundary")
@@ -81,6 +102,26 @@ y_sort_enabled = true
 [node name="StaticProps" type="Node2D" parent="World/Props"]
 y_sort_enabled = true
 
+[node name="CanopyPillarsForeground" type="Node2D" parent="World/Props/StaticProps"]
+position = Vector2(0, 456)
+y_sort_enabled = false
+
+[node name="Sprite2D" type="Sprite2D" parent="World/Props/StaticProps/CanopyPillarsForeground"]
+position = Vector2(0, -456)
+texture = ExtResource("11_canopy_pillars")
+centered = false
+texture_filter = 1
+
+[node name="PumpsForeground" type="Node2D" parent="World/Props/StaticProps"]
+position = Vector2(0, 462)
+y_sort_enabled = false
+
+[node name="Sprite2D" type="Sprite2D" parent="World/Props/StaticProps/PumpsForeground"]
+position = Vector2(0, -462)
+texture = ExtResource("10_pumps_foreground")
+centered = false
+texture_filter = 1
+
 [node name="Destructibles" type="Node2D" parent="World/Props"]
 y_sort_enabled = true
 
@@ -98,6 +139,14 @@ y_sort_enabled = true
 
 [node name="Foreground" type="Node2D" parent="."]
 z_index = 10
+
+[node name="YDepthScaler" type="Node" parent="."]
+script = ExtResource("12_y_depth_scaler")
+far_lane_y = 425.0
+near_lane_y = 662.0
+far_scale = 0.82
+near_scale = 1.0
+smoothing_speed = 12.0
 
 [node name="SpawnPoints" type="Node2D" parent="."]
 

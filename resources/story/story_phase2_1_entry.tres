@@ -1,57 +1,34 @@
-[gd_resource type="Resource" format=3]
+[gd_resource type="Resource" script_class="StorySequence" format=3 uid="uid://df7w0r3v5k62j"]
 
-[ext_resource type="Script" path="res://scripts/events/story_event.gd" id="story_event"]
-[ext_resource type="Script" path="res://scripts/events/story_sequence.gd" id="story_sequence"]
+[ext_resource type="Script" uid="uid://cui1xsniw4o15" path="res://scripts/events/story_event.gd" id="1_event"]
+[ext_resource type="Script" uid="uid://ce5rfrdbai2vl" path="res://scripts/events/story_sequence.gd" id="2_sequence"]
 
-[sub_resource type="Resource" id="Dialogue_Alessandro"]
-script = ExtResource("story_event")
-id = "phase2_1_dialogue_alessandro"
+[sub_resource type="Resource" id="Resource_phase2_1_dialogue"]
+script = ExtResource("1_event")
+id = "phase2_1_group_entry"
 event_type = "dialogue"
 image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
-texts = Array[String]( ["Vamos juntos. Ninguém se separa."] )
-speakers = Array[String]( ["ALESSANDRO"] )
+texts = Array[String]([
+	"Vamos juntos. Ninguém se separa.",
+	"...",
+	"O que ele falou?",
+	"Não sei. Mas ele já tá indo."
+])
+speakers = Array[String]([
+	"ALESSANDRO",
+	"GUILHERME",
+	"ANDRÉ",
+	"GABRIEL"
+])
 duration_per_text = 4.0
 entry_effect = "quick_dialogue_crossfade"
-transition_duration = 0.32
+exit_effect = "fade_out"
+transition_duration = 0.35
 pause_after = 0.25
-
-[sub_resource type="Resource" id="Dialogue_Guilherme"]
-script = ExtResource("story_event")
-id = "phase2_1_dialogue_guilherme"
-event_type = "dialogue"
-image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
-texts = Array[String]( ["..."] )
-speakers = Array[String]( ["GUILHERME"] )
-duration_per_text = 4.0
-entry_effect = "quick_dialogue_crossfade"
-transition_duration = 0.32
-pause_after = 0.25
-
-[sub_resource type="Resource" id="Dialogue_Andre"]
-script = ExtResource("story_event")
-id = "phase2_1_dialogue_andre"
-event_type = "dialogue"
-image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
-texts = Array[String]( ["O que ele falou?"] )
-speakers = Array[String]( ["ANDRÉ"] )
-duration_per_text = 4.0
-entry_effect = "quick_dialogue_crossfade"
-transition_duration = 0.32
-pause_after = 0.25
-
-[sub_resource type="Resource" id="Dialogue_Gabriel"]
-script = ExtResource("story_event")
-id = "phase2_1_dialogue_gabriel"
-event_type = "dialogue"
-image_path = "res://assets/backgrounds/maps/fase2/Fase2_3.webp"
-texts = Array[String]( ["Não sei. Mas ele já tá indo."] )
-speakers = Array[String]( ["GABRIEL"] )
-duration_per_text = 4.0
-entry_effect = "quick_dialogue_crossfade"
-transition_duration = 0.32
-pause_after = 0.25
+safe_framing = true
+hide_panel_initially = false
 
 [resource]
-script = ExtResource("story_sequence")
+script = ExtResource("2_sequence")
 sequence_id = "story_phase2_1_entry"
-events = Array[Resource]( [SubResource("Dialogue_Alessandro"), SubResource("Dialogue_Guilherme"), SubResource("Dialogue_Andre"), SubResource("Dialogue_Gabriel")] )
+events = Array[Resource]([SubResource("Resource_phase2_1_dialogue")])

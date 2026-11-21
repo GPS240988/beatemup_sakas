@@ -1495,3 +1495,33 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   - O sistema de projéteis (`_on_body_entered`) não consome o tiro como obstáculo inerte de cenário ao atingir objetos dos grupos `destructibles`, `destructible_props` e `vehicles`, encaminhando para o contrato `take_damage()`.
   - Tolerância de profundidade expandida para 52 px e mapeamento via `get_closest_contact_point()` / `get_impact_point()` garantem detecção limpa do impacto ao longo de todo o perímetro do veículo.
 
+---
+
+## 42. ESTÁGIO 02 (FASE 2-1 · RUMO À HAPPEN) & CONTRATO NARRATIVO DE ENTRADA
+`STATUS: IMPLEMENTED`
+
+### 1. Linha Narrativa Canônica e Tom de Diálogo do Estágio 02:
+- **Apresentação do Mistério pós-Garagem (`res://resources/story/story_intro_stage2.tres`)**:
+  - `Evento 1 (Ligação do Sérgio)`: Sérgio telefona para Gabriel durante o churrasco avisando que a máquina arcade na sala secreta ligou sozinha e exibiu um local desconhecido na tela.
+  - `Evento 2 (Revelação da Máquina)`: Revelação silenciosa em tela cheia da máquina mostrando o local (a antiga pizzaria Happen perto da Vila Ema).
+  - `Evento 3 (Decisão de Investigação)`: Gabriel e Guilherme decidem ir até o local para investigar a origem da anomalia temporal.
+- **Entrada na Fase 2-1 (`res://resources/story/story_phase2_1_entry.tres`)**:
+  - O grupo desembarca na avenida em direção à Happen com os quatro amigos e Alessandro reintegrado. As falas estabelecem dinâmica imediata e natural:
+    - **ALESSANDRO**: *"Vamos juntos. Ninguém se separa."* (Tom protetor, focado e compenetrado após recuperar a consciência no Beco).
+    - **GUILHERME**: *"..."* (Silêncio analítico e vigilante, observando a rua e os perigos).
+    - **ANDRÉ**: *"O que ele falou?"* (Espontaneidade bem-humorada, aliviando a tensão típica de grupo de velhos amigos).
+    - **GABRIEL**: *"Não sei. Mas ele já tá indo."* (Pragmatismo descontraído e ação rápida, dando o sinal de avanço para a luta).
+
+### 2. Padrão Arquitetural de Diálogos In-Game (`StorySequence` & `NarrativeDirector`):
+- **Agrupamento Unificado de Falas**: Recursos `.tres` com múltiplos oradores contínuos sobre o mesmo cenário DEVEM agrupar as falas em um único evento de diálogo (`StoryEvent`), utilizando os arrays sincronizados `texts: Array[String]` e `speakers: Array[String]`. É proibido desmembrar falas sequenciais em sub-recursos isolados quando compartilham o mesmo background, evitando recarregamentos e cortes bruscos de transição.
+- **Diretor Especializado com Suporte a Alessandro (`narrative_director_stage2_happen.tscn`)**:
+  - O componente estende a resolução de avatares com `portrait_alessandro.png` (72×72px / 96×96px no mobile), garantindo que os cinco personagens (Guilherme, Gabriel, André, Juliana e Alessandro) exibam seus retratos em alta fidelidade.
+- **Pausa de Jogo durante a Cinemática**:
+  - Ao entrar na fase pela primeira vez, a árvore é pausada (`get_tree().paused = true`), congelando spawners de inimigos, combate e jogador enquanto o diálogo estiver ativo.
+- **Blindagem de Não-Repetição no Fluxo da Sessão (`has_seen_phase2_1_intro`)**:
+  - O `GameSession` mantém a flag booleana `has_seen_phase2_1_intro`.
+  - Ao concluir ou pular a fala de entrada pela primeira vez, a flag passa para `true` e é persistida no arquivo de campanha.
+  - Reiniciar a fase com `[R]`, sofrer Game Over com Retry ou recarregar a cena jamais repete o diálogo, liberando imediatamente o combate e a música da fase.
+  - O fluxo "Novo Jogo" (`reset_session()`) zera a flag para que uma nova campanha exiba a apresentação normalmente.
+
+

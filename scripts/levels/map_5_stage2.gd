@@ -29,23 +29,65 @@ func _configure_panorama_from_texture() -> void:
 	camera_max_x = maxf(camera_min_x, map_size.x - half_view_width)
 	camera_fixed_y = map_size.y * 0.5
 
-	# O corredor 2.5D acompanha proporcionalmente a faixa de asfalto do panorama.
-	var lane_top: float = map_size.y * 0.71
+	# Corredor expandido para rua, calçada e faixa atrás das bombas.
+	var lane_top: float = map_size.y * 0.57
 	var lane_bottom: float = map_size.y * 0.94
+	# O limite superior mantém os pés fora da parede; a malha respeita o colisor do ator.
+	var navigation_top: float = lane_top + 24.0
 	var lane_center: float = (lane_top + lane_bottom) * 0.5
 	var lane_height: float = lane_bottom - lane_top
+	var initial_lane_y: float = lane_bottom - 45.0
+
+	# Pegada física das duas ilhas de bombas, alinhada ao PNG de foreground 2048x704.
+	var island_left: float = map_size.x * 0.1962890625
+	var island_left_end: float = map_size.x * 0.3330078125
+	var island_right: float = map_size.x * 0.3828125
+	var island_right_end: float = map_size.x * 0.53662109375
+	var island_top: float = map_size.y * 0.6306818182
+	var island_bottom: float = map_size.y * 0.6477272727
+	var front_lane_top: float = island_bottom + 21.0
+	var nav_right: float = map_size.x - 60.0
+
+	# Perspectiva 2.5D: escala visual do fundo ao primeiro plano, ancorada nos pés.
+	var depth_scaler: Node = get_node_or_null("YDepthScaler")
+	if depth_scaler != null:
+		depth_scaler.set("far_lane_y", navigation_top)
+		depth_scaler.set("near_lane_y", lane_bottom)
 
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D") as NavigationRegion2D
 	if nav_region != null and nav_region.navigation_polygon != null:
 		var polygon: NavigationPolygon = nav_region.navigation_polygon.duplicate(true) as NavigationPolygon
 		polygon.vertices = PackedVector2Array([
-			Vector2(60.0, lane_top),
-			Vector2(map_size.x - 60.0, lane_top),
-			Vector2(map_size.x - 60.0, lane_bottom),
-			Vector2(60.0, lane_bottom)
+			Vector2(60.0, navigation_top), Vector2(nav_right, navigation_top),
+			Vector2(nav_right, island_top), Vector2(60.0, island_top),
+			Vector2(60.0, front_lane_top), Vector2(nav_right, front_lane_top),
+			Vector2(nav_right, lane_bottom), Vector2(60.0, lane_bottom),
+			Vector2(60.0, island_top), Vector2(island_left, island_top),
+			Vector2(island_left, front_lane_top), Vector2(60.0, front_lane_top),
+			Vector2(island_left_end, island_top), Vector2(island_right, island_top),
+			Vector2(island_right, front_lane_top), Vector2(island_left_end, front_lane_top),
+			Vector2(island_right_end, island_top), Vector2(nav_right, island_top),
+			Vector2(nav_right, front_lane_top), Vector2(island_right_end, front_lane_top)
 		])
-		polygon.polygons = [PackedInt32Array([0, 1, 2, 3])]
+		polygon.polygons = [
+			PackedInt32Array([0, 1, 2, 3]),
+			PackedInt32Array([4, 5, 6, 7]),
+			PackedInt32Array([8, 9, 10, 11]),
+			PackedInt32Array([12, 13, 14, 15]),
+			PackedInt32Array([16, 17, 18, 19])
+		]
 		nav_region.navigation_polygon = polygon
+
+	_set_rectangle_shape(
+		"StaticWorld/PumpsCollision/LeftIsland",
+		Vector2(island_left_end - island_left, island_bottom - island_top),
+		Vector2((island_left + island_left_end) * 0.5, (island_top + island_bottom) * 0.5)
+	)
+	_set_rectangle_shape(
+		"StaticWorld/PumpsCollision/RightIsland",
+		Vector2(island_right_end - island_right, island_bottom - island_top),
+		Vector2((island_right + island_right_end) * 0.5, (island_top + island_bottom) * 0.5)
+	)
 
 	_set_rectangle_shape(
 		"StaticWorld/WorldBoundaries/TopWall",
@@ -74,19 +116,37 @@ func _configure_panorama_from_texture() -> void:
 		true
 	)
 
+
+	# A âncora do foreground fica na base física das bombas (pés/solo).
+	# O sprite é compensado para manter a arte no pixel original do panorama.
+	# Cada conjunto tem seu próprio ponto de chão: primeiro os pilares, depois as bombas.
+	var pillars_depth_root: Node2D = get_node_or_null("World/Props/StaticProps/CanopyPillarsForeground") as Node2D
+	var pillars_sprite: Sprite2D = get_node_or_null("World/Props/StaticProps/CanopyPillarsForeground/Sprite2D") as Sprite2D
+	if pillars_depth_root != null and pillars_sprite != null:
+		var pillars_ground_y: float = map_size.y * (456.0 / 704.0)
+		pillars_depth_root.position = Vector2(0.0, pillars_ground_y)
+		pillars_sprite.position = Vector2(0.0, -pillars_ground_y)
+
+	var pumps_depth_root: Node2D = get_node_or_null("World/Props/StaticProps/PumpsForeground") as Node2D
+	var pumps_sprite: Sprite2D = get_node_or_null("World/Props/StaticProps/PumpsForeground/Sprite2D") as Sprite2D
+	if pumps_depth_root != null and pumps_sprite != null:
+		var pumps_ground_y: float = map_size.y * 0.65625
+		pumps_depth_root.position = Vector2(0.0, pumps_ground_y)
+		pumps_sprite.position = Vector2(0.0, -pumps_ground_y)
+
 	var player_node: Node2D = get_node_or_null("World/Actors/Player") as Node2D
 	if player_node != null:
-		player_node.position = Vector2(map_size.x * 0.18, lane_center)
+		player_node.position = Vector2(map_size.x * 0.18, initial_lane_y)
 
 	var spawn_left: Marker2D = get_node_or_null("SpawnPoints/SpawnPoint_Left") as Marker2D
 	var spawn_mid: Marker2D = get_node_or_null("SpawnPoints/SpawnPoint_Mid") as Marker2D
 	var spawn_right: Marker2D = get_node_or_null("SpawnPoints/SpawnPoint_Right") as Marker2D
 	if spawn_left != null:
-		spawn_left.position = Vector2(map_size.x * 0.09, lane_center)
+		spawn_left.position = Vector2(map_size.x * 0.09, initial_lane_y)
 	if spawn_mid != null:
-		spawn_mid.position = Vector2(map_size.x * 0.5, lane_center)
+		spawn_mid.position = Vector2(map_size.x * 0.5, initial_lane_y)
 	if spawn_right != null:
-		spawn_right.position = Vector2(map_size.x * 0.91, lane_center)
+		spawn_right.position = Vector2(map_size.x * 0.91, initial_lane_y)
 
 
 func _set_rectangle_shape(
@@ -98,6 +158,7 @@ func _set_rectangle_shape(
 	var collision_node: CollisionShape2D = get_node_or_null(node_path) as CollisionShape2D
 	if collision_node == null:
 		return
+
 
 	var rectangle: RectangleShape2D = collision_node.shape.duplicate(true) as RectangleShape2D
 	if rectangle == null:
