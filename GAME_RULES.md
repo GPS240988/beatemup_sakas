@@ -771,6 +771,21 @@ MapX (Node2D, script: base_level.gd)
 2. **Ativação Obrigatória de Y-Sort**: Todos os contêineres ancestrais do mundo (`World`, `Props`, `StaticProps`, `Destructibles`, `Actors`, `Enemies`, `NPCs`) devem possuir `y_sort_enabled = true`.
 3. **Proibição de Deslocamento Z Arbitrário**: Jamais aplicar `z_index` customizado em atores que quebre a ordenação por profundidade Y.
 
+4. **Oclusão de Elementos Altos do Cenário**: Qualquer elemento que precise encobrir atores conforme a profundidade (pilares, colunas, bombas, árvores, balcões e estruturas semelhantes) deve ter uma representação visual própria em `World/Props/StaticProps` ou ramo equivalente com Y-Sort. O background pode manter a cópia visual estática como base, mas a cópia de oclusão deve ser alinhada pixel a pixel e possuir origem no ponto de contato com o chão.
+5. **Ponto de Chão por Objeto**: Props com bases em profundidades diferentes devem usar raízes `Node2D` independentes, cada uma posicionada no Y real de contato com o chão. O `Sprite2D` filho deve ser compensado localmente para preservar a posição original da arte. Não agrupar objetos de profundidades distintas sob uma única âncora Y.
+
+### 19.1. Y-BASED DEPTH SCALING (PERSPECTIVA 2.5D)
+`STATUS: IMPLEMENTED WITH LIMITATION`
+
+1. **Escala Visual, Nunca Física**: A perspectiva por profundidade altera exclusivamente a escala uniforme do nó `Visual` do ator. A raiz `CharacterBody2D` permanece sem escala e continua representando os pés em `(0, 0)`.
+2. **Física Imutável**: `CollisionShape2D`, hitboxes, hurtboxes, `NavigationAgent2D`, velocidades, distâncias de ataque e cálculos de dano nunca recebem o fator de escala visual. A movimentação, as colisões e o Y-Sort permanecem em coordenadas de mundo originais.
+3. **Cálculo pela Linha dos Pés**: O fator é derivado da posição Y global da raiz física, usando `depth_ratio = clamp((feet_y - far_lane_y) / (near_lane_y - far_lane_y), 0, 1)` e `visual_factor = lerp(far_scale, near_scale, depth_ratio)`. A transição deve ser contínua e suavizada, sem degraus de escala.
+4. **Faixa Recomendada Inicial**: Usar `far_scale = 0.82` e `near_scale = 1.00` como referência inicial, calibrando `far_lane_y` e `near_lane_y` para os limites reais de caminhada de cada mapa. Esses valores são configuráveis por fase, não constantes globais obrigatórias.
+5. **Uniformidade entre Atores**: Player, inimigos, aliados e NPCs na mesma profundidade devem compartilhar a mesma curva e os mesmos limites Y do mapa. Preservar o sinal horizontal de `Visual.scale.x` ao aplicar a escala, para não inverter a direção do personagem.
+6. **Processamento Eficiente**: Registrar atores existentes uma vez e atores dinâmicos por evento de entrada na árvore/grupo. É proibido chamar `get_nodes_in_group()` continuamente em `_process()` ou `_physics_process()`; atualizar apenas a lista cacheada de atores válidos.
+7. **Uso em Novos Mapas**: Ao criar uma nova fase 2.5D, incluir o controlador `YDepthScaler` no mapa, definir `far_lane_y`, `near_lane_y`, `far_scale` e `near_scale`, validar a ancoragem visual dos pés em diferentes profundidades e testar oclusão com props altos. A escala não deve fazer o personagem invadir paredes nem alterar a linha de chão.
+8. **Escopo de Implementação**: A regra está aplicada à Fase 2-1 por meio de `scripts/components/y_depth_scaler_2d.gd`. Mapas existentes não devem receber escala automaticamente sem calibração individual de seus limites e proporções.
+
 ---
 
 ## 20. Z-INDEX RULES

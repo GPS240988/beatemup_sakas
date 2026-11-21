@@ -54,27 +54,32 @@ func _configure_panorama_from_texture() -> void:
 		depth_scaler.set("far_lane_y", navigation_top)
 		depth_scaler.set("near_lane_y", lane_bottom)
 
+	# A faixa traseira termina no posto. O acesso à calçada acontece pelos vãos
+	# à esquerda da primeira ilha e entre as duas ilhas; não há conector após a
+	# segunda ilha, evitando rota por trás da padaria.
+	var gas_back_lane_end: float = map_size.x * (1140.0 / 2048.0)
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D") as NavigationRegion2D
 	if nav_region != null and nav_region.navigation_polygon != null:
 		var polygon: NavigationPolygon = nav_region.navigation_polygon.duplicate(true) as NavigationPolygon
 		polygon.vertices = PackedVector2Array([
-			Vector2(60.0, navigation_top), Vector2(nav_right, navigation_top),
-			Vector2(nav_right, island_top), Vector2(60.0, island_top),
+			# Corredor atrás das bombas, restrito ao posto.
+			Vector2(60.0, navigation_top), Vector2(gas_back_lane_end, navigation_top),
+			Vector2(gas_back_lane_end, island_top), Vector2(60.0, island_top),
+			# Calçada/rua frontal: segue até o limite lateral do cenário.
 			Vector2(60.0, front_lane_top), Vector2(nav_right, front_lane_top),
 			Vector2(nav_right, lane_bottom), Vector2(60.0, lane_bottom),
+			# Passagem à esquerda da primeira ilha.
 			Vector2(60.0, island_top), Vector2(island_left, island_top),
 			Vector2(island_left, front_lane_top), Vector2(60.0, front_lane_top),
+			# Passagem entre os dois conjuntos de bombas.
 			Vector2(island_left_end, island_top), Vector2(island_right, island_top),
-			Vector2(island_right, front_lane_top), Vector2(island_left_end, front_lane_top),
-			Vector2(island_right_end, island_top), Vector2(nav_right, island_top),
-			Vector2(nav_right, front_lane_top), Vector2(island_right_end, front_lane_top)
+			Vector2(island_right, front_lane_top), Vector2(island_left_end, front_lane_top)
 		])
 		polygon.polygons = [
 			PackedInt32Array([0, 1, 2, 3]),
 			PackedInt32Array([4, 5, 6, 7]),
 			PackedInt32Array([8, 9, 10, 11]),
-			PackedInt32Array([12, 13, 14, 15]),
-			PackedInt32Array([16, 17, 18, 19])
+			PackedInt32Array([12, 13, 14, 15])
 		]
 		nav_region.navigation_polygon = polygon
 
@@ -89,6 +94,63 @@ func _configure_panorama_from_texture() -> void:
 		Vector2((island_right + island_right_end) * 0.5, (island_top + island_bottom) * 0.5)
 	)
 
+	# Obstáculos de cenário: colisores representam somente a pegada no chão.
+	# Isso bloqueia a passagem sem transformar a silhueta inteira do sprite em parede.
+	var art_scale: Vector2 = Vector2(map_size.x / 2048.0, map_size.y / 704.0)
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/TreeTrunk",
+		Vector2(44.0, 42.0) * art_scale,
+		Vector2(96.0, 447.0) * art_scale
+	)
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/LeftStreetlight",
+		Vector2(26.0, 38.0) * art_scale,
+		Vector2(226.0, 460.0) * art_scale
+	)
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/RightStreetlight",
+		Vector2(26.0, 38.0) * art_scale,
+		Vector2(1744.0, 460.0) * art_scale
+	)
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/HappenSignPost",
+		Vector2(20.0, 38.0) * art_scale,
+		Vector2(1902.0, 460.0) * art_scale
+	)
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/BakeryWaterHydrant",
+		Vector2(24.0, 24.0) * art_scale,
+		Vector2(1183.0, 458.0) * art_scale
+	)
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/RightFireHydrant",
+		Vector2(22.0, 24.0) * art_scale,
+		Vector2(1784.0, 464.0) * art_scale
+	)
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/BakerySideSign",
+		Vector2(34.0, 24.0) * art_scale,
+		Vector2(1553.0, 460.0) * art_scale
+	)
+	# Barreira física contínua no limite posterior da calçada, do início da padaria
+	# até o fim do cenário. Mantém a faixa frontal livre e impede entrar atrás da fachada.
+	var sidewalk_back_boundary_y: float = map_size.y * (442.0 / 704.0)
+	var sidewalk_back_boundary_half_height: float = 12.0 * art_scale.y
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/BakeryFacadeWall",
+		Vector2(nav_right - gas_back_lane_end, sidewalk_back_boundary_half_height * 2.0),
+		Vector2((gas_back_lane_end + nav_right) * 0.5, sidewalk_back_boundary_y)
+	)
+
+	# O NavigationRegion2D só orienta NavigationAgent2D; o Player usa movimento direto.
+	# Esta parede transversal fecha fisicamente o fim do corredor atrás das bombas.
+	var rear_gate_top: float = lane_top - 18.0
+	var rear_gate_bottom: float = sidewalk_back_boundary_y + sidewalk_back_boundary_half_height
+	_set_rectangle_shape(
+		"StaticWorld/MapObstacles/RearLaneEndWall",
+		Vector2(18.0 * art_scale.x, rear_gate_bottom - rear_gate_top),
+		Vector2(gas_back_lane_end, (rear_gate_top + rear_gate_bottom) * 0.5)
+	)
 	_set_rectangle_shape(
 		"StaticWorld/WorldBoundaries/TopWall",
 		Vector2(map_size.x, 36.0),

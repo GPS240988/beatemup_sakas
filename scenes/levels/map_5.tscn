@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/map_5_stage2.gd" id="1_stage2_level"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_3.webp" id="2_stage2_bg"]
@@ -27,6 +27,9 @@ size = Vector2(280, 12)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_pump_island_right"]
 size = Vector2(315, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_environment_obstacle"]
+size = Vector2(24, 24)
 
 [node name="Map5" type="Node2D"]
 script = ExtResource("1_stage2_level")
@@ -68,6 +71,37 @@ collision_layer = 2
 [node name="PumpsCollision" type="StaticBody2D" parent="StaticWorld"]
 collision_layer = 2
 collision_mask = 0
+
+[node name="MapObstacles" type="StaticBody2D" parent="StaticWorld"]
+collision_layer = 2
+collision_mask = 0
+
+[node name="TreeTrunk" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="LeftStreetlight" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="RightStreetlight" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="HappenSignPost" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="BakeryWaterHydrant" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="RightFireHydrant" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="BakerySideSign" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="BakeryFacadeWall" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
+
+[node name="RearLaneEndWall" type="CollisionShape2D" parent="StaticWorld/MapObstacles"]
+shape = SubResource("RectangleShape2D_environment_obstacle")
 
 [node name="LeftIsland" type="CollisionShape2D" parent="StaticWorld/PumpsCollision"]
 position = Vector2(542, 450)
