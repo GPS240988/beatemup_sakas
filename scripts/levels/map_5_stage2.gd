@@ -178,7 +178,6 @@ func _configure_panorama_from_texture() -> void:
 		true
 	)
 
-
 	# A âncora do foreground fica na base física das bombas (pés/solo).
 	# O sprite é compensado para manter a arte no pixel original do panorama.
 	# Cada conjunto tem seu próprio ponto de chão: primeiro os pilares, depois as bombas.
@@ -210,6 +209,19 @@ func _configure_panorama_from_texture() -> void:
 	if spawn_right != null:
 		spawn_right.position = Vector2(map_size.x * 0.91, initial_lane_y)
 
+	# Conteúdo do posto: o frentista fica na calçada, junto à extremidade
+	# direita da primeira ilha de bombas. Os engradados permanecem ancorados
+	# na linha dos pés e não existem garrafas soltas no chão.	
+	var attendant: Node2D = get_node_or_null("World/Actors/NPCs/Frentista") as Node2D
+	if attendant != null:
+		attendant.position = Vector2(map_size.x * (704.0 / 2048.0), map_size.y * (440.0 / 704.0))
+
+	var crate_red: Node2D = get_node_or_null("World/Props/StaticProps/EngradadoVermelho") as Node2D
+	var crate_green: Node2D = get_node_or_null("World/Props/StaticProps/EngradadoVerde") as Node2D
+	if crate_red != null:
+		crate_red.position = Vector2(map_size.x * (300.0 / 2048.0), map_size.y * (494.0 / 704.0))
+	if crate_green != null:
+		crate_green.position = Vector2(map_size.x * (1190.0 / 2048.0), map_size.y * (494.0 / 704.0))
 
 func _set_rectangle_shape(
 	node_path: NodePath,

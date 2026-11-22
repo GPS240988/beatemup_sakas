@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/projectiles/gas_bottle_projectile.gd" id="1_projectile_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/items/soda_glass_bottle.png" id="2_bottle"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_bottle"]
+radius = 11.0
+
+[node name="GasBottleProjectile" type="Area2D" groups=["projectiles", "player_projectiles"]]
+y_sort_enabled = true
+z_index = 5
+z_as_relative = false
+collision_layer = 8
+collision_mask = 12
+monitoring = true
+monitorable = false
+script = ExtResource("1_projectile_script")
+
+[node name="BottleSprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_bottle")
+region_enabled = false
+position = Vector2(0, -58)
+scale = Vector2(0.2, 0.2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -58)
+shape = SubResource("CircleShape2D_bottle")

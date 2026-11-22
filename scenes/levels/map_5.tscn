@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/map_5_stage2.gd" id="1_stage2_level"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_3.webp" id="2_stage2_bg"]
@@ -12,6 +12,8 @@
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/fase2_3_pumps_foreground.png" id="10_pumps_foreground"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/fase2_3_canopy_pillars_foreground.png" id="11_canopy_pillars"]
 [ext_resource type="Script" path="res://scripts/components/y_depth_scaler_2d.gd" id="12_y_depth_scaler"]
+[ext_resource type="PackedScene" path="res://scenes/actors/frentista_npc.tscn" id="13_attendant_scene"]
+[ext_resource type="PackedScene" path="res://scenes/items/gas_bottle_crate.tscn" id="14_bottle_crate_scene"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horizontal_boundary"]
 size = Vector2(2138, 36)
@@ -156,6 +158,14 @@ texture = ExtResource("10_pumps_foreground")
 centered = false
 texture_filter = 1
 
+[node name="EngradadoVermelho" parent="World/Props/StaticProps" instance=ExtResource("14_bottle_crate_scene")]
+position = Vector2(300, 494)
+crate_style = 0
+
+[node name="EngradadoVerde" parent="World/Props/StaticProps" instance=ExtResource("14_bottle_crate_scene")]
+position = Vector2(1190, 494)
+crate_style = 1
+
 [node name="Destructibles" type="Node2D" parent="World/Props"]
 y_sort_enabled = true
 
@@ -170,6 +180,9 @@ y_sort_enabled = true
 
 [node name="NPCs" type="Node2D" parent="World/Actors"]
 y_sort_enabled = true
+
+[node name="Frentista" parent="World/Actors/NPCs" instance=ExtResource("13_attendant_scene")]
+position = Vector2(704, 440)
 
 [node name="Foreground" type="Node2D" parent="."]
 z_index = 10
