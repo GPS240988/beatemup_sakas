@@ -5,12 +5,19 @@ extends BaseLevel
 ## da textura local, preservando a proporção da arte panorâmica sem esticá-la.
 ## A trilha do Stage 02 ainda não foi definida; não reutiliza BGM do Stage 01 ou bônus.
 
+const Map5BakeryCutsceneClass = preload("res://scripts/events/map5_bakery_cutscene.gd")
+
+var _andre_bakery_video_played: bool = false
+
 
 func _ready() -> void:
 	_configure_panorama_from_texture()
 	super._ready()
 	if hud != null and hud.label_level_name != null:
 		hud.label_level_name.text = "FASE 2-1 · RUMO À HAPPEN"
+	var bakery_trigger: Area2D = get_node_or_null("BakeryVideoTrigger") as Area2D
+	if bakery_trigger != null and not bakery_trigger.body_entered.is_connected(_on_bakery_trigger_body_entered):
+		bakery_trigger.body_entered.connect(_on_bakery_trigger_body_entered)
 
 
 func _configure_panorama_from_texture() -> void:
@@ -177,6 +184,12 @@ func _configure_panorama_from_texture() -> void:
 		Vector2(map_size.x - 78.0, lane_center),
 		true
 	)
+	_set_rectangle_shape(
+		"BakeryVideoTrigger/CollisionShape2D",
+		Vector2(64.0 * art_scale.x, lane_height),
+		Vector2(1380.0 * art_scale.x, lane_center),
+		true
+	)
 
 	# A âncora do foreground fica na base física das bombas (pés/solo).
 	# O sprite é compensado para manter a arte no pixel original do panorama.
@@ -250,3 +263,20 @@ func _set_rectangle_shape(
 func _setup_level_bgm() -> void:
 	# A trilha própria do Estágio 02 será vinculada quando for aprovada.
 	return
+
+
+func _on_bakery_trigger_body_entered(body: Node) -> void:
+	if _andre_bakery_video_played:
+		return
+	if body == null or not body.is_in_group("player"):
+		return
+	_andre_bakery_video_played = true
+	_play_andre_bakery_cutscene()
+
+
+func _play_andre_bakery_cutscene() -> void:
+	var cutscene: CanvasLayer = Map5BakeryCutsceneClass.new() as CanvasLayer
+	if cutscene == null:
+		return
+	cutscene.name = "Map5BakeryCutscene"
+	add_child(cutscene)

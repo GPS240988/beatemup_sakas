@@ -101,7 +101,7 @@ func _run() -> void:
 	_assert(grip_overlay != null and grip_overlay.visible, "Mão/antebraço do frame atual sobrepõe o gargalo da garrafa")
 	_assert(grip_overlay != null and grip_overlay.z_index == 0 and grip_overlay.z_as_relative, "Recorte de mão não rompe o Y-Sort do ator")
 	_assert(held_bottle != null and held_bottle.texture.resource_path.ends_with("soda_glass_bottle.png"), "Garrafa usa PNG separado com alpha")
-	_assert(int(crate.call("get_bottles_remaining")) == initial_count - 1, "Estoque do engradado diminui uma unidade")
+	_assert(int(crate.call("get_bottles_remaining")) == initial_count, "Estoque do engradado permanece ilimitado")
 	var throw_hint := player.get_node_or_null("PickUpHint") as Button
 	_assert(throw_hint != null and throw_hint.text == "Arremessar", "Touch muda prompt para Arremessar")
 
@@ -137,12 +137,76 @@ func _run() -> void:
 	var map: Node = Map5Scene.instantiate()
 	root.add_child(map)
 	await process_frame
-	_assert(map.get_node_or_null("World/Actors/NPCs/Frentista") != null, "Map 5 instancia o frentista")
+	var frentista_map := map.get_node_or_null("World/Actors/NPCs/Frentista")
+	_assert(frentista_map != null, "Map 5 instancia o frentista")
+	_assert(frentista_map != null and frentista_map.has_method("interact"), "Frentista possui contrato de interação (interact)")
+	_assert(frentista_map != null and frentista_map.get_node_or_null("InteractionArea") != null, "Frentista possui área de detecção de proximidade")
+	_assert(frentista_map != null and frentista_map.get_node_or_null("Visual/ExclamationIcon") != null, "Frentista exibe ícone de exclamação sobre a cabeça")
+	var excl_icon := frentista_map.get_node_or_null("Visual/ExclamationIcon") as Label if frentista_map != null else null
+	_assert(excl_icon != null and excl_icon.text == "!", "Ícone de exclamação exibe o caractere '!'")
+	_assert(excl_icon != null and excl_icon.position.y < -240.0, "Ícone de exclamação posicionado acima da cabeça (Y < -240)")
+
+	# Validação do diálogo e da pausa da cena
+	if frentista_map != null and frentista_map.has_method("interact"):
+		_assert(bool(frentista_map.call("interact", player)), "Interação com Frentista abre o diálogo com sucesso")
+		var dialogue_node: Node = root.get_node_or_null("FrentistaDialogue")
+		_assert(dialogue_node != null, "Nó FrentistaDialogue adicionado à raiz da cena")
+		_assert(root.get_tree().paused, "Cena fica pausada durante o diálogo do frentista")
+		var dialogues: Array = dialogue_node.get("_dialogues") if dialogue_node != null else []
+		_assert(dialogues.size() == 2, "Diálogo configurado com exatamente 2 caixas sequenciais")
+		if dialogues.size() == 2:
+			_assert(dialogues[0].get("text") == "Aqui é o posto Ipiranga, não sei informar onde fica a HAPPEN.", "Texto da 1ª caixa de diálogo correto")
+			_assert(dialogues[1].get("text") == "Mas cuidado! Sábado a noite tem muitos baderneiros nessa rua.", "Texto da 2ª caixa de diálogo correto")
+		if dialogue_node != null and dialogue_node.has_method("_close_dialogue"):
+			dialogue_node.call("_close_dialogue")
+			await process_frame
+			_assert(not root.get_tree().paused, "Cena é despausada ao fechar o diálogo do frentista")
+
 	_assert(map.get_node_or_null("World/Props/StaticProps/EngradadoVermelho") != null, "Map 5 contém engradado vermelho")
 	_assert(map.get_node_or_null("World/Props/StaticProps/EngradadoVerde") != null, "Map 5 contém engradado verde")
 	var green_crate_sprite := map.get_node_or_null("World/Props/StaticProps/EngradadoVerde/Visual/Sprite2D") as Sprite2D
 	_assert(green_crate_sprite != null and green_crate_sprite.texture.resource_path.ends_with("soda_crate_green.png"), "Engradado verde usa PNG individual")
 	_assert(map.get_node_or_null("World/Props/DroppedItems") == null, "Map 5 não deixa garrafas soltas no chão")
+
+	# Validação do trigger e cutscene do vídeo da padaria (André)
+	var bakery_trigger := map.get_node_or_null("BakeryVideoTrigger") as Area2D
+	_assert(bakery_trigger != null, "Map 5 instancia BakeryVideoTrigger")
+	_assert(bakery_trigger != null and (bakery_trigger.collision_mask & 1) != 0, "BakeryVideoTrigger detecta a camada do player (layer 1)")
+	_assert(bakery_trigger != null and bakery_trigger.monitoring, "BakeryVideoTrigger possui monitoramento ativo")
+	var bakery_col := bakery_trigger.get_node_or_null("CollisionShape2D") as CollisionShape2D if bakery_trigger != null else null
+	_assert(bakery_col != null and bakery_col.shape is RectangleShape2D, "BakeryVideoTrigger possui CollisionShape2D retangular")
+	if bakery_col != null and bakery_col.shape is RectangleShape2D:
+		var rect_shape := bakery_col.shape as RectangleShape2D
+		_assert(rect_shape.size.y >= 200.0, "Trigger da padaria cobre a distância vertical da calçada/rua")
+		_assert(absf(bakery_trigger.position.x - 1380.0) < 50.0, "Trigger da padaria alinhado em frente à porta (X ~1380)")
+
+	# Validação da reprodução do vídeo 1x única
+	_assert(not bool(map.get("_andre_bakery_video_played")), "Flag _andre_bakery_video_played começa como false")
+	map.call("_on_bakery_trigger_body_entered", player)
+	_assert(bool(map.get("_andre_bakery_video_played")), "Disparo do trigger marca _andre_bakery_video_played como true")
+	var cutscene := map.get_node_or_null("Map5BakeryCutscene")
+	_assert(cutscene != null, "Cutscene instanciada na cena Map 5")
+	_assert(root.get_tree().paused, "Cena fica pausada durante a cutscene do vídeo de André")
+	if cutscene != null:
+		var video_player := cutscene.get_node_or_null("CutsceneRoot/VideoAspect/VideoStreamPlayer") as VideoStreamPlayer
+		_assert(video_player != null, "Cutscene possui VideoStreamPlayer configurado")
+		_assert(video_player != null and not video_player.loop, "VideoStreamPlayer não fica em loop infinito")
+		if cutscene.has_method("_close_cutscene"):
+			cutscene.call("_close_cutscene")
+			await process_frame
+			_assert(not root.get_tree().paused, "Cena despausa após encerramento da cutscene")
+
+	# Testar 2ª passagem: não deve tocar novamente (acionado apenas 1x)
+	var prev_cutscene_count: int = 0
+	for child in map.get_children():
+		if child.name == "Map5BakeryCutscene":
+			prev_cutscene_count += 1
+	map.call("_on_bakery_trigger_body_entered", player)
+	var new_cutscene_count: int = 0
+	for child in map.get_children():
+		if child.name == "Map5BakeryCutscene":
+			new_cutscene_count += 1
+	_assert(new_cutscene_count == prev_cutscene_count, "Segunda passagem pelo trigger não reexecuta o vídeo (acionado apenas 1x)")
 
 	print("\nResultado: %d/%d aprovados; %d falhas." % [_passed, _total, _failed])
 	world.queue_free()

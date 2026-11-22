@@ -1613,3 +1613,67 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 - A interação canônica `register_interactable` / `unregister_interactable` / `interact(player)` permanece separada da colisão física. O jogador deve conseguir se aproximar e pegar a bebida sem atravessar o volume sólido do engradado.
 - Novos pickups que representem objetos físicos do cenário devem declarar seu próprio `StaticBody2D`/`PhysicsBody2D` e configurar layers/masks de acordo com a Seção 17. Sensores de coleta, triggers e corpos sólidos não devem ser misturados.
 - `tests/gas_bottle_crate_collision_test.gd` valida o corpo, layer/mask, dimensão e separação do sensor.
+
+---
+
+## 46. FRENTISTA NPC INTERATIVO E DIÁLOGO
+`STATUS: IMPLEMENTED`
+
+### 46.1. Contrato de Interação
+- O Frentista do Posto Ipiranga (`scenes/actors/frentista_npc.tscn`) utiliza o script `scripts/actors/frentista_interactable.gd`, que estende `BaseNPC`.
+- Ao entrar na árvore, cria programaticamente:
+  - **ExclamationIcon**: Label `"!"` com fonte arcade dourada (`Color(0.94, 0.75, 0.39)`) posicionada acima da cabeça do NPC (`Y < -240`), com animação de oscilação vertical contínua (bobbing senoidal de 10px, período 1.1s).
+  - **InteractionArea**: `Area2D` retangular (`220×110 px`) com `collision_mask = 1` (Atores) para detectar proximidade do jogador.
+- Quando o jogador entra na área de interação, o Frentista registra-se como `interactable` via `register_interactable(self)`, seguindo o contrato oficial do `PlayerController`.
+- Ao pressionar J, o `PlayerController` chama `interact(player)`, que abre o diálogo canônico e coloca o NPC em estado `EVENT` (parado).
+
+### 46.2. Diálogo e Pausa de Cena
+- `scripts/events/frentista_dialogue.gd` estende `Map4OpeningDialogueEvent` com o padrão oficial de pausa de cena (`get_tree().paused = true`) e processo independente (`process_mode = PROCESS_MODE_ALWAYS`):
+  - Enquanto a caixa de diálogo está aberta, o jogo e o jogador ficam pausados (jogador não se move).
+  - O diálogo divide-se em exatamente duas caixas sequenciais:
+    - **Caixa 1**: "Aqui é o posto Ipiranga, não sei informar onde fica a HAPPEN."
+    - **Caixa 2**: "Mas cuidado! Sábado a noite tem muitos baderneiros nessa rua."
+  - Aceita avanço e skip de typewriter via Enter, Espaço, Touch, Gamepad e tecla J.
+  - Ao fechar o diálogo, a cena é despausada (`get_tree().paused = false`), restaurando a movimentação e física do jogador.
+- Utiliza `StandardDialogueBox` (moldura 9-patch, typewriter, skip instantâneo).
+- Quando o NPC não possui retrato (`portrait: null`), o `TextureRect` do retrato é ocultado automaticamente.
+- Ao fechar o diálogo, o NPC retorna ao estado padrão (`IDLE`/`WANDER`).
+
+### 46.3. Testes
+- `tests/gas_station_bottle_test.gd` valida existência do ícone de exclamação, posição vertical, área de interação e contrato `interact`.
+
+---
+
+## 47. ESTOQUE ILIMITADO DOS ENGRADADOS DE BEBIDA
+`STATUS: IMPLEMENTED`
+
+- Os engradados de garrafa (`GasBottleCrate`) possuem estoque ilimitado: a variável `bottles_remaining` não é decrementada ao pegar uma garrafa.
+- O jogador pode pegar, arremessar e pegar novamente sem que o engradado esgote.
+- As verificações de `bottles_remaining > 0` continuam ativas por segurança, mas o estoque inicial é preservado indefinidamente.
+- `tests/gas_station_bottle_test.gd` valida que o estoque permanece inalterado após coleta.
+
+---
+
+## 48. VÍDEO DE TRANSIÇÃO DA PADARIA (ANDRÉ - FASE 2-1)
+`STATUS: IMPLEMENTED`
+
+### 48.1. Contrato e Posicionamento do Trigger
+- Localização no cenário Fase 2-1 (`map_5.tscn`): a porta da padaria situa-se em $X = 1380$ (entre o hidrante em $X = 1183$ e a placa lateral em $X = 1553$).
+- O trigger `BakeryVideoTrigger` é um `Area2D` com:
+  - `collision_layer = 0`, `collision_mask = 1` (detecta apenas o Player).
+  - `CollisionShape2D` com largura de 64px e altura cobrindo a faixa vertical transitável da calçada e rua (`lane_height`, ~$Y = 401$ até $Y = 662$).
+  - Centralizado em $X = 1380 \times \text{art\_scale.x}$ e $Y = \text{lane\_center}$.
+- **Garantia de 1x**: A variável booleana `_andre_bakery_video_played` (em `map_5_stage2.gd`) impede que o vídeo seja disparado mais de uma vez na mesma fase. Entradas subsequentes são ignoradas.
+
+### 48.2. Execução da Cutscene de Vídeo
+- Classe `Map5BakeryCutscene` (`scripts/events/map5_bakery_cutscene.gd`):
+  - Estende `CanvasLayer` com `layer = 126` e `process_mode = PROCESS_MODE_ALWAYS`.
+  - Pausa imediatamente a árvore (`get_tree().paused = true`), congelando gameplay, inimigos e jogador.
+  - Exibe o vídeo `res://assets/videos/video_fase2_1_andre.ogv` (ou `res://assets/videos/stage2/video_fase2_1_andre.ogv`) em formato 16:9 (`AspectRatioContainer`).
+  - `VideoStreamPlayer` com `loop = false`.
+  - Permite pular a qualquer instante com Espaço, Enter, J, Botões de Gamepad ou Toque na tela.
+  - Ao concluir ou pular, restaura o estado de pausa original (`tree.paused = _tree_was_paused`), libera os inputs do buffer de ações para evitar socos ou pulos acidentais ao voltar, e remove a si mesma com `queue_free()`.
+
+### 48.3. Testes
+- `tests/gas_station_bottle_test.gd` valida o nó `BakeryVideoTrigger`, camada/máscara, posicionamento em frente à padaria, disparo 1x exclusivo, pausa de cena e limpeza de inputs.
+

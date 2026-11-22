@@ -33,6 +33,9 @@ size = Vector2(315, 12)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_environment_obstacle"]
 size = Vector2(24, 24)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bakery_trigger"]
+size = Vector2(64, 260)
+
 [node name="Map5" type="Node2D"]
 script = ExtResource("1_stage2_level")
 stage_number = 2
@@ -226,6 +229,16 @@ position = Vector2(2070, 610)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea"]
 shape = SubResource("RectangleShape2D_exit")
+
+[node name="BakeryVideoTrigger" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitoring = true
+monitorable = false
+position = Vector2(1380, 532)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BakeryVideoTrigger"]
+shape = SubResource("RectangleShape2D_bakery_trigger")
 
 [node name="SigaIndicator" parent="." instance=ExtResource("5_siga_scene")]
 

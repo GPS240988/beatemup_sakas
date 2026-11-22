@@ -169,7 +169,7 @@ func _give_bottle(player: Node) -> bool:
 
 	_holder = player
 	player.add_to_group(HOLDING_GROUP)
-	bottles_remaining -= 1
+	# Estoque ilimitado: o engradado nunca esgota suas garrafas.
 	_nearby_player = player
 	_set_registered_player(player)
 	if _hint_button != null:

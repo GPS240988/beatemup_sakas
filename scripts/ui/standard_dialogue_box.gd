@@ -125,7 +125,7 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 	vbox.name = "TextVBox"
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.alignment = BoxContainer.ALIGNMENT_BEGIN
 	vbox.add_theme_constant_override("separation", 2 if is_mobile else 4)
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(vbox)
@@ -135,7 +135,7 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 	speaker_label.text = "GABRIEL"
 	speaker_label.label_settings = create_speaker_settings(is_mobile)
 	speaker_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	speaker_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	speaker_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(speaker_label)
 
@@ -144,9 +144,10 @@ static func build_dialogue_ui(parent: Control, is_mobile: bool = false) -> Dicti
 	dialogue_label.text = ""
 	dialogue_label.label_settings = create_dialogue_settings(is_mobile)
 	dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dialogue_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	dialogue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(dialogue_label)
 
