@@ -114,7 +114,7 @@ func _run() -> void:
 	_assert(not projectiles.is_empty(), "Arremesso instancia projétil no contêiner de atores")
 	for projectile: Node in projectiles:
 		_assert(projectile is Area2D, "Garrafa arremessada usa Area2D para colisões")
-		_assert(int(projectile.get("collision_mask")) == 12, "Projétil detecta hurtboxes dos props e inimigos, sem Layer 2 do cenário")
+		_assert(int(projectile.get("collision_mask")) == 14, "Projétil detecta hurtboxes dos props e inimigos e colisões sólidas do mapa")
 		_assert(int(projectile.get("z_index")) == 5 and not bool(projectile.get("z_as_relative")), "Garrafa renderiza acima dos props comuns e abaixo do Foreground Z 10")
 		var aim_direction: Vector2 = Vector2(projectile.get("_aim_direction"))
 		_assert(aim_direction.x > 0.0 and aim_direction.y < 0.0, "W + J direciona a garrafa para frente e para a pista superior")
@@ -125,7 +125,7 @@ func _run() -> void:
 		_assert(projectile.global_position.y < initial_projectile_y, "Arremesso direcional desloca o projétil para a pista escolhida")
 		_assert(projectile_sprite != null and projectile_sprite.texture.resource_path.ends_with("soda_glass_bottle.png"), "Projétil usa o mesmo asset individual da garrafa")
 		_assert(projectile_sprite != null and absf(projectile_sprite.rotation_degrees) > 20.0, "Projétil inclina conforme a tangente da trajetória")
-		_assert(float(projectile.get("flight_arc_height")) >= 90.0, "Arremesso usa arco alto e legível")
+		_assert(float(projectile.get("flight_arc_height")) <= 48.0, "Arremesso usa parábola realista e veloz de combate")
 		var flight_duration: float = float(projectile.get("_flight_duration"))
 		var apex_time: float = float(projectile.get("_flight_apex_time"))
 		projectile.call("_update_flight_pose", apex_time)

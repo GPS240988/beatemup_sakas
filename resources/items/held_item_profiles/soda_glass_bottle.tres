@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="HeldItemProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/held_item_profile.gd" id="1_profile"]
+[ext_resource type="Texture2D" path="res://assets/sprites/items/soda_glass_bottle.png" id="2_texture"]
+
+[resource]
+script = ExtResource("1_profile")
+item_id = &"soda_glass_bottle"
+display_name = "Garrafa de refrigerante"
+texture = ExtResource("2_texture")
+visual_scale = Vector2(0.22, 0.22)
+hand_offset = Vector2(-8, 0)
+rotation_degrees = 0.0
+grip_mode = 0
+attack_enabled = false

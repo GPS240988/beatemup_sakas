@@ -7,6 +7,8 @@
 script = ExtResource("1_herodata")
 hero_id = "gabriel"
 display_name = "Gabriel"
+hand_socket_offset = Vector2(45, -136)
+grip_rect = Rect2i(112, 76, 102, 108)
 speed_x = 260.0
 speed_y = 190.0
 jump_force = 460.0

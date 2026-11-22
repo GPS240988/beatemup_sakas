@@ -1,9 +1,12 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/gas_bottle_crate.gd" id="1_crate_script"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_pickup"]
 radius = 82.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_crate_solid"]
+size = Vector2(76, 52)
 
 [node name="GasBottleCrate" type="Node2D" groups=["gas_bottle_crates"]]
 y_sort_enabled = true
@@ -16,6 +19,14 @@ texture_filter = 1
 region_enabled = false
 position = Vector2(0, -43.78)
 scale = Vector2(0.22, 0.22)
+
+[node name="SolidBody" type="StaticBody2D" parent="."]
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody"]
+position = Vector2(0, -26)
+shape = SubResource("RectangleShape2D_crate_solid")
 
 [node name="PickupArea" type="Area2D" parent="."]
 collision_layer = 0

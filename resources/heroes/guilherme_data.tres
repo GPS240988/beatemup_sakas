@@ -5,5 +5,8 @@
 
 [resource]
 script = ExtResource("1_8cke0")
-display_name = "Gabriel"
+hero_id = "guilherme"
+display_name = "Guilherme"
+hand_socket_offset = Vector2(38, -104)
+grip_rect = Rect2i(128, 148, 76, 94)
 special_presentation_texture = ExtResource("2_special_tex")

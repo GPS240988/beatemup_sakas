@@ -1391,7 +1391,18 @@ func _on_attack_phase_changed(new_phase: MeleeAttack.Phase) -> void:
 		if _combo_step >= 0 and _combo_step < _combo_attacks.size():
 			var atk: Resource = _combo_attacks[_combo_step]
 			if atk != null and atk.get("is_projectile") == true:
+				if _is_holding_combat_item():
+					return
 				_spawn_combo_projectiles(atk)
+
+
+func _is_holding_combat_item() -> bool:
+	var held_comp: Node = get_node_or_null("Visual/HeldItemComponent")
+	if held_comp != null and held_comp.call("is_holding_item"):
+		var combat_comp: Node = get_node_or_null("HeldItemCombatComponent")
+		if combat_comp != null and combat_comp.call("is_item_combat_enabled"):
+			return true
+	return false
 
 
 func _spawn_combo_projectiles(atk: Resource) -> void:

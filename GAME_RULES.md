@@ -1539,4 +1539,77 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   - Reiniciar a fase com `[R]`, sofrer Game Over com Retry ou recarregar a cena jamais repete o diálogo, liberando imediatamente o combate e a música da fase.
   - O fluxo "Novo Jogo" (`reset_session()`) zera a flag para que uma nova campanha exiba a apresentação normalmente.
 
+---
 
+## 43. HELD ITEM PROFILE — PERFIL DECLARATIVO DE ITENS EQUIPÁVEIS
+`STATUS: IMPLEMENTED`
+
+### 43.1. Responsabilidade dos componentes
+- `HeldItemProfile` (`scripts/items/held_item_profile.gd`) é o `Resource` declarativo de cada objeto equipável. Ele guarda textura, escala, rotação, offset visual relativo à mão, tipo de empunhadura, animação opcional, atributos opcionais de combate, durabilidade, arcos de golpe e reações a dano.
+- `HeldItemComponent` (`scripts/components/held_item_component.gd`) é responsável pela composição visual do objeto equipado, pela apresentação da mão/antebraço em primeiro plano e pela reação a quedas/knockdown do portador.
+- `HeldItemCombatComponent` (`scripts/components/held_item_combat_component.gd`) adapta os atributos do perfil ao `MeleeAttack` canônico do jogador, gerencia o ciclo de durabilidade/desgaste e anima arcos de golpe visual. Não duplica hitboxes, busca de alvos, `DamageInfo`, dano ou feedback.
+- Pickups concedem e removem perfis; não devem adicionar sprites soltos ao Player nem duplicar a lógica do componente.
+
+### 43.2. Separação obrigatória entre socket do personagem e offset do item
+- Os sockets anatômicos pertencem ao herói e são declarados no seu recurso declarativo `HeroData` (`hand_socket_offset` e `grip_rect`). O componente `HeldItemComponent` consulta prioritariamente o `HeroData` do herói ativo, mantendo dicionários internos apenas como fallback de segurança.
+- Heróis futuros (André, Juliana, Alessandro) declaram sua própria anatomia no seu `.tres` sem exigir edição de código no componente.
+- `HeldItemProfile.hand_offset`, `visual_scale` e `rotation_degrees` são específicos de cada objeto e sempre relativos ao socket anatômico.
+- A posição resultante é `socket_do_personagem + offset_do_perfil`. Nunca gravar um ajuste de garrafa, faca, bastão ou barril dentro do socket global de Guilherme/Gabriel.
+- Equipar outro item deve substituir o perfil anterior e recalcular a posição a partir do socket original. É proibido acumular offsets ou alterar `Visual.position`, escala física, origem dos pés ou transform do `CharacterBody2D` para corrigir um item.
+- `equip_item()` permanece como API de compatibilidade para pickups antigos. Novos itens DEVEM utilizar `equip_profile(profile)`.
+- O componente mantém `TEXTURE_FILTER_NEAREST`, Z relativo 0 e hierarquia sob `Player/Visual`, preservando flip, escala de profundidade e Y-Sort do ator.
+
+### 43.3. Contrato dos perfis e empunhadura
+- Campos de identificação: `item_id`, `display_name` e `texture`.
+- Campos de apresentação: `visual_scale`, `hand_offset`, `rotation_degrees` e `grip_mode`.
+- `GripMode.SINGLE_HAND` é utilizado para objetos de uma mão, como garrafas, facas e armas curtas.
+- `GripMode.TWO_HANDS` permite configurar `secondary_hand_offset`, `secondary_hand_texture` e `secondary_hand_scale`. Objetos grandes, como barris, devem utilizar segunda mão quando a arte/pose correspondente estiver disponível.
+- `hold_animation` é opcional e só pode ser executada quando existir no `SpriteFrames` do personagem. A ausência da animação não pode bloquear a coleta/equipamento.
+- Perfis inválidos (sem ID, textura ou escala positiva) não podem ser equipados.
+- Cada objeto possui seu próprio `.tres` em `resources/items/held_item_profiles/`. O primeiro exemplo integrado é `soda_glass_bottle.tres`.
+
+### 43.4. Contrato de combate, durabilidade e arcos visuais
+- `HeldItemCombatComponent` conecta-se aos sinais `MeleeAttack.attack_phase_changed`, `attack_started`, `attack_ended` e `target_hit`.
+- Antes da janela ativa, o componente salva o estado original do `MeleeAttack` e aplica dano, alcance, tolerância de profundidade, dimensões/offset da hitbox, knockback, hitstun, hitstop, regiões anatômicas, impacto, permissão para props e máscara de obstáculos declarados no perfil.
+- Quando `override_attack_timing = true`, startup, active e recovery do perfil são sincronizados às fases oficiais do `MeleeAttack`. Caso contrário, os tempos do personagem são preservados.
+- Ao entrar em `INACTIVE`/`attack_ended`, todos os valores originais são restaurados, inclusive cooldown e dimensão da hitbox. Mudança ou remoção de item durante um golpe deve ser aplicada somente após o ciclo de ataque terminar.
+- A voadora (`jump_atk`) mantém os atributos próprios configurados pelo `PlayerController`; o perfil de arma não pode sobrescrever dano, alcance ou temporização do ataque aéreo.
+- **Durabilidade & Desgaste**: `max_durability: int` (-1 = indestrutível; > 0 = acertos permitidos). `breaks_on_hit: bool` força quebra no 1º hit confirmado. Ao esgotar durabilidade ou quebrar, emite som de impacto/estilhaço via `CombatFeedback`, limpa o perfil e desequipa o item.
+- **Arcos de Ataque Visuais (`swing_arc_enabled`)**: Durante a fase ativa de ataque, interpola suavemente a rotação do sprite entre `swing_start_angle` e `swing_end_angle`, restaurando a rotação neutra ao concluir ou cancelar o golpe.
+- **Prioridade de Combate de Gabriel**: Quando Gabriel empunha um item com `attack_enabled == true`, os disparos de projéteis de pistola nos passos de combo são suprimidos (`_is_holding_combat_item()`), priorizando o golpe físico da arma branca.
+- **Rastreamento Vertical do Prompt em Salto**: Quando o jogador segura um item e salta no ar, o botão contextual "Arremessar" sincroniza dinamicamente sua coordenada vertical com `Player/Visual.position.y`, mantendo-se sempre sobre a cabeça do herói durante todo o voo e pouso.
+- **Parábola de Arremesso Realista e Estilhaçamento**: A garrafa e projéteis arremessáveis utilizam física balística tensa (`speed = 540.0`, `flight_arc_height = 38.0`, `landing_drop = 32.0`) simulando arremesso direto de combate. Ao colidir com alvos ou corpos sólidos do mapa (Layer 2), executam sequência cadenciada de 3 flashes brancos perceptíveis (~0.46s) antes do estilhaçamento e remoção.
+
+### 43.5. Reação a dano e knockdown (Drop on Hit)
+- Ao sofrer atordoamento crítico com queda (`FALL`/knockdown) ou morte, o `HeldItemComponent` ouve a transição de estado e dispara automaticamente `drop_item()`.
+- Se o perfil definir `ground_pickup_scene`, a cena correspondente é instanciada no solo com deslocamento direcional contrário ao impacto. Se `ground_pickup_scene == null`, o item é desequipado de forma segura sem travamentos.
+
+### 43.6. Testes obrigatórios
+- `tests/held_item_profile_combat_test.gd` valida equipamento, substituição sem acumular offsets, socket anatômico imutável, aplicação/restauração dos atributos de `MeleeAttack` e suporte a segunda mão.
+- `tests/held_item_advanced_features_test.gd` valida resolução de sockets via `HeroData`, desequipamento em `FALL`, ciclo de durabilidade/quebra de armas, arcos visuais de ataque e supressão de tiros de Gabriel quando armado com arma branca.
+
+---
+
+## 44. PRIORIDADE VISUAL GLOBAL PARA SALTOS E VOADORAS
+`STATUS: IMPLEMENTED WITH LIMITATION`
+
+- `scripts/components/aerial_visual_priority_component.gd` é instanciado uma única vez na cena canônica `scenes/actors/player/player.tscn`. Mapas que instanciam essa cena herdam a mesma regra, sem lógica duplicada por fase.
+- Quando `_is_jumping == true` (incluindo a voadora), somente `Player/Visual` recebe `z_index = 1` relativo à raiz. A arte do personagem passa a ser desenhada acima dos props caminháveis em Z 0, como bombas e pilastras que anteriormente podiam cobrir o chute.
+- `CharacterBody2D`, coordenada global dos pés, `CollisionShape2D`, hurtbox, hitbox, navegação, velocidade e Y-Sort permanecem intocados. A prioridade é visual, não uma alteração de física ou atravessamento de objetos.
+- A sombra é mantida no plano visual do chão (Z efetivo 0) durante a elevação. Ao voltar ao estado de solo, `Visual` retorna a Z 0 automaticamente.
+- `Foreground` continua na camada oficial Z 10 e pode cobrir o personagem quando a composição do mapa exigir.
+- Não aplicar Z absoluto nem prioridade permanente a personagens no chão. A regra é ativada/desativada pelo estado de salto, nunca por timer fixo.
+- `tests/aerial_visual_priority_test.gd` valida Z aéreo, restauração ao pousar e imutabilidade da raiz física.
+
+---
+
+## 45. COLISÃO FÍSICA DOS ENGRADADOS DE BEBIDA
+`STATUS: IMPLEMENTED WITH LIMITATION`
+
+- `scenes/items/gas_bottle_crate.tscn` possui um `StaticBody2D` chamado `SolidBody`, com `collision_layer = 2` (Mundo Sólido) e `collision_mask = 1` (Atores).
+- O volume físico inicial utiliza `RectangleShape2D` de `Vector2(76, 52)`, posicionado em `Vector2(0, -26)` em relação à âncora de chão da raiz. A origem da cena permanece na base de contato usada pelo Y-Sort.
+- O colisor cobre a região inferior do engradado e bloqueia o Player sem alterar o sprite, offset visual ou área de interação.
+- `PickupArea` permanece independente com `collision_layer = 0` e `collision_mask = 1`, servindo apenas para proximidade/interação. Um `Area2D` não substitui um corpo físico sólido.
+- A interação canônica `register_interactable` / `unregister_interactable` / `interact(player)` permanece separada da colisão física. O jogador deve conseguir se aproximar e pegar a bebida sem atravessar o volume sólido do engradado.
+- Novos pickups que representem objetos físicos do cenário devem declarar seu próprio `StaticBody2D`/`PhysicsBody2D` e configurar layers/masks de acordo com a Seção 17. Sensores de coleta, triggers e corpos sólidos não devem ser misturados.
+- `tests/gas_bottle_crate_collision_test.gd` valida o corpo, layer/mask, dimensão e separação do sensor.

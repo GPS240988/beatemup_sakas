@@ -7,7 +7,7 @@ extends Node2D
 
 const RED_CRATE_TEXTURE: Texture2D = preload("res://assets/sprites/props/soda_crate_red.png")
 const GREEN_CRATE_TEXTURE: Texture2D = preload("res://assets/sprites/props/soda_crate_green.png")
-const BOTTLE_TEXTURE: Texture2D = preload("res://assets/sprites/items/soda_glass_bottle.png")
+const BOTTLE_PROFILE: HeldItemProfile = preload("res://resources/items/held_item_profiles/soda_glass_bottle.tres")
 const BOTTLE_PROJECTILE_SCENE: PackedScene = preload("res://scenes/actors/projectiles/gas_bottle_projectile.tscn")
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 
@@ -163,13 +163,7 @@ func _give_bottle(player: Node) -> bool:
 	_held_item_component = HeldItemComponent.attach_to_player(player)
 	if _held_item_component == null:
 		return false
-	if not _held_item_component.equip_item(
-		&"soda_glass_bottle",
-		BOTTLE_TEXTURE,
-		Vector2(0.22, 0.22),
-		Vector2(-8.0, 0.0), # aproxima o gargalo da palma sem mudar a altura aprovada
-		0.0
-	):
+	if not _held_item_component.equip_profile(BOTTLE_PROFILE):
 		_held_item_component = null
 		return false
 
@@ -181,7 +175,11 @@ func _give_bottle(player: Node) -> bool:
 	if _hint_button != null:
 		_hint_button.text = "Arremessar"
 		_hint_button.reparent(player, false)
-		_hint_button.position = Vector2(-48.0, -196.0)
+		var visual_y: float = 0.0
+		var visual_node := player.get_node_or_null("Visual") as Node2D
+		if visual_node != null:
+			visual_y = visual_node.position.y
+		_hint_button.position = Vector2(-48.0, -250.0 + visual_y)
 		_hint_button.visible = true
 	set_process(true)
 	return true
@@ -294,8 +292,25 @@ func _set_hint_visible(should_be_visible: bool) -> void:
 func _process(_delta: float) -> void:
 	if _holder == null or not is_instance_valid(_holder):
 		return
+	if _held_item_component != null and is_instance_valid(_held_item_component) and not _held_item_component.is_holding_item(&"soda_glass_bottle"):
+		_holder.remove_from_group(HOLDING_GROUP)
+		if _hint_button != null and is_instance_valid(_hint_button):
+			_hint_button.reparent(self, false)
+			_hint_button.text = "Pegar"
+			_hint_button.position = Vector2(-48.0, -154.0)
+			_hint_button.visible = false
+		_holder = null
+		_held_item_component = null
+		set_process(false)
+		return
 	if _holder.has_method("register_interactable"):
 		_holder.call("register_interactable", self)
+	if _hint_button != null and is_instance_valid(_hint_button) and _hint_button.get_parent() == _holder:
+		var visual_y: float = 0.0
+		var visual_node := _holder.get_node_or_null("Visual") as Node2D
+		if visual_node != null:
+			visual_y = visual_node.position.y
+		_hint_button.position = Vector2(-48.0, -250.0 + visual_y)
 
 
 func _exit_tree() -> void:

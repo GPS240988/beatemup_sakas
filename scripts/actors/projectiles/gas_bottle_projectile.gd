@@ -9,12 +9,12 @@ const BOTTLE_TEXTURE: Texture2D = preload("res://assets/sprites/items/soda_glass
 const DamageInfoClass = preload("res://scripts/combat/damage_info.gd")
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 
-@export_range(160.0, 700.0, 10.0) var speed: float = 470.0
+@export_range(160.0, 700.0, 10.0) var speed: float = 540.0
 @export_range(120.0, 500.0, 10.0) var max_distance: float = 340.0
 @export_range(1.0, 80.0, 1.0) var damage: float = 26.0
 @export_range(12.0, 72.0, 1.0) var depth_tolerance: float = 36.0
-@export_range(48.0, 180.0, 4.0) var flight_arc_height: float = 96.0
-@export_range(24.0, 72.0, 1.0) var landing_drop: float = 42.0
+@export_range(16.0, 180.0, 4.0) var flight_arc_height: float = 38.0
+@export_range(12.0, 72.0, 1.0) var landing_drop: float = 32.0
 @export_range(0.0, 200.0, 1.0) var knockback_force: float = 92.0
 
 @onready var bottle_sprite: Sprite2D = $BottleSprite as Sprite2D
@@ -41,13 +41,14 @@ func _ready() -> void:
 	z_index = 5
 	z_as_relative = false
 	collision_layer = 8
-	# Layer 3: hurtboxes de props; Layer 4: hurtboxes de inimigos.
-	# Layer 2 (mundo sólido / MapObstacles) fica explicitamente fora da máscara.
-	collision_mask = 12
+	# Layer 2: mundo sólido / obstáculos do mapa; Layer 3: hurtboxes de props; Layer 4: hurtboxes de inimigos.
+	collision_mask = 14
 	monitoring = true
 	monitorable = false
 	if not area_entered.is_connected(_on_area_entered):
 		area_entered.connect(_on_area_entered)
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
 
 	if bottle_sprite != null:
 		bottle_sprite.texture = BOTTLE_TEXTURE
@@ -137,6 +138,32 @@ func _on_area_entered(area: Area2D) -> void:
 	_try_hit(area)
 
 
+func _on_body_entered(body: Node) -> void:
+	if _has_hit or body == null or not is_instance_valid(body):
+		return
+	if body == thrower:
+		return
+	if body.is_in_group("player") or body.is_in_group("npcs") or body.is_in_group("civilians") or body.is_in_group("allies"):
+		return
+	if body.is_in_group("enemies") or body.is_in_group("destructibles") or body.is_in_group("destructible_props") or body.is_in_group("vehicles"):
+		_try_hit(body)
+		return
+	# Colisão com corpo físico / obstáculo sólido do mapa (Layer 2)
+	_hit_map_obstacle(body)
+
+
+func _hit_map_obstacle(_obstacle: Node) -> void:
+	if _has_hit:
+		return
+	_has_hit = true
+	set_physics_process(false)
+	set_deferred("monitoring", false)
+	var hit_pos: Vector2 = bottle_shape.global_position if bottle_shape != null else global_position
+	CombatFeedbackClass.spawn_hit_spark(self, hit_pos, _aim_direction, "heavy", "upper_torso")
+	CombatFeedbackClass.play_impact_sound(self, "glass_shatter")
+	_play_blink_and_shatter()
+
+
 func _try_hit(collider: Node) -> bool:
 	if _has_hit or collider == null or not is_instance_valid(collider):
 		return false
@@ -194,10 +221,10 @@ func _try_hit(collider: Node) -> bool:
 	_has_hit = true
 	CombatFeedbackClass.spawn_hit_spark(self, impact_position, _aim_direction, "heavy", "upper_torso")
 	CombatFeedbackClass.apply_hitstop(thrower, target, 0.033)
-	CombatFeedbackClass.play_impact_sound(self, "heavy")
+	CombatFeedbackClass.play_impact_sound(self, "glass_shatter")
 	if thrower.has_method("_on_projectile_hit"):
 		thrower.call("_on_projectile_hit", target, damage)
-	queue_free()
+	_play_blink_and_shatter()
 	return true
 
 
@@ -223,6 +250,29 @@ func _break_bottle() -> void:
 	if _has_hit:
 		return
 	_has_hit = true
+	set_physics_process(false)
 	set_deferred("monitoring", false)
-	CombatFeedbackClass.play_impact_sound(self, "light")
-	queue_free()
+	CombatFeedbackClass.play_impact_sound(self, "glass_shatter")
+	_play_blink_and_shatter()
+
+
+func _play_blink_and_shatter() -> void:
+	set_physics_process(false)
+	set_deferred("monitoring", false)
+	if bottle_shape != null and is_instance_valid(bottle_shape):
+		bottle_shape.set_deferred("disabled", true)
+	if bottle_sprite == null or not is_instance_valid(bottle_sprite):
+		queue_free()
+		return
+	# Piscar e sumir: modulação de flash visível e estilhaçamento cadenciado mais perceptível
+	var tween: Tween = create_tween()
+	if tween != null:
+		tween.tween_property(bottle_sprite, "modulate", Color(2.5, 2.5, 2.5, 1.0), 0.08)
+		tween.tween_property(bottle_sprite, "modulate", Color(1.0, 1.0, 1.0, 0.25), 0.07)
+		tween.tween_property(bottle_sprite, "modulate", Color(2.5, 2.5, 2.5, 1.0), 0.08)
+		tween.tween_property(bottle_sprite, "modulate", Color(1.0, 1.0, 1.0, 0.25), 0.07)
+		tween.tween_property(bottle_sprite, "modulate", Color(2.5, 2.5, 2.5, 1.0), 0.08)
+		tween.tween_property(bottle_sprite, "modulate", Color(1.0, 1.0, 1.0, 0.0), 0.08)
+		tween.tween_callback(queue_free)
+	else:
+		queue_free()

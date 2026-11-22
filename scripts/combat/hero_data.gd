@@ -87,6 +87,14 @@ extends Resource
 @export var kick3_combo_window: float = 0.48
 @export var kick3_hitbox_offset_y: float = -70.0
 
+@export_group("Itens Equipáveis")
+## Posição do socket anatômico da mão dominante relativa ao centro de Visual.
+## Heróis futuros declaram aqui seus próprios offsets sem alterar código.
+@export var hand_socket_offset: Vector2 = Vector2(38.0, -104.0)
+## Região retangular da mão/antebraço na textura-fonte (220×300) para recorte
+## dinâmico do overlay. Cada herói define sua própria anatomia.
+@export var grip_rect: Rect2i = Rect2i(128, 148, 76, 94)
+
 @export_group("Combo 4 - Finisher / Gancho Pesado")
 @export var heavy4_damage: float = 35.0
 @export var heavy4_range: float = 115.0

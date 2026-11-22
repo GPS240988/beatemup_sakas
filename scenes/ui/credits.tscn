@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/credits.gd" id="1_credits_script"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/creditos.webp" id="2_creditos_bg"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/creditos.webp" id="2_credits_bg"]
 
 [node name="Credits" type="Control"]
 layout_mode = 3
