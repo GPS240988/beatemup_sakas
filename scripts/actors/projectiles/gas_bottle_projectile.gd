@@ -35,6 +35,7 @@ var _has_hit: bool = false
 func _ready() -> void:
 	add_to_group("projectiles")
 	add_to_group("player_projectiles")
+	add_to_group("gas_bottle_projectile")
 	y_sort_enabled = true
 	# Faixa de renderização do projétil: sobre props comuns (Z 0), sob Foreground (Z 10).
 	# Evita que a garrafa seja encoberta por sprites grandes de bombas/props estáticos.
@@ -145,7 +146,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	if body.is_in_group("player") or body.is_in_group("npcs") or body.is_in_group("civilians") or body.is_in_group("allies"):
 		return
-	if body.is_in_group("enemies") or body.is_in_group("destructibles") or body.is_in_group("destructible_props") or body.is_in_group("vehicles"):
+	if body.is_in_group("enemies") or body.is_in_group("setpiece_punk") or body.is_in_group("destructibles") or body.is_in_group("destructible_props") or body.is_in_group("vehicles"):
 		_try_hit(body)
 		return
 	# Colisão com corpo físico / obstáculo sólido do mapa (Layer 2)
@@ -238,13 +239,15 @@ func _find_target_actor(start_node: Node) -> Node:
 	while candidate != null:
 		if candidate.is_in_group("player") or candidate.is_in_group("npcs") or candidate.is_in_group("civilians") or candidate.is_in_group("allies"):
 			return null
-		if candidate.is_in_group("enemies") or candidate.is_in_group("destructibles") or candidate.is_in_group("destructible_props") or candidate.is_in_group("vehicles"):
+		if candidate.is_in_group("enemies") or candidate.is_in_group("setpiece_punk") or candidate.is_in_group("destructibles") or candidate.is_in_group("destructible_props") or candidate.is_in_group("vehicles"):
 			return candidate
 		candidate = candidate.get_parent()
 	return null
 
 
 func _is_actor_jumping(actor: Node) -> bool:
+	if actor != null and actor.is_in_group("setpiece_punk"):
+		return false
 	if "_is_jumping" in actor and bool(actor.get("_is_jumping")):
 		return true
 	var visual: Node2D = actor.get_node_or_null("Visual") as Node2D

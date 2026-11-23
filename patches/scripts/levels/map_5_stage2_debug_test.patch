@@ -1,0 +1,40 @@
+--- a/scripts/levels/map_5_stage2.gd
++++ b/scripts/levels/map_5_stage2.gd
+@@ -375,3 +375,43 @@
+ 	if not success:
+ 		# Sem penalidade artificial: a fase continua, mas o drop de Happen não é concedido.
+ 		pass
+ 
+ 	super._on_encounter_cleared()
++
++
++func _start_truck_attack_sequence_debug(skip_intro: bool) -> void:
++	if not OS.is_debug_build() or _truck_attack_sequence_active or not is_inside_tree():
++		return
++
++	_truck_attack_sequence_active = true
++	var actors_container: Node2D = get_actors_container()
++	if actors_container == null:
++		_truck_attack_sequence_active = false
++		return
++
++	var sequence := Map5TruckAttackSequenceClass.new()
++	sequence.name = "Map5TruckAttackSequenceDebug"
++	actors_container.add_child(sequence)
++	if not sequence.completed.is_connected(_on_truck_attack_sequence_completed):
++		sequence.completed.connect(_on_truck_attack_sequence_completed, CONNECT_ONE_SHOT)
++	sequence.call_deferred("start_debug", skip_intro)
++
++
++func _unhandled_input(event: InputEvent) -> void:
++	if not OS.is_debug_build() or not event is InputEventKey:
++		return
++	var key_event: InputEventKey = event as InputEventKey
++	if not key_event.pressed or key_event.echo:
++		return
++	if key_event.keycode == KEY_F9:
++		_start_truck_attack_sequence_debug(false)
++		get_viewport().set_input_as_handled()
++	elif key_event.keycode == KEY_F10:
++		_start_truck_attack_sequence_debug(true)
++		get_viewport().set_input_as_handled()

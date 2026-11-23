@@ -6,8 +6,30 @@ extends BaseLevel
 ## A trilha do Stage 02 ainda não foi definida; não reutiliza BGM do Stage 01 ou bônus.
 
 const Map5BakeryCutsceneClass = preload("res://scripts/events/map5_bakery_cutscene.gd")
+const Map5TruckAttackSequenceClass = preload("res://scripts/events/map5_truck_attack_sequence.gd")
 
 var _andre_bakery_video_played: bool = false
+var _truck_attack_sequence_active: bool = false
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not OS.is_debug_build():
+		return
+	if _truck_attack_sequence_active:
+		return
+	if not (event is InputEventKey):
+		return
+
+	var key_event := event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return
+
+	if key_event.keycode == KEY_F9 or key_event.physical_keycode == KEY_F9:
+		_start_truck_attack_debug(false)
+		get_viewport().set_input_as_handled()
+	elif key_event.keycode == KEY_F10 or key_event.physical_keycode == KEY_F10:
+		_start_truck_attack_debug(true)
+		get_viewport().set_input_as_handled()
 
 
 func _ready() -> void:
@@ -319,3 +341,85 @@ func _spawn_bakery_boss() -> void:
 	if hud != null and hud.banner_panel != null:
 		hud.banner_panel.visible = false
 		hud.banner_panel.modulate.a = 1.0
+
+
+## Intercepta a vitória do chefe para iniciar a set piece antes de liberar a saída.
+func _on_enemy_defeated(enemy: CharacterBody2D) -> void:
+	if _truck_attack_sequence_active:
+		return
+	if enemy == null or not is_instance_valid(enemy):
+		super._on_enemy_defeated(enemy)
+		return
+	if _boss_instance != null and enemy == _boss_instance:
+		# A morte do chefe já foi contabilizada pelo CombatDirector. O fluxo
+		# específico do Map 5 substitui a janela de pós-combate do BaseLevel.
+		_start_truck_attack_sequence()
+		return
+
+	super._on_enemy_defeated(enemy)
+
+
+## Enquanto a set piece estiver ativa, o CombatDirector não libera a saída.
+func _on_encounter_cleared() -> void:
+	if _truck_attack_sequence_active:
+		return
+	super._on_encounter_cleared()
+
+
+func _start_truck_attack_debug(skip_intro: bool) -> void:
+	if _truck_attack_sequence_active:
+		return
+	if not is_inside_tree():
+		return
+
+	_truck_attack_sequence_active = true
+
+	var actors_container: Node2D = get_actors_container()
+	if actors_container == null:
+		_truck_attack_sequence_active = false
+		return
+
+	var sequence := Map5TruckAttackSequenceClass.new()
+	sequence.name = "Map5TruckAttackSequenceDebug"
+	actors_container.add_child(sequence)
+
+	if not sequence.completed.is_connected(_on_truck_attack_sequence_completed):
+		sequence.completed.connect(_on_truck_attack_sequence_completed, CONNECT_ONE_SHOT)
+
+	sequence.call_deferred("start_debug", skip_intro)
+
+
+func _start_truck_attack_sequence() -> void:
+	if _truck_attack_sequence_active:
+		return
+	if not is_inside_tree():
+		return
+
+	_truck_attack_sequence_active = true
+
+	var actors_container: Node2D = get_actors_container()
+	if actors_container == null:
+		_truck_attack_sequence_active = false
+		return
+
+	var sequence := Map5TruckAttackSequenceClass.new()
+	sequence.name = "Map5TruckAttackSequence"
+	actors_container.add_child(sequence)
+
+	if not sequence.completed.is_connected(_on_truck_attack_sequence_completed):
+		sequence.completed.connect(_on_truck_attack_sequence_completed, CONNECT_ONE_SHOT)
+
+	sequence.call_deferred("start")
+
+
+func _on_truck_attack_sequence_completed(success: bool) -> void:
+	_truck_attack_sequence_active = false
+
+	# A saída só é liberada depois da conclusão visual da sequência.
+	# No caminho de sucesso, os três punks derrubados já ficaram na caminhonete;
+	# no caminho de falha, a caminhonete simplesmente escapa sem recompensa.
+	if not success:
+		# Sem penalidade artificial: a fase continua, mas o drop de Happen não é concedido.
+		pass
+
+	super._on_encounter_cleared()

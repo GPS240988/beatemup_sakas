@@ -1,0 +1,74 @@
+--- a/scripts/levels/map_5_stage2.gd
++++ b/scripts/levels/map_5_stage2.gd
+@@ -6,8 +6,10 @@
+ ## A trilha do Stage 02 ainda não foi definida; não reutiliza BGM do Stage 01 ou bônus.
+ 
+ const Map5BakeryCutsceneClass = preload("res://scripts/events/map5_bakery_cutscene.gd")
++const Map5TruckAttackSequenceClass = preload("res://scripts/events/map5_truck_attack_sequence.gd")
+ 
+ var _andre_bakery_video_played: bool = false
++var _truck_attack_sequence_active: bool = false
+ 
+ 
+ func _ready() -> void:
+@@ -319,3 +321,60 @@
+ 	if hud != null and hud.banner_panel != null:
+ 		hud.banner_panel.visible = false
+ 		hud.banner_panel.modulate.a = 1.0
++
++
++## Intercepta a vitória do chefe para iniciar a set piece antes de liberar a saída.
++func _on_enemy_defeated(enemy: CharacterBody2D) -> void:
++	super._on_enemy_defeated(enemy)
++
++	if _truck_attack_sequence_active:
++		return
++	if enemy == null or not is_instance_valid(enemy):
++		return
++	if _boss_instance == null or enemy != _boss_instance:
++		return
++
++	_start_truck_attack_sequence()
++
++
++## Enquanto a set piece estiver ativa, o CombatDirector não libera a saída.
++func _on_encounter_cleared() -> void:
++	if _truck_attack_sequence_active:
++		return
++	super._on_encounter_cleared()
++
++
++func _start_truck_attack_sequence() -> void:
++	if _truck_attack_sequence_active:
++		return
++	if not is_inside_tree():
++		return
++
++	_truck_attack_sequence_active = true
++
++	var actors_container: Node2D = get_actors_container()
++	if actors_container == null:
++		_truck_attack_sequence_active = false
++		return
++
++	var sequence := Map5TruckAttackSequenceClass.new()
++	sequence.name = "Map5TruckAttackSequence"
++	actors_container.add_child(sequence)
++
++	if not sequence.completed.is_connected(_on_truck_attack_sequence_completed):
++		sequence.completed.connect(_on_truck_attack_sequence_completed, CONNECT_ONE_SHOT)
++
++	sequence.call_deferred("start")
++
++
++func _on_truck_attack_sequence_completed(success: bool) -> void:
++	_truck_attack_sequence_active = false
++
++	# A saída só é liberada depois da conclusão visual da sequência.
++	# No caminho de sucesso, os três punks derrubados já ficaram na caminhonete;
++	# no caminho de falha, a caminhonete simplesmente escapa sem recompensa.
++	if not success:
++		# Sem penalidade artificial: a fase continua, mas o drop de Happen não é concedido.
++		pass
++
++	super._on_encounter_cleared()
