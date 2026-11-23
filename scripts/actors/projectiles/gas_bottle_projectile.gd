@@ -197,13 +197,13 @@ func _try_hit(collider: Node) -> bool:
 		thrower,
 		(thrower as Node2D).global_position,
 		_aim_direction,
-		"projectile",
+		"bottle_projectile",
 		knockback_force,
 		0.28,
 		true,
 		false,
 		0.033,
-		"heavy",
+		"bottle",
 		"upper_torso",
 		impact_position
 	)
@@ -221,6 +221,11 @@ func _try_hit(collider: Node) -> bool:
 	_has_hit = true
 	CombatFeedbackClass.spawn_hit_spark(self, impact_position, _aim_direction, "heavy", "upper_torso")
 	CombatFeedbackClass.apply_hitstop(thrower, target, 0.033)
+
+	var is_bebado: bool = target is BebadoEnemy or target.is_in_group("bebado") or target.name.to_lower().contains("bebado")
+	if is_bebado:
+		damage_info.burp_played = true
+		CombatFeedbackClass.play_bebado_burp(target)
 	CombatFeedbackClass.play_impact_sound(self, "glass_shatter")
 	if thrower.has_method("_on_projectile_hit"):
 		thrower.call("_on_projectile_hit", target, damage)

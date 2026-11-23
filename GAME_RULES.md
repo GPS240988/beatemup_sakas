@@ -1677,3 +1677,37 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 ### 48.3. Testes
 - `tests/gas_station_bottle_test.gd` valida o nó `BakeryVideoTrigger`, camada/máscara, posicionamento em frente à padaria, disparo 1x exclusivo, pausa de cena e limpeza de inputs.
 
+---
+
+## 49. NOVOS EFEITOS SONOROS DE AMBIENTAÇÃO E COMBATE (SFX)
+`STATUS: IMPLEMENTED`
+
+### 49.1. Quebra de Garrafa no Cenário (`garrafa_quebrando.mp3`)
+- Localização do asset: `res://assets/audio/sfx/garrafa_quebrando.mp3`.
+- Constante canônica em `CombatFeedback`: `SFX_GARRAFA_QUEBRANDO`.
+- Método de disparo: `CombatFeedback.play_bottle_break(context_node)` ou via `play_impact_sound(context_node, "glass_shatter")`.
+- Comportamento:
+  - Disparado pelo projétil da garrafa (`GasBottleProjectile`) no Map 5 ao colidir com qualquer corpo sólido/obstáculo do mapa (`_hit_map_obstacle`) ou ao aterrissar no chão no limite de voo (`_break_bottle`).
+  - Disparado também no impacto contra alvos destrutíveis e inimigos comuns.
+
+### 49.2. Abertura de Latinha ao Curar (`abrir latinha.mp3`)
+- Localização do asset: `res://assets/audio/sfx/abrir latinha.mp3`.
+- Constante canônica em `CombatFeedback`: `SFX_ABRIR_LATINHA`.
+- Método de disparo: `CombatFeedback.play_can_open(context_node)` ou via `play_pickup_sound(context_node, "latinha")` / `play_pickup_sound(context_node, "coca")`.
+- Comportamento:
+  - Disparado ao consumir qualquer item de cura baseado em lata nos cenários (Map 2: Coca; Map 3: Coca e Guaraná).
+  - Executado em `CocaPickup.try_consume(player)` quando a vida é efetivamente recuperada pelo jogador.
+
+### 49.3. Reação de Arroto do Bêbado (`arroto.mp3`)
+- Localização do asset: `res://assets/audio/sfx/arroto.mp3`.
+- Constante canônica em `CombatFeedback`: `SFX_BEBADO_ARROTO`.
+- Método de disparo: `CombatFeedback.play_bebado_burp(context_node)` ou via `play_impact_sound(context_node, "arroto")`.
+- Comportamento:
+  - Disparado quando o jogador arremessa a garrafa de refrigerante no inimigo Bêbado (`GasBottleProjectile._try_hit` atingindo `BebadoEnemy` ou nós do grupo `"bebado"`).
+  - O dano é aplicado e o áudio de arroto é acionado imediatamente sobre o ator do Bêbado, sincronizado ao efeito de estilhaçamento da garrafa.
+  - Também suportado defensivamente em `BebadoEnemy.take_damage` para qualquer fonte de dano do tipo `"bottle"` ou `"bottle_projectile"`, evitando duplicações por meio da flag `burp_played` em `DamageInfo`.
+
+### 49.4. Testes
+- `tests/test_new_sfx_features.gd` valida integridade dos 3 arquivos de áudio, resolução das rotinas em `CombatFeedback`, consumo com áudio de latinhas no Map 2/3, quebra física no Map 5 e reação de arroto do Bêbado.
+
+

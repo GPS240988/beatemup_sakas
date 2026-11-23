@@ -224,10 +224,20 @@ func _configure_panorama_from_texture() -> void:
 
 	# Conteúdo do posto: o frentista fica na calçada, junto à extremidade
 	# direita da primeira ilha de bombas. Os engradados permanecem ancorados
-	# na linha dos pés e não existem garrafas soltas no chão.	
+	# na linha dos pés e não existem garrafas soltas no chão.
 	var attendant: Node2D = get_node_or_null("World/Actors/NPCs/Frentista") as Node2D
 	if attendant != null:
 		attendant.position = Vector2(map_size.x * (704.0 / 2048.0), map_size.y * (440.0 / 704.0))
+		# Interação deliberadamente curta: o J só chega ao frentista quando o player
+		# estiver praticamente encostado, evitando atravessar a ilha de bombas com o prompt.
+		var interaction_area: Area2D = attendant.get_node_or_null("InteractionArea") as Area2D
+		var interaction_shape: CollisionShape2D = attendant.get_node_or_null("InteractionArea/CollisionShape2D") as CollisionShape2D
+		if interaction_area != null:
+			interaction_area.monitoring = true
+		if interaction_shape != null:
+			var close_shape := interaction_shape.shape as RectangleShape2D
+			if close_shape != null:
+				close_shape.size = Vector2(72.0, 40.0)
 
 	var crate_red: Node2D = get_node_or_null("World/Props/StaticProps/EngradadoVermelho") as Node2D
 	var crate_green: Node2D = get_node_or_null("World/Props/StaticProps/EngradadoVerde") as Node2D
@@ -245,7 +255,6 @@ func _set_rectangle_shape(
 	var collision_node: CollisionShape2D = get_node_or_null(node_path) as CollisionShape2D
 	if collision_node == null:
 		return
-
 
 	var rectangle: RectangleShape2D = collision_node.shape.duplicate(true) as RectangleShape2D
 	if rectangle == null:
@@ -279,4 +288,34 @@ func _play_andre_bakery_cutscene() -> void:
 	if cutscene == null:
 		return
 	cutscene.name = "Map5BakeryCutscene"
+	if not cutscene.cutscene_finished.is_connected(_on_bakery_cutscene_finished):
+		cutscene.cutscene_finished.connect(_on_bakery_cutscene_finished, CONNECT_ONE_SHOT)
 	add_child(cutscene)
+
+
+func _on_bakery_cutscene_finished() -> void:
+	# O vídeo é a transição narrativa; ao devolver o controle ao jogador,
+	# o chefe entra imediatamente no fluxo canônico de BaseLevel.
+	call_deferred("_spawn_bakery_boss")
+
+
+func _spawn_bakery_boss() -> void:
+	if _boss_spawned or boss_scene == null:
+		return
+
+	var active_player: PlayerController = get_player()
+	if active_player != null and is_instance_valid(active_player):
+		# Mantém a entrada do boss coerente com a posição física do momento final
+		# do vídeo. A apresentação visual depois faz a queda a partir desta âncora.
+		boss_spawn_position = Vector2(
+			clampf(active_player.global_position.x + 112.0, 96.0, 1960.0),
+			active_player.global_position.y
+		)
+
+	# Não há anúncio textual nesta apresentação: o impacto, a queda e o próprio
+	# personagem comunicam a chegada do chefe.
+	boss_announcement_text = ""
+	_spawn_boss()
+	if hud != null and hud.banner_panel != null:
+		hud.banner_panel.visible = false
+		hud.banner_panel.modulate.a = 1.0

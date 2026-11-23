@@ -93,6 +93,9 @@ const SFX_INIMIGO_DANO_2: String = "res://assets/audio/sfx/inimigo_apanhando_2.m
 const SFX_INIMIGO_QUEDA: String = "res://assets/audio/sfx/inimigo_queda_1.mp3"
 
 const SFX_COCA_PICKUP: String = "res://assets/audio/sfx/Coca-Cola.mp3"
+const SFX_ABRIR_LATINHA: String = "res://assets/audio/sfx/abrir latinha.mp3"
+const SFX_GARRAFA_QUEBRANDO: String = "res://assets/audio/sfx/garrafa_quebrando.mp3"
+const SFX_BEBADO_ARROTO: String = "res://assets/audio/sfx/arroto.mp3"
 const SFX_REVISTA_PICKUP: String = "res://assets/audio/sfx/Revista.mp3"
 const SFX_EMMANUELLE_PICKUP: String = "res://assets/audio/sfx/emmanuelle.mp3"
 const SFX_PROP_BOX_HIT: String = "res://assets/audio/sfx/Pancada na Caixa.mp3"
@@ -198,6 +201,10 @@ static func play_impact_sound(context_node: Node, profile: String = "punch") -> 
 			play_sound(context_node, SFX_ESPECIAL, 2.5, 0.02)
 		"coronhada":
 			play_sound(context_node, SFX_GABRIEL_CORONHADA, 0.5, 0.04)
+		"glass_shatter", "garrafa_quebrando", "bottle":
+			play_sound(context_node, SFX_GARRAFA_QUEBRANDO, 1.0, 0.03)
+		"arroto", "bebado_arroto":
+			play_sound(context_node, SFX_BEBADO_ARROTO, 1.0, 0.04)
 		_:
 			play_sound(context_node, SFX_SOCO_2, -0.5, 0.05)
 
@@ -242,17 +249,35 @@ static func play_prop_break_sound(context_node: Node, is_metal: bool = false) ->
 	play_sound(context_node, path, 1.0, 0.04)
 
 
-## Reproduz som de coleta de item (Coca, Revista de História ou Emmanuelle)
+## Reproduz som de coleta de item (Coca / Latinha, Revista de História ou Emmanuelle)
 static func play_pickup_sound(context_node: Node, item_type: String = "coca") -> AudioStreamPlayer:
 	match item_type:
-		"coca", "health":
-			return play_sound(context_node, SFX_COCA_PICKUP, 0.0, 0.03)
+		"coca", "health", "latinha", "guarana", "can":
+			var sfx_path := SFX_ABRIR_LATINHA if ResourceLoader.exists(SFX_ABRIR_LATINHA) else SFX_COCA_PICKUP
+			return play_sound(context_node, sfx_path, 0.5, 0.03)
 		"magazine", "story", "revista":
 			return play_sound(context_node, SFX_REVISTA_PICKUP, 0.5, 0.02)
 		"emmanuelle", "emmanuele":
 			return play_sound(context_node, SFX_EMMANUELLE_PICKUP, 1.0, 0.0)
 		_:
-			return play_sound(context_node, SFX_COCA_PICKUP, 0.0, 0.03)
+			var fallback_path := SFX_ABRIR_LATINHA if ResourceLoader.exists(SFX_ABRIR_LATINHA) else SFX_COCA_PICKUP
+			return play_sound(context_node, fallback_path, 0.5, 0.03)
+
+
+## Reproduz som de quebra de garrafa no mapa ou em alvos
+static func play_bottle_break(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_GARRAFA_QUEBRANDO, 1.0, 0.03)
+
+
+## Reproduz som de abrir latinha ao consumir item de cura (map_2 e map_3)
+static func play_can_open(context_node: Node) -> AudioStreamPlayer:
+	var sfx_path := SFX_ABRIR_LATINHA if ResourceLoader.exists(SFX_ABRIR_LATINHA) else SFX_COCA_PICKUP
+	return play_sound(context_node, sfx_path, 0.5, 0.03)
+
+
+## Reproduz som de arroto do Bêbado ao receber garrafada
+static func play_bebado_burp(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_BEBADO_ARROTO, 1.0, 0.04)
 
 
 ## Reproduz som de interface / navegação de menus

@@ -136,6 +136,7 @@ var _default_hurtbox_pos: Vector2 = Vector2(0, -85)
 func _ready() -> void:
 	_ensure_internal_refs()
 	display_name = "O BÊBADO"
+	add_to_group("bebado")
 
 	# Configurações de atributos de movimento cambaleante
 	speed_x = 135.0
@@ -602,7 +603,22 @@ func take_damage(damage_input: Variant) -> bool:
 		_spawn_miss_text()
 		return false
 
-	return super.take_damage(damage_input)
+	var is_bottle_hit: bool = false
+	if damage_input is RefCounted:
+		var d_type: String = str(damage_input.get("damage_type"))
+		var i_profile: String = str(damage_input.get("impact_profile"))
+		if d_type in ["bottle", "bottle_projectile", "gas_bottle"] or i_profile in ["bottle", "glass_shatter"]:
+			is_bottle_hit = true
+
+	var res: bool = super.take_damage(damage_input)
+	if res and is_bottle_hit:
+		var already_played: bool = false
+		if damage_input is RefCounted and "burp_played" in damage_input:
+			already_played = bool(damage_input.get("burp_played"))
+			damage_input.set("burp_played", true)
+		if not already_played:
+			CombatFeedback.play_bebado_burp(self)
+	return res
 
 
 ## Mostra o texto "miss" sobre a cabeça do Bêbado quando ele esquiva de um golpe

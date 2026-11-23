@@ -18,6 +18,7 @@ var hitstop_duration: float = 0.05
 var impact_profile: String = "punch"
 var impact_region: String = "upper_torso"
 var impact_position: Vector2 = Vector2.ZERO
+var burp_played: bool = false
 
 
 func _init(

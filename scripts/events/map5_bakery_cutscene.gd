@@ -2,14 +2,13 @@ class_name Map5BakeryCutscene
 extends CanvasLayer
 
 ## Cutscene em vídeo de André na padaria (Fase 2-1).
-## Exibe assets/videos/video_fase2_1_andre.ogv em tela cheia (16:9) com pausa de cena.
-## Executa uma única vez quando o jogador passa em frente à porta da padaria.
+## O vídeo é obrigatório e termina somente quando o arquivo chega ao fim.
+## Nenhuma entrada de teclado, mouse, touch ou gamepad pode interromper a apresentação.
 
 signal cutscene_finished
 
 const VIDEO_PATH_ROOT: String = "res://assets/videos/video_fase2_1_andre.ogv"
 const VIDEO_PATH_STAGE2: String = "res://assets/videos/stage2/video_fase2_1_andre.ogv"
-const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 
 var _tree_was_paused: bool = false
 var _video_player: VideoStreamPlayer = null
@@ -54,22 +53,6 @@ func _ready() -> void:
 	_video_player.finished.connect(_on_video_finished)
 	aspect.add_child(_video_player)
 
-	var skip_label := Label.new()
-	skip_label.name = "SkipPrompt"
-	skip_label.text = "PRESSIONE ESPAÇO / ENTER / J PARA PULAR"
-	skip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	skip_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	skip_label.anchor_left = 0.5
-	skip_label.anchor_top = 0.92
-	skip_label.anchor_right = 0.96
-	skip_label.anchor_bottom = 0.97
-	var skip_settings := LabelSettings.new()
-	skip_settings.font = ARCADE_FONT
-	skip_settings.font_size = 14
-	skip_settings.font_color = Color(0.7, 0.7, 0.75, 0.75)
-	skip_label.label_settings = skip_settings
-	root_control.add_child(skip_label)
-
 	_start_video()
 
 
@@ -94,30 +77,6 @@ func _resolve_video_stream() -> VideoStream:
 			theora.file = path
 			return theora
 	return null
-
-
-func _input(event: InputEvent) -> void:
-	if _finished:
-		return
-	if event is InputEventKey:
-		var k := event as InputEventKey
-		if k.pressed and not k.echo and (k.keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE, KEY_J] or k.physical_keycode == KEY_J):
-			get_viewport().set_input_as_handled()
-			_on_video_finished()
-	elif event is InputEventMouseButton:
-		var m := event as InputEventMouseButton
-		if m.pressed and m.button_index == MOUSE_BUTTON_LEFT:
-			get_viewport().set_input_as_handled()
-			_on_video_finished()
-	elif event is InputEventScreenTouch:
-		if (event as InputEventScreenTouch).pressed:
-			get_viewport().set_input_as_handled()
-			_on_video_finished()
-	elif event is InputEventJoypadButton:
-		var j := event as InputEventJoypadButton
-		if j.pressed and j.button_index in [JOY_BUTTON_A, JOY_BUTTON_START, JOY_BUTTON_X]:
-			get_viewport().set_input_as_handled()
-			_on_video_finished()
 
 
 func _on_video_finished() -> void:
