@@ -907,6 +907,9 @@ func _on_play_stage_pressed() -> void:
 			target_scene = "res://scenes/ui/loading_screen.tscn"
 
 	await get_tree().create_timer(0.2).timeout
+	for action in ["jump", "attack_aerial", "attack", "attack_punch", "attack_special", "special", "guard", "ui_accept", "ui_select"]:
+		if InputMap.has_action(action) and Input.is_action_pressed(action):
+			Input.action_release(action)
 	var err := get_tree().change_scene_to_file(target_scene)
 	if err != OK:
 		_is_transitioning = false
@@ -964,6 +967,9 @@ func _auto_launch_replay() -> void:
 				return
 
 	await get_tree().create_timer(0.3).timeout
+	for action in ["jump", "attack_aerial", "attack", "attack_punch", "attack_special", "special", "guard", "ui_accept", "ui_select"]:
+		if InputMap.has_action(action) and Input.is_action_pressed(action):
+			Input.action_release(action)
 	var err := get_tree().change_scene_to_file(replay_scene)
 	if err != OK:
 		_is_transitioning = false

@@ -190,6 +190,9 @@ func _on_continue_pressed() -> void:
 			target_scene = STORY_INTRO_SCENE
 
 	_safe_handle_input()
+	for action in ["jump", "attack_aerial", "attack", "attack_punch", "attack_special", "special", "guard", "ui_accept", "ui_select"]:
+		if InputMap.has_action(action) and Input.is_action_pressed(action):
+			Input.action_release(action)
 	var err := get_tree().change_scene_to_file(target_scene)
 	if err != OK:
 		err = get_tree().change_scene_to_file(TARGET_LEVEL_SCENE)

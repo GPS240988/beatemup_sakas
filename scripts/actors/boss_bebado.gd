@@ -284,6 +284,15 @@ func take_damage(damage_input: Variant) -> bool:
 		# invulnerável; nenhuma fonte externa pode acelerar ou interromper o ritual.
 		return false
 
+	var is_special: bool = false
+	if damage_input is RefCounted:
+		is_special = (
+			str(damage_input.get("damage_type")) == "special"
+			or str(damage_input.get("impact_profile")) == "special"
+		)
+	if is_special:
+		return super.take_damage(damage_input)
+
 	# A garrafa é uma armadilha: acerta o Bêbado, mas recupera vida.
 	# Esta decisão vem antes da esquiva e do dano herdados para que o impacto
 	# nunca seja convertido em dano negativo + cura.

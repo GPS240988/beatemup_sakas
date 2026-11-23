@@ -582,16 +582,18 @@ func _is_player_attack(damage_input: Variant) -> bool:
 ## - Fora desses estados: 50% de chance de esquivar de cada golpe elegível,
 ##   com MISS exibido apenas quando o dano é efetivamente recusado.
 func take_damage(damage_input: Variant) -> bool:
-	if bebado_state == BebadoState.CRAWLING:
-		var is_special_attack: bool = false
-		if damage_input is RefCounted:
-			is_special_attack = (
-				str(damage_input.get("damage_type")) == "special"
-				or str(damage_input.get("impact_profile")) == "special"
-			)
-		if not is_special_attack:
-			return false
+	var is_special_attack: bool = false
+	if damage_input is RefCounted:
+		is_special_attack = (
+			str(damage_input.get("damage_type")) == "special"
+			or str(damage_input.get("impact_profile")) == "special"
+		)
+	if is_special_attack:
+		# Golpe Especial do jogador sempre atinge o Bêbado e causa knockdown (sem esquiva)
 		return super.take_damage(damage_input)
+
+	if bebado_state == BebadoState.CRAWLING:
+		return false
 
 	var from_player: bool = _is_player_attack(damage_input)
 	if from_player and bebado_state == BebadoState.DODGING:

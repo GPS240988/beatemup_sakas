@@ -40,13 +40,19 @@ const TRUCK_SCALE: float = 0.80
 
 const SIDEWALK_MAX_Y: float = 538.0
 const SIDEWALK_BARRIER_LAYER: int = 16
-const TRUCK_ROAD_Y: float = 620.0
-const PUNK_BED_Y: float = 550.0
-const TRUCK_ENTRY_X: float = 700.0
-const TRUCK_STAGE_X: float = 1230.0
+const TRUCK_ROAD_Y: float = 660.0
+const TRUCK_ENTRY_X: float = 500.0
+const TRUCK_STAGE_X: float = 745.0 # Centro entre os engradados em X=300 e X=1190.
 const TRUCK_EXIT_X: float = 2240.0
 
-const TRUCK_CRUISE_SPEED: float = 28.0
+# Os três pontos ficam concentrados sobre a caçamba (lado traseiro/esquerdo).
+# O pequeno escalonamento em Y preserva a leitura individual dos sprites.
+const PUNK_BED_OFFSETS: Array[Vector2] = [
+	Vector2(-138.0, -70.0),
+	Vector2(-96.0, -62.0),
+	Vector2(-54.0, -70.0),
+]
+
 const TRUCK_EXIT_SPEED: float = 365.0
 const TRUCK_EXIT_ACCEL: float = 460.0
 
@@ -103,6 +109,8 @@ var _dialogue_waiting_for_release: bool = true
 func _init() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	y_sort_enabled = true
+	# A própria raiz representa a linha de contato dos pneus na faixa próxima.
+	position = Vector2(0.0, TRUCK_ROAD_Y)
 
 
 func start() -> void:
@@ -151,11 +159,7 @@ func _start_internal(skip_intro: bool) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _truck != null and is_instance_valid(_truck):
-		_update_punk_positions()
-
 	if phase == SetPiecePhase.ACTIVE:
-		_update_truck_cruise(delta)
 		_update_bottle_quota()
 		_update_throw_pressure(delta)
 		_clamp_players_to_sidewalk()
@@ -168,8 +172,8 @@ func _physics_process(delta: float) -> void:
 func _spawn_truck_and_punks() -> void:
 	_truck = Node2D.new()
 	_truck.name = "Truck"
-	_truck.global_position = Vector2(TRUCK_ENTRY_X, TRUCK_ROAD_Y)
-	_truck.z_index = -2
+	_truck.position = Vector2(TRUCK_ENTRY_X, 0.0)
+	_truck.y_sort_enabled = true
 	add_child(_truck)
 
 	_truck_sprite = AnimatedSprite2D.new()
@@ -183,21 +187,14 @@ func _spawn_truck_and_punks() -> void:
 	_truck_sprite.frame = 0
 	_truck.add_child(_truck_sprite)
 
-	var punk_offsets: Array[Vector2] = [
-		Vector2(-72.0, PUNK_BED_Y - TRUCK_ROAD_Y),
-		Vector2(-10.0, PUNK_BED_Y - TRUCK_ROAD_Y),
-		Vector2(48.0, PUNK_BED_Y - TRUCK_ROAD_Y),
-	]
-
 	for index in PUNK_COUNT:
 		var punk := Map5TruckAttackPunkClass.new()
 		punk.name = "TruckAttackPunk%d" % (index + 1)
 		punk.punk_index = index
-		punk.z_index = -1
-		add_child(punk)
+		_truck.add_child(punk)
+		punk.position = PUNK_BED_OFFSETS[index]
 		punk.bottle_hit.connect(_on_punk_bottle_hit)
 		_punks.append(punk)
-		punk.global_position = _truck.global_position + punk_offsets[index]
 
 
 func _build_truck_frames() -> SpriteFrames:
@@ -239,16 +236,6 @@ func _move_truck_to_stage() -> void:
 	await tween.finished
 
 
-func _update_truck_cruise(delta: float) -> void:
-	if _truck == null:
-		return
-	_truck.global_position.x += TRUCK_CRUISE_SPEED * delta
-	if _truck.global_position.x > 1350.0:
-		_truck.global_position.x = 1350.0
-
-	_update_punk_positions()
-
-
 func _update_truck_exit(delta: float) -> void:
 	if _truck == null:
 		return
@@ -258,26 +245,12 @@ func _update_truck_exit(delta: float) -> void:
 		TRUCK_EXIT_SPEED
 	)
 	_truck.global_position.x += _truck_exit_speed * delta
-	_update_punk_positions()
 
 	if _truck.global_position.x >= TRUCK_EXIT_X:
 		_finish(true if _hits >= REQUIRED_HITS else false)
 
 
 var _truck_exit_speed: float = 0.0
-
-
-func _update_punk_positions() -> void:
-	if _truck == null:
-		return
-
-	var y_offset: float = PUNK_BED_Y - TRUCK_ROAD_Y
-	var offsets: Array[float] = [-72.0, -10.0, 48.0]
-	for index in _punks.size():
-		var punk := _punks[index]
-		if punk == null or not is_instance_valid(punk):
-			continue
-		punk.global_position = _truck.global_position + Vector2(offsets[index], y_offset)
 
 
 func _set_truck_state(state_name: StringName) -> void:
@@ -594,8 +567,9 @@ func _create_sidewalk_barrier() -> void:
 	_sidewalk_barrier.collision_layer = 0
 	_sidewalk_barrier.set_collision_layer_value(SIDEWALK_BARRIER_LAYER, true)
 	_sidewalk_barrier.collision_mask = 0
-	_sidewalk_barrier.z_index = -100
 	add_child(_sidewalk_barrier)
+	# A barreira pertence ao espaço do mapa, não à âncora de profundidade da caminhonete.
+	_sidewalk_barrier.global_position = Vector2.ZERO
 
 	var shape := CollisionShape2D.new()
 	shape.name = "CollisionShape2D"

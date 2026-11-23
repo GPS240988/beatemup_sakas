@@ -47,7 +47,7 @@ collision_layer = 2
 collision_mask = 1
 script = ExtResource("1_prop")
 prop_name = "Carro Sedan Azul (Escort)"
-max_health = 1350.0
+max_health = 540.0
 damage_stage_textures = Array[Texture2D]([ExtResource("3_escort1"), ExtResource("4_escort2"), ExtResource("5_escort3"), ExtResource("6_escort4"), ExtResource("7_escort5"), ExtResource("8_escort6")])
 
 [node name="Visual" type="Node2D" parent="."]

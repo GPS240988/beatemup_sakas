@@ -682,17 +682,19 @@ func _on_damaged_info(info: RefCounted) -> void:
 
 	var can_kd: bool = false
 	var knockback: float = 120.0
+	var is_special: bool = false
 	if info != null:
-		can_kd = bool(info.get("can_knockdown"))
+		is_special = (str(info.get("damage_type")) == "special" or str(info.get("impact_profile")) == "special")
+		can_kd = bool(info.get("can_knockdown")) or is_special
 		knockback = float(info.get("knockback_force"))
 
 	# Se for o chefe, resiste à queda comum a menos que seja golpe especial
-	var is_boss: bool = (get("is_boss") == true or (get_script() != null and get_script().resource_path.ends_with("boss_alessandro.gd")))
-	if is_boss and not (info != null and str(info.get("damage_type")) == "special"):
+	var is_boss: bool = (get("is_boss") == true or (get_script() != null and get_script().resource_path.ends_with("boss_alessandro.gd")) or is_in_group("boss"))
+	if is_boss and not is_special:
 		can_kd = false
 
 	# Tanque resiste a knockback comum e não cai em golpes normais
-	if archetype == Archetype.TANK and not (info != null and str(info.get("damage_type")) == "special"):
+	if archetype == Archetype.TANK and not is_special:
 		knockback *= 0.5
 		can_kd = false
 

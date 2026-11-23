@@ -1430,7 +1430,7 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
   | **Passo 4 (Rajada Final)** | 30.00 | 24.00 | 400 px | 30 px | Tiro forte com recuo, causando **Knockdown**. |
   | **Total do Combo** | **80.00** | **64.00** | — | — | Deixa Grunts com 16 HP em queda no solo. |
   | **Dash Evasivo (Espaço)** | 0.00 | 0.00 | 270 px | 24 px | Deslocamento veloz com afterimage (0.34s), atravessa inimigos, invuln 0.12s, recarga 0.80s, sem dano. |
-  | **Golpe Especial (O)** | 62.50 | 50.00 | Global | Viewport | Apresentação cinematográfica de 2.50s com dano de área. |
+  | **Golpe Especial (O)** | 110.00 | 88.00 | Global | Viewport | Apresentação cinematográfica de 2.50s com dano de área aumentado e knockdown obrigatório. |
 - **Arquitetura de Carregamento Modular de Heróis**:
   - `PlayerController` desacoplado: em `_ready()`, carrega dinamicamente `res://resources/heroes/%s_data.tres % char_id` e `res://resources/characters/%s_sprite_frames.tres % char_id`.
   - Guilherme, André e Juliana permanecem 100% protegidos contra quebras.
@@ -1709,5 +1709,29 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 
 ### 49.4. Testes
 - `tests/test_new_sfx_features.gd` valida integridade dos 3 arquivos de áudio, resolução das rotinas em `CombatFeedback`, consumo com áudio de latinhas no Map 2/3, quebra física no Map 5 e reação de arroto do Bêbado.
+
+---
+
+## 50. AJUSTES DE COMBATE, VEÍCULOS E SPAWN DE MAPA
+`STATUS: IMPLEMENTED`
+
+### 50.1. Aumento de Dano e Knockdown Obrigatório no Especial
+- Dano base do Golpe Especial aumentado para 110.0 (anteriormente 60.0/62.5). Dano em props destrutíveis aumentado para 90.0 (anteriormente 50.0). Força de knockback calibrada para 220.0.
+- **Regra de Knockdown Inviolável**: O especial aplica `can_knockdown = true` e `damage_type = "special"` / `impact_profile = "special"`.
+- Em `enemy_ai.gd`, `_on_damaged_info` garante que qualquer dano do tipo especial ignore resistências de queda de tanques e chefes, forçando transição imediata para `State.FALL` e reprodução da animação `"fall"`.
+- Em `bebado_enemy.gd` e `boss_bebado.gd`, `take_damage` não permite que o inimigo esquive (`dodge`) de golpes especiais, garantindo dano total e queda imediata.
+
+### 50.2. Rebalanceamento dos Carros da Fase Bônus (Tempo Limite 40s)
+- Vida máxima do Fiesta Laranja (`scenes/props/bonus_car_orange.tscn`) e do Escort Azul (`scenes/props/bonus_car_blue.tscn`) reduzida de 1350.0 para 540.0 cada (total combinado: 1080.0 HP).
+- Esse valor permite a destruição completa de ambos os veículos dentro dos 40 segundos da rodada (`round_duration = 40.0`) com qualquer herói:
+  - **Guilherme** (~52 DPS): necessita de ~20.6s de ataque contínuo (~25-27s totais incluindo deslocamento).
+  - **Gabriel** (~42 DPS): necessita de ~26.0s de ataque contínuo (~31-33s totais incluindo deslocamento).
+- O cálculo visual dos 6 estágios de lataria (`damage_stage_textures`) em `destructible_prop.gd` adapta-se proporcionalmente ao novo `max_health` sem quebra estética.
+
+### 50.3. Prevenção de Voadora e Dash Acidentais no Início do Mapa
+- A tecla de confirmação de menus e telas de carregamento (`KEY_SPACE` / Botão A do Gamepad) coincide com a ação de salto / voadora (`jump` / `attack_aerial`) do Guilherme e com o Dash Evasivo do Gabriel.
+- `PlayerController` implementa um período de carência no início de fase (`_spawn_input_cooldown = 0.20s`), liberando todas as ações (`Input.action_release`) e ignorando entradas de combate nos primeiros 200ms após o spawn.
+- `BaseLevel._ready()`, `LoadingScreen` e `MapMenu` executam a liberação formal de ações antes e depois da transição de cena, impedindo que inputs pressionados em telas anteriores acionem voadora ou dash indevidos ao entrar no mapa.
+
 
 

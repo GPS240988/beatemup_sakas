@@ -114,6 +114,10 @@ func get_actors_container() -> Node2D:
 
 
 func _ready() -> void:
+	for action in ["jump", "attack_aerial", "attack", "attack_punch", "attack_special", "special", "guard", "ui_accept", "ui_select"]:
+		if InputMap.has_action(action) and Input.is_action_pressed(action):
+			Input.action_release(action)
+
 	player = get_player()
 
 	# Instancia o Menu de Pausa In-Game

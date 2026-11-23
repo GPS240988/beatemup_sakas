@@ -126,9 +126,18 @@ var _respawn_tween: Tween = null
 var _str_mult: float = 1.0
 var _spd_mult: float = 1.0
 var _tec_mult: float = 1.0
+var _spawn_input_cooldown: float = 0.20
+
+
+func _flush_action_inputs() -> void:
+	for action in ["jump", "attack_aerial", "attack", "attack_punch", "attack_special", "special", "guard", "ui_accept", "ui_select"]:
+		if InputMap.has_action(action) and Input.is_action_pressed(action):
+			Input.action_release(action)
 
 
 func _ready() -> void:
+	_spawn_input_cooldown = 0.20
+	_flush_action_inputs()
 	add_to_group("actors")
 	add_to_group("player")
 	add_to_group("damageable")
@@ -500,6 +509,10 @@ func _try_interact_with_nearby() -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	if _spawn_input_cooldown > 0.0:
+		_spawn_input_cooldown = maxf(0.0, _spawn_input_cooldown - delta)
+		_flush_action_inputs()
+
 	# Hitstop do herói: pausa temporária de física e animação sem pausar a árvore
 	if _hitstop_timer > 0.0:
 		_hitstop_timer -= delta
@@ -679,7 +692,7 @@ func _physics_process(delta: float) -> void:
 		_update_facing_direction(pre_input_vector.x)
 
 	# Leitura de comandos de ataque e habilidades
-	if not _is_guarding:
+	if not _is_guarding and _spawn_input_cooldown <= 0.0:
 		# Botão Especial Exclusivo (O / Gamepad Y ou B)
 		if Input.is_action_just_pressed("attack_special") or Input.is_action_just_pressed("special"):
 			execute_special()
@@ -1035,8 +1048,8 @@ func _apply_global_special_impact() -> void:
 		var spark_pos: Vector2 = impact_res.get("position", enemy_pos + Vector2(0.0, -110.0))
 		var impact_reg: String = impact_res.get("region", "upper_torso")
 
-		var spec_dmg: float = (hero_data.special_damage if hero_data and "special_damage" in hero_data else 60.0) * _str_mult
-		var spec_kb: float = hero_data.special_knockback if hero_data and "special_knockback" in hero_data else 180.0
+		var spec_dmg: float = (hero_data.special_damage if hero_data and "special_damage" in hero_data else 110.0) * _str_mult
+		var spec_kb: float = hero_data.special_knockback if hero_data and "special_knockback" in hero_data else 220.0
 		var spec_hs: float = hero_data.special_hitstun if hero_data and "special_hitstun" in hero_data else 0.50
 
 		var spec_info := DamageInfoClass.new(
@@ -1064,7 +1077,7 @@ func _apply_global_special_impact() -> void:
 
 	# Props destrutíveis no cenário também sofrem o impacto do Especial
 	var all_props: Array[Node] = tree.get_nodes_in_group("destructibles")
-	var prop_dmg: float = (hero_data.special_prop_damage if hero_data and "special_prop_damage" in hero_data else 50.0) * _str_mult
+	var prop_dmg: float = (hero_data.special_prop_damage if hero_data and "special_prop_damage" in hero_data else 90.0) * _str_mult
 	for prop in all_props:
 		if prop != null and is_instance_valid(prop) and prop.has_method("take_damage"):
 			var prop_info := DamageInfoClass.new(prop_dmg, self, global_position, Vector2(facing_direction, 0), "special", 50.0, 0.2, true)
