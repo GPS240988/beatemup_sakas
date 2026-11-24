@@ -141,6 +141,25 @@ func _run_tests() -> void:
 	# 8. Validação do botão voltar
 	_assert(btn_back.has_signal("pressed"), "BtnBack deve possuir sinal 'pressed'")
 
+	# 8.1. Validação de liberação do Estágio 2 em debug e bloqueio no deploy
+	session.unlock_stage_2()
+	_assert(map_menu.is_stage_unlocked(5) == true, "Estágio 02 deve desbloquear quando session.unlock_stage_2() for chamado em build de teste/debug")
+	map_menu._select_stage(5, false)
+	if btn_play_stage != null:
+		_assert(btn_play_stage.get("disabled") == false, "Botão JOGAR FASE deve estar habilitado para Estágio 02 quando desbloqueado")
+	if map_status_lbl != null:
+		_assert("DISPONÍVEL" in map_status_lbl.text, "Status label deve indicar 'DISPONÍVEL' para Estágio 02 desbloqueado")
+
+	# Teste do atalho de debug por teclado (F9/F10)
+	map_menu._debug_stage2_force_unlocked = false
+	session.stage_2_unlocked = false
+	_assert(map_menu.is_stage_unlocked(5) == false, "Estágio 02 volta a ficar bloqueado ao resetar flags de teste")
+	var event_f9 := InputEventKey.new()
+	event_f9.keycode = KEY_F9
+	event_f9.pressed = true
+	map_menu._unhandled_input(event_f9)
+	_assert(map_menu.is_stage_unlocked(5) == true, "Pressionar F9 no MapMenu em debug build força liberação do Estágio 02 para testes")
+
 	# 9. Limpeza e encerramento
 	map_menu.queue_free()
 	_finish_test()

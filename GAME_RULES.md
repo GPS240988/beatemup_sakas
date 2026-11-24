@@ -1776,6 +1776,29 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 ### 51.6. Testes Automatizados
 - `tests/test_map5_truck_attack_sequence.gd`: valida proporção unificada (`use_full_vehicle = true`), presença dos 4 arquivos de áudio, conexão com métodos de `CombatFeedback`, integridade das rotinas de spawn e balística, além da regra dos 50% de esquiva com feedback "MISS" flutuante.
 
+---
+
+## 52. POLÍTICA DE LIBERAÇÃO DO ESTÁGIO 02 (TESTES GODOT VS. DEPLOY PRODUÇÃO)
+`STATUS: IMPLEMENTED`
+
+### 52.1. Diretriz de Acesso em Testes Locais e Bloqueio no Deploy
+- **Ambiente de Testes / Editor / Debug (`OS.is_debug_build() == true`)**:
+  - Para permitir testes diretos e validação de cena pelos desenvolvedores e testadores, o Estágio 02 (`HAPPEN` / Fase 2-1) pode ser liberado e jogado a partir do Mapa Mestre (`MapMenu`):
+    1. Quando `session.unlock_stage_2()` for executado (por exemplo, após concluir a Fase Bônus da Garagem ou em transições de mapa).
+    2. No contexto de teste e inspeção `_entry_context == "continue"` ("Continuar").
+    3. Pelo atalho de teclado `F9` ou `F10` diretamente no `MapMenu`, que alterna a flag `_debug_stage2_force_unlocked` e libera o Estágio 02 imediatamente para testes de cena sem exigir rejogar todo o Estágio 01.
+  - Ao ser liberado em debug:
+    - O marcador exibe a tag `"ESTÁGIO 02"` e status `"DISPONÍVEL"`.
+    - O botão `btn_play_stage` fica habilitado com o texto `"JOGAR FASE"`.
+    - O trajeto entre a Garagem e o Ponto 2 é iluminado em vermelho arcade contínuo (`route_renderer`).
+    - Ao confirmar a seleção, carrega diretamente `res://scenes/levels/map_5.tscn` (ou `res://scenes/story/story_stage2_intro.tscn` caso seja entrada de campanha sem ter visto a narrativa).
+- **Ambiente de Deploy / Release / Produção (`OS.is_debug_build() == false`)**:
+  - O Estágio 02 permanece **estritamente bloqueado** para o público final em builds exportados / produção:
+    - `is_stage_unlocked(5)` retorna impreterivelmente `false`.
+    - O marcador permanece com o cadeado e tag `"ESTÁGIO 02 (EM BREVE)"`.
+    - A cena alvo é omitida (`scene = ""`), garantindo que nenhuma interação de menu consiga acionar a fase antes do lançamento oficial.
+    - Na transição pós-Garagem (`MapTransitionStage2`), a conclusão da Fase Bônus finaliza a demonstração encaminhando o jogador para a tela oficial de Créditos (`res://scenes/ui/credits.tscn`).
+
 
 
 

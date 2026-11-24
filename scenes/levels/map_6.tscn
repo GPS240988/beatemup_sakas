@@ -1,0 +1,96 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/map_6.gd" id="1_map6_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_2.webp" id="2_happen_background"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="3_player_scene"]
+[ext_resource type="PackedScene" path="res://scenes/actors/map6_pele_npc.tscn" id="4_pele_scene"]
+[ext_resource type="Script" path="res://scripts/components/y_depth_scaler_2d.gd" id="5_y_depth_scaler"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_horizontal_lane"]
+size = Vector2(1500, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vertical_lane"]
+size = Vector2(20, 130)
+
+[node name="Map6" type="Node2D"]
+script = ExtResource("1_map6_script")
+stage_number = 2
+section_number = 2
+map_name = "HAPPEN — DOIS NO RODÍZIO"
+map_index = 2
+map_group = "fase2"
+next_map_scene_path = "res://scenes/levels/map_7.tscn"
+is_final_map = false
+camera_min_x = 640.0
+camera_max_x = 1032.0
+camera_fixed_y = 470.0
+camera_follow_speed = 10.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(965, 470)
+position_smoothing_enabled = true
+position_smoothing_speed = 10.0
+
+[node name="Background" type="Node2D" parent="."]
+z_index = -10
+
+[node name="Far" type="Sprite2D" parent="Background"]
+texture = ExtResource("2_happen_background")
+centered = false
+texture_filter = 1
+
+[node name="StaticWorld" type="StaticBody2D" parent="."]
+collision_layer = 2
+collision_mask = 1
+
+[node name="TopWalkwayBoundary" type="CollisionShape2D" parent="StaticWorld"]
+position = Vector2(836, 675)
+shape = SubResource("RectangleShape2D_horizontal_lane")
+
+[node name="BottomWalkwayBoundary" type="CollisionShape2D" parent="StaticWorld"]
+position = Vector2(836, 775)
+shape = SubResource("RectangleShape2D_horizontal_lane")
+
+[node name="LeftWalkwayBoundary" type="CollisionShape2D" parent="StaticWorld"]
+position = Vector2(185, 730)
+shape = SubResource("RectangleShape2D_vertical_lane")
+
+[node name="RightWalkwayBoundary" type="CollisionShape2D" parent="StaticWorld"]
+position = Vector2(1487, 730)
+shape = SubResource("RectangleShape2D_vertical_lane")
+
+[node name="EntranceInteriorBoundary" type="CollisionShape2D" parent="StaticWorld"]
+position = Vector2(1180, 730)
+shape = SubResource("RectangleShape2D_vertical_lane")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Props" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="StaticProps" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Destructibles" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Actors" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Player" parent="World/Actors" instance=ExtResource("3_player_scene")]
+position = Vector2(965, 730)
+
+[node name="Pele" parent="World/Actors" instance=ExtResource("4_pele_scene")]
+position = Vector2(1090, 730)
+
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="YDepthScaler" type="Node" parent="."]
+script = ExtResource("5_y_depth_scaler")
+far_lane_y = 700.0
+near_lane_y = 760.0
+far_scale = 0.82
+near_scale = 1.0
+smoothing_speed = 12.0

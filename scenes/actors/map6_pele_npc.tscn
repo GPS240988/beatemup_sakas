@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/map6_pele_npc.gd" id="1_pele_script"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pele_feet"]
+radius = 10.0
+height = 36.0
+
+[node name="Pele" type="CharacterBody2D" groups=["actors", "npcs"]]
+y_sort_enabled = true
+collision_layer = 1
+collision_mask = 2
+motion_mode = 1
+script = ExtResource("1_pele_script")
+npc_name = "Pelé"
+is_damageable = false
+max_health = 1.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -6)
+rotation = 1.5707963
+shape = SubResource("CapsuleShape2D_pele_feet")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Shadow" type="Polygon2D" parent="Visual"]
+color = Color(0.08, 0.08, 0.12, 0.45)
+polygon = PackedVector2Array(-25, 0, -16, -6, 0, -8, 16, -6, 25, 0, 16, 6, 0, 8, -16, 6)

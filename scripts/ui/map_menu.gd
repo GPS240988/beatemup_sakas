@@ -203,6 +203,7 @@ var _camera_tween: Tween = null
 var _arrow_tween: Tween = null
 var _arrow_bob_tween: Tween = null
 var _arrow_blink_tween: Tween = null
+var _debug_stage2_force_unlocked: bool = false
 
 
 func _ready() -> void:
@@ -243,6 +244,7 @@ func _ready() -> void:
 	# Fluxo de REPLAY: após seleção de personagem/dificuldade, auto-lança a fase armazenada
 	if _entry_context == "replay" and session != null and session.has_meta("replay_stage_index"):
 		call_deferred("_auto_launch_replay")
+
 
 
 func _init_audio() -> void:
@@ -507,6 +509,23 @@ func is_stage_unlocked(index: int) -> bool:
 	var cfg := STAGE_CONFIGS[index]
 	var map_num: int = int(cfg.get("map_num", 0))
 
+	# Estágio 02 (índice 5):
+	# No deploy, estritamente bloqueado (em desenvolvimento).
+	# Nos testes de cena através do Godot (build de debug), permite liberar se:
+	# 1. GameSession tiver stage_2_unlocked ativo (após vencer garagem ou desbloqueio de teste), OU
+	# 2. Contexto de debug 'continue', OU
+	# 3. Flag de debug manual _debug_stage2_force_unlocked (F9/F10).
+	if index == 5:
+		if not OS.is_debug_build():
+			return false
+		if _debug_stage2_force_unlocked:
+			return true
+		if _entry_context == "continue":
+			return true
+		if session != null and session.has_method("is_stage_2_unlocked"):
+			return session.is_stage_2_unlocked()
+		return false
+
 	# No fluxo CONTINUAR, liberar todos os pontos existentes no mapa para debug.
 	# Esta exceção é apenas visual/de navegação: não grava progresso nem conclusão.
 	if _entry_context == "continue":
@@ -583,10 +602,12 @@ func _on_hotspot_clicked(index: int) -> void:
 				_play_sfx(_sfx_cancel)
 			return
 		elif index == 5:
-			# O Estágio 02 fica selecionável no CONTINUAR para inspeção/debug.
-			# A ausência de cena jogável continua impedindo o início da fase.
+			# O Estágio 02 fica selecionável para inspeção/debug.
 			if is_stage_unlocked(5):
-				_select_stage(5, true, true)
+				if _selected_index == 5:
+					_on_play_stage_pressed()
+				else:
+					_select_stage(5, true, true)
 			else:
 				_play_sfx(_sfx_cancel)
 				_select_stage(5, false, true)
@@ -742,9 +763,10 @@ func _update_hotspots_visibility() -> void:
 			node.set_selected(i == _selected_index)
 
 		elif i == 5:
-			# Estágio 02: visível no Overview, mas inabilitado / bloqueado
+			# Estágio 02: visível no Overview. Liberado em debug/testes; bloqueado no deploy.
 			node.visible = true
-			node.setup(5, "02", "HAPPEN", "ESTÁGIO 02 (EM BREVE)", is_unlocked, is_done, false)
+			var tag_text: String = str(cfg.get("tag", "ESTÁGIO 02")) if OS.is_debug_build() else "ESTÁGIO 02 (EM BREVE)"
+			node.setup(5, "02", str(cfg["title"]), tag_text, is_unlocked, is_done, false)
 			node.set_selected(i == _selected_index)
 
 	if route_renderer != null:
@@ -843,6 +865,8 @@ func _on_play_stage_pressed() -> void:
 
 	var cfg := STAGE_CONFIGS[_selected_index]
 	var target_scene: String = str(cfg.get("scene", ""))
+	if _selected_index == 5 and OS.is_debug_build():
+		target_scene = "res://scenes/levels/map_5.tscn"
 
 	if target_scene.is_empty():
 		_play_sfx(_sfx_cancel)
@@ -905,6 +929,11 @@ func _on_play_stage_pressed() -> void:
 		target_scene = "res://scenes/story/story_intro.tscn"
 		if not ResourceLoader.exists(target_scene):
 			target_scene = "res://scenes/ui/loading_screen.tscn"
+	elif _selected_index == 5 and _entry_context == "campaign":
+		if session == null or not bool(session.get("has_seen_stage_2_transition")):
+			var intro_scene: String = "res://scenes/story/story_stage2_intro.tscn"
+			if ResourceLoader.exists(intro_scene):
+				target_scene = intro_scene
 
 	await get_tree().create_timer(0.2).timeout
 	for action in ["jump", "attack_aerial", "attack", "attack_punch", "attack_special", "special", "guard", "ui_accept", "ui_select"]:
@@ -1057,6 +1086,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE):
 		_safe_handle_input()
 		_on_back_pressed()
+	elif OS.is_debug_build() and event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_F9 or event.keycode == KEY_F10):
+		_safe_handle_input()
+		_debug_stage2_force_unlocked = not _debug_stage2_force_unlocked
+		var session := _get_game_session()
+		if session != null and session.has_method("unlock_stage_2"):
+			session.unlock_stage_2()
+		_update_hotspots_visibility()
+		_select_stage(_selected_index, false, false)
+		if route_renderer != null:
+			route_renderer.queue_redraw()
 	elif event.is_action_pressed("ui_right") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_RIGHT or event.keycode == KEY_D)):
 		_safe_handle_input()
 		_navigate_stages(1)
@@ -1069,6 +1108,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _selected_index == 0:
 				_enter_stage_01(0)
 			elif _selected_index == 4 and is_stage_unlocked(4):
+				_on_play_stage_pressed()
+			elif _selected_index == 5 and is_stage_unlocked(5):
 				_on_play_stage_pressed()
 			else:
 				_play_sfx(_sfx_cancel)
