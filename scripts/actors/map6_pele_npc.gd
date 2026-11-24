@@ -1,7 +1,7 @@
 extends "res://scripts/actors/npc.gd"
 
 ## Segurança da entrada da HAPPEN. Mantém o contrato de BaseNPC e não participa
-## de combate; sua atuação é controlada pelo evento narrativo do Map 6.
+## de combate; sua atuação é controlada externamente pelo evento narrativo do Map 6.
 
 signal interaction_requested(pele: Node, player: Node)
 
@@ -9,17 +9,34 @@ const IDLE_TEXTURE_PATH: String = "res://assets/sprites/characters/npc/pele/pele
 const EXPRESSIONS_TEXTURE_PATH: String = "res://assets/sprites/characters/npc/pele/pele_expressions.png"
 const GESTURES_TEXTURE_PATH: String = "res://assets/sprites/characters/npc/pele/pele_gestures.png"
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
+const StandardDialogueBoxClass = preload("res://scripts/ui/standard_dialogue_box.gd")
 const FRAME_SIZE: Vector2 = Vector2(220.0, 300.0)
 const PELE_DISPLAY_SCALE: float = 0.92
+const CONTACT_BARK_FONT_SIZE: int = 20
+const CONTACT_BARK_BUBBLE_SIZE: Vector2 = Vector2(420.0, 104.0)
+const CONTACT_BARK_LINES: Array[String] = [
+	"Encosta não, florzinha!",
+	"Pega no charuto aqui na minha calça!",
+	"Na verdade eu sou um velho gordo.",
+	"Preconceituoso!"
+]
 
 var _animated_sprite: AnimatedSprite2D = null
 var _interaction_area: Area2D = null
+var _contact_area: Area2D = null
 var _interaction_player: Node = null
+var _contact_player: Node = null
+var _contact_event_serial: int = 0
 var _interaction_enabled: bool = true
 var _dialogue_active: bool = false
 var _exclamation: Label = null
 var _bob_tween: Tween = null
 var _dialogue_portraits: Dictionary = {}
+var _contact_bubble: PanelContainer = null
+var _contact_bubble_tail: Polygon2D = null
+var _contact_bubble_label: Label = null
+var _contact_bubble_tween: Tween = null
+var _last_contact_bark_index: int = -1
 
 
 func _ready() -> void:
@@ -28,8 +45,16 @@ func _ready() -> void:
 	is_damageable = false
 	default_state = NPCState.IDLE
 	super._ready()
+
+	# Player usa Layer 1 / Mask 2. Pelé passa à Layer 2 para ser obstáculo
+	# físico e consulta Layers 1 e 2 para bloquear jogador e mundo.
+	collision_layer = 2
+	collision_mask = 3
+
 	_build_visual_animation()
 	_create_interaction_area()
+	_create_contact_area()
+	_create_contact_bubble()
 	_create_interaction_indicator()
 
 
@@ -151,6 +176,149 @@ func _create_interaction_area() -> void:
 	_interaction_area.body_exited.connect(_on_interaction_body_exited)
 
 
+func _create_contact_area() -> void:
+	_contact_area = Area2D.new()
+	_contact_area.name = "ContactArea"
+	_contact_area.collision_layer = 0
+	_contact_area.collision_mask = 1
+	_contact_area.monitoring = true
+	_contact_area.monitorable = false
+
+	var shape_node := CollisionShape2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(26.0, 52.0)
+	shape_node.shape = shape
+	shape_node.position = Vector2(0.0, -6.0)
+	_contact_area.add_child(shape_node)
+	add_child(_contact_area)
+	_contact_area.body_entered.connect(_on_contact_body_entered)
+	_contact_area.body_exited.connect(_on_contact_body_exited)
+
+
+func _create_contact_bubble() -> void:
+	if visual_root == null:
+		return
+	_contact_bubble_tail = Polygon2D.new()
+	_contact_bubble_tail.name = "ContactBarkTail"
+	_contact_bubble_tail.z_index = 9
+	_contact_bubble_tail.color = Color(0.035, 0.045, 0.075, 0.98)
+	_contact_bubble_tail.position = Vector2(0.0, -320.0)
+	_contact_bubble_tail.polygon = PackedVector2Array([-10.0, -2.0, 10.0, -2.0, 0.0, 18.0])
+	_contact_bubble_tail.visible = false
+	visual_root.add_child(_contact_bubble_tail)
+
+	_contact_bubble = PanelContainer.new()
+	_contact_bubble.name = "ContactBark"
+	_contact_bubble.z_index = 10
+	_contact_bubble.position = Vector2(-CONTACT_BARK_BUBBLE_SIZE.x * 0.5, -320.0 - CONTACT_BARK_BUBBLE_SIZE.y)
+	_contact_bubble.size = CONTACT_BARK_BUBBLE_SIZE
+	_contact_bubble.custom_minimum_size = CONTACT_BARK_BUBBLE_SIZE
+	_contact_bubble.pivot_offset = CONTACT_BARK_BUBBLE_SIZE * 0.5
+	_contact_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_contact_bubble.add_theme_stylebox_override("panel", StandardDialogueBoxClass.create_dialogue_stylebox())
+	_contact_bubble.visible = false
+	visual_root.add_child(_contact_bubble)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_contact_bubble.add_child(margin)
+
+	_contact_bubble_label = Label.new()
+	_contact_bubble_label.name = "BarkText"
+	_contact_bubble_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_contact_bubble_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_contact_bubble_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_contact_bubble_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_contact_bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_contact_bubble_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	var settings := LabelSettings.new()
+	settings.font = ARCADE_FONT
+	settings.font_size = CONTACT_BARK_FONT_SIZE
+	settings.font_color = Color(0.98, 0.95, 0.86, 1.0)
+	settings.outline_size = 2
+	settings.outline_color = Color(0.025, 0.025, 0.035, 1.0)
+	settings.shadow_size = 1
+	settings.shadow_color = Color(0.0, 0.0, 0.0, 0.85)
+	settings.shadow_offset = Vector2(1.0, 1.0)
+	_contact_bubble_label.label_settings = settings
+	margin.add_child(_contact_bubble_label)
+
+
+func _on_contact_body_entered(body: Node2D) -> void:
+	if not _interaction_enabled or _dialogue_active or body == null or not body.is_in_group("player"):
+		return
+	_contact_player = body
+	_contact_event_serial += 1
+	_show_contact_bark_after_interaction_window(body, _contact_event_serial)
+
+
+func _show_contact_bark_after_interaction_window(body: Node2D, event_serial: int) -> void:
+	# Dá tempo para o comando J iniciar a conversa formal. Se ele foi usado,
+	# a fala espontânea é cancelada e não compete com a caixa de diálogo.
+	# O contato continua válido mesmo que o jogador recue rapidamente.
+	await get_tree().create_timer(0.12).timeout
+	if not is_instance_valid(self) or not is_instance_valid(body):
+		return
+	if event_serial != _contact_event_serial or not _interaction_enabled or _dialogue_active:
+		return
+	_show_random_contact_bark()
+
+
+func _on_contact_body_exited(body: Node2D) -> void:
+	if body == _contact_player:
+		_contact_player = null
+
+
+func _show_random_contact_bark() -> void:
+	if _contact_bubble == null or _contact_bubble_label == null or _dialogue_active:
+		return
+	if _contact_bubble_tween != null and _contact_bubble_tween.is_valid():
+		_contact_bubble_tween.kill()
+
+	var bark_index: int = randi_range(0, CONTACT_BARK_LINES.size() - 1)
+	if CONTACT_BARK_LINES.size() > 1 and bark_index == _last_contact_bark_index:
+		bark_index = (bark_index + 1) % CONTACT_BARK_LINES.size()
+	_last_contact_bark_index = bark_index
+	_contact_bubble_label.text = CONTACT_BARK_LINES[bark_index]
+
+	_contact_bubble.visible = true
+	if _contact_bubble_tail != null:
+		_contact_bubble_tail.visible = true
+	_contact_bubble.modulate.a = 0.0
+	_contact_bubble.scale = Vector2(0.86, 0.86)
+	_contact_bubble_tween = create_tween()
+	_contact_bubble_tween.set_parallel(true)
+	_contact_bubble_tween.tween_property(_contact_bubble, "modulate:a", 1.0, 0.12).set_trans(Tween.TRANS_SINE)
+	_contact_bubble_tween.tween_property(_contact_bubble, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_contact_bubble_tween.set_parallel(false)
+	_contact_bubble_tween.tween_interval(2.0)
+	_contact_bubble_tween.tween_property(_contact_bubble, "modulate:a", 0.0, 0.22).set_trans(Tween.TRANS_SINE)
+	_contact_bubble_tween.tween_callback(func() -> void:
+		if _contact_bubble != null and is_instance_valid(_contact_bubble):
+			_contact_bubble.visible = false
+			_contact_bubble.scale = Vector2.ONE
+		if _contact_bubble_tail != null and is_instance_valid(_contact_bubble_tail):
+			_contact_bubble_tail.visible = false
+	)
+
+
+func _hide_contact_bark() -> void:
+	if _contact_bubble_tween != null and _contact_bubble_tween.is_valid():
+		_contact_bubble_tween.kill()
+	if _contact_bubble != null:
+		_contact_bubble.visible = false
+		_contact_bubble.modulate.a = 1.0
+		_contact_bubble.scale = Vector2.ONE
+	if _contact_bubble_tail != null:
+		_contact_bubble_tail.visible = false
+
+
 func _create_interaction_indicator() -> void:
 	if visual_root == null:
 		return
@@ -204,6 +372,8 @@ func interact(player: Node) -> bool:
 	if player == null or not is_instance_valid(player) or player != _interaction_player:
 		return false
 	_dialogue_active = true
+	_contact_event_serial += 1
+	_hide_contact_bark()
 	enter_event()
 	if _exclamation != null:
 		_exclamation.visible = false
@@ -214,6 +384,8 @@ func interact(player: Node) -> bool:
 func set_dialogue_active(active: bool) -> void:
 	_dialogue_active = active
 	if active:
+		_contact_event_serial += 1
+		_hide_contact_bark()
 		enter_event()
 	else:
 		change_state(NPCState.IDLE)
@@ -225,6 +397,12 @@ func set_interaction_enabled(enabled: bool) -> void:
 	_interaction_enabled = enabled
 	if _interaction_area != null:
 		_interaction_area.set_deferred("monitoring", enabled)
+	if _contact_area != null:
+		_contact_area.set_deferred("monitoring", enabled)
+	if not enabled:
+		_contact_event_serial += 1
+		_contact_player = null
+		_hide_contact_bark()
 	if _exclamation != null:
 		_exclamation.visible = enabled and not _dialogue_active
 	if not enabled:

@@ -9,6 +9,7 @@ signal sequence_finished
 signal starting_speaker_selected(character_id: String)
 
 const StandardDialogueBoxClass = preload("res://scripts/ui/standard_dialogue_box.gd")
+const STORY_BACKGROUND_PATH: String = "res://assets/backgrounds/maps/fase2/story_happen.webp"
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 
 const PORTRAITS: Dictionary = {
@@ -97,8 +98,20 @@ const COMMON_ENDING: Array[Dictionary] = [
 	{"speaker": "PELÉ", "text": "Podem entrar. E juízo aí dentro.", "action": "gesture_allow_entry"}
 ]
 
+const STORY_ART_BOTTOM_DESKTOP: float = 0.65
+const STORY_DIALOGUE_TOP_DESKTOP: float = 0.67
+const STORY_ART_BOTTOM_MOBILE: float = 0.62
+const STORY_DIALOGUE_TOP_MOBILE: float = 0.64
+const STORY_DIALOGUE_BOTTOM: float = 0.98
+
 var start_mode: String = "arrival"
+
 var _root_control: Control = null
+var _art_stage: Control = null
+var _dialogue_area: Control = null
+var _backdrop_texture: TextureRect = null
+var _transition_overlay: ColorRect = null
+var _backdrop_zoom_tween: Tween = null
 var _portrait: TextureRect = null
 var _speaker_label: Label = null
 var _dialogue_label: Label = null
@@ -120,8 +133,11 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	if start_mode == "negotiation":
+		_phase = "transition"
 	_build_dialogue_ui()
 	if start_mode == "negotiation":
+		await _play_scene_entry_transition()
 		_phase = "contact"
 		_lines = PELE_CONTACT_LINES.duplicate(true)
 	else:
@@ -139,11 +155,133 @@ func _build_dialogue_ui() -> void:
 	add_child(_root_control)
 
 	var is_mobile: bool = _is_mobile_runtime()
+	if start_mode == "negotiation":
+		_build_happen_story_backdrop(is_mobile)
+
 	var ui: Dictionary = StandardDialogueBoxClass.build_dialogue_ui(_root_control, is_mobile)
+	_dialogue_area = ui["dialogue_area"] as Control
 	_portrait = ui["portrait"] as TextureRect
 	_speaker_label = ui["speaker_label"] as Label
 	_dialogue_label = ui["dialogue_label"] as Label
 	_continue_label = ui["continue_label"] as Label
+	if start_mode == "negotiation":
+		_dialogue_area.anchor_top = STORY_DIALOGUE_TOP_MOBILE if is_mobile else STORY_DIALOGUE_TOP_DESKTOP
+		_dialogue_area.anchor_bottom = STORY_DIALOGUE_BOTTOM
+		_dialogue_area.offset_top = 0.0
+		_dialogue_area.offset_bottom = 0.0
+		_dialogue_area.custom_minimum_size = Vector2(0.0, 216.0 if not is_mobile else 232.0)
+		_dialogue_area.z_index = 2
+
+	if start_mode == "negotiation" and _backdrop_texture != null:
+		_transition_overlay = ColorRect.new()
+		_transition_overlay.name = "StoryTransitionOverlay"
+		_transition_overlay.color = Color.BLACK
+		_transition_overlay.modulate.a = 1.0
+		_transition_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_transition_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_transition_overlay.z_index = 100
+		_root_control.add_child(_transition_overlay)
+
+
+func _build_happen_story_backdrop(is_mobile: bool) -> void:
+	var story_texture := load(STORY_BACKGROUND_PATH) as Texture2D
+	if story_texture == null:
+		push_error("Map6DialogueSequence: arte da cena HAPPEN ausente: " + STORY_BACKGROUND_PATH)
+		return
+
+	var matte := ColorRect.new()
+	matte.name = "StoryCinematicMatte"
+	matte.color = Color(0.012, 0.013, 0.018, 1.0)
+	matte.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	matte.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root_control.add_child(matte)
+
+	_art_stage = Control.new()
+	_art_stage.name = "HappenArtStage"
+	_art_stage.anchor_left = 0.0
+	_art_stage.anchor_top = 0.0
+	_art_stage.anchor_right = 1.0
+	_art_stage.anchor_bottom = STORY_ART_BOTTOM_MOBILE if is_mobile else STORY_ART_BOTTOM_DESKTOP
+	_art_stage.clip_contents = true
+	_art_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root_control.add_child(_art_stage)
+
+	_backdrop_texture = TextureRect.new()
+	_backdrop_texture.name = "HappenStoryBackdrop"
+	_backdrop_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_backdrop_texture.texture = story_texture
+	_backdrop_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_backdrop_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_backdrop_texture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_backdrop_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_art_stage.add_child(_backdrop_texture)
+
+	var ambience_overlay := ColorRect.new()
+	ambience_overlay.name = "StoryAmbienceOverlay"
+	ambience_overlay.color = Color(0.015, 0.025, 0.055, 0.06)
+	ambience_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ambience_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_art_stage.add_child(ambience_overlay)
+
+
+func _play_scene_entry_transition() -> void:
+	if _transition_overlay == null:
+		return
+
+	await get_tree().process_frame
+	if _backdrop_texture != null:
+		_backdrop_texture.pivot_offset = _backdrop_texture.size * 0.5
+		_backdrop_texture.scale = Vector2.ONE
+
+	var fade_in := create_tween()
+	fade_in.tween_property(
+		_transition_overlay,
+		"modulate:a",
+		0.0,
+		0.68
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await fade_in.finished
+
+	# Mantém a arte em escala neutra durante todas as falas. O zoom só acontece
+	# depois da autorização, quando a caixa de diálogo já desapareceu.
+	if _backdrop_texture != null:
+		_backdrop_texture.scale = Vector2.ONE
+
+
+func _play_restaurant_entry_transition() -> void:
+	_phase = "transition"
+	if _backdrop_zoom_tween != null and _backdrop_zoom_tween.is_valid():
+		_backdrop_zoom_tween.kill()
+
+	await get_tree().process_frame
+	if _backdrop_texture != null:
+		# O foco do push-in é a porta de vidro, sugerindo a câmera atravessando a entrada.
+		_backdrop_texture.pivot_offset = Vector2(
+			_backdrop_texture.size.x * 0.655,
+			_backdrop_texture.size.y * 0.565
+		)
+
+	var exit_tween := create_tween().set_parallel(true)
+	if _dialogue_area != null:
+		exit_tween.tween_property(_dialogue_area, "modulate:a", 0.0, 0.28)
+	if _backdrop_texture != null:
+		exit_tween.tween_property(
+			_backdrop_texture,
+			"scale",
+			Vector2(1.18, 1.18),
+			1.12
+		).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+	if _transition_overlay != null:
+		exit_tween.tween_property(
+			_transition_overlay,
+			"modulate:a",
+			1.0,
+			0.78
+		).set_delay(0.30).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	await exit_tween.finished
+	sequence_finished.emit()
+	queue_free()
 
 
 func _process(_delta: float) -> void:
@@ -152,7 +290,7 @@ func _process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _waiting_for_release:
+	if _phase == "transition" or _waiting_for_release:
 		return
 	if _phase == "choice":
 		_handle_choice_input(event)
@@ -287,8 +425,7 @@ func _match_dialogue_phase_end() -> void:
 			else:
 				_start_common_ending()
 		"ending":
-			sequence_finished.emit()
-			queue_free()
+			_play_restaurant_entry_transition()
 
 
 func _show_choice() -> void:
@@ -299,6 +436,8 @@ func _show_choice() -> void:
 	_dialogue_label.text = "Quem vai tentar convencer o Pelé primeiro?" if choice_number == 1 else "Quem tenta convencer o Pelé agora?"
 	_dialogue_label.visible_characters = -1
 	_continue_label.visible = false
+	if _dialogue_area != null:
+		_dialogue_area.visible = false
 	_create_choice_panel()
 
 
@@ -309,22 +448,32 @@ func _create_choice_panel() -> void:
 
 	_choice_panel = PanelContainer.new()
 	_choice_panel.name = "NegotiatorChoice"
-	_choice_panel.anchor_left = 0.12
-	_choice_panel.anchor_top = 0.49
-	_choice_panel.anchor_right = 0.88
-	_choice_panel.anchor_bottom = 0.65
+	_choice_panel.anchor_left = 0.10
+	_choice_panel.anchor_top = STORY_DIALOGUE_TOP_DESKTOP
+	_choice_panel.anchor_right = 0.90
+	_choice_panel.anchor_bottom = 0.98
 	_choice_panel.add_theme_stylebox_override("panel", _create_panel_style())
 	_root_control.add_child(_choice_panel)
 
 	var is_mobile: bool = _is_mobile_runtime()
 	if is_mobile:
-		_choice_panel.anchor_left = 0.06
-		_choice_panel.anchor_top = 0.39
-		_choice_panel.anchor_right = 0.94
-		_choice_panel.anchor_bottom = 0.70
+		_choice_panel.anchor_left = 0.04
+		_choice_panel.anchor_top = STORY_DIALOGUE_TOP_MOBILE
+		_choice_panel.anchor_right = 0.96
+		_choice_panel.anchor_bottom = 0.98
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 5)
+	_choice_panel.add_child(content)
+	var prompt := Label.new()
+	prompt.text = _dialogue_label.text
+	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt.label_settings = StandardDialogueBoxClass.create_speaker_settings(is_mobile)
+	prompt.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	content.add_child(prompt)
+
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8 if is_mobile else 12)
-	_choice_panel.add_child(row)
+	content.add_child(row)
 
 	_add_choice_button(row, "GUILHERME", "guilherme")
 	_add_choice_button(row, "GABRIEL", "gabriel")
@@ -397,6 +546,8 @@ func _on_choice_selected(character_id: String) -> void:
 	if _choice_panel != null and is_instance_valid(_choice_panel):
 		_choice_panel.queue_free()
 	_choice_buttons.clear()
+	if _dialogue_area != null:
+		_dialogue_area.visible = true
 	_start_attempt(character_id)
 
 

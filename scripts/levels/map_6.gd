@@ -6,6 +6,7 @@ extends "res://scripts/levels/base_level.gd"
 
 const Map6DialogueSequenceClass = preload("res://scripts/events/map6_dialogue_sequence.gd")
 const NEXT_MAP_SCENE_PATH: String = "res://scenes/levels/map_7.tscn"
+const STORY_BACKGROUND_PATH: String = "res://assets/backgrounds/maps/fase2/story_happen.webp"
 const PLAYER_START_POSITION: Vector2 = Vector2(930.0, 730.0)
 const PLAYER_WALKABLE_BOUNDS: Rect2 = Rect2(220.0, 682.0, 1270.0, 78.0)
 
@@ -14,6 +15,8 @@ var _dialogue_sequence: CanvasLayer = null
 var _event_active: bool = false
 var _negotiation_completed: bool = false
 var _player_physics_was_enabled: bool = true
+var _actors_layer: CanvasItem = null
+var _actors_layer_was_visible: bool = true
 
 
 func _ready() -> void:
@@ -88,6 +91,14 @@ func _begin_negotiation_sequence() -> void:
 	_player_physics_was_enabled = player.is_physics_processing()
 	_suspend_player_for_dialogue()
 
+	if ResourceLoader.exists(STORY_BACKGROUND_PATH):
+		_actors_layer = get_node_or_null("World/Actors") as CanvasItem
+		if _actors_layer != null:
+			_actors_layer_was_visible = _actors_layer.visible
+			_actors_layer.visible = false
+	else:
+		push_error("Map6: arte da negociação da HAPPEN não encontrada: " + STORY_BACKGROUND_PATH)
+
 	if _pele != null and _pele.has_method("set_dialogue_active"):
 		_pele.call("set_dialogue_active", true)
 
@@ -148,6 +159,7 @@ func _on_dialogue_speaker_line(speaker: String, action: String) -> void:
 func _on_dialogue_sequence_finished() -> void:
 	if not _event_active:
 		return
+	_dialogue_sequence = null
 	_negotiation_completed = true
 	if _pele != null and is_instance_valid(_pele):
 		if _pele.has_method("set_dialogue_active"):
@@ -155,33 +167,20 @@ func _on_dialogue_sequence_finished() -> void:
 		if _pele.has_method("set_interaction_enabled"):
 			_pele.call("set_interaction_enabled", false)
 
-	if player != null and is_instance_valid(player):
-		var exit_tween := create_tween()
-		exit_tween.tween_property(
-			player,
-			"position:x",
-			minf(player.position.x + 40.0, (PLAYER_WALKABLE_BOUNDS.position.x + PLAYER_WALKABLE_BOUNDS.size.x)),
-			0.46
-		).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-		await exit_tween.finished
-
+	# A sequência já executou o push-in pela porta e o fade para preto.
 	if ResourceLoader.exists(NEXT_MAP_SCENE_PATH):
-		await _fade_to_black()
 		_event_active = false
 		_advance_to_next_map()
 		return
 
-	# O Map 7 ainda não foi adicionado. A cena termina a negociação sem tentar
-	# carregar um destino ausente; a interação com Pelé permanece encerrada.
-	push_warning("Map6 concluído. res://scenes/levels/map_7.tscn ainda não existe; controle devolvido ao jogador.")
-	_event_active = false
-	if player != null and is_instance_valid(player) and _player_physics_was_enabled:
-		player.set_physics_process(true)
+	# Fallback temporário até o interior da HAPPEN (Map 7) ser implementado.
+	push_warning("Map6 concluído. res://scenes/levels/map_7.tscn ainda não existe; aguardando implementação do interior da HAPPEN.")
+	await _restore_map6_after_missing_map7()
 
 
-func _fade_to_black() -> void:
+func _restore_map6_after_missing_map7() -> void:
 	var fade_layer := CanvasLayer.new()
-	fade_layer.name = "Map6ExitFade"
+	fade_layer.name = "Map6FallbackFade"
 	fade_layer.layer = 126
 	fade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(fade_layer)
@@ -189,14 +188,21 @@ func _fade_to_black() -> void:
 	var overlay := ColorRect.new()
 	overlay.name = "BlackOverlay"
 	overlay.color = Color.BLACK
-	overlay.modulate.a = 0.0
+	overlay.modulate.a = 1.0
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fade_layer.add_child(overlay)
 
+	if _actors_layer != null and is_instance_valid(_actors_layer):
+		_actors_layer.visible = _actors_layer_was_visible
+	if player != null and is_instance_valid(player) and _player_physics_was_enabled:
+		player.set_physics_process(true)
+	_event_active = false
+
 	var fade_tween := create_tween()
-	fade_tween.tween_property(overlay, "modulate:a", 1.0, 0.48).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	fade_tween.tween_property(overlay, "modulate:a", 0.0, 0.68).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await fade_tween.finished
+	fade_layer.queue_free()
 
 
 func _setup_level_bgm() -> void:

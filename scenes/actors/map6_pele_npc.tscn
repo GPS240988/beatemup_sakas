@@ -8,8 +8,8 @@ height = 36.0
 
 [node name="Pele" type="CharacterBody2D" groups=["actors", "npcs"]]
 y_sort_enabled = true
-collision_layer = 1
-collision_mask = 2
+collision_layer = 2
+collision_mask = 3
 motion_mode = 1
 script = ExtResource("1_pele_script")
 npc_name = "Pelé"
