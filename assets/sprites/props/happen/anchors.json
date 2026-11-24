@@ -1,0 +1,89 @@
+{
+  "godot_usage": {
+    "root_node": "Node2D positioned at the prop floor-contact point",
+    "sprite_node": "Sprite2D",
+    "centered": false,
+    "sprite_position_rule": "Sprite2D.position = -Vector2(pivot_px.x, pivot_px.y)",
+    "texture_filter": "CanvasItem.TEXTURE_FILTER_NEAREST",
+    "sorting": "Keep the prop root under World/Props/StaticProps with Y-Sort. Keep actors in World/Actors; do not place any prop in StaticWorld."
+  },
+  "assets": {
+    "dining_table_rectangular.png": {
+      "dimensions_px": [
+        1377,
+        648
+      ],
+      "pivot_px": {
+        "x": 688,
+        "y": 641
+      },
+      "pivot": "bottom-center floor contact"
+    },
+    "dining_table_round.png": {
+      "dimensions_px": [
+        169,
+        144
+      ],
+      "pivot_px": {
+        "x": 84,
+        "y": 138
+      },
+      "pivot": "bottom-center floor contact"
+    },
+    "dining_chair_front.png": {
+      "dimensions_px": [
+        113,
+        157
+      ],
+      "pivot_px": {
+        "x": 56,
+        "y": 151
+      },
+      "pivot": "bottom-center floor contact"
+    },
+    "dining_chair_three_quarter.png": {
+      "dimensions_px": [
+        89,
+        152
+      ],
+      "pivot_px": {
+        "x": 44,
+        "y": 146
+      },
+      "pivot": "bottom-center floor contact"
+    },
+    "dining_chair_side.png": {
+      "dimensions_px": [
+        99,
+        149
+      ],
+      "pivot_px": {
+        "x": 49,
+        "y": 143
+      },
+      "pivot": "bottom-center floor contact"
+    },
+    "cashier_counter_empty.png": {
+      "dimensions_px": [
+        271,
+        121
+      ],
+      "pivot_px": {
+        "x": 135.5,
+        "y": 114
+      },
+      "pivot": "bottom-center floor contact"
+    },
+    "cash_register.png": {
+      "dimensions_px": [
+        123,
+        69
+      ],
+      "pivot_px": {
+        "x": 61.0,
+        "y": 66
+      },
+      "pivot": "bottom-center floor contact"
+    }
+  }
+}
