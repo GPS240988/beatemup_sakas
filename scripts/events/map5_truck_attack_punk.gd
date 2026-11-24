@@ -8,8 +8,13 @@ extends CharacterBody2D
 signal bottle_hit(punk: Map5TruckAttackPunk)
 
 const CELL_SIZE := Vector2i(220, 300)
-const BASE_VISUAL_SCALE: float = 0.44
-const VISUAL_BASE_OFFSET_Y: float = -142.0
+const BASE_VISUAL_SCALE: float = 0.40
+# SpriteFrames are centered in 220x300 cells. This offset places the cell bottom
+# exactly on the CharacterBody2D origin (feet/bed contact), as required by Y-Sort.
+const VISUAL_BASE_OFFSET_Y: float = -60.0
+
+const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
+const DODGE_CHANCE: float = 0.50
 
 const PUNK_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/sprites/stage2/truck_attack_sequence/punks/punk_01_spritesheet.png"),
@@ -100,10 +105,11 @@ func _build_hurtbox() -> void:
 	var shape := CollisionShape2D.new()
 	shape.name = "CollisionShape2D"
 	var capsule := CapsuleShape2D.new()
-	capsule.radius = 26.0
-	capsule.height = 104.0
+	# A área ampliada considera a silhueta útil do torso e a altura da parábola da garrafa.
+	capsule.radius = 34.0
+	capsule.height = 132.0
 	shape.shape = capsule
-	shape.position = Vector2(0.0, -54.0)
+	shape.position = Vector2(0.0, -62.0)
 	_hurtbox.add_child(shape)
 
 
@@ -149,6 +155,15 @@ func take_damage(damage_input: Variant) -> bool:
 	var impact_profile: String = str(damage_input.get("impact_profile"))
 	if damage_type != "bottle_projectile" or impact_profile != "bottle":
 		return false
+
+	# 50% de chance de o punk escapar/esquivar da garrafa arremessada
+	if randf() < DODGE_CHANCE:
+		CombatFeedbackClass.spawn_floating_text(self, global_position + Vector2(0.0, -95.0), "MISS", Color(1.0, 0.85, 0.2, 1.0))
+		var dodge_tween := create_tween()
+		if dodge_tween != null:
+			dodge_tween.tween_property(_visual, "modulate", Color(1.3, 1.3, 1.3, 0.75), 0.08)
+			dodge_tween.tween_property(_visual, "modulate", Color.WHITE, 0.12)
+		return true
 
 	_defeated = true
 	if _hurtbox != null:

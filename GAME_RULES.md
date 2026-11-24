@@ -1733,5 +1733,49 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
 - `PlayerController` implementa um período de carência no início de fase (`_spawn_input_cooldown = 0.20s`), liberando todas as ações (`Input.action_release`) e ignorando entradas de combate nos primeiros 200ms após o spawn.
 - `BaseLevel._ready()`, `LoadingScreen` e `MapMenu` executam a liberação formal de ações antes e depois da transição de cena, impedindo que inputs pressionados em telas anteriores acionem voadora ou dash indevidos ao entrar no mapa.
 
+---
+
+## 51. ARQUITETURA VISUAL E OCLUSÃO DA SET PIECE DA CAMINHONETE (FASE 2-1)
+`STATUS: IMPLEMENTED`
+
+### 51.1. Direção de Arte e Oclusão em Três Planos (2.5D Arcade Gold Standard)
+- Na set piece da caminhonete da Fase 2-1 (`scripts/events/map5_truck_attack_sequence.gd`), os três punks ocupantes da caçamba deixam de ser renderizados sob a carroceria opaca do veículo (o que causava a impressão incorreta de estarem agachados no asfalto/embaixo da caminhonete).
+- A composição visual adota a arquitetura canônica de **Três Camadas de Profundidade**:
+  1. **Plano 1 — Chassi / Cabine de Fundo (`_truck_full_sprite`)**: Arte completa da caminhonete (`truck_full.png`), contendo cabine, vidro traseiro, trilho traseiro, piso da caçamba e rodas.
+  2. **Plano 2 — Ocupantes / Punks (`_punks`)**: Instanciados como filhos do veículo e ancorados no piso interno da caçamba via `PUNK_BED_OFFSETS`:
+     - Punk 1 (traseira/esquerda da caçamba): `Vector2(-207.0, -118.0)`
+     - Punk 2 (centro/fundo da caçamba): `Vector2(-150.0, -128.0)`
+     - Punk 3 (dianteira/junto à cabine): `Vector2(-93.0, -118.0)`
+     - Com esta elevação, mais de 85% da silhueta dos punks (tronco, peitoral, braços, cabeça e boné) fica plenamente visível acima da lateral da caçamba, preservando a leitura heróica e clara das animações de arremesso de pedra (`pegar_pedra`, `telegraph_arremesso`, `arremesso`) e reação a dano (`hit`, `derrotado_caçamba`).
+  3. **Plano 3 — Primeiro Plano / Borda Frontal da Caçamba (`_truck_bed_foreground_sprite`)**: Camada dedicada de primeiro plano (`res://assets/sprites/stage2/truck_attack_sequence/truck/truck_bed_foreground.png`), contendo a lataria externa da lateral da caçamba e o trilho frontal mais próximo da câmera. Ela oclui naturalmente apenas os pés e canelas dos punks, conferindo solidez, peso e ancoragem física definitiva "em cima da caçamba".
+
+### 51.2. Hurtbox dos Punks e Balística de Garrafas e Pedras
+- `Map5TruckAttackPunk` mantém colisor `Hurtbox` (Layer 4) com `CapsuleShape2D` de raio 34.0 e altura 132.0 posicionado em `Vector2(0.0, -62.0)`. A área cobre com generosidade o tronco e cabeça expostos, garantindo detecção precisa das garrafas arremessadas em arco pelos heróis da calçada.
+- O projétil de pedra (`Map5TruckAttackStone`) é gerado no ponto `Vector2(34.0, -78.0)` relativo ao punk, cruzando a faixa de rua em Y ≈ 478.0 (altura exata do peito do jogador na calçada).
+- Ao sofrer dano fatal por garrafa, a pose final `caido_caçamba` mantém o punk deitado no piso interno, visível parcialmente por trás da borda frontal, reforçando a narrativa e estética beat 'em up clássica.
+
+### 51.3. Proporção Unificada da Caminhonete em Todas as Fases (Chegada, Manobra e Saída)
+- Para eliminar a discrepância visual de escala durante a movimentação do veículo (onde a caminhonete encolhia ~31% ao chegar ou sair por alternar para o spritesheet legado), todos os estados (`entrada`, `acelerando`, `cruzeiro`, `freada`, `derrapagem`, `parada` e `saida`) passam a renderizar estritamente a arte completa aprovada (`truck_full.png` e `truck_bed_foreground.png`) na escala canônica `TRUCK_FULL_SCALE = 0.34`.
+- A rotação de derrapagem (-3.2° a -4.0°), deslocamentos e fumaça continuam sendo manipulados proceduralmente via tweens determinísticos no nó raiz `_truck`, mantendo proporção pixel art 100% contínua e sem pop-in.
+
+### 51.4. Paisagem Sonora e Triggers de Áudio da Set Piece (SFX)
+- A set piece conecta os 4 novos efeitos sonoros temáticos diretamente a `CombatFeedback`:
+  1. **Motor chegando**: `res://assets/audio/sfx/acelerando.mp3` — disparado em `_move_truck_to_stage()` na aproximação inicial e nos retornos da caminhonete.
+  2. **Frenagem e derrapagem**: `res://assets/audio/sfx/frenagem_derrapagem.mp3` — disparado na desaceleração inicial (`_play_intro_arrival_drift`), no drift comemorativo de vitória (`_begin_success_drift`) e na freada de fuga (`_begin_failure_exit`).
+  3. **Caminhonete saindo**: `res://assets/audio/sfx/motorchegando.mp3` — disparado na arrancada de fuga / saída de tela (`_begin_exit_sequence`).
+  4. **Pedra sendo arremessada**: `res://assets/audio/sfx/pedrada.mp3` — disparado em `Map5TruckAttackStone.launch()` no momento exato em que a pedra sai das mãos do punk e inicia seu arco balístico.
+
+### 51.5. Mecânica de Esquiva dos Punks (50% de Chance de Escape e Feedback "MISS")
+- Quando o jogador acerta a garrafa na direção correta e dentro da hurtbox útil do punk, o inimigo possui **50% de chance probabilística (`DODGE_CHANCE = 0.50`) de escapar/esquivar** do impacto direto.
+- Em caso de esquiva bem-sucedida:
+  1. **Consumo da Garrafa**: A garrafa atinge a caçamba/borda e se quebra no ponto de impacto (`take_damage` retorna `true`), gerando o feedback sonoro de vidro quebrando e faísca sem atravessar o veículo de forma fantasma.
+  2. **Texto Flutuante Arcade ("MISS")**: O punk aciona `CombatFeedback.spawn_floating_text(...)`, que instancia um `Label` arcade estilizado (`arcade_bold.ttf`, tamanho 20, contorno escuro e sombra) acima da cabeça do punk (`global_position + Vector2(0, -95)`). O texto executa um pop punch (escala 1.25 → 1.0), sobe suavemente 36px e realiza fade-out determinístico.
+  3. **Preservação do Punk e do Contador**: O punk **não** entra em estado de derrota (`_defeated = false`), seu sinal `bottle_hit` **não** é emitido, e o contador de acertos da sequência (`_hits`) não é incrementado. O punk pisca sutilmente e permanece pronto para o ciclo seguinte de arremesso de pedras.
+- Em caso de acerto pleno (50% restante): o punk entra no ciclo completo de nocaute (`hit` → `derrotado_caçamba` → `caido_caçamba`) e contabiliza o acerto necessário para o avanço da fase.
+
+### 51.6. Testes Automatizados
+- `tests/test_map5_truck_attack_sequence.gd`: valida proporção unificada (`use_full_vehicle = true`), presença dos 4 arquivos de áudio, conexão com métodos de `CombatFeedback`, integridade das rotinas de spawn e balística, além da regra dos 50% de esquiva com feedback "MISS" flutuante.
+
+
 
 

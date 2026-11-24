@@ -12,7 +12,7 @@ const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 @export_range(160.0, 700.0, 10.0) var speed: float = 540.0
 @export_range(120.0, 500.0, 10.0) var max_distance: float = 340.0
 @export_range(1.0, 80.0, 1.0) var damage: float = 26.0
-@export_range(12.0, 72.0, 1.0) var depth_tolerance: float = 36.0
+@export_range(12.0, 120.0, 1.0) var depth_tolerance: float = 36.0
 @export_range(16.0, 180.0, 4.0) var flight_arc_height: float = 38.0
 @export_range(12.0, 72.0, 1.0) var landing_drop: float = 32.0
 @export_range(0.0, 200.0, 1.0) var knockback_force: float = 92.0
@@ -182,8 +182,11 @@ func _try_hit(collider: Node) -> bool:
 		return false
 
 	var target_2d: Node2D = target as Node2D
-	# A comparação usa a pista atual do projétil, não a profundidade inicial do arremesso.
-	if absf(target_2d.global_position.y - global_position.y) > depth_tolerance:
+	# A caçamba ocupa outra faixa: somente os punks da set piece recebem tolerância ampliada.
+	var allowed_depth_tolerance: float = depth_tolerance
+	if target.is_in_group("setpiece_punk"):
+		allowed_depth_tolerance = maxf(allowed_depth_tolerance, 104.0)
+	if absf(target_2d.global_position.y - global_position.y) > allowed_depth_tolerance:
 		return false
 	if _is_actor_jumping(target):
 		return false

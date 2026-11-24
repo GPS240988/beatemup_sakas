@@ -37,13 +37,14 @@ func _ready() -> void:
 	sprite.name = "StoneSprite"
 	sprite.texture = STONE_TEXTURE
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.scale = Vector2(1.25, 1.25)
 	sprite.position = Vector2.ZERO
 	add_child(sprite)
 
 	var shape := CollisionShape2D.new()
 	shape.name = "CollisionShape2D"
 	var circle := CircleShape2D.new()
-	circle.radius = 7.0
+	circle.radius = 9.0
 	shape.shape = circle
 	add_child(shape)
 
@@ -56,6 +57,7 @@ func launch(source: Node, start_position: Vector2, target_position: Vector2, dam
 	_target_position = target_position
 	_damage = damage
 	global_position = start_position
+	CombatFeedbackClass.play_stone_throw(self)
 
 	var distance: float = _start_position.distance_to(_target_position)
 	_duration = clampf(distance / 380.0, 0.42, 1.20)

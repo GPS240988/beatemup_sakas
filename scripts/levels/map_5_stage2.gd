@@ -250,8 +250,7 @@ func _configure_panorama_from_texture() -> void:
 	var attendant: Node2D = get_node_or_null("World/Actors/NPCs/Frentista") as Node2D
 	if attendant != null:
 		attendant.position = Vector2(map_size.x * (704.0 / 2048.0), map_size.y * (440.0 / 704.0))
-		# Interação deliberadamente curta: o J só chega ao frentista quando o player
-		# estiver praticamente encostado, evitando atravessar a ilha de bombas com o prompt.
+		# Interação deliberadamente curta: exige proximidade real ao NPC.
 		var interaction_area: Area2D = attendant.get_node_or_null("InteractionArea") as Area2D
 		var interaction_shape: CollisionShape2D = attendant.get_node_or_null("InteractionArea/CollisionShape2D") as CollisionShape2D
 		if interaction_area != null:
@@ -259,7 +258,7 @@ func _configure_panorama_from_texture() -> void:
 		if interaction_shape != null:
 			var close_shape := interaction_shape.shape as RectangleShape2D
 			if close_shape != null:
-				close_shape.size = Vector2(72.0, 40.0)
+				close_shape.size = Vector2(56.0, 32.0)
 
 	var crate_red: Node2D = get_node_or_null("World/Props/StaticProps/EngradadoVermelho") as Node2D
 	var crate_green: Node2D = get_node_or_null("World/Props/StaticProps/EngradadoVerde") as Node2D
@@ -267,6 +266,7 @@ func _configure_panorama_from_texture() -> void:
 		crate_red.position = Vector2(map_size.x * (300.0 / 2048.0), map_size.y * (494.0 / 704.0))
 	if crate_green != null:
 		crate_green.position = Vector2(map_size.x * (1190.0 / 2048.0), map_size.y * (494.0 / 704.0))
+
 
 func _set_rectangle_shape(
 	node_path: NodePath,
@@ -325,6 +325,9 @@ func _spawn_bakery_boss() -> void:
 	if _boss_spawned or boss_scene == null:
 		return
 
+	# Durante a luta do Bêbado, J não pode abrir o diálogo do frentista.
+	_set_frentista_interaction_enabled(false)
+
 	var active_player: PlayerController = get_player()
 	if active_player != null and is_instance_valid(active_player):
 		# Mantém a entrada do boss coerente com a posição física do momento final
@@ -341,6 +344,20 @@ func _spawn_bakery_boss() -> void:
 	if hud != null and hud.banner_panel != null:
 		hud.banner_panel.visible = false
 		hud.banner_panel.modulate.a = 1.0
+
+
+## Bloqueia o diálogo do frentista durante o boss e o evento da caminhonete.
+func _set_frentista_interaction_enabled(enabled: bool) -> void:
+	var attendant: Node = get_node_or_null("World/Actors/NPCs/Frentista")
+	if attendant != null and attendant.has_method("set_interaction_enabled"):
+		attendant.call("set_interaction_enabled", enabled)
+
+
+## O frentista se recolhe para dentro da conveniência enquanto a caminhonete ocupa a rua.
+func _set_frentista_truck_visibility(visible_in_scene: bool) -> void:
+	var attendant := get_node_or_null("World/Actors/NPCs/Frentista") as CanvasItem
+	if attendant != null:
+		attendant.visible = visible_in_scene
 
 
 ## Intercepta a vitória do chefe para iniciar a set piece antes de liberar a saída.
@@ -372,12 +389,13 @@ func _start_truck_attack_debug(skip_intro: bool) -> void:
 	if not is_inside_tree():
 		return
 
-	_truck_attack_sequence_active = true
-
 	var actors_container: Node2D = get_actors_container()
 	if actors_container == null:
-		_truck_attack_sequence_active = false
 		return
+
+	_truck_attack_sequence_active = true
+	_set_frentista_interaction_enabled(false)
+	_set_frentista_truck_visibility(false)
 
 	var sequence := Map5TruckAttackSequenceClass.new()
 	sequence.name = "Map5TruckAttackSequenceDebug"
@@ -385,6 +403,8 @@ func _start_truck_attack_debug(skip_intro: bool) -> void:
 
 	if not sequence.completed.is_connected(_on_truck_attack_sequence_completed):
 		sequence.completed.connect(_on_truck_attack_sequence_completed, CONNECT_ONE_SHOT)
+	if not sequence.all_punks_defeated.is_connected(_on_truck_attack_punks_defeated):
+		sequence.all_punks_defeated.connect(_on_truck_attack_punks_defeated, CONNECT_ONE_SHOT)
 
 	sequence.call_deferred("start_debug", skip_intro)
 
@@ -395,12 +415,13 @@ func _start_truck_attack_sequence() -> void:
 	if not is_inside_tree():
 		return
 
-	_truck_attack_sequence_active = true
-
 	var actors_container: Node2D = get_actors_container()
 	if actors_container == null:
-		_truck_attack_sequence_active = false
 		return
+
+	_truck_attack_sequence_active = true
+	_set_frentista_interaction_enabled(false)
+	_set_frentista_truck_visibility(false)
 
 	var sequence := Map5TruckAttackSequenceClass.new()
 	sequence.name = "Map5TruckAttackSequence"
@@ -408,18 +429,25 @@ func _start_truck_attack_sequence() -> void:
 
 	if not sequence.completed.is_connected(_on_truck_attack_sequence_completed):
 		sequence.completed.connect(_on_truck_attack_sequence_completed, CONNECT_ONE_SHOT)
+	if not sequence.all_punks_defeated.is_connected(_on_truck_attack_punks_defeated):
+		sequence.all_punks_defeated.connect(_on_truck_attack_punks_defeated, CONNECT_ONE_SHOT)
 
 	sequence.call_deferred("start")
 
 
+func _on_truck_attack_punks_defeated() -> void:
+	# O banner SIGA aparece assim que o terceiro punk cai; a saída física
+	# continua sendo liberada somente quando a caminhonete termina de sair.
+	if siga_indicator != null:
+		siga_indicator.activate()
+
+
 func _on_truck_attack_sequence_completed(success: bool) -> void:
 	_truck_attack_sequence_active = false
+	_set_frentista_truck_visibility(true)
+	_set_frentista_interaction_enabled(true)
 
-	# A saída só é liberada depois da conclusão visual da sequência.
-	# No caminho de sucesso, os três punks derrubados já ficaram na caminhonete;
-	# no caminho de falha, a caminhonete simplesmente escapa sem recompensa.
-	if not success:
-		# Sem penalidade artificial: a fase continua, mas o drop de Happen não é concedido.
-		pass
-
-	super._on_encounter_cleared()
+	# Só libera a progressão e o indicador SIGA quando os três punks foram derrotados.
+	# O BaseLevel mantém as validações canônicas de boss e reforços pendentes.
+	if success:
+		super._on_encounter_cleared()

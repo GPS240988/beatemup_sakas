@@ -7,12 +7,13 @@ extends Node2D
 ##
 ## Contrato:
 ## - 3 punks / 3 acertos obrigatórios.
-## - 6 lançamentos de garrafa no total.
-## - 1º alvo ensina; 2 restantes aumentam a pressão; último vira clímax.
+## - 6 lançamentos de garrafa por rodada.
+## - 1º alvo ensina; os restantes aumentam a pressão; último vira clímax.
 ## - Sem HUD genérica: comunicação por diálogo canônico + leitura visual.
 ## - Ao sucesso: derrapagem, queda dos punks e preparação de drops temáticos da Happen.
 
 signal completed(success: bool)
+signal all_punks_defeated()
 
 const Map5TruckAttackPunkClass = preload("res://scripts/events/map5_truck_attack_punk.gd")
 const Map5TruckAttackStoneClass = preload("res://scripts/events/map5_truck_attack_stone.gd")
@@ -21,6 +22,12 @@ const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 
 const TRUCK_SHEET: Texture2D = preload(
 	"res://assets/sprites/stage2/truck_attack_sequence/truck/truck_spritesheet.png"
+)
+const TRUCK_FULL_TEXTURE: Texture2D = preload(
+	"res://assets/sprites/stage2/truck_attack_sequence/truck/truck_full.png"
+)
+const TRUCK_BED_FOREGROUND_TEXTURE: Texture2D = preload(
+	"res://assets/sprites/stage2/truck_attack_sequence/truck/truck_bed_foreground.png"
 )
 const GUILHERME_PORTRAIT: Texture2D = preload(
 	"res://assets/ui/hud/portraits/portrait_guilherme.png"
@@ -37,21 +44,37 @@ const PUNK_CELL_SIZE := Vector2i(220, 300)
 const TRUCK_CELL_SIZE := Vector2i(512, 384)
 const TRUCK_VISUAL_OFFSET_Y: float = -172.0
 const TRUCK_SCALE: float = 0.80
+const TRUCK_FULL_VISUAL_OFFSET_Y: float = -103.0
+const TRUCK_FULL_SCALE: float = 0.34
 
 const SIDEWALK_MAX_Y: float = 538.0
 const SIDEWALK_BARRIER_LAYER: int = 16
-const TRUCK_ROAD_Y: float = 660.0
+const TRUCK_ROAD_Y: float = 674.0
 const TRUCK_ENTRY_X: float = 500.0
 const TRUCK_STAGE_X: float = 745.0 # Centro entre os engradados em X=300 e X=1190.
 const TRUCK_EXIT_X: float = 2240.0
 
 # Os três pontos ficam concentrados sobre a caçamba (lado traseiro/esquerdo).
-# O pequeno escalonamento em Y preserva a leitura individual dos sprites.
+# Pés ancorados no piso interno da caçamba (-118.0 e -128.0), garantindo posicionamento "em cima da caçamba"
+# com a carroceria frontal (foreground) cobrindo as pernas e exibindo plenamente troncos, braços e cabeças.
 const PUNK_BED_OFFSETS: Array[Vector2] = [
-	Vector2(-138.0, -70.0),
-	Vector2(-96.0, -62.0),
-	Vector2(-54.0, -70.0),
+	# Dois punks nas extremidades da caçamba e um no centro levemente recuado.
+	# Os offsets Y referem-se aos pés ancorados no piso da caçamba.
+	Vector2(-207.0, -118.0),
+	Vector2(-150.0, -128.0),
+	Vector2(-93.0, -118.0),
 ]
+
+# As pedras miram a posição atual do jogador com antecipação curta e dispersão controlada.
+# O desvio mantém algumas passagens próximas sem transformar todo arremesso em acerto.
+const STONE_AIM_OFFSETS: Array[Vector2] = [
+	Vector2(12.0, 6.0),
+	Vector2(-20.0, -8.0),
+	Vector2(6.0, -14.0),
+	Vector2(-12.0, 10.0),
+]
+const STONE_LEAD_SECONDS: float = 0.08
+const STONE_MAX_LEAD_DISTANCE: float = 14.0
 
 const TRUCK_EXIT_SPEED: float = 365.0
 const TRUCK_EXIT_ACCEL: float = 460.0
@@ -70,6 +93,8 @@ enum SetPiecePhase {
 var phase: SetPiecePhase = SetPiecePhase.INTRO
 var _truck: Node2D = null
 var _truck_sprite: AnimatedSprite2D = null
+var _truck_full_sprite: Sprite2D = null
+var _truck_bed_foreground_sprite: Sprite2D = null
 var _punks: Array[Map5TruckAttackPunk] = []
 var _truck_animation_names: Array[StringName] = [
 	&"entrada",
@@ -83,6 +108,7 @@ var _truck_animation_names: Array[StringName] = [
 
 var _hits: int = 0
 var _throws_used: int = 0
+var _stone_throw_count: int = 0
 var _tracked_bottle_projectiles: Dictionary = {}
 var _bottle_crates_locked: bool = false
 var _failure_check_pending: bool = false
@@ -111,6 +137,7 @@ func _init() -> void:
 	y_sort_enabled = true
 	# A própria raiz representa a linha de contato dos pneus na faixa próxima.
 	position = Vector2(0.0, TRUCK_ROAD_Y)
+	add_to_group("map5_truck_attack_active")
 
 
 func start() -> void:
@@ -140,15 +167,18 @@ func _start_internal(skip_intro: bool) -> void:
 	_set_truck_state(&"entrada")
 	if not skip_intro:
 		await _move_truck_to_stage()
+		await _play_intro_arrival_drift()
 	else:
 		_truck.global_position = Vector2(TRUCK_STAGE_X, TRUCK_ROAD_Y)
 
 	if not is_inside_tree():
 		return
 
-	_set_truck_state(&"cruzeiro")
 	if not skip_intro:
+		# A apresentação completa da chegada termina antes de abrir o diálogo.
 		await _show_intro_dialogue()
+	else:
+		_set_truck_state(&"parada")
 
 	if not is_inside_tree():
 		return
@@ -173,9 +203,34 @@ func _spawn_truck_and_punks() -> void:
 	_truck = Node2D.new()
 	_truck.name = "Truck"
 	_truck.position = Vector2(TRUCK_ENTRY_X, 0.0)
-	_truck.y_sort_enabled = true
+	# A raiz do veículo é ordenada pelo Y-Sort do mapa. Dentro dela, a composição
+	# usa ordem explícita para a carroceria continuar visível à frente dos ocupantes.
+	_truck.y_sort_enabled = false
 	add_child(_truck)
 
+	# 1. Base completa do veículo (desenhada atrás dos ocupantes): cabine, vidro traseiro,
+	# trilho traseiro, piso da caçamba e rodas.
+	_truck_full_sprite = Sprite2D.new()
+	_truck_full_sprite.name = "FullTruckParkedSprite"
+	_truck_full_sprite.texture = TRUCK_FULL_TEXTURE
+	_truck_full_sprite.centered = true
+	_truck_full_sprite.position = Vector2(0.0, TRUCK_FULL_VISUAL_OFFSET_Y)
+	_truck_full_sprite.scale = Vector2.ONE * TRUCK_FULL_SCALE
+	_truck_full_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_truck_full_sprite.visible = false
+	_truck.add_child(_truck_full_sprite)
+
+	# 2. Punks ocupantes da caçamba (ancorados no piso interno, com troncos, braços e cabeças livres).
+	for index in PUNK_COUNT:
+		var punk := Map5TruckAttackPunkClass.new()
+		punk.name = "TruckAttackPunk%d" % (index + 1)
+		punk.punk_index = index
+		_truck.add_child(punk)
+		punk.position = PUNK_BED_OFFSETS[index]
+		punk.bottle_hit.connect(_on_punk_bottle_hit)
+		_punks.append(punk)
+
+	# 3. Sprite animado para os estados dinâmicos da spritesheet (entrada, freada, derrapagem)
 	_truck_sprite = AnimatedSprite2D.new()
 	_truck_sprite.name = "AnimatedSprite2D"
 	_truck_sprite.sprite_frames = _build_truck_frames()
@@ -187,14 +242,20 @@ func _spawn_truck_and_punks() -> void:
 	_truck_sprite.frame = 0
 	_truck.add_child(_truck_sprite)
 
-	for index in PUNK_COUNT:
-		var punk := Map5TruckAttackPunkClass.new()
-		punk.name = "TruckAttackPunk%d" % (index + 1)
-		punk.punk_index = index
-		_truck.add_child(punk)
-		punk.position = PUNK_BED_OFFSETS[index]
-		punk.bottle_hit.connect(_on_punk_bottle_hit)
-		_punks.append(punk)
+	# 4. Carroceria frontal / lateral da caçamba (renderizada sobre as pernas dos punks):
+	# Garante a oclusão natural da lateral da caminhonete, mantendo silhuetas heróicas de tronco e arremesso.
+	_truck_bed_foreground_sprite = Sprite2D.new()
+	_truck_bed_foreground_sprite.name = "TruckBedForegroundSprite"
+	_truck_bed_foreground_sprite.texture = TRUCK_BED_FOREGROUND_TEXTURE
+	_truck_bed_foreground_sprite.centered = true
+	_truck_bed_foreground_sprite.position = Vector2(0.0, TRUCK_FULL_VISUAL_OFFSET_Y)
+	_truck_bed_foreground_sprite.scale = Vector2.ONE * TRUCK_FULL_SCALE
+	_truck_bed_foreground_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_truck_bed_foreground_sprite.visible = false
+	_truck.add_child(_truck_bed_foreground_sprite)
+
+	# Preserva o contrato do teste automatizado mantendo a ordem do sprite animado:
+	_truck.move_child(_truck_sprite, _truck.get_child_count() - 1)
 
 
 func _build_truck_frames() -> SpriteFrames:
@@ -222,6 +283,8 @@ func _move_truck_to_stage() -> void:
 	if _truck == null:
 		return
 
+	CombatFeedbackClass.play_truck_motor_chegando(self)
+
 	var tween := create_tween()
 	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.tween_property(_truck, "global_position:x", TRUCK_ENTRY_X + 120.0, 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -236,6 +299,57 @@ func _move_truck_to_stage() -> void:
 	await tween.finished
 
 
+func _play_intro_arrival_drift() -> void:
+	if _truck == null:
+		return
+
+	CombatFeedbackClass.play_truck_frenagem_derrapagem(self)
+	_set_truck_state(&"freada")
+	await get_tree().create_timer(0.08, true).timeout
+	if not is_inside_tree():
+		return
+
+	_set_truck_state(&"derrapagem")
+	CombatFeedbackClass.trigger_screen_shake(self, 5.5, 0.18)
+
+	var skid_tween := create_tween()
+	skid_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	skid_tween.set_parallel(true)
+	skid_tween.tween_property(
+		_truck,
+		"global_position:x",
+		TRUCK_STAGE_X + 14.0,
+		0.24
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	skid_tween.tween_property(
+		_truck,
+		"rotation_degrees",
+		-3.2,
+		0.18
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	await skid_tween.finished
+
+	var settle_tween := create_tween()
+	settle_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	settle_tween.set_parallel(true)
+	settle_tween.tween_property(
+		_truck,
+		"global_position:x",
+		TRUCK_STAGE_X,
+		0.14
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	settle_tween.tween_property(
+		_truck,
+		"rotation_degrees",
+		0.0,
+		0.18
+	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	await settle_tween.finished
+
+	if is_inside_tree():
+		_set_truck_state(&"parada")
+
+
 func _update_truck_exit(delta: float) -> void:
 	if _truck == null:
 		return
@@ -247,14 +361,78 @@ func _update_truck_exit(delta: float) -> void:
 	_truck.global_position.x += _truck_exit_speed * delta
 
 	if _truck.global_position.x >= TRUCK_EXIT_X:
-		_finish(true if _hits >= REQUIRED_HITS else false)
+		if _hits >= REQUIRED_HITS:
+			_finish(true)
+		else:
+			_return_truck_for_remaining_punks()
 
 
 var _truck_exit_speed: float = 0.0
 
 
+func _return_truck_for_remaining_punks() -> void:
+	if phase != SetPiecePhase.EXITING or _truck == null:
+		return
+
+	var survivors: int = 0
+	for index in PUNK_COUNT:
+		var punk := _punks[index]
+		_punk_throwing[index] = false
+		_punk_throw_timers[index] = 999.0
+		if punk == null or not is_instance_valid(punk):
+			_punks[index] = null
+			continue
+		if punk.is_defeated():
+			punk.queue_free()
+			_punks[index] = null
+			continue
+		survivors += 1
+		punk.play_state(&"idle_caçamba")
+
+	if survivors <= 0:
+		_finish(_hits >= REQUIRED_HITS)
+		return
+
+	# A caminhonete já saiu da tela: reinicia a entrada sem recriar os punks vivos
+	# e sem repetir a apresentação narrativa ou o diálogo.
+	phase = SetPiecePhase.INTRO
+	_truck.rotation_degrees = 0.0
+	_truck.position = Vector2(TRUCK_ENTRY_X, 0.0)
+	_truck_exit_speed = 0.0
+
+	_throws_used = 0
+	_tracked_bottle_projectiles.clear()
+	_lock_bottle_projectiles_snapshot()
+	_failure_check_pending = false
+	_bottle_crates_locked = false
+	_unlock_bottle_crates()
+
+	_set_truck_state(&"entrada")
+	await _move_truck_to_stage()
+	if not is_inside_tree():
+		return
+
+	_set_truck_state(&"parada")
+	phase = SetPiecePhase.ACTIVE
+	_refresh_throw_pressure(true)
+
+
 func _set_truck_state(state_name: StringName) -> void:
-	if _truck_sprite == null or not _truck_sprite.sprite_frames.has_animation(state_name):
+	if _truck_sprite == null:
+		return
+
+	# Todos os estados da caminhonete (chegada, acelerando, cruzeiro, freada, derrapagem, parada e saída)
+	# utilizam a arte completa com oclusão frontal da caçamba, mantendo a proporção homogênea sem encolhimento.
+	var use_full_vehicle: bool = true
+	_truck_sprite.visible = not use_full_vehicle
+	if _truck_full_sprite != null:
+		_truck_full_sprite.visible = use_full_vehicle
+	if _truck_bed_foreground_sprite != null:
+		_truck_bed_foreground_sprite.visible = use_full_vehicle
+	if use_full_vehicle:
+		return
+
+	if not _truck_sprite.sprite_frames.has_animation(state_name):
 		return
 	_truck_sprite.animation = state_name
 	_truck_sprite.frame = 0
@@ -266,12 +444,12 @@ func _on_punk_bottle_hit(punk: Map5TruckAttackPunk) -> void:
 		return
 	_hits = mini(_hits + 1, REQUIRED_HITS)
 
-	var hit_position := punk.global_position + Vector2(0.0, -72.0)
 	CombatFeedbackClass.flash_node(punk.get_node_or_null("Visual"), Color(2.2, 2.2, 2.2, 1.0), 0.08)
 	if _hits < REQUIRED_HITS:
 		CombatFeedbackClass.trigger_screen_shake(self, 4.5, 0.12)
 	else:
 		CombatFeedbackClass.trigger_screen_shake(self, 8.0, 0.24)
+		all_punks_defeated.emit()
 		_begin_success_drift()
 
 	_refresh_throw_pressure(false)
@@ -331,28 +509,44 @@ func _launch_punk_throw(index: int) -> void:
 		_punk_throwing[index] = false
 		return
 
-	var target := _get_stone_target()
 	var spawn_position: Vector2 = await punk.play_stone_throw()
 	_punk_throwing[index] = false
 
 	if phase != SetPiecePhase.ACTIVE or spawn_position == Vector2.ZERO:
 		return
 
+	var target := _get_stone_target(punk)
 	var stone := Map5TruckAttackStoneClass.new()
 	add_child(stone)
 	var damage: float = 8.0 * _get_difficulty_damage_multiplier()
 	stone.launch(punk, spawn_position, target, damage)
 
 
-func _get_stone_target() -> Vector2:
-	var player_node: Node = get_tree().get_first_node_in_group("player")
-	if player_node is Node2D:
-		var player_position: Vector2 = (player_node as Node2D).global_position
-		return Vector2(
-			clampf(player_position.x + 60.0, 780.0, 1940.0),
-			clampf(player_position.y - 4.0, 455.0, SIDEWALK_MAX_Y)
-		)
-	return Vector2(1300.0, 520.0)
+func _get_stone_target(source: Node2D) -> Vector2:
+	var closest_player: CharacterBody2D = null
+	var closest_distance_squared: float = INF
+
+	for candidate in get_tree().get_nodes_in_group("player"):
+		if not candidate is CharacterBody2D:
+			continue
+		var player := candidate as CharacterBody2D
+		var distance_squared: float = source.global_position.distance_squared_to(player.global_position)
+		if distance_squared < closest_distance_squared:
+			closest_distance_squared = distance_squared
+			closest_player = player
+
+	if closest_player == null:
+		return source.global_position + Vector2(-180.0, -70.0)
+
+	var lead_offset: Vector2 = closest_player.velocity * STONE_LEAD_SECONDS
+	lead_offset = lead_offset.limit_length(STONE_MAX_LEAD_DISTANCE)
+	var spread: Vector2 = STONE_AIM_OFFSETS[_stone_throw_count % STONE_AIM_OFFSETS.size()]
+	_stone_throw_count += 1
+
+	var target_position: Vector2 = closest_player.global_position + lead_offset + spread
+	target_position.x = clampf(target_position.x, 60.0, 2020.0)
+	target_position.y = clampf(target_position.y, 450.0, SIDEWALK_MAX_Y)
+	return target_position
 
 
 func _get_throw_interval() -> float:
@@ -401,13 +595,11 @@ func _update_bottle_quota() -> void:
 	if _bottle_crates_locked:
 		return
 
-	var current_ids: Dictionary = {}
 	var bottles := get_tree().get_nodes_in_group("gas_bottle_projectile")
 	for node in bottles:
 		if node == null or not is_instance_valid(node):
 			continue
 		var instance_id: int = node.get_instance_id()
-		current_ids[instance_id] = true
 		if not _tracked_bottle_projectiles.has(instance_id):
 			_tracked_bottle_projectiles[instance_id] = true
 			_throws_used += 1
@@ -473,6 +665,7 @@ func _begin_success_drift() -> void:
 	phase = SetPiecePhase.SUCCESS_DRIFT
 	_lock_bottle_crates()
 
+	CombatFeedbackClass.play_truck_frenagem_derrapagem(self)
 	_set_truck_state(&"freada")
 	CombatFeedbackClass.spawn_dust(self, _truck.global_position + Vector2(-96.0, 0.0), 1.15)
 	CombatFeedbackClass.spawn_dust(self, _truck.global_position + Vector2(-18.0, 2.0), 0.78)
@@ -503,6 +696,7 @@ func _begin_failure_exit() -> void:
 		return
 	phase = SetPiecePhase.FAIL_EXIT
 	_lock_bottle_crates()
+	CombatFeedbackClass.play_truck_frenagem_derrapagem(self)
 	_set_truck_state(&"freada")
 	CombatFeedbackClass.spawn_dust(self, _truck.global_position + Vector2(-96.0, 0.0), 0.80)
 	CombatFeedbackClass.trigger_screen_shake(self, 5.0, 0.18)
@@ -516,6 +710,7 @@ func _begin_exit_sequence() -> void:
 		return
 	phase = SetPiecePhase.EXITING
 	_truck_exit_speed = 70.0
+	CombatFeedbackClass.play_truck_saindo(self)
 	_set_truck_state(&"saida")
 
 

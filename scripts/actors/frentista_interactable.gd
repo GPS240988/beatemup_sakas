@@ -8,10 +8,10 @@ extends "res://scripts/actors/npc.gd"
 const FrentistaDialogueClass = preload("res://scripts/events/frentista_dialogue.gd")
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 
-## Raio horizontal de detecção de proximidade para registrar o interactable no Player.
-const INTERACTION_RANGE_X: float = 110.0
-## Tolerância de profundidade 2.5D para a detecção.
-const INTERACTION_DEPTH_Y: float = 55.0
+## Raio curto de detecção: o jogador precisa se aproximar da posição do frentista.
+const INTERACTION_RANGE_X: float = 28.0
+## Tolerância de profundidade 2.5D.
+const INTERACTION_DEPTH_Y: float = 16.0
 
 ## Cor dourada canônica do Projeto Sakas (identidade Dark Premium Medieval).
 const EXCLAMATION_GOLD: Color = Color(0.94, 0.75, 0.39, 1.0)
@@ -21,6 +21,7 @@ var _exclamation_label: Label = null
 var _interaction_area: Area2D = null
 var _interaction_player: Node = null
 var _dialogue_active: bool = false
+var _interaction_enabled: bool = true
 var _bob_tween: Tween = null
 var _interaction_cooldown: float = 0.0
 
@@ -96,7 +97,25 @@ func _create_interaction_area() -> void:
 	_interaction_area.body_exited.connect(_on_interaction_body_exited)
 
 
+## Bloqueia/desbloqueia J sem deixar um registro antigo no PlayerController.
+func set_interaction_enabled(enabled: bool) -> void:
+	_interaction_enabled = enabled
+	if _interaction_area != null:
+		_interaction_area.set_deferred("monitoring", enabled)
+	if _exclamation_label != null:
+		_exclamation_label.visible = enabled
+
+	if not enabled:
+		if _interaction_player != null and is_instance_valid(_interaction_player):
+			if _interaction_player.has_method("unregister_interactable"):
+				_interaction_player.call("unregister_interactable", self)
+		_interaction_player = null
+		set_process(false)
+
+
 func _on_interaction_body_entered(body: Node) -> void:
+	if not _interaction_enabled:
+		return
 	if body.is_in_group("player"):
 		_interaction_player = body
 		set_process(true)
@@ -111,6 +130,9 @@ func _on_interaction_body_exited(body: Node) -> void:
 
 
 func _process(delta: float) -> void:
+	if not _interaction_enabled:
+		set_process(false)
+		return
 	if _interaction_cooldown > 0.0:
 		_interaction_cooldown -= delta
 		return
@@ -124,7 +146,7 @@ func _process(delta: float) -> void:
 
 ## Contrato de interação chamado pelo PlayerController ao pressionar J.
 func interact(player: Node) -> bool:
-	if _dialogue_active or _interaction_cooldown > 0.0:
+	if not _interaction_enabled or _dialogue_active or _interaction_cooldown > 0.0:
 		return false
 	if player == null or not is_instance_valid(player):
 		return false
@@ -158,7 +180,8 @@ func _on_dialogue_closed() -> void:
 		if _interaction_player.has_method("unregister_interactable"):
 			_interaction_player.call("unregister_interactable", self)
 	change_state(default_state)
-	set_process(true)
+	if _interaction_enabled:
+		set_process(true)
 
 
 func get_exclamation_icon() -> Label:

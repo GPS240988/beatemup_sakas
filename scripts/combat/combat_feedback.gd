@@ -112,6 +112,11 @@ const SFX_GABRIEL_TIRO_2: String = "res://assets/audio/sfx/tiro2.mp3"
 const SFX_GABRIEL_CORONHADA: String = "res://assets/audio/sfx/coronhaada.mp3"
 const SFX_GABRIEL_DASH: String = "res://assets/audio/sfx/dash_gabriel.mp3"
 
+const SFX_TRUCK_MOTOR_CHEGANDO: String = "res://assets/audio/sfx/acelerando.mp3"
+const SFX_TRUCK_FRENAGEM_DERRAPAGEM: String = "res://assets/audio/sfx/frenagem_derrapagem.mp3"
+const SFX_TRUCK_SAINDO: String = "res://assets/audio/sfx/motorchegando.mp3"
+const SFX_STONE_THROW: String = "res://assets/audio/sfx/pedrada.mp3"
+
 static var _sound_cache: Dictionary = {}
 static var _punch_toggle: bool = false
 static var _hurt_toggle: bool = false
@@ -278,6 +283,80 @@ static func play_can_open(context_node: Node) -> AudioStreamPlayer:
 ## Reproduz som de arroto do Bêbado ao receber garrafada
 static func play_bebado_burp(context_node: Node) -> AudioStreamPlayer:
 	return play_sound(context_node, SFX_BEBADO_ARROTO, 1.0, 0.04)
+
+
+## Reproduz som de motor da caminhonete chegando na Fase 2-1 (acelerando.mp3)
+static func play_truck_motor_chegando(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_TRUCK_MOTOR_CHEGANDO, 1.5, 0.02)
+
+
+## Reproduz som de frenagem e derrapagem da caminhonete na Fase 2-1 (frenagem_derrapagem.mp3)
+static func play_truck_frenagem_derrapagem(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_TRUCK_FRENAGEM_DERRAPAGEM, 1.5, 0.02)
+
+
+## Reproduz som da caminhonete saindo acelerando na Fase 2-1 (motorchegando.mp3)
+static func play_truck_saindo(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_TRUCK_SAINDO, 1.5, 0.02)
+
+
+## Reproduz som de pedra arremessada pelos punks da caçamba (pedrada.mp3)
+static func play_stone_throw(context_node: Node) -> AudioStreamPlayer:
+	return play_sound(context_node, SFX_STONE_THROW, 1.0, 0.04)
+
+
+## Cria texto flutuante animado estilo arcade (ex: "MISS", números, etc.) com fade e subida
+static func spawn_floating_text(context_node: Node, pos: Vector2, text: String, color: Color = Color(1.0, 0.85, 0.2, 1.0), font_size: int = 20) -> Label:
+	if context_node == null or not context_node.is_inside_tree():
+		return null
+
+	var scene_root: Node = context_node.get_tree().current_scene if context_node.get_tree() != null else context_node
+	if scene_root == null:
+		scene_root = context_node
+
+	var label := Label.new()
+	label.name = "FloatingText_" + text
+	label.text = text
+	label.top_level = true
+	label.z_index = 100
+
+	var settings := LabelSettings.new()
+	var font_res := load("res://assets/fonts/arcade_bold.ttf") as Font
+	if font_res != null:
+		settings.font = font_res
+	settings.font_size = font_size
+	settings.font_color = color
+	settings.outline_size = 4
+	settings.outline_color = Color(0.05, 0.05, 0.08, 1.0)
+	settings.shadow_size = 2
+	settings.shadow_color = Color(0.0, 0.0, 0.0, 0.8)
+	settings.shadow_offset = Vector2(1.0, 1.0)
+	label.label_settings = settings
+
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+	var estimated_width: float = maxf(60.0, float(text.length() * font_size))
+	label.custom_minimum_size = Vector2(estimated_width, float(font_size + 10))
+	label.pivot_offset = Vector2(estimated_width * 0.5, float(font_size + 10) * 0.5)
+	label.global_position = pos - label.pivot_offset
+
+	scene_root.add_child(label)
+
+	label.scale = Vector2(0.5, 0.5)
+	var tween := label.create_tween()
+	if tween != null:
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tween.tween_property(label, "scale", Vector2(1.25, 1.25), 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(label, "scale", Vector2(1.0, 1.0), 0.06)
+		tween.parallel().tween_property(label, "position:y", label.position.y - 36.0, 0.55).set_ease(Tween.EASE_OUT)
+		tween.tween_interval(0.20)
+		tween.tween_property(label, "modulate:a", 0.0, 0.25)
+		tween.tween_callback(label.queue_free)
+	else:
+		label.queue_free()
+
+	return label
 
 
 ## Reproduz som de interface / navegação de menus
