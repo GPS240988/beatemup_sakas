@@ -28,8 +28,8 @@ display_name = "PIZZA BRAWLER"
 archetype = 2
 palette_variant = 0
 primary_palette_source_hue = 0.0
-primary_palette_hue_tolerance = 11.0
-palette_min_saturation = 0.65
+primary_palette_hue_tolerance = 16.0
+palette_min_saturation = 0.12
 preserve_original_palette_colors = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

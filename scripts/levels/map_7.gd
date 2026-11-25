@@ -8,6 +8,17 @@ const PLAYER_START: Vector2 = Vector2(180.0, 585.0)
 const WALKABLE_TOP: float = 440.0
 const WALKABLE_BOTTOM: float = 680.0
 
+const HAPPEN_ENEMY_PALETTES: Array[int] = [
+	EnemyAI.PaletteVariant.RED,
+	EnemyAI.PaletteVariant.GREEN,
+	EnemyAI.PaletteVariant.PURPLE,
+	EnemyAI.PaletteVariant.ORANGE,
+	EnemyAI.PaletteVariant.CYAN,
+]
+
+func _enter_tree() -> void:
+	_configure_happen_enemy_palettes()
+
 
 func _ready() -> void:
 	_configure_happen_map()
@@ -43,6 +54,28 @@ func _configure_happen_map() -> void:
 	if depth_scaler != null:
 		depth_scaler.set("far_lane_y", WALKABLE_TOP)
 		depth_scaler.set("near_lane_y", WALKABLE_BOTTOM)
+
+
+
+## Define as variantes antes do _ready() dos atores, preservando todos os efeitos do material.
+func _configure_happen_enemy_palettes() -> void:
+	var enemies: Node = get_node_or_null("World/Actors/Enemies")
+	if enemies == null:
+		return
+
+	var palette_pool: Array[int] = HAPPEN_ENEMY_PALETTES.duplicate()
+	palette_pool.shuffle()
+	var palette_index: int = 0
+
+	for child in enemies.get_children():
+		var enemy: EnemyAI = child as EnemyAI
+		if enemy == null:
+			continue
+
+		var selected_palette: int = palette_pool[palette_index % palette_pool.size()]
+		enemy.palette_variant = selected_palette as EnemyAI.PaletteVariant
+		palette_index += 1
+
 
 
 func _setup_level_bgm() -> void:

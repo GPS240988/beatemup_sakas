@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/map_7.gd" id="1_map7_script"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_4.webp" id="2_background"]
@@ -17,6 +17,8 @@
 [ext_resource type="Script" path="res://scripts/spawning/spawn_director.gd" id="15_spawn_director"]
 [ext_resource type="Script" path="res://scripts/spawning/spawn_point.gd" id="16_spawn_point"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/pizza_brawler.tscn" id="17_pizza_brawler"]
+[ext_resource type="Script" path="res://scripts/actors/happen_counter_guard.gd" id="18_counter_guard"]
+[ext_resource type="Script" path="res://scripts/events/map7_counter_banter.gd" id="19_counter_banter"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horizontal_boundary"]
 size = Vector2(2000, 20)
@@ -138,14 +140,6 @@ step_out_offset = Vector2(0, 26)
 archetype = 0
 palette_variant = 4
 
-[node name="PizzaBrawler_RectBack" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
-position = Vector2(500, 528)
-initial_facing = 1.0
-wake_trigger_radius = 210.0
-step_out_offset = Vector2(0, -28)
-archetype = 3
-palette_variant = 3
-
 [node name="PizzaBrawler_RectRight" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
 position = Vector2(658, 563)
 initial_facing = -1.0
@@ -159,14 +153,6 @@ initial_facing = 1.0
 step_out_offset = Vector2(-24, 24)
 archetype = 0
 palette_variant = 5
-
-[node name="PizzaBrawler_RoundBack" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
-position = Vector2(1060, 558)
-initial_facing = -1.0
-wake_trigger_radius = 210.0
-step_out_offset = Vector2(0, -32)
-archetype = 2
-palette_variant = 2
 
 [node name="PizzaBrawler" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
 position = Vector2(1150, 593)
@@ -185,6 +171,16 @@ step_out_offset = Vector2(0, 14)
 archetype = 2
 palette_variant = 0
 
+[node name="PizzaBrawler_CounterSide" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+script = ExtResource("18_counter_guard")
+position = Vector2(1450, 455)
+initial_routine = 0
+start_sitting = false
+wake_trigger_radius = 180.0
+initial_facing = -1.0
+archetype = 1
+palette_variant = 6
+
 [node name="NPCs" type="Node2D" parent="World/Actors"]
 y_sort_enabled = true
 
@@ -194,6 +190,12 @@ script = ExtResource("16_spawn_point")
 point_id = "happen_cashier"
 spawn_type = 1
 spawn_group = "npcs"
+
+[node name="CounterBanter" type="Node2D" parent="."]
+script = ExtResource("19_counter_banter")
+counter_speaker_path = NodePath("../World/Actors/Enemies/PizzaBrawler_Counter")
+side_speaker_path = NodePath("../World/Actors/Enemies/PizzaBrawler_CounterSide")
+trigger_radius = 420.0
 
 [node name="Foreground" type="Node2D" parent="."]
 z_index = 10
@@ -247,4 +249,3 @@ shape = SubResource("RectangleShape2D_exit")
 [node name="SigaIndicator" parent="." instance=ExtResource("5_siga")]
 
 [node name="PrototypeHud" parent="." instance=ExtResource("6_hud")]
-

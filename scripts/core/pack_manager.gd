@@ -50,6 +50,12 @@ const KNOWN_PACKS: Dictionary = {
 		"critical": false,
 		"description": "Cenários e Mapas do Estágio 1",
 		"expected_max_mb": 45.0
+	},
+	"stage2": {
+		"file_name": "pack_stage2.pck",
+		"critical": false,
+		"description": "Cenários, Vídeos e Sprites do Estágio 2 (HAPPEN)",
+		"expected_max_mb": 45.0
 	}
 }
 

@@ -1155,13 +1155,14 @@ func _on_play_stage_pressed() -> void:
 
 	var pack_mgr = get_node_or_null("/root/PackManager")
 	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
-		if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("audio_bgm"):
+		var stage_pack: String = "stage2" if is_stage2_map else "stage1"
+		if not pack_mgr.is_pack_mounted(stage_pack) or not pack_mgr.is_pack_mounted("audio_bgm"):
 			if map_status_label != null:
 				map_status_label.text = "CARREGANDO RECURSOS DA FASE..."
 				map_status_label.modulate = Color(0, 0.94, 1, 1)
-			var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
+			var ok_stage = await pack_mgr.ensure_pack_loaded_async(stage_pack)
 			var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
-			if not ok_stage1 or not ok_bgm:
+			if not ok_stage or not ok_bgm:
 				_is_transitioning = false
 				if map_status_label != null:
 					map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."
@@ -1225,13 +1226,14 @@ func _auto_launch_replay() -> void:
 	# Carrega pacotes necessários
 	var pack_mgr = get_node_or_null("/root/PackManager")
 	if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
-		if not pack_mgr.is_pack_mounted("stage1") or not pack_mgr.is_pack_mounted("audio_bgm"):
+		var stage_pack: String = "stage2" if replay_idx == 5 else "stage1"
+		if not pack_mgr.is_pack_mounted(stage_pack) or not pack_mgr.is_pack_mounted("audio_bgm"):
 			if map_status_label != null:
 				map_status_label.text = "CARREGANDO RECURSOS DA FASE..."
 				map_status_label.modulate = Color(0, 0.94, 1, 1)
-			var ok_stage1 = await pack_mgr.ensure_pack_loaded_async("stage1")
+			var ok_stage = await pack_mgr.ensure_pack_loaded_async(stage_pack)
 			var ok_bgm = await pack_mgr.ensure_pack_loaded_async("audio_bgm")
-			if not ok_stage1 or not ok_bgm:
+			if not ok_stage or not ok_bgm:
 				_is_transitioning = false
 				if map_status_label != null:
 					map_status_label.text = "FALHA NA CONEXÃO. TOQUE PARA REPETIR."

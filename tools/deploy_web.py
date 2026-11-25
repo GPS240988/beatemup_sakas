@@ -11,6 +11,7 @@ Responsabilidades:
 5. Disparo do deploy de produção na Vercel (vercel --prod).
 """
 
+import json
 import os
 import sys
 import subprocess
@@ -30,6 +31,9 @@ PACKS_DIR = PUBLIC_DIR / "packs"
 PACK_BUILDER_SCRIPT = ROOT_DIR / "tools" / "pack_builder.gd"
 PWA_SCRIPT = ROOT_DIR / "scripts" / "pwa_post_export.js"
 
+VERCEL_FILE_LIMIT_MB = 100.0
+MAX_CORE_PCK_MB = 85.0
+MAX_WASM_MB = 85.0
 MAX_PACK_MB = 45.0
 
 
@@ -118,16 +122,16 @@ def check_exported_binaries():
     print_header("2. AUDITORIA DE INTEGRIDADE DOS BINÁRIOS (public/)")
 
     required_base_files = {
-        "index.html": 1000,              # > 1 KB
-        "index.js": 10000,               # > 10 KB
-        "index.wasm": 10 * 1024 * 1024,  # > 10 MB
-        "index.pck": 10 * 1024 * 1024,   # > 10 MB
-        "index.service.worker.js": 500,
-        "mobile_shell.html": 1000,
+        "index.html": (1000, 10.0),              # > 1 KB, < 10 MB
+        "index.js": (10000, 10.0),               # > 10 KB, < 10 MB
+        "index.wasm": (10 * 1024 * 1024, MAX_WASM_MB),
+        "index.pck": (10 * 1024 * 1024, MAX_CORE_PCK_MB),
+        "index.service.worker.js": (500, 10.0),
+        "mobile_shell.html": (1000, 10.0),
     }
 
     all_ok = True
-    for fname, min_size in required_base_files.items():
+    for fname, (min_size, max_mb) in required_base_files.items():
         fpath = PUBLIC_DIR / fname
         if not fpath.exists():
             print(f"  [ERRO] Arquivo base obrigatório ausente: public/{fname}")
@@ -139,37 +143,54 @@ def check_exported_binaries():
         if size < min_size:
             print(f"  [ERRO] public/{fname} parece corrompido ou ponteiro LFS! ({size} bytes < {min_size} bytes)")
             all_ok = False
+        elif size_mb > max_mb:
+            print(f"  [ERRO CRÍTICO] public/{fname} excedeu o teto de {max_mb:.1f} MB (Vercel 100 MB)! ({size_mb:.2f} MB)")
+            all_ok = False
         else:
             if size_mb >= 1.0:
-                print(f"  [OK] public/{fname:<24} -> {size_mb:6.2f} MB")
+                margin_vercel = VERCEL_FILE_LIMIT_MB - size_mb
+                print(f"  [OK] public/{fname:<24} -> {size_mb:6.2f} MB (Teto: < {max_mb:.0f} MB | Folga Vercel: {margin_vercel:.2f} MB)")
             else:
                 print(f"  [OK] public/{fname:<24} -> {size / 1024:6.2f} KB")
 
     print("\n  -- Pacotes Modulares Adicionais (public/packs/) --")
-    required_packs = [
-        "pack_audio_bgm.pck",
-        "pack_story_cinematics.pck",
-        "pack_stage1.pck",
-        "manifest.json"
-    ]
-
-    for pname in required_packs:
-        ppath = PACKS_DIR / pname
-        if not ppath.exists():
-            print(f"  [ERRO] Pacote modular ausente: public/packs/{pname}")
+    manifest_path = PACKS_DIR / "manifest.json"
+    if not manifest_path.exists():
+        print("  [ERRO] Pacote modular ausente: public/packs/manifest.json")
+        all_ok = False
+    else:
+        try:
+            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest_packs = manifest_data.get("packs", {})
+        except Exception as exc:
+            print(f"  [ERRO] Falha ao ler public/packs/manifest.json: {exc}")
+            manifest_packs = {}
             all_ok = False
-            continue
 
-        size = ppath.stat().st_size
-        size_mb = size / (1024 * 1024)
-        if pname.endswith(".pck") and size_mb > MAX_PACK_MB:
-            print(f"  [ALERTA] public/packs/{pname} excedeu o teto de {MAX_PACK_MB} MB! ({size_mb:.2f} MB)")
+        # Valida dinamicamente todos os pacotes declarados no manifesto + quaisquer .pck extras em public/packs/
+        expected_pack_files = {info["file_name"] for info in manifest_packs.values() if "file_name" in info}
+        actual_pack_files = {p.name for p in PACKS_DIR.glob("*.pck")}
+        all_pack_names = sorted(expected_pack_files | actual_pack_files)
+
+        if not all_pack_names:
+            print("  [ERRO] Nenhum pacote .pck encontrado em public/packs/")
             all_ok = False
-        else:
-            if size_mb >= 1.0:
-                print(f"  [OK] public/packs/{pname:<20} -> {size_mb:6.2f} MB (Teto: < {MAX_PACK_MB} MB)")
+
+        for pname in all_pack_names:
+            ppath = PACKS_DIR / pname
+            if not ppath.exists():
+                print(f"  [ERRO] Pacote declarado no manifesto ausente: public/packs/{pname}")
+                all_ok = False
+                continue
+
+            size = ppath.stat().st_size
+            size_mb = size / (1024 * 1024)
+            if size_mb > MAX_PACK_MB:
+                print(f"  [ALERTA] public/packs/{pname} excedeu o teto de {MAX_PACK_MB} MB! ({size_mb:.2f} MB)")
+                all_ok = False
             else:
-                print(f"  [OK] public/packs/{pname:<20} -> {size / 1024:6.2f} KB")
+                margin = MAX_PACK_MB - size_mb
+                print(f"  [OK] public/packs/{pname:<24} -> {size_mb:6.2f} MB (Teto: < {MAX_PACK_MB:.0f} MB | Margem: {margin:.2f} MB)")
 
     if not all_ok:
         print("\n[FALHA] Validação dos binários falhou. Corrija os erros antes do deploy.")
