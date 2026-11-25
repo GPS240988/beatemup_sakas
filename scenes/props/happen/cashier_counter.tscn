@@ -1,0 +1,31 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/props/happen/cashier_counter_empty.png" id="1_counter"]
+[ext_resource type="Texture2D" path="res://assets/sprites/props/happen/cash_register.png" id="2_register"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_footprint"]
+size = Vector2(256, 20)
+
+[node name="CashierCounter" type="Node2D"]
+y_sort_enabled = true
+
+[node name="CounterSprite" type="Sprite2D" parent="."]
+position = Vector2(-135.5, -114)
+texture = ExtResource("1_counter")
+centered = false
+texture_filter = 1
+
+[node name="RegisterSprite" type="Sprite2D" parent="CounterSprite"]
+position = Vector2(77.5, -49)
+scale = Vector2(0.78, 0.78)
+texture = ExtResource("2_register")
+centered = false
+texture_filter = 1
+
+[node name="Collision" type="StaticBody2D" parent="."]
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Collision"]
+position = Vector2(0, -10)
+shape = SubResource("RectangleShape2D_footprint")

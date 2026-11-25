@@ -49,9 +49,13 @@ enum PaletteVariant {
 ## AUTO segue o arquétipo; qualquer variante selecionada aqui prevalece (inclusive ORIGINAL/RANDOM).
 @export var palette_variant: PaletteVariant = PaletteVariant.AUTO
 
-## Segunda faixa de matiz para sprites com roupa-base diferente do casaco azul.
-## -1 desativa a faixa secundária. Usada pelo Bêbado para recolorir também a jaqueta oliva.
+## Faixa de matiz primária e secundária para sprites com roupa-base diferente do casaco azul.
+## Os padrões (220, 85, 0.06) preservam 100% dos inimigos existentes.
 @export_group("Detecção da Paleta")
+@export_range(0.0, 360.0, 1.0) var primary_palette_source_hue: float = 220.0
+@export_range(5.0, 120.0, 1.0) var primary_palette_hue_tolerance: float = 85.0
+@export_range(0.0, 1.0, 0.01) var palette_min_saturation: float = 0.06
+@export var preserve_original_palette_colors: bool = false
 @export_range(-1.0, 360.0, 1.0) var secondary_palette_source_hue: float = -1.0
 @export_range(5.0, 120.0, 1.0) var secondary_palette_hue_tolerance: float = 32.0
 
@@ -783,11 +787,15 @@ func _apply_palette_swap() -> void:
 		"palette_color",
 		Vector3(palette_color.r, palette_color.g, palette_color.b)
 	)
-	mat.set_shader_parameter("source_hue", 220.0)
-	mat.set_shader_parameter("hue_tolerance", 85.0)
+	mat.set_shader_parameter("source_hue", primary_palette_source_hue)
+	mat.set_shader_parameter("hue_tolerance", primary_palette_hue_tolerance)
 	mat.set_shader_parameter("secondary_source_hue", secondary_palette_source_hue)
 	mat.set_shader_parameter("secondary_hue_tolerance", secondary_palette_hue_tolerance)
-	mat.set_shader_parameter("min_saturation", 0.06)
+	mat.set_shader_parameter("min_saturation", palette_min_saturation)
+	mat.set_shader_parameter(
+		"preserve_original",
+		preserve_original_palette_colors and effective_variant == PaletteVariant.ORIGINAL
+	)
 	mat.set_shader_parameter(
 		"palette_saturation_floor",
 		PALETTE_SAT_ADJUSTS.get(effective_variant, 0.0) as float

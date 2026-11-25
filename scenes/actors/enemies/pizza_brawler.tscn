@@ -1,0 +1,128 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/pizza_brawler.gd" id="1_brawler_script"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health_script"]
+[ext_resource type="Script" path="res://scripts/components/melee_attack.gd" id="3_melee_script"]
+[ext_resource type="SpriteFrames" path="res://scenes/actors/enemies/pizza_brawler_frames.tres" id="4_brawler_frames"]
+[ext_resource type="Script" path="res://scripts/combat/impact_zones.gd" id="5_impact_zones"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_feet"]
+radius = 14.0
+height = 62.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hitbox"]
+size = Vector2(90, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurtbox"]
+size = Vector2(82, 168)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_wake"]
+radius = 200.0
+
+[node name="PizzaBrawler" type="CharacterBody2D" groups=["actors", "damageable", "enemies"]]
+y_sort_enabled = true
+collision_mask = 2
+motion_mode = 1
+script = ExtResource("1_brawler_script")
+display_name = "PIZZA BRAWLER"
+archetype = 2
+palette_variant = 0
+primary_palette_source_hue = 0.0
+primary_palette_hue_tolerance = 11.0
+palette_min_saturation = 0.65
+preserve_original_palette_colors = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -10)
+rotation = 1.5707963
+shape = SubResource("CapsuleShape2D_feet")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_desired_distance = 15.0
+target_desired_distance = 25.0
+avoidance_enabled = true
+radius = 14.0
+neighbor_distance = 150.0
+max_neighbors = 8
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health_script")
+max_health = 100.0
+current_health = 100.0
+
+[node name="MeleeAttack" type="Node2D" parent="."]
+script = ExtResource("3_melee_script")
+damage = 16.0
+horizontal_range = 95.0
+depth_tolerance = 32.0
+active_duration = 0.18
+attack_cooldown = 0.65
+target_group = "player"
+
+[node name="HitboxArea" type="Area2D" parent="MeleeAttack"]
+position = Vector2(58, -95)
+collision_layer = 8
+collision_mask = 4
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeAttack/HitboxArea"]
+shape = SubResource("RectangleShape2D_hitbox")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+position = Vector2(0, -86)
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("RectangleShape2D_hurtbox")
+
+[node name="WakeTrigger" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WakeTrigger"]
+shape = SubResource("CircleShape2D_wake")
+
+[node name="ImpactZones" type="Node2D" parent="."]
+script = ExtResource("5_impact_zones")
+profile = 1
+
+[node name="Head" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -162)
+
+[node name="UpperTorso" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -114)
+
+[node name="LowerTorso" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -70)
+
+[node name="Legs" type="Marker2D" parent="ImpactZones"]
+position = Vector2(0, -22)
+
+[node name="FloatingHealthBar" type="ProgressBar" parent="."]
+visible = false
+offset_left = -36.0
+offset_top = -196.0
+offset_right = 36.0
+offset_bottom = -188.0
+value = 100.0
+show_percentage = false
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Shadow" type="Polygon2D" parent="Visual"]
+color = Color(0.08, 0.08, 0.12, 0.42)
+polygon = PackedVector2Array(-48, 0, -34, -10, 0, -13, 34, -10, 48, 0, 34, 10, 0, 13, -34, 10)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Visual"]
+texture_filter = 1
+position = Vector2(0, -110)
+sprite_frames = ExtResource("4_brawler_frames")
+animation = &"sit_idle"
+autoplay = "sit_idle"
+
+[node name="PunchVisual" type="Node2D" parent="Visual"]
+visible = false

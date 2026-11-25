@@ -1,0 +1,293 @@
+[gd_resource type="SpriteFrames" load_steps=47 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/attack_01.png" id="1_attack_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/attack_02.png" id="2_attack_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/attack_03.png" id="3_attack_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/attack_04.png" id="4_attack_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/attack_05.png" id="5_attack_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/attack_06.png" id="6_attack_06"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/counter_eat_01.png" id="7_counter_eat_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/counter_eat_02.png" id="8_counter_eat_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/counter_eat_03.png" id="9_counter_eat_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/counter_eat_04.png" id="10_counter_eat_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/counter_eat_05.png" id="11_counter_eat_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/death_01.png" id="12_death_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/death_02.png" id="13_death_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/death_03.png" id="14_death_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/death_04.png" id="15_death_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/downed_01.png" id="16_downed_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/fall_01.png" id="17_fall_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/fall_02.png" id="18_fall_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/fall_03.png" id="19_fall_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/fall_04.png" id="20_fall_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/getup_01.png" id="21_getup_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/getup_02.png" id="22_getup_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/getup_03.png" id="23_getup_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/getup_04.png" id="24_getup_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/getup_05.png" id="25_getup_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/getup_06.png" id="26_getup_06"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/hurt_01.png" id="27_hurt_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/hurt_02.png" id="28_hurt_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/hurt_03.png" id="29_hurt_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/hurt_04.png" id="30_hurt_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/idle_01.png" id="31_idle_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/idle_02.png" id="32_idle_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/idle_03.png" id="33_idle_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/idle_04.png" id="34_idle_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/sit_idle_01.png" id="35_sit_idle_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/sit_idle_02.png" id="36_sit_idle_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/sit_idle_03.png" id="37_sit_idle_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/sit_idle_04.png" id="38_sit_idle_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/sit_idle_05.png" id="39_sit_idle_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/sit_idle_06.png" id="40_sit_idle_06"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/walk_01.png" id="41_walk_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/walk_02.png" id="42_walk_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/walk_03.png" id="43_walk_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/walk_04.png" id="44_walk_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/walk_05.png" id="45_walk_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/inimigos/pizza_brawler/frames/walk_06.png" id="46_walk_06"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_attack_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_attack_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_attack_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_attack_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_attack_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_attack_06")
+}],
+"loop": false,
+"name": &"attack",
+"speed": 11.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_counter_eat_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_counter_eat_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_counter_eat_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_counter_eat_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_counter_eat_05")
+}],
+"loop": true,
+"name": &"counter_eat",
+"speed": 5.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("12_death_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_death_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_death_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_death_04")
+}],
+"loop": false,
+"name": &"death",
+"speed": 8.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("16_downed_01")
+}],
+"loop": false,
+"name": &"downed",
+"speed": 5.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("17_fall_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_fall_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_fall_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_fall_04")
+}],
+"loop": false,
+"name": &"fall",
+"speed": 10.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("21_getup_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_getup_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_getup_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_getup_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_getup_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26_getup_06")
+}],
+"loop": false,
+"name": &"getup",
+"speed": 9.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_attack_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_attack_06")
+}],
+"loop": false,
+"name": &"guard",
+"speed": 6.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_attack_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_attack_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_attack_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_attack_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_attack_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_attack_06")
+}],
+"loop": false,
+"name": &"heavy",
+"speed": 10.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("27_hurt_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_hurt_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("29_hurt_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30_hurt_04")
+}],
+"loop": false,
+"name": &"hurt",
+"speed": 10.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("31_idle_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_idle_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("33_idle_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("34_idle_04")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_attack_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_attack_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_attack_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_attack_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_attack_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_attack_06")
+}],
+"loop": false,
+"name": &"kick",
+"speed": 13.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_attack_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_attack_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_attack_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_attack_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_attack_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_attack_06")
+}],
+"loop": false,
+"name": &"punch",
+"speed": 12.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("35_sit_idle_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("36_sit_idle_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("37_sit_idle_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("38_sit_idle_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("39_sit_idle_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("40_sit_idle_06")
+}],
+"loop": true,
+"name": &"sit_idle",
+"speed": 6.0}, {"frames": [{
+"duration": 1.0,
+"texture": ExtResource("41_walk_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("42_walk_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("43_walk_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("44_walk_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("45_walk_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("46_walk_06")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 8.0
+}]

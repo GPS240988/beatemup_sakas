@@ -1,0 +1,250 @@
+[gd_scene load_steps=21 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/map_7.gd" id="1_map7_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_4.webp" id="2_background"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="3_player"]
+[ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="4_combat_director"]
+[ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="5_siga"]
+[ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/components/y_depth_scaler_2d.gd" id="7_depth_scaler"]
+[ext_resource type="PackedScene" path="res://scenes/props/happen/dining_table_rectangular.tscn" id="8_rect_table"]
+[ext_resource type="PackedScene" path="res://scenes/props/happen/dining_table_round.tscn" id="9_round_table"]
+[ext_resource type="PackedScene" path="res://scenes/props/happen/dining_chair_front.tscn" id="10_chair_front"]
+[ext_resource type="PackedScene" path="res://scenes/props/happen/dining_chair_three_quarter.tscn" id="11_chair_three_quarter"]
+[ext_resource type="PackedScene" path="res://scenes/props/happen/dining_chair_side.tscn" id="12_chair_side"]
+[ext_resource type="PackedScene" path="res://scenes/props/happen/cashier_counter.tscn" id="13_cashier_counter"]
+[ext_resource type="NavigationPolygon" path="res://scenes/levels/map_7_navpoly.tres" id="14_navigation"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_director.gd" id="15_spawn_director"]
+[ext_resource type="Script" path="res://scripts/spawning/spawn_point.gd" id="16_spawn_point"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/pizza_brawler.tscn" id="17_pizza_brawler"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_horizontal_boundary"]
+size = Vector2(2000, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vertical_boundary"]
+size = Vector2(20, 260)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
+size = Vector2(60, 150)
+
+[node name="Map7" type="Node2D"]
+script = ExtResource("1_map7_script")
+stage_number = 2
+section_number = 3
+map_name = "HAPPEN — SALÃO PRINCIPAL"
+map_index = 3
+map_group = "fase2"
+next_map_scene_path = ""
+is_final_map = false
+camera_min_x = 640.0
+camera_max_x = 1408.0
+camera_fixed_y = 352.5
+camera_follow_speed = 12.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 352.5)
+position_smoothing_enabled = true
+position_smoothing_speed = 12.0
+
+[node name="Background" type="Node2D" parent="."]
+z_index = -10
+
+[node name="Far" type="Sprite2D" parent="Background"]
+texture = ExtResource("2_background")
+centered = false
+texture_filter = 1
+
+[node name="Mid" type="Node2D" parent="Background"]
+
+[node name="BackProps" type="Node2D" parent="Background"]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = ExtResource("14_navigation")
+
+[node name="StaticWorld" type="Node2D" parent="."]
+
+[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
+collision_layer = 2
+collision_mask = 1
+
+[node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(1024, 430)
+shape = SubResource("RectangleShape2D_horizontal_boundary")
+
+[node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(1024, 690)
+shape = SubResource("RectangleShape2D_horizontal_boundary")
+
+[node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(20, 560)
+shape = SubResource("RectangleShape2D_vertical_boundary")
+
+[node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(2028, 560)
+shape = SubResource("RectangleShape2D_vertical_boundary")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Props" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="StaticProps" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="RectangularTable01" parent="World/Props/StaticProps" instance=ExtResource("8_rect_table")]
+position = Vector2(500, 555)
+
+[node name="ChairBehindTable01" parent="World/Props/StaticProps" instance=ExtResource("11_chair_three_quarter")]
+position = Vector2(500, 525)
+
+[node name="ChairFrontLeft01" parent="World/Props/StaticProps" instance=ExtResource("10_chair_front")]
+position = Vector2(335, 560)
+
+[node name="ChairFrontRight01" parent="World/Props/StaticProps" instance=ExtResource("12_chair_side")]
+position = Vector2(665, 560)
+
+[node name="RoundTable01" parent="World/Props/StaticProps" instance=ExtResource("9_round_table")]
+position = Vector2(1060, 585)
+
+[node name="ChairBehindTable02" parent="World/Props/StaticProps" instance=ExtResource("11_chair_three_quarter")]
+position = Vector2(1060, 555)
+
+[node name="ChairFrontLeft02" parent="World/Props/StaticProps" instance=ExtResource("10_chair_front")]
+position = Vector2(965, 590)
+
+[node name="ChairFrontRight02" parent="World/Props/StaticProps" instance=ExtResource("12_chair_side")]
+position = Vector2(1155, 590)
+
+[node name="CashierCounter" parent="World/Props/StaticProps" instance=ExtResource("13_cashier_counter")]
+position = Vector2(1660, 495)
+
+[node name="Destructibles" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Actors" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Player" parent="World/Actors" instance=ExtResource("3_player")]
+position = Vector2(180, 585)
+
+[node name="Enemies" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="PizzaBrawler_RectLeft" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+position = Vector2(342, 563)
+initial_facing = 1.0
+step_out_offset = Vector2(0, 26)
+archetype = 0
+palette_variant = 4
+
+[node name="PizzaBrawler_RectBack" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+position = Vector2(500, 528)
+initial_facing = 1.0
+wake_trigger_radius = 210.0
+step_out_offset = Vector2(0, -28)
+archetype = 3
+palette_variant = 3
+
+[node name="PizzaBrawler_RectRight" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+position = Vector2(658, 563)
+initial_facing = -1.0
+step_out_offset = Vector2(0, 26)
+archetype = 1
+palette_variant = 1
+
+[node name="PizzaBrawler_RoundLeft" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+position = Vector2(970, 593)
+initial_facing = 1.0
+step_out_offset = Vector2(-24, 24)
+archetype = 0
+palette_variant = 5
+
+[node name="PizzaBrawler_RoundBack" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+position = Vector2(1060, 558)
+initial_facing = -1.0
+wake_trigger_radius = 210.0
+step_out_offset = Vector2(0, -32)
+archetype = 2
+palette_variant = 2
+
+[node name="PizzaBrawler" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+position = Vector2(1150, 593)
+initial_facing = -1.0
+step_out_offset = Vector2(24, 24)
+archetype = 1
+palette_variant = 4
+
+[node name="PizzaBrawler_Counter" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
+position = Vector2(1245, 444)
+initial_routine = 2
+start_sitting = false
+wake_trigger_radius = 110.0
+initial_facing = 1.0
+step_out_offset = Vector2(0, 14)
+archetype = 2
+palette_variant = 0
+
+[node name="NPCs" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="CashierSpawnPoint" type="Marker2D" parent="World/Actors/NPCs" groups=["spawn_points"]]
+position = Vector2(1690, 466)
+script = ExtResource("16_spawn_point")
+point_id = "happen_cashier"
+spawn_type = 1
+spawn_group = "npcs"
+
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="YDepthScaler" type="Node" parent="."]
+script = ExtResource("7_depth_scaler")
+far_lane_y = 440.0
+near_lane_y = 680.0
+far_scale = 0.82
+near_scale = 1.0
+smoothing_speed = 12.0
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="SeatPoint01" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(500, 600)
+script = ExtResource("16_spawn_point")
+point_id = "happen_seat_01"
+spawn_type = 0
+spawn_group = "enemies"
+
+[node name="SeatPoint02" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1060, 495)
+script = ExtResource("16_spawn_point")
+point_id = "happen_seat_02"
+spawn_type = 0
+spawn_group = "enemies"
+
+[node name="SeatPoint03" type="Marker2D" parent="SpawnPoints" groups=["spawn_points"]]
+position = Vector2(1240, 610)
+script = ExtResource("16_spawn_point")
+point_id = "happen_seat_03"
+spawn_type = 0
+spawn_group = "enemies"
+
+[node name="SpawnDirector" type="Node" parent="."]
+script = ExtResource("15_spawn_director")
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("4_combat_director")
+
+[node name="ExitArea" type="Area2D" parent="."]
+position = Vector2(1960, 560)
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea"]
+shape = SubResource("RectangleShape2D_exit")
+
+[node name="SigaIndicator" parent="." instance=ExtResource("5_siga")]
+
+[node name="PrototypeHud" parent="." instance=ExtResource("6_hud")]
+

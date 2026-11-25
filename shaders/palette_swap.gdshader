@@ -31,6 +31,14 @@ uniform float palette_saturation_floor : hint_range(0.0, 1.0, 0.01) = 0.0;
 /// Reforço específico de brilho para levantar sombras sem achatar o sprite.
 uniform float brightness_adjust : hint_range(0.0, 0.5, 0.01) = 0.0;
 
+/// Preserva integralmente a cor original da roupa quando true (ex: variante ORIGINAL do Pizza Brawler).
+uniform bool preserve_original = false;
+
+/// Brilho oleoso pixelado na pele (efeito de gordura/suor em pixel clusters sem blur).
+uniform float oil_sheen_strength : hint_range(0.0, 0.5, 0.01) = 0.0;
+uniform float skin_source_hue : hint_range(0.0, 360.0, 1.0) = 24.0;
+uniform float skin_hue_tolerance : hint_range(1.0, 45.0, 1.0) = 12.0;
+
 
 vec3 rgb_to_hsv(vec3 c) {
 	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -82,7 +90,7 @@ void fragment() {
 			}
 		}
 
-		if (blend > 0.0) {
+		if (!preserve_original && blend > 0.0) {
 			// Quase toda a faixa recebe a cor integral; apenas as bordas fazem feather.
 			vec3 target_hsv = rgb_to_hsv(palette_color);
 			target_hsv.y = max(target_hsv.y, palette_saturation_floor);
@@ -98,6 +106,19 @@ void fragment() {
 			target_hsv.z *= shade;
 
 			source_hsv = mix(source_hsv, target_hsv, blend);
+		} else if (oil_sheen_strength > 0.0 && source_hsv.y >= 0.35 && source_hsv.y <= 0.88 && source_hsv.z >= 0.45) {
+			float skin_diff = abs(source_pixel_hue - skin_source_hue);
+			if (skin_diff > 180.0) {
+				skin_diff = 360.0 - skin_diff;
+			}
+			if (skin_diff <= skin_hue_tolerance) {
+				// Reflexo oleoso travado em clusters de pixel art, sem gradientes suaves
+				vec2 q_uv = floor(UV * 120.0);
+				float shimmer_wave = sin((q_uv.x * 0.35 + q_uv.y * 0.55) - TIME * 4.2);
+				float sparkle = step(0.86, shimmer_wave) * step(0.55, fract(sin(dot(q_uv, vec2(12.9898, 78.233))) * 43758.5453));
+				source_hsv.z = clamp(source_hsv.z + sparkle * oil_sheen_strength, 0.0, 1.0);
+				source_hsv.y = clamp(source_hsv.y - sparkle * oil_sheen_strength * 0.45, 0.0, 1.0);
+			}
 		}
 
 		COLOR = vec4(hsv_to_rgb(source_hsv) * COLOR.rgb, tex_color.a * COLOR.a);

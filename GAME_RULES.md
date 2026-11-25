@@ -1799,6 +1799,55 @@ Esta seção define o comportamento obrigatório e uniforme de toda apresentaç�
     - A cena alvo é omitida (`scene = ""`), garantindo que nenhuma interação de menu consiga acionar a fase antes do lançamento oficial.
     - Na transição pós-Garagem (`MapTransitionStage2`), a conclusão da Fase Bônus finaliza a demonstração encaminhando o jogador para a tela oficial de Créditos (`res://scenes/ui/credits.tscn`).
 
+---
+
+## 53. HAPPEN — SALÃO PRINCIPAL (`MAP_7` / FASE 2-3): LAYOUT, COLISÕES, CAIXA E NAVEGAÇÃO
+`STATUS: IMPLEMENTED`
+
+### 53.1. Área Caminhável e Limites Físicos
+- **Background**: `res://assets/backgrounds/maps/fase2/Fase2_4.webp` (`2048×705px`), onde o encontro da parede/balcão de pizzas com o piso ocorre em `Y ≈ 413..420`.
+- **Faixa Caminhável Canônica**: `WALKABLE_TOP = 440.0` até `WALKABLE_BOTTOM = 680.0` (`240px` de profundidade útil), delimitada em `StaticWorld/WorldBoundaries` por `TopWall` (`Y = 430`), `BottomWall` (`Y = 690`), `LeftWall` (`X = 20`) e `RightWall` (`X = 2028`).
+- **`YDepthScaler`**: Calibrado para `far_lane_y = 440.0`, `near_lane_y = 680.0`, `far_scale = 0.82`, `near_scale = 1.0`.
+
+### 53.2. Posicionamento e Colisão dos Props (`World/Props/StaticProps`)
+- **Grupo Mesa Retangular (`X ≈ 500`)**: `RectangularTable01` em `(500, 555)` (escala `0.20`, footprint `240×18`), `ChairBehindTable01` encaixada atrás em `(500, 525)`, `ChairFrontLeft01` em `(335, 560)` e `ChairFrontRight01` em `(665, 560)`.
+- **Grupo Mesa Redonda (`X ≈ 1060`)**: `RoundTable01` em `(1060, 585)` (footprint `88×16` alinhado ao pedestal central), `ChairBehindTable02` em `(1060, 555)`, `ChairFrontLeft02` em `(965, 590)` e `ChairFrontRight02` em `(1155, 590)`.
+- **Cadeiras (`dining_chair_*.tscn`)**: Footprints padronizados em `44×14` (`position = Vector2(0, -7)`) em `Collision` (`StaticBody2D`, Layer 2, Mask 1).
+- **SpawnPoints**: `SeatPoint01` `(500, 600)`, `SeatPoint02` `(1060, 495)` e `SeatPoint03` `(1240, 610)` posicionados em áreas livres, sem sobreposição com colisores de cadeiras.
+
+### 53.3. Profundidade do Caixa (`CashierCounter`)
+- `CashierCounter` posicionado em `(1660, 495)` com footprint `256×20` (`position = Vector2(0, -10)`), próximo à parede superior sem encostar nela, deixando folga operacional atrás (`Y = 440..475`), passagem frontal ampla (`Y = 495..680`) e corredor livre à direita até a porta do toalete / `ExitArea` (`(1960, 560)`).
+- `RegisterSprite` é filho de `CounterSprite` (escala `0.78`, `position = Vector2(77.5, -49)`), evitando conflito interno de `y_sort_enabled` entre balcão e registradora enquanto o conjunto ordena normalmente pela âncora `(0, 0)` contra os atores.
+- `CashierSpawnPoint` em `(1690, 466)` (`440 < Y < 495`) garante que o NPC do caixa fique atrás do balcão com folga da parede superior, oclusão natural das pernas e tronco visível acima do tampo.
+
+### 53.4. Malha de Navegação (`map_7_navpoly.tres`)
+- Decomposta em **10 polígonos convexos** contíguos cobrindo `[40..2008] × [445..675]` com recortes explícitos de exclusão ao redor do conjunto da mesa retangular (`[305..695] × [508..572]`), do conjunto da mesa redonda (`[935..1185] × [538..602]`) e do balcão do caixa (`[1520..1800] × [465..507]`).
+
+---
+
+## 54. INIMIGO `PIZZA_BRAWLER` — RECORTE MODULAR, ROTINAS DE CENA, GORDURA E PALETAS (`MAP_7`)
+`STATUS: IMPLEMENTED`
+
+### 54.1. Sprites Individuais Recortados e Animações (`pizza_brawler_frames.tres`)
+- **Fonte Canônica**: `res://assets/sprites/characters/inimigos/pizza_brawler/spritesheet_gorducho_vf.png`, recortada por ilhas 2D em **41 quadros individuais** no formato uniforme `240×220` RGBA em `res://assets/sprites/characters/inimigos/pizza_brawler/frames/` com pés ancorados na linha de base (`y = 220`), somados a **5 quadros** `counter_eat_01..05.png` (visão de costas pegando comida no balcão).
+- **Animações Registradas**: `sit_idle` (6), `counter_eat` (5), `getup` (6), `idle` (4), `walk` (6), `attack` / `heavy` / `punch` / `kick` (6), `guard` (2), `hurt` (4), `fall` (4), `downed` (1) e `death` (4), renderizadas em `AnimatedSprite2D` com `texture_filter = 1`, `position = Vector2(0, -110)` e escala nativa `1.0`.
+
+### 54.2. Rotinas Iniciais (`SITTING` e `COUNTER_EATING`) e Despertar para `EnemyAI`
+- `PizzaBrawler` (`scripts/actors/pizza_brawler.gd`) estende `EnemyAI` e suporta `IdleRoutine.SITTING` (sentado nas 6 cadeiras de `map_7.tscn`, `sit_idle` → `getup` → `COMBAT`) e `IdleRoutine.COUNTER_EATING` (`PizzaBrawler_Counter` em `(1245, 444)` de costas para a câmera no balcão de pizzas, `counter_eat` → alerta `"!"` → `COMBAT`).
+- Durante as fases `SITTING`, `COUNTER_EATING` e `GETTING_UP`, a máscara de colisão contra Layer 2 é relaxada para evitar travamento com cadeiras ou parede superior; ao concluir o despertar (ou receber dano), aplica `step_out_offset`, reativa Layer 2 e entra no fluxo completo do `EnemyAI` e `CombatDirector`.
+
+### 54.3. Efeito de Gordura / Pele Oleosa
+- `shaders/palette_swap.gdshader` implementa brilho especular pixelado travado na grade (`oil_sheen_strength`, `skin_source_hue = 24.0`, `skin_hue_tolerance = 12.0`) exclusivamente sobre os tons de pele, sem alterar outros inimigos (`oil_sheen_strength = 0.0` por padrão).
+- `GreaseParticles` (`CPUParticles2D` contínuo sob `Visual`) emite gotas pixel-art `3×3` âmbar/creme escorrendo pela pele enquanto vivo; `GreaseBurstParticles` dispara respingos adicionais ao levantar, atacar ou sofrer dano, cessando imediatamente em `DEAD`.
+
+### 54.4. Diversidade de Arquétipos e Paletas no `Map 7`
+- `EnemyAI` expõe `primary_palette_source_hue`, `primary_palette_hue_tolerance`, `palette_min_saturation` e `preserve_original_palette_colors` (padrões `220.0`, `85.0`, `0.06`, `false` preservando os inimigos existentes). Em `pizza_brawler.tscn`, a detecção mira exclusivamente a camisa vermelha do uniforme (`source_hue = 0.0`, `tolerance = 11.0`, `min_saturation = 0.65`, `preserve_original_palette_colors = true`), preservando pele, gola amarela, cabelo e calça.
+- `map_7.gd` carrega perfil de encontro que habilita todos os 4 arquétipos (`GRUNT`, `AGGRESSOR`, `TANK`, `FLANKER`) entre os **7 inimigos** posicionados nas 6 cadeiras + balcão, com 6 variantes visuais de paleta.
+
+### 54.5. Testes Automatizados
+- `tests/test_pizza_brawler.gd`: valida 64 verificações cobrindo quadros individuais, alfa, todas as 14 animações, os 7 inimigos do `Map 7`, diversidade 4/4 de arquétipos e paletas, efeito de gordura (shader + partículas), despertar das cadeiras e do balcão, combate e notificação ao `CombatDirector`.
+
+
 
 
 
