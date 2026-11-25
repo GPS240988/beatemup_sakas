@@ -2,7 +2,7 @@ class_name MapMenu
 extends Control
 
 ## Tela de Mapa da Vila / Seleção Cinematográfica de Fases — Projeto Sakas
-## Arquitetura de Navegação em Dois Níveis (Overview e Stage 01 Interno).
+## Arquitetura de Navegação do Overview e dos mapas internos dos Estágios 01 e 02.
 ## Design System Neo-16-bit Urban Arcade baseado em mapa_base.webp (1920x1080).
 ## Câmera Virtual suave com Bounding Clamping rígido e Interrupção Retarget.
 ## Painel Narrativo Fixo com extração canônica de enredo.
@@ -11,6 +11,7 @@ enum NavState {
 	OVERVIEW,            # Nível A: Visão geral da campanha (panorâmica completa)
 	ENTERING_STAGE,      # Transição e aproximação de câmera ao interior do estágio
 	STAGE_NAVIGATION,    # Nível B: Navegação interna das localidades do Stage 01
+	STAGE2_NAVIGATION,   # Nível B: Navegação interna das localidades do Stage 02
 	CAMERA_TRAVEL,       # Deslocamento suave entre localidades (com retarget)
 	STARTING_MISSION,    # Disparo e transição de cena
 	RETURNING            # Retorno cinematográfico do estágio para a visão geral
@@ -102,6 +103,49 @@ const STAGE_CONFIGS: Array[Dictionary] = [
 	}
 ]
 
+const STAGE2_MAP_CONFIGS: Array[Dictionary] = [
+	{
+		"id": "2-1",
+		"map_num": 5,
+		"title": "RUA DA VILA EMA",
+		"tag": "RUA DA VILA EMA",
+		"pos_ratio": Vector2(0.4531, 0.2454), # (870, 265)
+		"scene": "res://scenes/levels/map_5.tscn",
+		"subtitle": "Rua da Vila Ema · Chefe Bêbado e punks",
+		"objective": "Derrotar o Bêbado e os punks para abrir caminho até a HAPPEN."
+	},
+	{
+		"id": "2-2",
+		"map_num": 6,
+		"title": "CONVERSA COM PELÉ",
+		"tag": "HAPPEN · PELÉ",
+		"pos_ratio": Vector2(0.5052, 0.2870), # (970, 310)
+		"scene": "res://scenes/levels/map_6.tscn",
+		"subtitle": "Calçada da HAPPEN · Negociação com Pelé",
+		"objective": "Concluir a conversa com Pelé e obter acesso ao salão da HAPPEN."
+	},
+	{
+		"id": "2-3",
+		"map_num": 7,
+		"title": "INTERIOR DA HAPPEN",
+		"tag": "SALÃO PRINCIPAL",
+		"pos_ratio": Vector2(0.5625, 0.3287), # (1080, 355)
+		"scene": "res://scenes/levels/map_7.tscn",
+		"subtitle": "Salão principal · Mesas, balcão e capangas",
+		"objective": "Avançar pelo salão principal da HAPPEN."
+	},
+	{
+		"id": "2-4",
+		"map_num": 8,
+		"title": "TOALETE",
+		"tag": "TOALETE",
+		"pos_ratio": Vector2(0.6198, 0.3704), # (1190, 400)
+		"scene": "",
+		"subtitle": "HAPPEN · Setor do toalete em desenvolvimento",
+		"objective": "Localidade planejada. A cena do Map 8 ainda não existe."
+	}
+]
+
 const ROUTE_SEGMENTS: Array[Array] = [
 	# 1-1 to 1-2
 	[Vector2(240, 348), Vector2(255, 375), Vector2(280, 405), Vector2(320, 425)],
@@ -113,6 +157,12 @@ const ROUTE_SEGMENTS: Array[Array] = [
 	[Vector2(500, 365), Vector2(535, 325), Vector2(578, 282)],
 	# B to 02
 	[Vector2(578, 282), Vector2(635, 335), Vector2(700, 340), Vector2(760, 335), Vector2(815, 320), Vector2(850, 305), Vector2(870, 265)]
+]
+
+const STAGE2_ROUTE_SEGMENTS: Array[Array] = [
+	[Vector2(870, 265), Vector2(920, 285), Vector2(970, 310)],
+	[Vector2(970, 310), Vector2(1020, 333), Vector2(1080, 355)],
+	[Vector2(1080, 355), Vector2(1135, 378), Vector2(1190, 400)]
 ]
 
 const MISSION_NARRATIVES: Dictionary = {
@@ -199,6 +249,8 @@ var _sfx_confirm: AudioStream
 var _sfx_cancel: AudioStream
 
 var _hotspot_nodes: Array[Control] = []
+var _stage2_hotspot_nodes: Array[Control] = []
+var _selected_stage2_index: int = 0
 var _camera_tween: Tween = null
 var _arrow_tween: Tween = null
 var _arrow_bob_tween: Tween = null
@@ -217,6 +269,7 @@ func _ready() -> void:
 	_init_audio()
 	_load_background_image()
 	_build_stage_hotspots()
+	_build_stage2_hotspots()
 	_setup_top_and_footer_buttons()
 	_setup_route_renderer()
 
@@ -308,6 +361,31 @@ func _build_stage_hotspots() -> void:
 			point_instance.connect("stage_clicked", Callable(self, "_on_hotspot_clicked"))
 
 
+func _build_stage2_hotspots() -> void:
+	if hotspots_container == null:
+		return
+
+	_stage2_hotspot_nodes.clear()
+	for i in range(STAGE2_MAP_CONFIGS.size()):
+		var cfg := STAGE2_MAP_CONFIGS[i]
+		var point_instance: Control = MapStagePointScene.instantiate()
+		point_instance.name = "StagePoint_%s" % str(cfg["id"]).replace("-", "_")
+		point_instance.visible = false
+		hotspots_container.add_child(point_instance)
+		_stage2_hotspot_nodes.append(point_instance)
+		point_instance.setup(
+			i,
+			str(cfg["id"]),
+			str(cfg["title"]),
+			str(cfg.get("tag", cfg["title"])),
+			is_stage2_map_unlocked(i),
+			false,
+			false
+		)
+		if point_instance.has_signal("stage_clicked"):
+			point_instance.connect("stage_clicked", Callable(self, "_on_stage2_hotspot_clicked"))
+
+
 func _update_hotspot_positions() -> void:
 	if hotspots_container == null:
 		return
@@ -326,17 +404,48 @@ func _update_hotspot_positions() -> void:
 			half_size = Vector2(55, 55)
 		node.position = Vector2(ratio.x * c_size.x - half_size.x, ratio.y * c_size.y - half_size.y)
 
+	for i in range(_stage2_hotspot_nodes.size()):
+		var node := _stage2_hotspot_nodes[i]
+		if node == null or not is_instance_valid(node):
+			continue
+		var cfg := STAGE2_MAP_CONFIGS[i]
+		var ratio: Vector2 = cfg["pos_ratio"]
+		var half_size: Vector2 = node.size * 0.5
+		if half_size == Vector2.ZERO:
+			half_size = Vector2(55, 55)
+		node.position = Vector2(ratio.x * c_size.x - half_size.x, ratio.y * c_size.y - half_size.y)
+
 	if route_renderer != null:
 		route_renderer.queue_redraw()
 
-	_position_arrow(_selected_index, false)
+	var arrow_index: int = _selected_stage2_index if _nav_state == NavState.STAGE2_NAVIGATION else _selected_index
+	_position_arrow(arrow_index, false)
 
 
 func _on_route_draw() -> void:
 	if route_renderer == null:
 		return
 
-	if _nav_state == NavState.STAGE_NAVIGATION:
+	if _nav_state == NavState.STAGE2_NAVIGATION:
+		for s_idx in range(STAGE2_ROUTE_SEGMENTS.size()):
+			var pts: Array = STAGE2_ROUTE_SEGMENTS[s_idx]
+			var scaled_pts := PackedVector2Array()
+			for pt in pts:
+				scaled_pts.append(pt)
+			var segment_unlocked := is_stage2_map_unlocked(s_idx) or is_stage2_map_unlocked(s_idx + 1)
+			if segment_unlocked:
+				route_renderer.draw_polyline(scaled_pts, Color(0.85, 0.15, 0.25, 0.35), 7.0, true)
+				route_renderer.draw_polyline(scaled_pts, Color(0.98, 0.25, 0.32, 0.95), 3.0, true)
+			else:
+				for p_i in range(scaled_pts.size() - 1):
+					var p_a: Vector2 = scaled_pts[p_i]
+					var p_b: Vector2 = scaled_pts[p_i + 1]
+					var dist: float = p_a.distance_to(p_b)
+					var steps: int = maxi(int(dist / 14.0), 1)
+					for st in range(steps + 1):
+						var dot_pt: Vector2 = p_a.lerp(p_b, float(st) / float(steps))
+						route_renderer.draw_circle(dot_pt, 2.2, Color(0.42, 0.44, 0.54, 0.40))
+	elif _nav_state == NavState.STAGE_NAVIGATION:
 		# No Nível B, traça as rotas detalhadas internas do Stage 01
 		for s_idx in range(ROUTE_SEGMENTS.size()):
 			var pts: Array = ROUTE_SEGMENTS[s_idx]
@@ -450,10 +559,11 @@ func _pan_camera_to(target_pos: Vector2, target_zoom: float, duration: float = 0
 func _position_arrow(index: int, animate: bool = true) -> void:
 	if moving_arrow == null:
 		return
-	if index < 0 or index >= _hotspot_nodes.size():
+	var arrow_nodes: Array[Control] = _stage2_hotspot_nodes if _nav_state == NavState.STAGE2_NAVIGATION else _hotspot_nodes
+	if index < 0 or index >= arrow_nodes.size():
 		return
 
-	var target_node := _hotspot_nodes[index]
+	var target_node := arrow_nodes[index]
 	if target_node == null or not is_instance_valid(target_node):
 		return
 
@@ -558,6 +668,23 @@ func is_stage_unlocked(index: int) -> bool:
 	return false
 
 
+func is_stage2_map_unlocked(index: int) -> bool:
+	if index < 0 or index >= STAGE2_MAP_CONFIGS.size():
+		return false
+	return OS.is_debug_build() and is_stage_unlocked(5)
+
+
+func is_stage2_map_playable(index: int) -> bool:
+	if not is_stage2_map_unlocked(index):
+		return false
+	var scene_path: String = str(STAGE2_MAP_CONFIGS[index].get("scene", ""))
+	return not scene_path.is_empty() and ResourceLoader.exists(scene_path)
+
+
+func is_stage2_navigation_active() -> bool:
+	return _nav_state == NavState.STAGE2_NAVIGATION
+
+
 func is_stage_completed(index: int) -> bool:
 	var session := _get_game_session()
 	if session == null or index < 0 or index >= STAGE_CONFIGS.size():
@@ -602,12 +729,9 @@ func _on_hotspot_clicked(index: int) -> void:
 				_play_sfx(_sfx_cancel)
 			return
 		elif index == 5:
-			# O Estágio 02 fica selecionável para inspeção/debug.
+			# HAPPEN abre a navegação interna somente nas builds locais de debug.
 			if is_stage_unlocked(5):
-				if _selected_index == 5:
-					_on_play_stage_pressed()
-				else:
-					_select_stage(5, true, true)
+				_enter_stage_02(0)
 			else:
 				_play_sfx(_sfx_cancel)
 				_select_stage(5, false, true)
@@ -652,6 +776,8 @@ func _select_stage(index: int, play_sound: bool = true, animate_camera: bool = t
 	if eyebrow_label != null:
 		if _nav_state == NavState.STAGE_NAVIGATION:
 			eyebrow_label.text = "ESTÁGIO 01 — A VILA"
+		elif _nav_state == NavState.STAGE2_NAVIGATION:
+			eyebrow_label.text = "ESTÁGIO 02 — HAPPEN"
 		else:
 			eyebrow_label.text = "CAMPANHA SAKAS"
 		var difficulty_label: String = _get_campaign_difficulty_label()
@@ -730,10 +856,14 @@ func _get_campaign_difficulty_label() -> String:
 
 func _update_hotspots_visibility() -> void:
 	var in_stage_01 := (_nav_state == NavState.STAGE_NAVIGATION)
+	var in_stage_02 := (_nav_state == NavState.STAGE2_NAVIGATION)
 
 	for i in range(_hotspot_nodes.size()):
 		var node := _hotspot_nodes[i]
 		if node == null or not is_instance_valid(node):
+			continue
+		if in_stage_02:
+			node.visible = false
 			continue
 
 		var cfg := STAGE_CONFIGS[i]
@@ -769,6 +899,23 @@ func _update_hotspots_visibility() -> void:
 			node.setup(5, "02", str(cfg["title"]), tag_text, is_unlocked, is_done, false)
 			node.set_selected(i == _selected_index)
 
+	for i in range(_stage2_hotspot_nodes.size()):
+		var node := _stage2_hotspot_nodes[i]
+		if node == null or not is_instance_valid(node):
+			continue
+		var cfg := STAGE2_MAP_CONFIGS[i]
+		node.visible = in_stage_02
+		node.setup(
+			i,
+			str(cfg["id"]),
+			str(cfg["title"]),
+			str(cfg.get("tag", cfg["title"])),
+			is_stage2_map_unlocked(i),
+			false,
+			false
+		)
+		node.set_selected(in_stage_02 and i == _selected_stage2_index)
+
 	if route_renderer != null:
 		route_renderer.queue_redraw()
 
@@ -796,6 +943,14 @@ func _update_footer_status(unlocked: bool, done: bool, bonus: bool, title: Strin
 			if btn_play_stage != null:
 				btn_play_stage.set("disabled", false)
 				btn_play_stage.set("button_text", "INICIAR HISTÓRIA")
+		elif _selected_index == 5 and _nav_state == NavState.OVERVIEW:
+			map_status_label.text = "HAPPEN · DISPONÍVEL · 4 MAPAS"
+			map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0)
+			if status_dot != null:
+				status_dot.color = Color(0.0, 0.94, 1.0, 1.0)
+			if btn_play_stage != null:
+				btn_play_stage.set("disabled", false)
+				btn_play_stage.set("button_text", "VER MAPAS")
 		elif done:
 			map_status_label.text = "%s · CONCLUÍDO" % title
 			map_status_label.modulate = Color(1.0, 0.85, 0.25, 1.0)
@@ -835,6 +990,85 @@ func _enter_stage_01(target_mission_idx: int = 0) -> void:
 	_select_stage(clampi(target_mission_idx, 0, 3), true, true)
 
 
+func _enter_stage_02(target_map_idx: int = 0) -> void:
+	if not is_stage_unlocked(5):
+		_play_sfx(_sfx_cancel)
+		return
+	_nav_state = NavState.STAGE2_NAVIGATION
+	_selected_index = 5
+	_select_stage2_map(clampi(target_map_idx, 0, STAGE2_MAP_CONFIGS.size() - 1), true, true)
+
+
+func _select_stage2_map(index: int, play_sound: bool = true, animate_camera: bool = true) -> void:
+	if index < 0 or index >= STAGE2_MAP_CONFIGS.size() or not is_stage_unlocked(5):
+		return
+
+	_nav_state = NavState.STAGE2_NAVIGATION
+	_selected_index = 5
+	_selected_stage2_index = index
+	var cfg: Dictionary = STAGE2_MAP_CONFIGS[index]
+	var playable: bool = is_stage2_map_playable(index)
+	var world_pt: Vector2 = Vector2(cfg["pos_ratio"].x * MAP_WIDTH, cfg["pos_ratio"].y * MAP_HEIGHT)
+	var camera_target := _calculate_camera_position(world_pt, STAGE_ZOOM)
+	_pan_camera_to(camera_target, STAGE_ZOOM, 0.42, animate_camera)
+	_update_hotspots_visibility()
+
+	if eyebrow_label != null:
+		eyebrow_label.text = "ESTÁGIO 02 — HAPPEN"
+	if narrative_badge != null:
+		narrative_badge.text = "MISSÃO " + str(cfg["id"])
+	if narrative_title != null:
+		narrative_title.text = str(cfg["title"])
+	if narrative_synopsis != null:
+		narrative_synopsis.text = str(cfg.get("subtitle", ""))
+	if narrative_objective != null:
+		narrative_objective.text = "OBJETIVO: " + str(cfg.get("objective", "Avançar para o próximo setor."))
+	if narrative_state_badge != null:
+		if not is_stage2_map_unlocked(index):
+			narrative_state_badge.text = "BLOQUEADO"
+			narrative_state_badge.modulate = Color(1.0, 0.35, 0.35, 1.0)
+		elif not playable:
+			narrative_state_badge.text = "EM DESENVOLVIMENTO"
+			narrative_state_badge.modulate = Color(1.0, 0.65, 0.25, 1.0)
+		else:
+			narrative_state_badge.text = "DISPONÍVEL"
+			narrative_state_badge.modulate = Color(0.0, 0.94, 1.0, 1.0)
+
+	if stage_number_label != null:
+		stage_number_label.text = str(cfg["id"])
+	if stage_title_label != null:
+		stage_title_label.text = str(cfg["title"])
+	if stage_subtitle_label != null:
+		stage_subtitle_label.text = str(cfg.get("subtitle", ""))
+
+	if map_status_label != null:
+		map_status_label.text = "%s · %s" % [str(cfg["id"]), "DISPONÍVEL" if playable else "EM DESENVOLVIMENTO"]
+		map_status_label.modulate = Color(0.0, 0.94, 1.0, 1.0) if playable else Color(1.0, 0.65, 0.25, 1.0)
+	if status_dot != null:
+		status_dot.color = Color(0.0, 0.94, 1.0, 1.0) if playable else Color(1.0, 0.65, 0.25, 1.0)
+	if btn_play_stage != null:
+		btn_play_stage.set("disabled", not playable)
+		btn_play_stage.set("button_text", "JOGAR FASE" if playable else "EM DESENVOLVIMENTO")
+
+	_position_arrow(index, animate_camera)
+	if play_sound:
+		_play_sfx(_sfx_move if playable else _sfx_cancel)
+
+
+func _on_stage2_hotspot_clicked(index: int) -> void:
+	if _nav_state != NavState.STAGE2_NAVIGATION or _is_transitioning or _is_in_settings:
+		return
+	if index < 0 or index >= STAGE2_MAP_CONFIGS.size():
+		return
+	if index == _selected_stage2_index:
+		if is_stage2_map_playable(index):
+			_on_play_stage_pressed()
+		else:
+			_play_sfx(_sfx_cancel)
+	else:
+		_select_stage2_map(index, true, true)
+
+
 func _return_to_overview() -> void:
 	_nav_state = NavState.OVERVIEW
 	_play_sfx(_sfx_cancel)
@@ -859,14 +1093,21 @@ func _on_play_stage_pressed() -> void:
 		_play_sfx(_sfx_cancel)
 		return
 
-	if not is_stage_unlocked(_selected_index):
+	if _nav_state == NavState.OVERVIEW and _selected_index == 5:
+		_enter_stage_02(0)
+		return
+
+	var is_stage2_map: bool = _nav_state == NavState.STAGE2_NAVIGATION
+	if is_stage2_map and not is_stage2_map_playable(_selected_stage2_index):
+		_play_sfx(_sfx_cancel)
+		_select_stage2_map(_selected_stage2_index, false, false)
+		return
+	if not is_stage2_map and not is_stage_unlocked(_selected_index):
 		_play_sfx(_sfx_cancel)
 		return
 
-	var cfg := STAGE_CONFIGS[_selected_index]
+	var cfg: Dictionary = STAGE2_MAP_CONFIGS[_selected_stage2_index] if is_stage2_map else STAGE_CONFIGS[_selected_index]
 	var target_scene: String = str(cfg.get("scene", ""))
-	if _selected_index == 5 and OS.is_debug_build():
-		target_scene = "res://scenes/levels/map_5.tscn"
 
 	if target_scene.is_empty():
 		_play_sfx(_sfx_cancel)
@@ -876,7 +1117,7 @@ func _on_play_stage_pressed() -> void:
 		return
 
 	# --- Fluxo de REPLAY: fases concluídas redirecionam para seleção de personagem/dificuldade ---
-	var is_replay := is_stage_completed(_selected_index)
+	var is_replay: bool = not is_stage2_map and is_stage_completed(_selected_index)
 	if is_replay and _entry_context != "replay":
 		_is_transitioning = true
 		_play_sfx(_sfx_confirm)
@@ -902,6 +1143,8 @@ func _on_play_stage_pressed() -> void:
 	var session := _get_game_session()
 	if session != null:
 		session.set_meta("selected_stage_index", _selected_index)
+		if is_stage2_map:
+			session.set_meta("selected_stage2_map_index", _selected_stage2_index)
 		if not ("selected_character_id" in session) or str(session.selected_character_id).is_empty():
 			session.selected_character_id = "guilherme"
 		if not ("difficulty_id" in session) or str(session.difficulty_id).is_empty():
@@ -929,7 +1172,7 @@ func _on_play_stage_pressed() -> void:
 		target_scene = "res://scenes/story/story_intro.tscn"
 		if not ResourceLoader.exists(target_scene):
 			target_scene = "res://scenes/ui/loading_screen.tscn"
-	elif _selected_index == 5 and _entry_context == "campaign":
+	elif is_stage2_map and _selected_stage2_index == 0 and _entry_context == "campaign":
 		if session == null or not bool(session.get("has_seen_stage_2_transition")):
 			var intro_scene: String = "res://scenes/story/story_stage2_intro.tscn"
 			if ResourceLoader.exists(intro_scene):
@@ -1050,7 +1293,7 @@ func _on_back_pressed() -> void:
 		return
 
 	# No Nível B, retorna ao Nível A (Overview) via zoom out
-	if _nav_state == NavState.STAGE_NAVIGATION:
+	if _nav_state == NavState.STAGE_NAVIGATION or _nav_state == NavState.STAGE2_NAVIGATION:
 		_return_to_overview()
 	else:
 		# No Nível A, retorna ao menu principal
@@ -1093,7 +1336,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if session != null and session.has_method("unlock_stage_2"):
 			session.unlock_stage_2()
 		_update_hotspots_visibility()
-		_select_stage(_selected_index, false, false)
+		if _nav_state == NavState.STAGE2_NAVIGATION:
+			_select_stage2_map(_selected_stage2_index, false, false)
+		else:
+			_select_stage(_selected_index, false, false)
 		if route_renderer != null:
 			route_renderer.queue_redraw()
 	elif event.is_action_pressed("ui_right") or (event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_RIGHT or event.keycode == KEY_D)):
@@ -1110,19 +1356,26 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif _selected_index == 4 and is_stage_unlocked(4):
 				_on_play_stage_pressed()
 			elif _selected_index == 5 and is_stage_unlocked(5):
-				_on_play_stage_pressed()
+				_enter_stage_02(0)
 			else:
 				_play_sfx(_sfx_cancel)
 		else:
 			_on_play_stage_pressed()
 	elif event is InputEventScreenTouch and event.pressed:
 		_safe_handle_input()
-		if is_stage_unlocked(_selected_index):
+		if _nav_state == NavState.STAGE2_NAVIGATION:
+			if is_stage2_map_playable(_selected_stage2_index):
+				_on_play_stage_pressed()
+		elif is_stage_unlocked(_selected_index):
 			_on_play_stage_pressed()
 
 
 func _navigate_stages(delta: int) -> void:
-	if _nav_state == NavState.STAGE_NAVIGATION:
+	if _nav_state == NavState.STAGE2_NAVIGATION:
+		var next_stage2_idx := clampi(_selected_stage2_index + delta, 0, STAGE2_MAP_CONFIGS.size() - 1)
+		if next_stage2_idx != _selected_stage2_index:
+			_select_stage2_map(next_stage2_idx, true, true)
+	elif _nav_state == NavState.STAGE_NAVIGATION:
 		# Navegação interna sequencial do Stage 01 (1-1 <-> 1-2 <-> 1-3 <-> 1-4)
 		var next_idx := clampi(_selected_index + delta, 0, 3)
 		if next_idx != _selected_index:
