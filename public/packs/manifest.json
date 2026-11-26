@@ -1,5 +1,5 @@
 {
-	"generated_at": "2026-11-26 19:50:58",
+	"generated_at": "2026-11-26 22:06:14",
 	"max_pack_mb": 45.0,
 	"packs": {
 		"audio_bgm": {
@@ -20,11 +20,11 @@
 		},
 		"stage2": {
 			"file_name": "pack_stage2.pck",
-			"items_count": 157,
-			"md5": "04ab519a5ed441631ca929cc3c3697bd",
+			"items_count": 159,
+			"md5": "6a90b801810ecbcca0044fde9b7415ac",
 			"path": "packs/pack_stage2.pck",
-			"size_bytes": 20681004,
-			"size_mb": 19.72
+			"size_bytes": 20697408,
+			"size_mb": 19.74
 		},
 		"story_cinematics": {
 			"file_name": "pack_story_cinematics.pck",

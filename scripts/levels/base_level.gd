@@ -18,6 +18,7 @@ const BGM_STAGE_3_4: String = "res://assets/audio/bgm/M_3_4 - Estágio 1.mp3"
 const BGM_BONUS_1: String = "res://assets/audio/bgm/bonus_1.mp3"
 const BGM_MAP_4_POETA: String = "res://assets/audio/bgm/Poeta Uruguaio - MAP 4.mp3"
 const BGM_BONUS_POETA: String = "res://assets/audio/bgm/Poeta Uruguaio - BONUS1.mp3"
+const BGM_STAGE_2: String = "res://assets/audio/bgm/M_Estágio_2.mp3"
 
 # Spawn seguro da onda de reforços do Mapa 1. A faixa Y 650..715 corresponde
 # ao corredor inferior contínuo da map_1_navpoly.tres.
@@ -262,7 +263,9 @@ var _level_bgm_player: AudioStreamPlayer = null
 func _setup_level_bgm() -> void:
 	var target_bgm: String = ""
 	var fade_in: float = 0.0
-	if map_index in [1, 2]:
+	if map_group == "fase2":
+		target_bgm = BGM_STAGE_2
+	elif map_index in [1, 2]:
 		target_bgm = BGM_STAGE_1_2
 	elif map_index == 4:
 		# Fase 1-4 (O Beco Final): trilha exclusiva "Poeta Uruguaio - MAP 4"

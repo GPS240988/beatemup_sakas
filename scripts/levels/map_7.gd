@@ -889,5 +889,4 @@ func _get_guilherme_sprite_frames() -> SpriteFrames:
 
 
 func _setup_level_bgm() -> void:
-	# A trilha exclusiva do interior da HAPPEN ainda não foi aprovada.
-	return
+	super._setup_level_bgm()

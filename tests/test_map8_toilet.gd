@@ -68,6 +68,8 @@ func _run() -> void:
 
 	var bg := map8.get_node_or_null("Background/Far") as Sprite2D
 	_check(bg != null and bg.texture != null and bg.texture.resource_path == BACKGROUND_PATH, "3. Map 8 usa background Fase2_5.webp")
+	if session != null and session.has_method("get_current_bgm_path"):
+		_check(str(session.call("get_current_bgm_path")) == "res://assets/audio/bgm/M_Estágio_2.mp3", "3. Map 8 reproduz BGM oficial M_Estágio_2.mp3")
 	_check(map8.get_node_or_null("World/Props/StaticProps/GreasyComandaProp") != null, "3. Prop narrativo da comanda engordurada presente")
 	var trash_pizza := map8.get_node_or_null("World/Props/TrashPizzaSlicePickup")
 	_check(trash_pizza != null and is_equal_approx(float(trash_pizza.get("heal_amount")), 30.0), "5b. Fatia de pizza (+30 HP) presente em cima do lixo no Map 8")
@@ -204,10 +206,13 @@ func _run() -> void:
 		_check(dlg_layer != null, "14. Caixa de diálogo padrão do rodapé exibida no mictório")
 		map8.call("confirm_urinal_dialogue")
 		await process_frame
-		var comanda_node := player.get_node_or_null("PlayerComandaInHand") as Sprite2D
-		_check(comanda_node != null and comanda_node.texture != null, "14. Jogador saca comanda.png antes do xixi")
+		var pee_actor := map8.get_node_or_null("World/Actors/NPCs/UrinalCutscene_Guilherme") as Node2D
+		if pee_actor == null:
+			pee_actor = player
+		var comanda_node := pee_actor.get_node_or_null("PlayerComandaInHand") as Sprite2D
+		_check(comanda_node != null and comanda_node.texture != null, "14. Guilherme saca comanda.png antes do xixi")
 		await create_timer(0.42).timeout
-		var pee_stream := player.get_node_or_null("PixelFXPeeStream") as AnimatedSprite2D
+		var pee_stream := pee_actor.get_node_or_null("PixelFXPeeStream") as AnimatedSprite2D
 		_check(pee_stream != null and pee_stream.rotation < 0.0, "14. Animação PixelFX em parábola mirando o mictório e a comanda")
 
 	map8.queue_free()

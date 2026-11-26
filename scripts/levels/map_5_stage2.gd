@@ -343,8 +343,7 @@ func _set_rectangle_shape(
 
 
 func _setup_level_bgm() -> void:
-	# A trilha própria do Estágio 02 será vinculada quando for aprovada.
-	return
+	super._setup_level_bgm()
 
 
 func _on_bakery_trigger_body_entered(body: Node) -> void:

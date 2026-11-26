@@ -980,5 +980,4 @@ func get_dialogue_controller() -> Node:
 
 
 func _setup_level_bgm() -> void:
-	# Mantém o ambiente silencioso / sem trilha de combate de outras fases enquanto não houver BGM próprio.
-	return
+	super._setup_level_bgm()

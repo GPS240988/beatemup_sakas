@@ -206,5 +206,4 @@ func _restore_map6_after_missing_map7() -> void:
 
 
 func _setup_level_bgm() -> void:
-	# O interlúdio ainda não possui trilha própria aprovada; não reutiliza BGM de combate.
-	return
+	super._setup_level_bgm()
