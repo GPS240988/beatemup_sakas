@@ -110,6 +110,12 @@ func _run() -> void:
 
 		var pizza_stack_initial := map7.get_node_or_null("World/Actors/NPCs/VictoryPizzaStack")
 		_check(pizza_stack_initial == null, "Pilha de pizzas NÃO aparece no início do mapa (só após os heróis sentarem)")
+		var garconete := npcs_container.get_node_or_null("Garconete") as Node2D if npcs_container != null else null
+		_check(garconete != null, "Garçonete posicionada atrás do balcão no início do Map 7")
+		if garconete != null:
+			var g_anim := garconete.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+			_check(g_anim != null and g_anim.sprite_frames != null and g_anim.sprite_frames.has_animation("walk_pizza") and g_anim.sprite_frames.has_animation("react") and g_anim.sprite_frames.has_animation("bend"), "SpriteFrames da Garçonete contém idle, walk, walk_pizza, react e bend")
+			_check(garconete.position.x >= 1650.0, "Garçonete inicia atrás do balcão (X >= 1650)")
 
 		# 4. Aproximar dos dois do balcão: dispara balão de conversa e NÃO os torna inimigos
 		if player != null and counter_brawler != null and counter_side != null:
@@ -153,6 +159,10 @@ func _run() -> void:
 			await physics_frame
 
 		_check(map7.is_seated_ending_triggered(), "Final com flash de tela disparado ao concluir todos os inimigos")
+		var exit_area := map7.get_node_or_null("ExitArea") as Area2D
+		_check(exit_area != null and not exit_area.monitoring, "ExitArea permanece desativada ao sentarem (não encerra o mapa)")
+		_check(map7.siga_indicator == null or not map7.siga_indicator.visible, "Indicador SIGA permanece oculto ao sentarem")
+		_check(map7.is_garconete_cutscene_active(), "Cena da garçonete levando a pizza é iniciada ao sentarem")
 		_check(player != null and player.visible and player.is_physics_processing(), "Player ativo permanece visível e jogável após o flash")
 		var active_hero_id: String = map7._get_active_player_hero_id()
 		var expected_nodes := {
@@ -170,12 +180,40 @@ func _run() -> void:
 			else:
 				_check(spawned, "Personagem sentado exibido na cadeira: " + hero_node)
 
+		map7._begin_cutscene_camera_zoom_in()
+		map7._on_garconete_bend_before_slap()
+		if garconete != null:
+			var g_anim_bend := garconete.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+			_check(g_anim_bend != null and g_anim_bend.animation == &"bend", "Garçonete vira de costas abaixada ('bend') antes do tapa")
+		map7._on_garconete_arrived_at_alessandro()
+		await process_frame
+		_check(map7._cutscene_camera_active, "Câmera entra em modo zoom-in focado no Alessandro e na garçonete")
+		_check(map7.get_node_or_null("FloatingText_TAPA") != null, "Texto '*TAPA!*' visível e persistente sem ser escondido")
+		_check(ResourceLoader.exists("res://assets/audio/sfx/garconete_aiiin.wav"), "Som 'Aiiin' da garçonete existe e está importado")
+		var bubble_layer := map7.get_node_or_null("AlessandroSpeechLayer")
+		_check(bubble_layer != null, "Balão de fala do Alessandro ('Da essa porra ai vai') exibido após o tapa")
+		if bubble_layer != null and garconete != null:
+			var speech_bubble := bubble_layer.get_node_or_null("SpeechBubble") as Control
+			if speech_bubble == null:
+				speech_bubble = bubble_layer.get_child(0).get_node_or_null("SpeechBubble") as Control
+			var waitress_sx: float = garconete.get_global_transform_with_canvas().origin.x
+			_check(speech_bubble != null and speech_bubble.position.x + speech_bubble.size.x <= waitress_sx, "Frase do Alessandro não tampa a garçonete")
+		_check(npcs_container.get_node_or_null("VictoryPizzaStack") == null, "Pilha de pizzas só aparece depois de exibir o tapa e a fala")
+		if banter != null:
+			_check(banter._is_playing, "Garçonetes do fundo continuam dialogando mesmo após o final da luta")
+
+		map7._spawn_victory_pizza_stack()
 		var pizza_stack_after := map7.get_node_or_null("World/Actors/NPCs/VictoryPizzaStack")
-		_check(pizza_stack_after != null, "Pilha de pizzas aparece bem à frente / no pé do Alessandro quando os Sakas sentam")
+		_check(pizza_stack_after != null, "Pilha de pizzas aparece bem à frente / no pé do Alessandro após o tapa e a fala")
 		if pizza_stack_after != null:
 			var sprite := pizza_stack_after.get_node_or_null("Sprite2D") as Sprite2D
 			_check(sprite != null and sprite.texture != null and sprite.texture.resource_path == "res://assets/sprites/props/happen/pizza.png", "Sprite da pilha de pizzas utiliza assets/sprites/props/happen/pizza.png")
 			_check(is_equal_approx(pizza_stack_after.position.x, 342.0), "Pilha de pizzas alinhada em X com Alessandro")
+
+		map7._begin_garconete_return_to_counter()
+		if garconete != null:
+			var g_anim := garconete.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+			_check(g_anim != null and g_anim.animation == &"walk", "Garçonete retorna caminhando sem pizza para o balcão")
 
 		var alessandro_node := npcs_container.get_node_or_null("Seated_Alessandro") as Node2D
 		if alessandro_node != null:

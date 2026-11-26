@@ -327,10 +327,18 @@ func _handle_choice_input(event: InputEvent) -> void:
 			_on_choice_selected("gabriel")
 		KEY_3:
 			_on_choice_selected("andre")
-		KEY_LEFT:
+		KEY_LEFT, KEY_A:
 			_move_choice_focus(-1)
-		KEY_RIGHT:
+		KEY_RIGHT, KEY_D:
 			_move_choice_focus(1)
+		KEY_UP, KEY_W:
+			_move_choice_focus(-1)
+		KEY_DOWN, KEY_S:
+			_move_choice_focus(1)
+		KEY_J:
+			var focused_index: int = _get_focused_choice_index()
+			if focused_index >= 0:
+				_on_choice_selected(str(_choice_buttons[focused_index].get_meta("character_id")))
 		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 			var focused_index: int = _get_focused_choice_index()
 			if focused_index >= 0:

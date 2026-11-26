@@ -83,6 +83,7 @@ var _pause_pressed: bool = false
 
 
 func _ready() -> void:
+	add_to_group("touch_controls")
 	set_anchors_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
 	z_index = 25

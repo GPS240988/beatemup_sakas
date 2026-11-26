@@ -1,5 +1,5 @@
 {
-	"generated_at": "2026-11-25 19:46:51",
+	"generated_at": "2026-11-26 00:52:02",
 	"max_pack_mb": 45.0,
 	"packs": {
 		"audio_bgm": {
@@ -12,19 +12,19 @@
 		},
 		"stage1": {
 			"file_name": "pack_stage1.pck",
-			"items_count": 50,
-			"md5": "3c54aedac66f029843b50e1c77db9523",
+			"items_count": 52,
+			"md5": "d618d0c519ab458db6ed3d8a190e1e25",
 			"path": "packs/pack_stage1.pck",
-			"size_bytes": 29076196,
-			"size_mb": 27.73
+			"size_bytes": 30369908,
+			"size_mb": 28.96
 		},
 		"stage2": {
 			"file_name": "pack_stage2.pck",
-			"items_count": 139,
-			"md5": "ce8e78bf953f4df86af48e52bb24a503",
+			"items_count": 153,
+			"md5": "1de96cc486acb382ba848b71e6d8c00b",
 			"path": "packs/pack_stage2.pck",
-			"size_bytes": 18972108,
-			"size_mb": 18.09
+			"size_bytes": 19170136,
+			"size_mb": 18.28
 		},
 		"story_cinematics": {
 			"file_name": "pack_story_cinematics.pck",

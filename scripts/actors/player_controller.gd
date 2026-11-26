@@ -95,6 +95,9 @@ var _jump_v_velocity: float = 0.0
 # Controle de guarda
 var _is_guarding: bool = false
 
+# Controle de bloqueio durante QTE
+var _is_qte_locked: bool = false
+
 # Controle do Dash Evasivo (Gabriel)
 var _is_dashing: bool = false
 var _dash_count: int = 0
@@ -531,6 +534,15 @@ func _physics_process(delta: float) -> void:
 	if health_component != null and health_component.is_dead:
 		velocity = Vector2.ZERO
 		move_and_slide()
+		player_moved.emit(global_position, velocity)
+		return
+
+	# Se estiver travado em janela de QTE, congela movimento e ataques normais
+	if _is_qte_locked:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		if anim_sprite != null and anim_sprite.animation != &"idle":
+			anim_sprite.play("idle")
 		player_moved.emit(global_position, velocity)
 		return
 
@@ -1825,6 +1837,55 @@ func take_damage(damage_input: Variant) -> bool:
 
 	state_changed.emit("Sofreu Dano")
 	return true
+
+
+func set_qte_locked(locked: bool) -> void:
+	_is_qte_locked = locked
+	if locked:
+		velocity = Vector2.ZERO
+		_input_buffered = false
+		_is_guarding = false
+		if melee_attack != null:
+			melee_attack.cancel_attack()
+
+
+func is_qte_locked() -> bool:
+	return _is_qte_locked
+
+
+func perform_qte_dodge(attacker_x: float) -> void:
+	set_qte_locked(false)
+	_is_invulnerable = true
+	var dodge_dir: float = 1.0 if global_position.x >= attacker_x else -1.0
+	var target_pos: Vector2 = global_position + Vector2(dodge_dir * 68.0, 22.0)
+	if walkable_bounds.size != Vector2.ZERO:
+		target_pos.x = clampf(target_pos.x, walkable_bounds.position.x, walkable_bounds.position.x + walkable_bounds.size.x)
+		target_pos.y = clampf(target_pos.y, walkable_bounds.position.y, walkable_bounds.position.y + walkable_bounds.size.y)
+
+	CombatFeedbackClass.spawn_floating_text(self, global_position + Vector2(0.0, -145.0), "ESQUIVA!", Color(0.45, 0.95, 1.0, 1.0))
+
+	var tw := create_tween()
+	tw.tween_property(self, "global_position", target_pos, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if visual_root != null:
+		visual_root.modulate = Color(0.55, 0.95, 1.4, 1.0)
+		tw.parallel().tween_property(visual_root, "modulate", Color.WHITE, 0.35)
+	tw.tween_interval(0.20)
+	tw.tween_callback(func(): _is_invulnerable = false)
+	state_changed.emit("Esquiva QTE")
+
+
+func apply_qte_chair_hit(attacker_pos: Vector2, damage_amount: float = 28.0) -> bool:
+	set_qte_locked(false)
+	_is_invulnerable = false
+	_is_guarding = false
+	var hit_dir: Vector2 = Vector2(1.0 if global_position.x >= attacker_pos.x else -1.0, 0.0)
+	return take_damage({
+		"amount": damage_amount,
+		"can_knockdown": true,
+		"knockback_force": 240.0,
+		"direction": hit_dir,
+		"damage_type": "melee"
+	})
 
 
 func _find_health_component(actor: Node) -> HealthComponent:

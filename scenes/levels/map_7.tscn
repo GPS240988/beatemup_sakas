@@ -153,18 +153,33 @@ palette_variant = 1
 position = Vector2(970, 593)
 initial_facing = 1.0
 step_out_offset = Vector2(-24, 24)
+wake_trigger_radius = 420.0
 archetype = 0
 palette_variant = 5
+enable_chair_ambush = true
+ambush_chair_path = NodePath("../../../Props/StaticProps/ChairFrontLeft02")
+ambush_speech_text = "OLHA A CADEIRADA!"
 
 [node name="PizzaBrawler" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
 position = Vector2(1150, 593)
 initial_facing = -1.0
 step_out_offset = Vector2(24, 24)
+wake_trigger_radius = 220.0
 archetype = 1
 palette_variant = 4
+enable_chair_ambush = true
+ambush_chair_path = NodePath("../../../Props/StaticProps/ChairFrontRight02")
+qte_duration = 3.0
+qte_reverse_sequence = true
+ambush_speech_text = "TOMA ESSA CADEIRA!"
+auto_ambush_after_previous = true
+auto_ambush_delay_seconds = 5.0
 
 [node name="PizzaBrawler_Counter" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
 position = Vector2(820, 444)
+display_name = "GARÇONETE"
+use_waitress_visual = true
+waitress_outfit_color = Color(0.68, 0.2, 0.78, 1)
 initial_routine = 0
 start_sitting = false
 wake_on_proximity = false
@@ -178,6 +193,10 @@ palette_variant = 0
 [node name="PizzaBrawler_CounterSide" parent="World/Actors/Enemies" instance=ExtResource("17_pizza_brawler")]
 script = ExtResource("18_counter_guard")
 position = Vector2(910, 446)
+display_name = "GARÇONETE"
+use_waitress_visual = true
+waitress_outfit_color = Color(0.16, 0.68, 0.42, 1)
+waitress_dark_skin = true
 initial_routine = 0
 start_sitting = false
 wake_on_proximity = false

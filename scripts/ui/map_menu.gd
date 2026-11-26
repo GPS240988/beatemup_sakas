@@ -1177,11 +1177,13 @@ func _on_play_stage_pressed() -> void:
 		target_scene = "res://scenes/story/story_intro.tscn"
 		if not ResourceLoader.exists(target_scene):
 			target_scene = "res://scenes/ui/loading_screen.tscn"
-	elif is_stage2_map and _selected_stage2_index == 0 and _entry_context == "campaign":
+	elif is_stage2_map and _selected_stage2_index == 0 and (_entry_context == "campaign" or _entry_context == "continue"):
 		if session == null or not bool(session.get("has_seen_stage_2_transition")):
 			var intro_scene: String = "res://scenes/story/story_stage2_intro.tscn"
 			if ResourceLoader.exists(intro_scene):
 				target_scene = intro_scene
+		if session != null and _entry_context == "continue":
+			session.set("has_seen_phase2_1_intro", false)
 
 	await get_tree().create_timer(0.2).timeout
 	for action in ["jump", "attack_aerial", "attack", "attack_punch", "attack_special", "special", "guard", "ui_accept", "ui_select"]:

@@ -8,37 +8,37 @@ const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 const BANTER_LINES: Array[Dictionary] = [
 	{
 		"actor": "counter",
-		"speaker": "BALCÃO",
+		"speaker": "GARÇONETE 1",
 		"text": "Na despensa, essa pizza tá azeda. Tem barata no queijo e rato dormindo no saco de farinha.",
 		"duration": 3.2
 	},
 	{
 		"actor": "side",
-		"speaker": "COLEGA",
+		"speaker": "GARÇONETE 2",
 		"text": "E o orégano veio com uns pentelhos. Achei que era tempero novo.",
 		"duration": 3.0
 	},
 	{
 		"actor": "counter",
-		"speaker": "BALCÃO",
+		"speaker": "GARÇONETE 1",
 		"text": "O gerente mandou peneirar e servir. Disse que proteína extra não se cobra.",
 		"duration": 3.1
 	},
 	{
 		"actor": "side",
-		"speaker": "COLEGA",
+		"speaker": "GARÇONETE 2",
 		"text": "Você peneirou?! Eu vi a barata voltar pro pote depois!",
 		"duration": 2.8
 	},
 	{
 		"actor": "counter",
-		"speaker": "BALCÃO",
+		"speaker": "GARÇONETE 1",
 		"text": "Fala baixo. Tem cliente vindo. Põe a pizza bonita na frente.",
 		"duration": 2.8
 	},
 	{
 		"actor": "side",
-		"speaker": "COLEGA",
+		"speaker": "GARÇONETE 2",
 		"text": "A bonita é a que só tem duas baratas?! Eu vou pedir demissão.",
 		"duration": 3.0
 	}
@@ -252,3 +252,18 @@ func get_dialogue_line(index: int) -> Dictionary:
 	if index < 0 or index >= BANTER_LINES.size():
 		return {}
 	return BANTER_LINES[index].duplicate(true)
+
+
+func stop_banter() -> void:
+	_is_playing = false
+	_has_played = true
+	_remaining_repeats = 0
+	_repeat_pause_timer = 0.0
+	if _trigger != null and is_instance_valid(_trigger):
+		_trigger.set_deferred("monitoring", false)
+	if _fade_tween != null and _fade_tween.is_valid():
+		_fade_tween.kill()
+	if _bubble != null and is_instance_valid(_bubble):
+		_bubble.visible = false
+	if _tail != null and is_instance_valid(_tail):
+		_tail.visible = false

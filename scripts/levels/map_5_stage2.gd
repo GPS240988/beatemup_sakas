@@ -7,9 +7,13 @@ extends BaseLevel
 
 const Map5BakeryCutsceneClass = preload("res://scripts/events/map5_bakery_cutscene.gd")
 const Map5TruckAttackSequenceClass = preload("res://scripts/events/map5_truck_attack_sequence.gd")
+const STAGE2_ENTRY_SEQUENCE_PATH: String = "res://resources/story/story_phase2_1_entry.tres"
+const STAGE2_NARRATIVE_DIRECTOR_PATH: String = "res://scenes/ui/narrative_director_stage2_happen.tscn"
 
 var _andre_bakery_video_played: bool = false
 var _truck_attack_sequence_active: bool = false
+var _opening_flow_pending: bool = false
+var _opening_tree_was_paused: bool = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -40,6 +44,53 @@ func _ready() -> void:
 	var bakery_trigger: Area2D = get_node_or_null("BakeryVideoTrigger") as Area2D
 	if bakery_trigger != null and not bakery_trigger.body_entered.is_connected(_on_bakery_trigger_body_entered):
 		bakery_trigger.body_entered.connect(_on_bakery_trigger_body_entered)
+
+
+func _check_and_trigger_opening_narrative() -> bool:
+	if Engine.is_editor_hint() or _opening_flow_pending:
+		return false
+
+	var session: Node = get_node_or_null("/root/GameSession")
+	if session != null and bool(session.get("has_seen_phase2_1_intro")):
+		return false
+
+	if not ResourceLoader.exists(STAGE2_ENTRY_SEQUENCE_PATH) or not ResourceLoader.exists(STAGE2_NARRATIVE_DIRECTOR_PATH):
+		return false
+
+	var director_scene: PackedScene = load(STAGE2_NARRATIVE_DIRECTOR_PATH) as PackedScene
+	if director_scene == null:
+		return false
+
+	var director: NarrativeDirector = director_scene.instantiate() as NarrativeDirector
+	if director == null:
+		return false
+
+	if session != null:
+		session.set("has_seen_phase2_1_intro", true)
+
+	_opening_flow_pending = true
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		_opening_tree_was_paused = tree.paused
+		tree.paused = true
+
+	director.name = "Stage2EntryNarrativeDirector"
+	director.process_mode = Node.PROCESS_MODE_ALWAYS
+	director.sequence_completed.connect(_on_stage2_entry_narrative_finished, CONNECT_ONE_SHOT)
+	director.sequence_skipped.connect(_on_stage2_entry_narrative_finished, CONNECT_ONE_SHOT)
+	add_child(director)
+	director.play_sequence_from_path(STAGE2_ENTRY_SEQUENCE_PATH)
+	return true
+
+
+func _on_stage2_entry_narrative_finished(_sequence_id: String = "") -> void:
+	if not _opening_flow_pending:
+		return
+	_opening_flow_pending = false
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		tree.paused = _opening_tree_was_paused
+	_setup_level_bgm()
 
 
 func _configure_panorama_from_texture() -> void:

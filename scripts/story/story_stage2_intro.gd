@@ -61,6 +61,10 @@ func _advance_to_stage2() -> void:
 	if not is_inside_tree():
 		return
 
+	var session = get_node_or_null("/root/GameSession")
+	if session != null:
+		session.set("has_seen_stage_2_transition", true)
+
 	if not ResourceLoader.exists(TARGET_LEVEL_SCENE):
 		_is_transitioning = false
 		push_error("StoryStage2Intro: mapa de destino não encontrado: " + TARGET_LEVEL_SCENE)

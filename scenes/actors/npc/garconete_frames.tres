@@ -1,0 +1,130 @@
+[gd_resource type="SpriteFrames" load_steps=26 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/idle_01.png" id="1_idle_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/idle_02.png" id="2_idle_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/idle_03.png" id="3_idle_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/idle_04.png" id="4_idle_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/idle_05.png" id="5_idle_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/idle_06.png" id="6_idle_06"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_01.png" id="7_walk_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_02.png" id="8_walk_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_03.png" id="9_walk_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_04.png" id="10_walk_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_05.png" id="11_walk_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_06.png" id="12_walk_06"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_pizza_01.png" id="13_wp_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_pizza_02.png" id="14_wp_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_pizza_03.png" id="15_wp_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_pizza_04.png" id="16_wp_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_pizza_05.png" id="17_wp_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/walk_pizza_06.png" id="18_wp_06"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/react_01.png" id="19_react_01"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/react_02.png" id="20_react_02"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/react_03.png" id="21_react_03"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/react_04.png" id="22_react_04"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/react_05.png" id="23_react_05"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/react_06.png" id="24_react_06"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/npc/garconete/frames/bend_01.png" id="25_bend_01"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("25_bend_01")
+}],
+"loop": false,
+"name": &"bend",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_idle_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_idle_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_idle_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_idle_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_idle_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_idle_06")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("19_react_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_react_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21_react_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_react_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_react_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_react_06")
+}],
+"loop": false,
+"name": &"react",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("7_walk_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_walk_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_walk_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_walk_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_walk_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_walk_06")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("13_wp_01")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_wp_02")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_wp_03")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_wp_04")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_wp_05")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_wp_06")
+}],
+"loop": true,
+"name": &"walk_pizza",
+"speed": 8.0
+}]
