@@ -47,7 +47,9 @@ const BANTER_LINES: Array[Dictionary] = [
 @export var counter_speaker_path: NodePath
 @export var side_speaker_path: NodePath
 @export_range(240.0, 900.0, 10.0) var trigger_radius: float = 420.0
-@export var bubble_vertical_offset: float = 330.0
+@export var bubble_vertical_offset: float = 175.0
+@export_range(0, 10, 1) var repeat_count: int = 2
+@export var repeat_pause_seconds: float = 1.5
 
 var _counter_speaker: Node2D = null
 var _side_speaker: Node2D = null
@@ -55,11 +57,14 @@ var _trigger: Area2D = null
 var _canvas_layer: CanvasLayer = null
 var _ui_root: Control = null
 var _bubble: PanelContainer = null
+var _tail: Polygon2D = null
 var _speaker_label: Label = null
 var _dialogue_label: Label = null
 var _current_speaker: Node2D = null
 var _line_index: int = -1
 var _line_timer: float = 0.0
+var _repeat_pause_timer: float = 0.0
+var _remaining_repeats: int = 0
 var _is_playing: bool = false
 var _has_played: bool = false
 var _fade_tween: Tween = null
@@ -78,6 +83,12 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if not _is_playing:
+		return
+
+	if _repeat_pause_timer > 0.0:
+		_repeat_pause_timer -= delta
+		if _repeat_pause_timer <= 0.0:
+			_show_next_line()
 		return
 
 	_update_bubble_position()
@@ -119,22 +130,29 @@ func _create_speech_bubble() -> void:
 
 	_bubble = PanelContainer.new()
 	_bubble.name = "SpeechBubble"
-	_bubble.custom_minimum_size = Vector2(420.0, 112.0)
-	_bubble.size = _bubble.custom_minimum_size
+	_bubble.custom_minimum_size = Vector2(360.0, 0.0)
+	_bubble.size = Vector2(360.0, 68.0)
 	_bubble.visible = false
 	_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bubble.modulate.a = 0.0
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.018, 0.024, 0.038, 0.96)
-	panel_style.border_color = Color(1.0, 0.78, 0.24, 1.0)
+	panel_style.bg_color = Color(0.025, 0.030, 0.050, 0.96)
+	panel_style.border_color = Color(0.94, 0.75, 0.39, 1.0)
 	panel_style.set_border_width_all(3)
-	panel_style.set_corner_radius_all(2)
+	panel_style.set_corner_radius_all(4)
 	panel_style.content_margin_left = 14.0
-	panel_style.content_margin_top = 10.0
+	panel_style.content_margin_top = 8.0
 	panel_style.content_margin_right = 14.0
 	panel_style.content_margin_bottom = 10.0
 	_bubble.add_theme_stylebox_override("panel", panel_style)
 	_ui_root.add_child(_bubble)
+
+	_tail = Polygon2D.new()
+	_tail.name = "SpeechTail"
+	_tail.color = Color(0.94, 0.75, 0.39, 1.0)
+	_tail.polygon = PackedVector2Array([-9.0, 0.0, 9.0, 0.0, 0.0, 13.0])
+	_tail.visible = false
+	_ui_root.add_child(_tail)
 
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 4)
@@ -167,6 +185,8 @@ func _on_trigger_body_entered(body: Node2D) -> void:
 		return
 	_has_played = true
 	_is_playing = true
+	_remaining_repeats = repeat_count
+	_repeat_pause_timer = 0.0
 	_line_index = -1
 	_trigger.set_deferred("monitoring", false)
 	_show_next_line()
@@ -175,16 +195,27 @@ func _on_trigger_body_entered(body: Node2D) -> void:
 func _show_next_line() -> void:
 	_line_index += 1
 	if _line_index >= BANTER_LINES.size():
-		_is_playing = false
 		_bubble.visible = false
+		if _tail != null:
+			_tail.visible = false
+		if _remaining_repeats > 0:
+			_remaining_repeats -= 1
+			_line_index = -1
+			_repeat_pause_timer = maxf(0.05, repeat_pause_seconds)
+			return
+		_is_playing = false
 		return
 
 	var line: Dictionary = BANTER_LINES[_line_index]
 	_current_speaker = _counter_speaker if str(line.actor) == "counter" else _side_speaker
 	_speaker_label.text = str(line.speaker)
 	_dialogue_label.text = str(line.text)
+	_bubble.size = Vector2(360.0, 0.0)
+	_bubble.reset_size()
 	_line_timer = float(line.get("duration", 2.8))
 	_bubble.visible = true
+	if _tail != null:
+		_tail.visible = true
 	_bubble.modulate.a = 0.0
 	_update_bubble_position()
 
@@ -200,11 +231,17 @@ func _update_bubble_position() -> void:
 
 	var anchor: Vector2 = _current_speaker.get_global_transform_with_canvas().origin
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var desired := Vector2(anchor.x - _bubble.size.x * 0.5, anchor.y - bubble_vertical_offset)
+	var bsize: Vector2 = _bubble.get_combined_minimum_size()
+	bsize.x = maxf(bsize.x, 360.0)
+	_bubble.size = bsize
+	var desired := Vector2(anchor.x - bsize.x * 0.5, anchor.y - bubble_vertical_offset - bsize.y)
 	_bubble.position = Vector2(
-		clampf(desired.x, 12.0, maxf(12.0, viewport_size.x - _bubble.size.x - 12.0)),
-		clampf(desired.y, 90.0, maxf(90.0, viewport_size.y - _bubble.size.y - 18.0))
+		clampf(desired.x, 14.0, maxf(14.0, viewport_size.x - bsize.x - 14.0)),
+		clampf(desired.y, 92.0, maxf(92.0, viewport_size.y - bsize.y - 24.0))
 	)
+	if _tail != null:
+		var tail_x: float = clampf(anchor.x, _bubble.position.x + 24.0, _bubble.position.x + bsize.x - 24.0)
+		_tail.position = Vector2(tail_x, _bubble.position.y + bsize.y - 1.0)
 
 
 func get_dialogue_line_count() -> int:

@@ -21,6 +21,8 @@ enum BrawlerPhase {
 
 @export var initial_routine: IdleRoutine = IdleRoutine.SITTING
 @export var start_sitting: bool = true
+@export var wake_on_proximity: bool = true
+@export var peaceful_until_attacked: bool = false
 @export var wake_trigger_radius: float = 200.0
 @export var initial_facing: float = -1.0
 @export var getup_fallback_duration: float = 0.68
@@ -35,6 +37,8 @@ var _getup_timer: float = 0.0
 var _waking_from_counter: bool = false
 var _grease_drip: CPUParticles2D = null
 var _grease_burst: CPUParticles2D = null
+
+const BANHA_HURT_SFX: String = "res://assets/audio/sfx/banha_gorducho.mp3"
 
 static var _grease_pixel_tex: Texture2D = null
 
@@ -72,6 +76,20 @@ func _ready() -> void:
 		_:
 			_brawler_phase = BrawlerPhase.COMBAT
 			set_collision_mask_value(2, true)
+
+	if peaceful_until_attacked:
+		remove_from_group("enemies")
+		if combat_director != null and is_instance_valid(combat_director) and combat_director.has_method("unregister_enemy"):
+			combat_director.call("unregister_enemy", self)
+		if effective_routine != IdleRoutine.SITTING and effective_routine != IdleRoutine.COUNTER_EATING:
+			current_state = State.WAITING
+			facing_direction = -1.0 if initial_facing < 0.0 else 1.0
+			if visual_root != null:
+				visual_root.scale.x = absf(visual_root.scale.y) * facing_direction
+			_play_anim("idle")
+			if anim_sprite != null and anim_sprite.is_playing():
+				anim_sprite.stop()
+				anim_sprite.frame = 0
 
 
 func is_sitting() -> bool:
@@ -154,6 +172,9 @@ func _finish_wake_up() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if not peaceful_until_attacked and (combat_director == null or not is_instance_valid(combat_director)):
+		_find_combat_director()
+
 	if current_state == State.DEAD:
 		if _grease_drip != null:
 			_grease_drip.emitting = false
@@ -163,11 +184,12 @@ func _physics_process(delta: float) -> void:
 	if _brawler_phase == BrawlerPhase.SITTING or _brawler_phase == BrawlerPhase.COUNTER_EATING:
 		velocity = Vector2.ZERO
 		_play_anim("sit_idle" if _brawler_phase == BrawlerPhase.SITTING else "counter_eat")
-		if player_target == null or not is_instance_valid(player_target):
-			_find_player_target()
-		if player_target != null and is_instance_valid(player_target):
-			if global_position.distance_to(player_target.global_position) <= wake_trigger_radius:
-				trigger_wake_up()
+		if wake_on_proximity:
+			if player_target == null or not is_instance_valid(player_target):
+				_find_player_target()
+			if player_target != null and is_instance_valid(player_target):
+				if global_position.distance_to(player_target.global_position) <= wake_trigger_radius:
+					trigger_wake_up()
 		return
 
 	if _brawler_phase == BrawlerPhase.GETTING_UP:
@@ -177,10 +199,20 @@ func _physics_process(delta: float) -> void:
 			_finish_wake_up()
 		return
 
+	if peaceful_until_attacked:
+		velocity = Vector2.ZERO
+		current_state = State.WAITING
+		if anim_sprite != null and anim_sprite.is_playing():
+			anim_sprite.stop()
+			anim_sprite.frame = 0
+		return
+
 	super._physics_process(delta)
 
 
 func _on_wake_trigger_body_entered(body: Node2D) -> void:
+	if not wake_on_proximity:
+		return
 	if _brawler_phase != BrawlerPhase.SITTING and _brawler_phase != BrawlerPhase.COUNTER_EATING:
 		return
 	if body != null and body.is_in_group("player"):
@@ -197,7 +229,19 @@ func _trigger_attack() -> void:
 	super._trigger_attack()
 
 
+func _become_hostile_on_attack() -> void:
+	if not is_in_group("enemies"):
+		add_to_group("enemies")
+	if combat_director != null and is_instance_valid(combat_director):
+		combat_director.register_enemy(self)
+
+
+func _play_banha_hurt_sound() -> void:
+	CombatFeedback.play_sound(self, BANHA_HURT_SFX, 1.5, 0.08)
+
+
 func _on_damaged(amount: float) -> void:
+	_become_hostile_on_attack()
 	if _brawler_phase != BrawlerPhase.COMBAT:
 		_brawler_phase = BrawlerPhase.COMBAT
 		_waking_from_counter = false
@@ -205,10 +249,12 @@ func _on_damaged(amount: float) -> void:
 			global_position += step_out_offset
 		set_collision_mask_value(2, true)
 	emit_grease_burst(12)
+	_play_banha_hurt_sound()
 	super._on_damaged(amount)
 
 
 func _on_damaged_info(info: RefCounted) -> void:
+	_become_hostile_on_attack()
 	if _brawler_phase != BrawlerPhase.COMBAT:
 		_brawler_phase = BrawlerPhase.COMBAT
 		_waking_from_counter = false
@@ -216,10 +262,13 @@ func _on_damaged_info(info: RefCounted) -> void:
 			global_position += step_out_offset
 		set_collision_mask_value(2, true)
 	emit_grease_burst(12)
+	_play_banha_hurt_sound()
 	super._on_damaged_info(info)
 
 
 func _on_died() -> void:
+	if not peaceful_until_attacked and (combat_director == null or not is_instance_valid(combat_director)):
+		_find_combat_director()
 	if _grease_drip != null:
 		_grease_drip.emitting = false
 	super._on_died()

@@ -18,9 +18,8 @@ const MAX_PACK_BUDGET_BYTES: int = 45 * 1024 * 1024 # 45 MB
 const PACK_DEFINITIONS: Dictionary = {
 	"audio_bgm": {
 		"file_name": "pack_audio_bgm.pck",
-		"description": "Trilhas Sonoras BGM (Menu, História, Estágio 1 e Bônus)",
+		"description": "Trilhas Sonoras BGM (História, Estágio 1 e Bônus)",
 		"sources": [
-			"res://assets/audio/bgm/Menu.mp3",
 			"res://assets/audio/bgm/Historia.mp3",
 			"res://assets/audio/bgm/M_1_2 - Estágio 1.mp3",
 			"res://assets/audio/bgm/M_3_4 - Estágio 1.mp3",
@@ -47,23 +46,30 @@ const PACK_DEFINITIONS: Dictionary = {
 	},
 	"stage1": {
 		"file_name": "pack_stage1.pck",
-		"description": "Cenários, Vídeos e Backgrounds do Estágio 1 e Garagem Bônus",
-		"sources": [],
+		"description": "Cenários, NPCs, Drops, Vídeos e Créditos do Estágio 1 e Garagem Bônus",
+		"sources": [
+			"res://assets/backgrounds/creditos.webp",
+			"res://assets/sprites/Itens/playboy.jpg"
+		],
 		"dirs": [
 			"res://assets/backgrounds/maps/fase1",
 			"res://assets/backgrounds/maps/bonus1",
 			"res://assets/videos/stage1",
-			"res://assets/videos/creditos"
+			"res://assets/videos/creditos",
+			"res://assets/sprites/characters/sergio",
+			"res://assets/sprites/characters/npc"
 		]
 	},
 	"stage2": {
 		"file_name": "pack_stage2.pck",
-		"description": "Cenários, Vídeos e Sprites Exclusivos do Estágio 2 (HAPPEN)",
+		"description": "Cenários, Props, Inimigos, Vídeos e Sprites Exclusivos do Estágio 2 (HAPPEN)",
 		"sources": [],
 		"dirs": [
 			"res://assets/backgrounds/maps/fase2",
 			"res://assets/videos/stage2",
-			"res://assets/sprites/stage2"
+			"res://assets/sprites/stage2",
+			"res://assets/sprites/props/happen",
+			"res://assets/sprites/characters/inimigos/pizza_brawler/frames"
 		]
 	}
 }

@@ -431,7 +431,8 @@ func _on_start_pressed() -> void:
 	if is_replay and not replay_target.is_empty():
 		var pack_mgr = get_node_or_null("/root/PackManager")
 		if pack_mgr != null and pack_mgr.has_method("ensure_pack_loaded_async"):
-			await pack_mgr.ensure_pack_loaded_async("stage1")
+			var is_stage2: bool = replay_target.contains("map_5") or replay_target.contains("map_6") or replay_target.contains("map_7") or replay_target.contains("stage2")
+			await pack_mgr.ensure_pack_loaded_async("stage2" if is_stage2 else "stage1")
 			await pack_mgr.ensure_pack_loaded_async("audio_bgm")
 
 		var err := get_tree().change_scene_to_file(replay_target)

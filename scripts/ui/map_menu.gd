@@ -1116,8 +1116,10 @@ func _on_play_stage_pressed() -> void:
 			map_status_label.modulate = Color(1.0, 0.45, 0.45, 1.0)
 		return
 
-	# --- Fluxo de REPLAY: fases concluídas redirecionam para seleção de personagem/dificuldade ---
-	var is_replay: bool = not is_stage2_map and is_stage_completed(_selected_index)
+	# --- Fluxo de REPLAY / SELEÇÃO DE PERSONAGEM NO CONTINUE ---
+	# Permite escolher personagem em fases concluídas ou no Estágio 2 quando acessado via continue
+	var is_stage2_continue_selection: bool = is_stage2_map and _entry_context == "continue"
+	var is_replay: bool = (not is_stage2_map and is_stage_completed(_selected_index)) or is_stage2_continue_selection
 	if is_replay and _entry_context != "replay":
 		_is_transitioning = true
 		_play_sfx(_sfx_confirm)
@@ -1127,6 +1129,8 @@ func _on_play_stage_pressed() -> void:
 			session.set_meta("replay_stage_index", _selected_index)
 			session.set_meta("replay_stage_scene", target_scene)
 			session.set_meta("map_entry_context", "replay")
+			if is_stage2_map:
+				session.set_meta("selected_stage2_map_index", _selected_stage2_index)
 			if session.has_method("clear_player_progression"):
 				session.clear_player_progression()
 

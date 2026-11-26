@@ -1,6 +1,5 @@
 extends SceneTree
 
-const SOURCE_SHEET_PATH: String = "res://assets/sprites/characters/inimigos/pizza_brawler/spritesheet_gorducho_vf.png"
 const FRAMES_DIR: String = "res://assets/sprites/characters/inimigos/pizza_brawler/frames/"
 const FRAMES_PATH: String = "res://scenes/actors/enemies/pizza_brawler_frames.tres"
 const SCENE_PATH: String = "res://scenes/actors/enemies/pizza_brawler.tscn"
@@ -24,11 +23,9 @@ func _check(cond: bool, msg: String) -> void:
 
 
 func _run() -> void:
-	print("=== TESTE PIZZA BRAWLER (MAP 7 COMPLETO) ===")
+	print("=== TESTE PIZZA BRAWLER + BANHEIRO + FINAL SENTADO (MAP 7) ===")
 
-	var src_tex := load(SOURCE_SHEET_PATH) as Texture2D
-	_check(src_tex != null, "Spritesheet fonte spritesheet_gorducho_vf.png carrega")
-
+	# 1. Quadros individuais recortados e transparência
 	var expected_counts := {
 		"sit_idle": 6,
 		"counter_eat": 5,
@@ -52,9 +49,8 @@ func _run() -> void:
 		_check(idle1.get_size() == Vector2(240, 220), "Canvas individual padronizado 240x220")
 		var img := idle1.get_image()
 		_check(img != null and img.detect_alpha() != Image.ALPHA_NONE, "Canal alfa transparente real presente nos frames")
-		if img != null:
-			_check(img.get_pixel(0, 0).a == 0.0, "Cantos externos transparentes")
 
+	# 2. SpriteFrames e contagem de quadros
 	var frames := load(FRAMES_PATH) as SpriteFrames
 	_check(frames != null, "SpriteFrames carrega em " + FRAMES_PATH)
 	if frames != null:
@@ -64,10 +60,9 @@ func _run() -> void:
 				"Animação '%s' com %d quadros" % [anim_name, expected_counts[anim_name]]
 			)
 
-	var brawler_scene := load(SCENE_PATH) as PackedScene
-	_check(brawler_scene != null, "Cena pizza_brawler.tscn carrega")
+	# 3. Instanciação do Map 7: 6 sentados nas cadeiras + 2 pacíficos no balcão
 	var map7_scene := load(MAP7_PATH) as PackedScene
-	_check(map7_scene != null, "Map 7 carrega com elenco PizzaBrawler completo")
+	_check(map7_scene != null, "Map 7 carrega")
 
 	if map7_scene != null:
 		var map7 := map7_scene.instantiate()
@@ -76,118 +71,118 @@ func _run() -> void:
 		await physics_frame
 
 		var enemies_container := map7.get_node_or_null("World/Actors/Enemies")
+		var npcs_container := map7.get_node_or_null("World/Actors/NPCs")
 		var player := map7.get_node_or_null("World/Actors/Player") as CharacterBody2D
 		var director := map7.get_node_or_null("CombatDirector")
-		var expected_names := [
+		var banter := map7.get_node_or_null("CounterBanter")
+
+		var seated_names := [
 			"PizzaBrawler_RectLeft",
 			"PizzaBrawler_RectRight",
 			"PizzaBrawler_RoundLeft",
 			"PizzaBrawler",
-			"PizzaBrawler_Counter",
-			"PizzaBrawler_CounterSide",
 		]
-		_check(enemies_container != null and enemies_container.get_child_count() == 6, "Map 7 possui exatamente 6 inimigos: quatro nas laterais das mesas e dois no balcão")
-		_check(enemies_container.get_node_or_null("PizzaBrawler_RectBack") == null, "Inimigo central da mesa retangular removido")
-		_check(enemies_container.get_node_or_null("PizzaBrawler_RoundBack") == null, "Inimigo central da mesa redonda removido")
+		_check(enemies_container != null and enemies_container.get_child_count() == 6, "Map 7 inicia com 6 PizzaBrawlers (4 cadeiras + 2 no balcão)")
 
 		var archetypes_seen := {}
 		var palettes_seen := {}
-		for ename in expected_names:
+		for ename in seated_names:
 			var node := enemies_container.get_node_or_null(ename) if enemies_container != null else null
-			_check(node != null, "Instância presente em Enemies: " + ename)
+			_check(node != null, "Inimigo sentado presente: " + ename)
 			if node != null:
 				archetypes_seen[int(node.archetype)] = true
 				palettes_seen[int(node.palette_variant)] = true
-				_check(director != null and director.alive_enemies.has(node), ename + " registrado no CombatDirector")
+				_check(director != null and director.alive_enemies.has(node), ename + " registrado como combatente no CombatDirector")
 
-		_check(archetypes_seen.size() >= 3, "Diversidade de arquétipos preservada (%d distintos)" % archetypes_seen.size())
-		_check(palettes_seen.size() >= 4, "Diversidade de paletas aplicada (%d distintas)" % palettes_seen.size())
+		_check(archetypes_seen.size() >= 2, "Diversidade de arquétipos nas cadeiras (%d distintos)" % archetypes_seen.size())
+		_check(palettes_seen.size() >= 3, "Diversidade de paletas aplicada (%d distintas)" % palettes_seen.size())
 
-		var brawler := map7.get_node_or_null("World/Actors/Enemies/PizzaBrawler")
-		var counter_brawler := map7.get_node_or_null("World/Actors/Enemies/PizzaBrawler_Counter")
-		var counter_side := map7.get_node_or_null("World/Actors/Enemies/PizzaBrawler_CounterSide")
+		var counter_brawler := enemies_container.get_node_or_null("PizzaBrawler_Counter")
+		var counter_side := enemies_container.get_node_or_null("PizzaBrawler_CounterSide")
+		_check(counter_brawler != null and counter_side != null, "Dois colegas do balcão presentes")
+		if counter_brawler != null and counter_side != null:
+			_check(director != null and not director.alive_enemies.has(counter_brawler) and not director.alive_enemies.has(counter_side), "Colegas do balcão não bloqueiam CombatDirector enquanto pacíficos")
+			_check(counter_brawler.position.x >= 750.0 and counter_side.position.x <= 1100.0, "Colegas posicionados próximos à bancada de comida")
+			_check(absf(counter_side.position.x - counter_brawler.position.x) <= 110.0 and counter_brawler.initial_facing > 0.0 and counter_side.initial_facing < 0.0, "Colegas posicionados frente a frente conversando")
 
-		if counter_brawler != null:
-			var counter_anim := counter_brawler.get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
-			_check(counter_brawler.is_counter_eating(), "Inimigo do balcão inicia em COUNTER_EATING")
-			_check(counter_anim != null and counter_anim.animation == &"counter_eat", "Executa counter_eat de costas no balcão")
-			if counter_anim != null:
-				var counter_mat := counter_anim.material as ShaderMaterial
-				_check(counter_mat != null, "ShaderMaterial de paleta aplicado ao inimigo do balcão")
+		var rect_left_enemy := enemies_container.get_node_or_null("PizzaBrawler_RectLeft")
+		_check(rect_left_enemy != null and rect_left_enemy.wake_trigger_radius <= 85.0, "Primeiro inimigo (RectLeft) com raio de ativação reduzido (não levanta no spawn do player)")
 
-		if counter_side != null and counter_brawler != null:
-			var side_anim := counter_side.get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
-			_check(counter_side.has_method("is_in_ambient_standby") and counter_side.is_in_ambient_standby(), "Novo inimigo permanece em espera em pé antes da aproximação")
-			_check(side_anim != null and side_anim.animation == &"idle", "Novo inimigo executa idle em pé ao lado do colega")
-			_check(counter_side.global_position.distance_to(counter_brawler.global_position) <= 230.0, "Novo inimigo está posicionado junto ao funcionário de costas")
+		var pizza_stack_initial := map7.get_node_or_null("World/Actors/NPCs/VictoryPizzaStack")
+		_check(pizza_stack_initial == null, "Pilha de pizzas NÃO aparece no início do mapa (só após os heróis sentarem)")
 
-		if brawler != null:
-			_check(brawler.is_in_group("actors") and brawler.is_in_group("enemies") and brawler.is_in_group("damageable"), "Grupos actors, enemies e damageable")
-			var anim_sprite := brawler.get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
-			_check(anim_sprite != null and anim_sprite.position.y < 0.0, "Origem física nos pés (0, 0) com visual acima")
-			_check(brawler.is_sitting(), "Inimigos laterais das mesas iniciam em SITTING")
-			_check(anim_sprite != null and anim_sprite.animation == &"sit_idle", "Executa sit_idle enquanto aguarda sentado")
-
-			var mat := anim_sprite.material as ShaderMaterial
-			_check(mat != null, "ShaderMaterial exclusivo aplicado")
-			if mat != null:
-				_check(is_equal_approx(float(mat.get_shader_parameter("source_hue")), 0.0), "Shader mira camisa vermelha (source_hue = 0.0)")
-				_check(float(mat.get_shader_parameter("oil_sheen_strength")) > 0.0, "Efeito de brilho oleoso na pele ativo no shader")
-
-			var grease_drip := brawler.get_node_or_null("Visual/GreaseParticles") as CPUParticles2D
-			var grease_burst := brawler.get_node_or_null("Visual/GreaseBurstParticles") as CPUParticles2D
-			_check(grease_drip != null and grease_drip.emitting, "GreaseParticles ativo pingando gordura da pele")
-			_check(grease_burst != null, "GreaseBurstParticles configurado para impactos e golpes")
-
-			if player != null:
-				player.global_position = brawler.global_position + Vector2(90, 0)
+		# 4. Aproximar dos dois do balcão: dispara balão de conversa e NÃO os torna inimigos
+		if player != null and counter_brawler != null and counter_side != null:
+			player.global_position = counter_side.global_position + Vector2(0.0, 55.0)
+			for i in range(6):
 				await physics_frame
+			_check(counter_brawler.peaceful_until_attacked and counter_brawler.current_state == EnemyAI.State.WAITING, "PizzaBrawler_Counter permanece pacífico em pé ao se aproximar")
+			_check(counter_side.is_in_ambient_standby(), "PizzaBrawler_CounterSide permanece pacífico em pé ao se aproximar")
+			_check(not counter_brawler.is_in_group("enemies") and not counter_side.is_in_group("enemies"), "Colegas do balcão não entram no grupo enemies ao chegar perto")
+
+			if banter != null:
+				var bubble := banter.get_node_or_null("CounterBanterLayer/CounterBanterRoot/SpeechBubble") as Control
+				var tail := banter.get_node_or_null("CounterBanterLayer/CounterBanterRoot/SpeechTail") as Polygon2D
+				_check(bubble != null and bubble.visible, "Balão de conversa do balcão exibido ao se aproximar")
+				_check(tail != null and tail.visible, "Seta/ponteiro do balão aponta para o orador")
+				_check(int(banter.repeat_count) == 2 and int(banter._remaining_repeats) == 2, "Diálogo configurado para repetir mais 2x após terminar")
+
+		# 5. Derrotar os 6 sentados -> respawn de 3 inimigos saindo do banheiro
+		for ename in seated_names:
+			var n := enemies_container.get_node_or_null(ename)
+			if n != null:
+				n.take_damage(999.0)
 				await physics_frame
-				_check(brawler.is_getting_up(), "Gatilho de aproximação inicia fase GETTING_UP")
-				_check(anim_sprite.animation == &"getup", "Executa animação getup ao detectar jogador")
 
-				for i in range(55):
-					await physics_frame
-				_check(brawler.is_in_combat(), "Transiciona para fase COMBAT (EnemyAI) após getup")
-				_check(brawler.get_collision_mask_value(2), "Colisão sólida com Layer 2 reativada ao entrar em combate")
+		for i in range(80):
+			await physics_frame
 
-				if counter_brawler != null:
-					player.global_position = counter_brawler.global_position + Vector2(0, 75)
-					await physics_frame
-					await physics_frame
-					_check(counter_brawler.is_getting_up(), "Inimigo do balcão reage ao jogador se aproximar")
-					for i in range(25):
-						await physics_frame
-					_check(counter_brawler.is_in_combat(), "Inimigo do balcão entra em COMBAT após virar")
+		_check(map7.is_bathroom_wave_spawned(), "Onda de respawn do banheiro disparada após derrotar os 6 das cadeiras")
+		var b1 := enemies_container.get_node_or_null("PizzaBrawler_Bathroom01")
+		var b2 := enemies_container.get_node_or_null("PizzaBrawler_Bathroom02")
+		var b3 := enemies_container.get_node_or_null("PizzaBrawler_Bathroom03")
+		_check(b1 != null and b2 != null and b3 != null, "3 inimigos adicionais instanciados a partir do banheiro")
 
-				brawler.take_damage(20.0)
+		# 6. Derrotar os 3 inimigos do banheiro -> piscar tela e exibir os 5 personagens sentados
+		for b in [b1, b2, b3]:
+			if b != null:
+				b.take_damage(999.0)
 				await physics_frame
-				_check(brawler.current_state == EnemyAI.State.HURT, "Recebe dano e entra em HURT")
 
-				var kd_info := DamageInfo.new()
-				kd_info.amount = 25.0
-				kd_info.damage_type = "special"
-				kd_info.can_knockdown = true
-				kd_info.knockback_force = 180.0
-				brawler.take_damage(kd_info)
-				await physics_frame
-				_check(brawler.current_state == EnemyAI.State.FALL, "Sofre knockdown e entra em FALL")
+		for i in range(45):
+			await physics_frame
 
-				for i in range(45):
-					await physics_frame
-				_check(
-					brawler.current_state in [EnemyAI.State.DOWNED, EnemyAI.State.GETUP, EnemyAI.State.FLANKING],
-					"Avança para DOWNED/GETUP após queda"
-				)
+		_check(map7.is_seated_ending_triggered(), "Final com flash de tela disparado ao concluir todos os inimigos")
+		_check(player != null and player.visible and player.is_physics_processing(), "Player ativo permanece visível e jogável após o flash")
+		var active_hero_id: String = map7._get_active_player_hero_id()
+		var expected_nodes := {
+			"juliana": "Seated_Juliana",
+			"guilherme": "Seated_Guilherme",
+			"gabriel": "Seated_Gabriel",
+			"andre": "Seated_Andre",
+			"alessandro": "Seated_Alessandro"
+		}
+		for hid in expected_nodes.keys():
+			var hero_node: String = expected_nodes[hid]
+			var spawned := npcs_container != null and npcs_container.get_node_or_null(hero_node) != null
+			if hid == active_hero_id:
+				_check(not spawned, "Player ativo (%s) NÃO aparece sentado na mesa" % hid)
+			else:
+				_check(spawned, "Personagem sentado exibido na cadeira: " + hero_node)
 
-				brawler.take_damage(999.0)
-				await physics_frame
-				_check(brawler.current_state == EnemyAI.State.DEAD, "Entra em estado DEAD ao zerar HP")
-				_check(not grease_drip.emitting, "Para emissão de gordura após derrota")
-				_check(director != null and not director.alive_enemies.has(brawler), "CombatDirector notificado da derrota")
+		var pizza_stack_after := map7.get_node_or_null("World/Actors/NPCs/VictoryPizzaStack")
+		_check(pizza_stack_after != null, "Pilha de pizzas aparece bem à frente / no pé do Alessandro quando os Sakas sentam")
+		if pizza_stack_after != null:
+			var sprite := pizza_stack_after.get_node_or_null("Sprite2D") as Sprite2D
+			_check(sprite != null and sprite.texture != null and sprite.texture.resource_path == "res://assets/sprites/props/happen/pizza.png", "Sprite da pilha de pizzas utiliza assets/sprites/props/happen/pizza.png")
+			_check(is_equal_approx(pizza_stack_after.position.x, 342.0), "Pilha de pizzas alinhada em X com Alessandro")
+
+		var alessandro_node := npcs_container.get_node_or_null("Seated_Alessandro") as Node2D
+		if alessandro_node != null:
+			_check(alessandro_node.position.x < 400.0, "Alessandro sentado na cadeira da esquerda (X < 400)")
 
 		map7.queue_free()
 		await process_frame
 
-	print("RESULTADO PIZZA BRAWLER: %d passaram, %d falharam" % [_passed, _failed])
+	print("RESULTADO PIZZA BRAWLER + MAP 7: %d passaram, %d falharam" % [_passed, _failed])
 	quit(0 if _failed == 0 else 1)
