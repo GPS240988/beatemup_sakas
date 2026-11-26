@@ -23,20 +23,15 @@ func _resolve_target_scene() -> void:
 		pending_mode = int(session.get("pending_map_transition_mode"))
 		pending_target = str(session.get("pending_transition_target"))
 
-	# O acesso narrativo ao Estágio 02 existe somente em build de depuração.
-	# Em release, a transição conserva o encerramento por créditos.
-	if pending_mode == 1 and OS.is_debug_build():
+	if pending_mode == 1:
 		if pending_target.is_empty() or not ResourceLoader.exists(pending_target):
 			session.set("pending_transition_target", STAGE2_INTRO_SCENE)
 
 	super._resolve_target_scene()
 
 	if int(transition_mode) == 1:
-		if OS.is_debug_build():
-			if target_scene_path == "res://scenes/ui/credits.tscn":
-				target_scene_path = STAGE2_INTRO_SCENE
-		else:
-			target_scene_path = "res://scenes/ui/credits.tscn"
+		if target_scene_path == "res://scenes/ui/credits.tscn":
+			target_scene_path = STAGE2_INTRO_SCENE
 
 	if not ResourceLoader.exists(target_scene_path):
 		push_error("MapTransitionStage2: destino não encontrado: " + target_scene_path)
@@ -146,13 +141,13 @@ func _create_stage_points() -> void:
 		var stage_title: String = str(config["title"])
 		var display_tag: String = "ESTÁGIO 01"
 		var is_bonus: bool = bool(config.get("is_bonus", false))
-		var is_unlocked: bool = stage_index != 5 or OS.is_debug_build()
+		var is_unlocked: bool = true
 		var is_completed: bool = stage_index == 0 or stage_index == 4
 
 		if is_bonus:
 			display_tag = "★ BÔNUS ★"
 		elif stage_index == 5:
-			display_tag = "ESTÁGIO 02" if is_unlocked else "ESTÁGIO 02 (EM BREVE)"
+			display_tag = "ESTÁGIO 02"
 
 		if stage_index == 0:
 			stage_id = "01"
@@ -194,23 +189,18 @@ func _execute_bonus_to_point2() -> void:
 
 	moving_arrow.visible = false
 
-	# A apresentação de desbloqueio e a persistência existem somente em debug.
-	if OS.is_debug_build():
-		resting_arrow_p2.visible = true
-		_start_arrow_bobbing(resting_arrow_p2)
-		point2_cover.visible = true
-		_play_sound(_sfx_unlock)
-		if unlock_vfx != null:
-			unlock_vfx.position = _stage_center(5)
-			if unlock_vfx.has_method("play_burst"):
-				unlock_vfx.play_burst()
+	resting_arrow_p2.visible = true
+	_start_arrow_bobbing(resting_arrow_p2)
+	point2_cover.visible = true
+	_play_sound(_sfx_unlock)
+	if unlock_vfx != null:
+		unlock_vfx.position = _stage_center(5)
+		if unlock_vfx.has_method("play_burst"):
+			unlock_vfx.play_burst()
 
-		var session = get_node_or_null("/root/GameSession")
-		if session != null and session.has_method("unlock_stage_2"):
-			session.unlock_stage_2()
-	else:
-		resting_arrow_p2.visible = false
-		point2_cover.visible = false
+	var session = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("unlock_stage_2"):
+		session.unlock_stage_2()
 
 	_set_stage2_marker_unlocked()
 	await get_tree().create_timer(1.2).timeout
@@ -221,7 +211,7 @@ func _set_stage2_marker_unlocked() -> void:
 	if point == null or not is_instance_valid(point):
 		return
 
-	var unlocked: bool = OS.is_debug_build()
-	var tag: String = "ESTÁGIO 02" if unlocked else "ESTÁGIO 02 (EM BREVE)"
+	var unlocked: bool = true
+	var tag: String = "ESTÁGIO 02"
 	point.call("setup", 5, "02", "HAPPEN", tag, unlocked, false, false)
 	point.call("set_selected", false)

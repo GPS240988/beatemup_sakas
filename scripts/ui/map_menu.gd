@@ -93,13 +93,13 @@ const STAGE_CONFIGS: Array[Dictionary] = [
 	{
 		"id": "02",
 		"map_num": 5,
-		"is_future": true,
+		"is_future": false,
 		"title": "HAPPEN",
-		"tag": "ESTÁGIO 02 (EM BREVE)",
+		"tag": "ESTÁGIO 02",
 		"pos_ratio": Vector2(0.4531, 0.2454), # (870, 265)
-		"scene": "",
+		"scene": "res://scenes/levels/map_5.tscn",
 		"loading_scene": "",
-		"subtitle": "Estágio 02 · Em Desenvolvimento"
+		"subtitle": "Estágio 02 · HAPPEN"
 	}
 ]
 
@@ -626,8 +626,6 @@ func is_stage_unlocked(index: int) -> bool:
 	# 2. Contexto de debug 'continue', OU
 	# 3. Flag de debug manual _debug_stage2_force_unlocked (F9/F10).
 	if index == 5:
-		if not OS.is_debug_build():
-			return false
 		if _debug_stage2_force_unlocked:
 			return true
 		if _entry_context == "continue":
@@ -671,7 +669,7 @@ func is_stage_unlocked(index: int) -> bool:
 func is_stage2_map_unlocked(index: int) -> bool:
 	if index < 0 or index >= STAGE2_MAP_CONFIGS.size():
 		return false
-	return OS.is_debug_build() and is_stage_unlocked(5)
+	return is_stage_unlocked(5)
 
 
 func is_stage2_map_playable(index: int) -> bool:
@@ -706,6 +704,10 @@ func is_stage_completed(index: int) -> bool:
 		return st1_done
 	elif bool(cfg.get("is_bonus", false)):
 		return bool(session.get("stage_2_unlocked"))
+	elif index == 5:
+		if session.has_method("is_stage_completed"):
+			return session.is_stage_completed(2)
+		return bool(session.get("stage_2_completed")) if "stage_2_completed" in session else false
 
 	return false
 
@@ -893,9 +895,9 @@ func _update_hotspots_visibility() -> void:
 			node.set_selected(i == _selected_index)
 
 		elif i == 5:
-			# Estágio 02: visível no Overview. Liberado em debug/testes; bloqueado no deploy.
+			# Estágio 02: visível no Overview e liberado também no deploy.
 			node.visible = true
-			var tag_text: String = str(cfg.get("tag", "ESTÁGIO 02")) if OS.is_debug_build() else "ESTÁGIO 02 (EM BREVE)"
+			var tag_text: String = str(cfg.get("tag", "ESTÁGIO 02"))
 			node.setup(5, "02", str(cfg["title"]), tag_text, is_unlocked, is_done, false)
 			node.set_selected(i == _selected_index)
 

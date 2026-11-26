@@ -19,6 +19,7 @@ var has_played_intro: bool = false
 
 ## Progresso da campanha e fases desbloqueadas
 var stage_1_completed: bool = false
+var stage_2_completed: bool = false
 var bonus_stage_unlocked: bool = false
 var stage_2_unlocked: bool = false
 var max_unlocked_stage: int = 1
@@ -29,6 +30,7 @@ var has_seen_fase1_4_intro: bool = false
 var has_seen_phase2_1_intro: bool = false
 var pending_transition_target: String = ""
 var pending_map_transition_mode: int = 0 # 0: POINT1_TO_BONUS, 1: BONUS_TO_POINT2, 2: FULL_PREVIEW
+var pending_map8_return_to_happen_finale: bool = false
 const CAMPAIGN_SAVE_PATH: String = "user://campaign_progression.json"
 
 ## Caminho oficial da Fase 1 (Mapa 1: A Locadora)
@@ -179,6 +181,7 @@ func reset_session() -> void:
 	current_continues = 1
 	pending_transition_target = ""
 	pending_map_transition_mode = 0
+	pending_map8_return_to_happen_finale = false
 	pending_save_snapshot = {}
 	active_save_slot = 1
 	clear_player_progression()
@@ -202,6 +205,8 @@ func unlock_bonus_stage() -> void:
 func is_stage_completed(stage_num: int) -> bool:
 	if stage_num == 1:
 		return stage_1_completed or bonus_stage_unlocked or stage_2_unlocked or max_unlocked_stage >= 2
+	if stage_num == 2:
+		return stage_2_completed
 	return false
 
 
@@ -211,6 +216,22 @@ func complete_stage(stage_num: int) -> void:
 		stage_1_completed = true
 		max_unlocked_map = maxi(max_unlocked_map, 4)
 		_save_campaign_progression()
+	elif stage_num == 2:
+		stage_2_completed = true
+		_save_campaign_progression()
+
+
+## Define estado de uso único para retorno automático do Map 8 (Toalete) para a cena final do Map 7 (HAPPEN)
+func set_pending_map8_return_to_happen_finale(enabled: bool) -> void:
+	pending_map8_return_to_happen_finale = enabled
+
+
+## Consome o estado de retorno do Map 8 para o Map 7 (retorna true uma única vez)
+func consume_map8_return_to_happen_finale() -> bool:
+	if not pending_map8_return_to_happen_finale:
+		return false
+	pending_map8_return_to_happen_finale = false
+	return true
 
 
 ## Método público para carregar a progressão da campanha salva
@@ -283,6 +304,7 @@ func unlock_stage(stage_num: int) -> void:
 func _save_campaign_progression() -> void:
 	var data: Dictionary = {
 		"stage_1_completed": is_stage_completed(1),
+		"stage_2_completed": stage_2_completed,
 		"bonus_stage_unlocked": bonus_stage_unlocked,
 		"stage_2_unlocked": stage_2_unlocked,
 		"max_unlocked_stage": max_unlocked_stage,
@@ -313,6 +335,7 @@ func _load_campaign_progression() -> void:
 		stage_2_unlocked = bool(d.get("stage_2_unlocked", false))
 		max_unlocked_stage = int(d.get("max_unlocked_stage", 1))
 		stage_1_completed = bool(d.get("stage_1_completed", false))
+		stage_2_completed = bool(d.get("stage_2_completed", false))
 		max_unlocked_map = int(d.get("max_unlocked_map", 0))
 		if stage_1_completed or bonus_stage_unlocked or stage_2_unlocked:
 			stage_1_completed = true

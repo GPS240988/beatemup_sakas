@@ -97,6 +97,7 @@ var _is_guarding: bool = false
 
 # Controle de bloqueio durante QTE
 var _is_qte_locked: bool = false
+var _cutscene_walk_override: bool = false
 
 # Controle do Dash Evasivo (Gabriel)
 var _is_dashing: bool = false
@@ -541,7 +542,7 @@ func _physics_process(delta: float) -> void:
 	if _is_qte_locked:
 		velocity = Vector2.ZERO
 		move_and_slide()
-		if anim_sprite != null and anim_sprite.animation != &"idle":
+		if not _cutscene_walk_override and anim_sprite != null and anim_sprite.animation != &"idle":
 			anim_sprite.play("idle")
 		player_moved.emit(global_position, velocity)
 		return
@@ -1841,12 +1842,18 @@ func take_damage(damage_input: Variant) -> bool:
 
 func set_qte_locked(locked: bool) -> void:
 	_is_qte_locked = locked
+	if not locked:
+		_cutscene_walk_override = false
 	if locked:
 		velocity = Vector2.ZERO
 		_input_buffered = false
 		_is_guarding = false
 		if melee_attack != null:
 			melee_attack.cancel_attack()
+
+
+func set_cutscene_walk_override(active: bool) -> void:
+	_cutscene_walk_override = active
 
 
 func is_qte_locked() -> bool:

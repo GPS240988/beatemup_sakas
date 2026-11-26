@@ -6,7 +6,7 @@ extends BebadoEnemy
 
 const CombatFeedbackClass = preload("res://scripts/combat/combat_feedback.gd")
 
-const BASE_HEALTH: float = 540.0
+const BASE_HEALTH: float = 420.0
 const VISUAL_SCALE: float = 1.25
 
 # A primeira recuperação é uma revelação obrigatória da mecânica do boss.

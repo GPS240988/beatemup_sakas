@@ -30,6 +30,11 @@ const GAS_PUSH_SPEED: float = 320.0
 const GAS_TRIGGER_RANGE: float = 780.0
 const URINAL_TRIGGER_POS: Vector2 = Vector2(1945.0, 540.0)
 const URINAL_STAND_POS: Vector2 = Vector2(1888.0, 536.0)
+const BATHROOM_RETURN_EXIT_POS: Vector2 = Vector2(120.0, 595.0)
+const MAP7_SCENE_PATH: String = "res://scenes/levels/map_7.tscn"
+const AUTO_RETURN_WALK_SPEED: float = 340.0
+const POISON_DAMAGE_PER_SECOND: float = 3.0
+const PLAYER_SCENE: PackedScene = preload("res://scenes/actors/player/player.tscn")
 
 var _dialogue_controller: Node = null
 var _lider: PizzaBrawler = null
@@ -52,6 +57,13 @@ var _urinal_hint: Node2D = null
 var _urinal_sequence_started: bool = false
 var _urinal_sequence_finished: bool = false
 var _urinal_dialogue_layer: CanvasLayer = null
+var _auto_return_started: bool = false
+var _auto_return_lane_aligned: bool = false
+var _return_transition_triggered: bool = false
+var _poison_dot_active: bool = false
+var _poison_tick_timer: float = 0.0
+var _urinal_guilherme_actor: Node2D = null
+var _urinal_temp_guilherme: Node2D = null
 
 
 func _ready() -> void:
@@ -299,6 +311,8 @@ func _update_camera(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	_update_leader_gas_mechanic(delta)
+	_update_leader_poison_dot(delta)
+	_update_auto_return_walk(delta)
 
 
 func _on_intro_dialogue_finished() -> void:
@@ -418,6 +432,9 @@ func _release_leader_gas_cloud() -> void:
 	_gas_cloud_timer = GAS_CLOUD_DURATION
 	_gas_attack_cooldown = randf_range(3.8, 5.2)
 	_gas_cough_shown = false
+	if not _poison_dot_active:
+		_poison_dot_active = true
+		_poison_tick_timer = 1.0
 
 	CombatFeedback.play_sound(self, FART_GAS_SFX, 3.0, 0.05)
 	CombatFeedback.spawn_floating_text(self, _lider.global_position + Vector2(0.0, -340.0), "*PRRFFFT!*", Color(0.68, 0.96, 0.28, 1.0), 24)
@@ -516,6 +533,37 @@ func _clear_gas_cloud_visual_only() -> void:
 	_gas_cloud_node = null
 
 
+func _update_leader_poison_dot(delta: float) -> void:
+	if not _poison_dot_active:
+		return
+	if _combat_ended or _lider == null or not is_instance_valid(_lider) or _lider.current_state == EnemyAI.State.DEAD:
+		_clear_leader_poison_dot()
+		return
+	if player == null or not is_instance_valid(player) or player.health_component == null or player.health_component.is_dead:
+		return
+
+	_poison_tick_timer -= delta
+	if _poison_tick_timer <= 0.0:
+		_poison_tick_timer = 1.0
+		player.health_component.take_damage(POISON_DAMAGE_PER_SECOND)
+		if player.visual_root != null:
+			var tint_tw := create_tween()
+			tint_tw.tween_property(player.visual_root, "modulate", Color(0.68, 1.0, 0.52, 1.0), 0.12)
+			tint_tw.tween_property(player.visual_root, "modulate", Color.WHITE, 0.25)
+		CombatFeedback.spawn_floating_text(self, player.global_position + Vector2(0.0, -185.0), "-%d" % int(POISON_DAMAGE_PER_SECOND), Color(0.58, 0.96, 0.34, 1.0), 18)
+
+
+func _clear_leader_poison_dot() -> void:
+	_poison_dot_active = false
+	_poison_tick_timer = 0.0
+	if player != null and is_instance_valid(player) and player.visual_root != null:
+		player.visual_root.modulate = Color.WHITE
+
+
+func is_poison_dot_active() -> bool:
+	return _poison_dot_active
+
+
 func is_gas_cloud_active() -> bool:
 	return _gas_cloud_active
 
@@ -524,6 +572,7 @@ func _on_encounter_cleared() -> void:
 	_combat_ended = true
 	_gas_windup_active = false
 	_clear_gas_cloud()
+	_clear_leader_poison_dot()
 	if _dialogue_controller != null and is_instance_valid(_dialogue_controller):
 		_dialogue_controller.stop_combat_banter()
 	if exit_area != null and is_instance_valid(exit_area):
@@ -588,9 +637,10 @@ func start_urinal_sequence() -> void:
 		_urinal_hint.queue_free()
 		_urinal_hint = null
 
+	var is_guilherme_player: bool = _is_active_player_guilherme()
 	if player != null and is_instance_valid(player):
 		player.velocity = Vector2.ZERO
-		player.global_position = URINAL_STAND_POS
+		player.global_position = URINAL_STAND_POS if is_guilherme_player else (URINAL_STAND_POS + Vector2(-95.0, 28.0))
 		player.facing_direction = 1.0
 		if player.visual_root != null:
 			player.visual_root.scale.x = absf(player.visual_root.scale.y)
@@ -598,7 +648,65 @@ func start_urinal_sequence() -> void:
 			player.anim_sprite.play("idle")
 		player.set_physics_process(false)
 
+	if is_guilherme_player:
+		_urinal_guilherme_actor = player
+	else:
+		_urinal_guilherme_actor = _spawn_urinal_guilherme_actor()
+
 	_show_urinal_footer_dialogue()
+
+
+func _is_active_player_guilherme() -> bool:
+	var session := get_node_or_null("/root/GameSession")
+	if session != null and "selected_character_id" in session:
+		var sel: String = str(session.get("selected_character_id")).strip_edges().to_lower()
+		if sel != "":
+			return sel == "guilherme"
+	if player != null and is_instance_valid(player) and player.hero_data != null:
+		return str(player.hero_data.hero_id).strip_edges().to_lower() == "guilherme"
+	return true
+
+
+func _spawn_urinal_guilherme_actor() -> Node2D:
+	var npcs := get_node_or_null("World/Actors/NPCs")
+	var parent_node: Node = npcs if npcs != null else get_node_or_null("World/Actors")
+	if parent_node == null:
+		parent_node = self
+
+	var actor := Node2D.new()
+	actor.name = "UrinalCutscene_Guilherme"
+	actor.position = URINAL_STAND_POS
+	actor.y_sort_enabled = true
+
+	var visual := Node2D.new()
+	visual.name = "Visual"
+	actor.add_child(visual)
+
+	var shadow := Polygon2D.new()
+	shadow.name = "Shadow"
+	shadow.color = Color(0.08, 0.08, 0.12, 0.5)
+	shadow.polygon = PackedVector2Array([-42, 0, -30, -10, 0, -14, 30, -10, 42, 0, 30, 10, 0, 14, -30, 10])
+	visual.add_child(shadow)
+
+	var anim := AnimatedSprite2D.new()
+	anim.name = "AnimatedSprite2D"
+	anim.position = Vector2(0.0, -118.0)
+	anim.scale = Vector2(0.80, 0.80)
+	anim.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if PLAYER_SCENE != null:
+		var temp_p := PLAYER_SCENE.instantiate()
+		if temp_p != null:
+			var p_anim := temp_p.get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
+			if p_anim != null and p_anim.sprite_frames != null:
+				anim.sprite_frames = p_anim.sprite_frames
+			temp_p.queue_free()
+	if anim.sprite_frames != null and anim.sprite_frames.has_animation(&"idle"):
+		anim.play(&"idle")
+	visual.add_child(anim)
+
+	parent_node.add_child(actor)
+	_urinal_temp_guilherme = actor
+	return actor
 
 
 func _show_urinal_footer_dialogue() -> void:
@@ -702,11 +810,12 @@ func _load_texture_safe(res_path: String) -> Texture2D:
 
 
 func _play_urinal_pee_animation() -> void:
-	if player == null or not is_instance_valid(player):
+	var pee_actor: Node2D = _urinal_guilherme_actor if (_urinal_guilherme_actor != null and is_instance_valid(_urinal_guilherme_actor)) else player
+	if pee_actor == null or not is_instance_valid(pee_actor):
 		_finish_urinal_sequence()
 		return
 
-	# 1. Saca a comanda oficial (comanda.png) antes de iniciar o jato
+	# 1. Guilherme saca a comanda oficial (comanda.png) antes de iniciar o jato
 	var comanda := Sprite2D.new()
 	comanda.name = "PlayerComandaInHand"
 	comanda.texture = _load_texture_safe(COMANDA_SPRITE_PATH)
@@ -714,16 +823,16 @@ func _play_urinal_pee_animation() -> void:
 	comanda.position = Vector2(20.0, -70.0)
 	comanda.scale = Vector2(0.05, 0.05)
 	comanda.z_index = 6
-	player.add_child(comanda)
+	pee_actor.add_child(comanda)
 
 	var draw_tw := create_tween().set_parallel(true)
 	draw_tw.tween_property(comanda, "position", Vector2(46.0, -108.0), 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	draw_tw.tween_property(comanda, "scale", Vector2(0.38, 0.38), 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	draw_tw.chain().tween_callback(func() -> void:
-		if not is_instance_valid(player) or not is_instance_valid(comanda):
+		if not is_instance_valid(pee_actor) or not is_instance_valid(comanda):
 			_finish_urinal_sequence()
 			return
-		# 2. Jato PixelFX em parábola saindo da cintura, subindo em arco até cair no mictório
+		# 2. Jato PixelFX em parábola saindo da cintura do Guilherme, subindo em arco até cair no mictório
 		# e atingindo parte da comanda segurada à frente
 		var jet_anim: AnimatedSprite2D = null
 		var frames := _get_water_jet_frames()
@@ -738,7 +847,7 @@ func _play_urinal_pee_animation() -> void:
 			jet_anim.rotation = -0.34
 			jet_anim.z_index = 7
 			jet_anim.play(&"water_jet")
-			player.add_child(jet_anim)
+			pee_actor.add_child(jet_anim)
 
 		CombatFeedback.play_sound(self, PEE_SFX, 2.0, 0.03)
 
@@ -757,8 +866,97 @@ func _play_urinal_pee_animation() -> void:
 
 func _finish_urinal_sequence() -> void:
 	_urinal_sequence_finished = true
+	if _urinal_temp_guilherme != null and is_instance_valid(_urinal_temp_guilherme):
+		_urinal_temp_guilherme.queue_free()
+	_urinal_temp_guilherme = null
+	_urinal_guilherme_actor = null
 	if player != null and is_instance_valid(player):
+		player.velocity = Vector2.ZERO
+		if player.has_method("set_qte_locked"):
+			player.call("set_qte_locked", true)
+		if player.has_method("set_cutscene_walk_override"):
+			player.call("set_cutscene_walk_override", true)
 		player.set_physics_process(true)
+	_start_auto_return_to_map7()
+
+
+func _start_auto_return_to_map7() -> void:
+	if _auto_return_started or _return_transition_triggered:
+		return
+	_auto_return_started = true
+	_auto_return_lane_aligned = false
+	if player != null and is_instance_valid(player):
+		if player.has_method("set_cutscene_walk_override"):
+			player.call("set_cutscene_walk_override", true)
+		player.facing_direction = -1.0
+		if player.visual_root != null:
+			player.visual_root.scale.x = -absf(player.visual_root.scale.y)
+		if player.anim_sprite != null and player.anim_sprite.sprite_frames != null and player.anim_sprite.sprite_frames.has_animation("walk"):
+			player.anim_sprite.play("walk")
+
+
+func _update_auto_return_walk(delta: float) -> void:
+	if not _auto_return_started or _return_transition_triggered:
+		return
+	if player == null or not is_instance_valid(player):
+		_trigger_return_to_map7()
+		return
+
+	if player.anim_sprite != null and player.anim_sprite.sprite_frames != null and player.anim_sprite.sprite_frames.has_animation("walk"):
+		if player.anim_sprite.animation != &"walk" or not player.anim_sprite.is_playing():
+			player.anim_sprite.play("walk")
+
+	player.facing_direction = -1.0
+	if player.visual_root != null:
+		player.visual_root.scale.x = -absf(player.visual_root.scale.y)
+
+	var target: Vector2 = Vector2(player.global_position.x, BATHROOM_RETURN_EXIT_POS.y) if not _auto_return_lane_aligned else BATHROOM_RETURN_EXIT_POS
+	var step: float = AUTO_RETURN_WALK_SPEED * delta
+	player.global_position = player.global_position.move_toward(target, step)
+	player.global_position.x = clampf(player.global_position.x, WALKABLE_LEFT, WALKABLE_RIGHT)
+	player.global_position.y = clampf(player.global_position.y, WALKABLE_TOP, WALKABLE_BOTTOM)
+
+	if not _auto_return_lane_aligned:
+		if absf(player.global_position.y - BATHROOM_RETURN_EXIT_POS.y) <= 4.0:
+			_auto_return_lane_aligned = true
+		return
+
+	if player.global_position.x <= BATHROOM_RETURN_EXIT_POS.x + 8.0:
+		_trigger_return_to_map7()
+
+
+func _trigger_return_to_map7() -> void:
+	if _return_transition_triggered or _transitioning:
+		return
+	_return_transition_triggered = true
+	_transitioning = true
+
+	if player != null and is_instance_valid(player):
+		player.velocity = Vector2.ZERO
+		if player.anim_sprite != null and player.anim_sprite.sprite_frames != null and player.anim_sprite.sprite_frames.has_animation("idle"):
+			player.anim_sprite.play("idle")
+
+	var session := get_node_or_null("/root/GameSession")
+	if session != null:
+		if player != null and is_instance_valid(player):
+			if "current_continues" in player and "current_continues" in session:
+				session.current_continues = player.current_continues
+			var cur_hp: float = player.health_component.current_health if player.health_component != null else 100.0
+			var cur_sp: float = player.current_special if "current_special" in player else 0.0
+			if session.has_method("save_player_progression"):
+				session.save_player_progression(map_group, cur_hp, cur_sp)
+		if session.has_method("set_pending_map8_return_to_happen_finale"):
+			session.set_pending_map8_return_to_happen_finale(true)
+
+	_safe_change_scene(MAP7_SCENE_PATH)
+
+
+func is_auto_return_started() -> bool:
+	return _auto_return_started
+
+
+func is_return_transition_triggered() -> bool:
+	return _return_transition_triggered
 
 
 func is_urinal_sequence_started() -> bool:

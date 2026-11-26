@@ -46,7 +46,7 @@ y_sort_enabled = true
 collision_layer = 2
 script = ExtResource("1_prop")
 prop_name = "Carro Hatch Laranja (Fiesta)"
-max_health = 540.0
+max_health = 650.0
 damage_stage_textures = Array[Texture2D]([ExtResource("3_fiesta1"), ExtResource("4_fiesta2"), ExtResource("5_fiesta3"), ExtResource("6_fiesta4"), ExtResource("7_fiesta5"), ExtResource("8_fiesta6")])
 
 [node name="Visual" type="Node2D" parent="." unique_id=1082083690]
@@ -83,7 +83,7 @@ shape = SubResource("RectangleShape2D_hurt_rear")
 
 [node name="HealthComponent" type="Node" parent="." unique_id=459472646]
 script = ExtResource("2_health")
-max_health = 1350.0
+max_health = 650.0
 
 [node name="Effects" type="Node2D" parent="." unique_id=605742216]
 

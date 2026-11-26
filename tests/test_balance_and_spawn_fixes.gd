@@ -48,11 +48,11 @@ func _run() -> void:
 	world.add_child(car_blue)
 	await process_frame
 
-	_assert(is_equal_approx(car_orange.max_health, 540.0), "Carro Hatch Laranja (Fiesta) possui 540 HP")
-	_assert(is_equal_approx(car_blue.max_health, 540.0), "Carro Sedan Azul (Escort) possui 540 HP")
+	_assert(is_equal_approx(car_orange.max_health, 650.0), "Carro Hatch Laranja (Fiesta) possui 650 HP")
+	_assert(is_equal_approx(car_blue.max_health, 650.0), "Carro Sedan Azul (Escort) possui 650 HP")
 
 	var total_car_health: float = car_orange.max_health + car_blue.max_health
-	_assert(is_equal_approx(total_car_health, 1080.0), "Vida total dos 2 carros somados é exatamente 1080 HP")
+	_assert(is_equal_approx(total_car_health, 1300.0), "Vida total dos 2 carros somados é exatamente 1300 HP")
 
 	# Simulação matemática de DPS
 	var guilherme_dps: float = 80.0 / 1.53 # ~52.3 DPS

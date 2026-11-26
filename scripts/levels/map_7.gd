@@ -71,7 +71,10 @@ const SEATED_VICTORY_CAST: Array[Dictionary] = [
 const PIZZA_PROP_TEXTURE: Texture2D = preload("res://assets/sprites/props/happen/pizza.png")
 const COCA_PICKUP_SCENE: PackedScene = preload("res://scenes/items/coca_pickup.tscn")
 const PIZZA_SLICE_PICKUP_SCRIPT: Script = preload("res://scripts/items/pizza_slice_pickup.gd")
+const MAP7_HAPPEN_FINALE_SCRIPT: Script = preload("res://scripts/events/map7_happen_finale.gd")
 const GARCONETE_FRAMES: SpriteFrames = preload("res://scenes/actors/npc/garconete_frames.tres")
+const GABRIEL_SPRITE_FRAMES: SpriteFrames = preload("res://resources/characters/gabriel_sprite_frames.tres")
+const PLAYER_SCENE: PackedScene = preload("res://scenes/actors/player/player.tscn")
 const TAPA_SFX: String = "res://assets/audio/sfx/tapa_alessandro.wav"
 const AIIIN_SFX: String = "res://assets/audio/sfx/garconete_aiiin.wav"
 const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
@@ -79,6 +82,9 @@ const ARCADE_FONT: FontFile = preload("res://assets/fonts/arcade_bold.ttf")
 const GARCONETE_COUNTER_POS: Vector2 = Vector2(1690.0, 466.0)
 const GARCONETE_COUNTER_EXIT_POS: Vector2 = Vector2(1520.0, 520.0)
 const GARCONETE_ALESSANDRO_POS: Vector2 = Vector2(418.0, 566.0)
+const BATHROOM_RETURN_START_POS: Vector2 = Vector2(1890.0, 480.0)
+const FINALE_GUILHERME_POS: Vector2 = Vector2(1555.0, 520.0)
+const FINALE_GABRIEL_POS: Vector2 = Vector2(1460.0, 532.0)
 
 const HAPPEN_ENEMY_PALETTES: Array[int] = [
 	EnemyAI.PaletteVariant.RED,
@@ -98,6 +104,8 @@ var _garconete_counter_timer: float = 3.8
 var _garconete_counter_reacting: bool = false
 var _garconete_counter_react_timer: float = 0.0
 var _alessandro_bubble_layer: CanvasLayer = null
+var _finale_return_mode: bool = false
+var _finale_controller: Node = null
 
 
 func _enter_tree() -> void:
@@ -105,6 +113,12 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	var session := get_node_or_null("/root/GameSession")
+	_finale_return_mode = session != null and session.has_method("consume_map8_return_to_happen_finale") and bool(session.consume_map8_return_to_happen_finale())
+
+	if _finale_return_mode:
+		_clear_salon_combat_for_finale_return()
+
 	PizzaBrawler.reset_global_chair_ambush_state()
 	_configure_happen_map()
 	var director := get_node_or_null("CombatDirector")
@@ -113,6 +127,10 @@ func _ready() -> void:
 	super._ready()
 	if hud != null and hud.label_level_name != null:
 		hud.label_level_name.text = "FASE 2-3 · HAPPEN — SALÃO PRINCIPAL"
+
+	if _finale_return_mode:
+		_setup_finale_return_sequence()
+		return
 
 	if combat_director != null:
 		combat_director.add_pending_spawns(BATHROOM_WAVE_SPECS.size())
@@ -152,7 +170,7 @@ func _update_camera(delta: float) -> void:
 
 
 func _update_garconete_counter_idle(delta: float) -> void:
-	if _garconete_cutscene_active or _garconete_anim == null or not is_instance_valid(_garconete_anim):
+	if _finale_return_mode or _garconete_cutscene_active or _garconete_anim == null or not is_instance_valid(_garconete_anim):
 		return
 	if _garconete_counter_reacting:
 		_garconete_counter_react_timer -= delta
@@ -228,7 +246,7 @@ func _configure_happen_map() -> void:
 
 	var player_node: Node2D = get_node_or_null("World/Actors/Player") as Node2D
 	if player_node != null:
-		player_node.position = PLAYER_START
+		player_node.position = BATHROOM_RETURN_START_POS if _finale_return_mode else PLAYER_START
 
 	var depth_scaler: Node = get_node_or_null("YDepthScaler")
 	if depth_scaler != null:
@@ -324,6 +342,8 @@ func _enable_brawler_world_collision(brawler: PizzaBrawler) -> void:
 
 
 func _on_encounter_cleared() -> void:
+	if _finale_return_mode:
+		return
 	if combat_director != null and combat_director.pending_spawns_count > 0:
 		return
 	# Mantém ExitArea e SigaIndicator desativados: o encerramento do salão é a cena da garçonete
@@ -708,6 +728,164 @@ func is_bathroom_wave_spawned() -> bool:
 
 func is_seated_ending_triggered() -> bool:
 	return _seated_ending_triggered
+
+
+func is_finale_return_mode() -> bool:
+	return _finale_return_mode
+
+
+func get_finale_controller() -> Node:
+	return _finale_controller
+
+
+func _clear_salon_combat_for_finale_return() -> void:
+	var enemies_container := get_node_or_null("World/Actors/Enemies")
+	if enemies_container != null:
+		for child in enemies_container.get_children():
+			enemies_container.remove_child(child)
+			child.queue_free()
+
+	var banter := get_node_or_null("CounterBanter")
+	if banter != null:
+		banter.queue_free()
+
+	var blink_indicator := get_node_or_null("ToiletBlinkIndicator")
+	if blink_indicator != null:
+		blink_indicator.queue_free()
+
+
+func _setup_finale_return_sequence() -> void:
+	if exit_area != null and is_instance_valid(exit_area):
+		exit_area.monitoring = false
+	if siga_indicator != null and is_instance_valid(siga_indicator):
+		siga_indicator.deactivate()
+	if combat_director != null:
+		combat_director.is_cleared = true
+		combat_director.encounter_state = "COMPLETED"
+
+	_spawn_garconete_at_counter()
+
+	# Preserva continuidade visual do salão sem duplicar nenhum herói nem iniciar cena anterior
+	var npcs_container := get_node_or_null("World/Actors/NPCs")
+	var active_hero_id: String = _get_active_player_hero_id()
+	if npcs_container != null:
+		for hero_spec in SEATED_VICTORY_CAST:
+			var hid: String = str(hero_spec.get("hero_id", "")).to_lower()
+			if hid == "gabriel" or hid == "guilherme" or (active_hero_id != "" and hid == active_hero_id):
+				continue
+			var node_name: String = str(hero_spec["name"])
+			if npcs_container.get_node_or_null(node_name) != null:
+				continue
+			var tex_path: String = str(hero_spec["texture"])
+			if not ResourceLoader.exists(tex_path):
+				continue
+			var tex := load(tex_path) as Texture2D
+			if tex == null:
+				continue
+			var holder := Node2D.new()
+			holder.name = node_name
+			holder.position = hero_spec["position"]
+			holder.y_sort_enabled = true
+			var sprite := Sprite2D.new()
+			sprite.name = "Sprite2D"
+			sprite.texture = tex
+			sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			sprite.scale = Vector2(0.80, 0.80)
+			sprite.position = Vector2(0.0, -96.0)
+			holder.add_child(sprite)
+			npcs_container.add_child(holder)
+
+	_spawn_victory_pizza_stack()
+
+	if player != null and is_instance_valid(player):
+		player.position = BATHROOM_RETURN_START_POS
+		player.velocity = Vector2.ZERO
+		player.facing_direction = -1.0
+		if player.visual_root != null:
+			player.visual_root.scale.x = -absf(player.visual_root.scale.y)
+		if player.has_method("set_qte_locked"):
+			player.call("set_qte_locked", true)
+		player.set_physics_process(false)
+
+	var gabriel_actor: Node2D = null
+	var guilherme_actor: Node2D = null
+	var player_walk_target: Vector2 = FINALE_GUILHERME_POS
+	if active_hero_id == "gabriel":
+		gabriel_actor = player
+		player_walk_target = FINALE_GABRIEL_POS
+		guilherme_actor = _spawn_finale_companion("guilherme", "FinaleCompanion_Guilherme", FINALE_GUILHERME_POS, _get_guilherme_sprite_frames())
+	elif active_hero_id == "guilherme":
+		guilherme_actor = player
+		player_walk_target = FINALE_GUILHERME_POS
+		gabriel_actor = _spawn_finale_companion("gabriel", "FinaleCompanion_Gabriel", FINALE_GABRIEL_POS, GABRIEL_SPRITE_FRAMES)
+	else:
+		player_walk_target = FINALE_GABRIEL_POS + Vector2(-55.0, 10.0)
+		guilherme_actor = _spawn_finale_companion("guilherme", "FinaleCompanion_Guilherme", FINALE_GUILHERME_POS, _get_guilherme_sprite_frames())
+		gabriel_actor = _spawn_finale_companion("gabriel", "FinaleCompanion_Gabriel", FINALE_GABRIEL_POS, GABRIEL_SPRITE_FRAMES)
+
+	var juliana_node := get_node_or_null("World/Actors/NPCs/Seated_Juliana") as Node2D
+
+	_finale_controller = MAP7_HAPPEN_FINALE_SCRIPT.new()
+	_finale_controller.name = "Map7HappenFinale"
+	add_child(_finale_controller)
+	_finale_controller.setup(self, player, gabriel_actor, guilherme_actor, _garconete, juliana_node, camera)
+	_finale_controller.start_finale(player_walk_target)
+
+
+func _spawn_finale_companion(hero_id: String, node_name: String, spawn_pos: Vector2, frames: SpriteFrames) -> Node2D:
+	var npcs_container := get_node_or_null("World/Actors/NPCs")
+	if npcs_container == null:
+		return null
+	var existing := npcs_container.get_node_or_null(node_name) as Node2D
+	if existing != null:
+		return existing
+
+	var companion := Node2D.new()
+	companion.name = node_name
+	companion.position = spawn_pos
+	companion.y_sort_enabled = true
+	companion.set_meta("hero_id", hero_id)
+
+	var visual := Node2D.new()
+	visual.name = "Visual"
+	companion.add_child(visual)
+
+	var shadow := Polygon2D.new()
+	shadow.name = "Shadow"
+	shadow.color = Color(0.08, 0.08, 0.12, 0.5)
+	shadow.polygon = PackedVector2Array([-42, 0, -30, -10, 0, -14, 30, -10, 42, 0, 30, 10, 0, 14, -30, 10])
+	visual.add_child(shadow)
+
+	var anim := AnimatedSprite2D.new()
+	anim.name = "AnimatedSprite2D"
+	anim.position = Vector2(0.0, -118.0)
+	anim.scale = Vector2(0.80, 0.80)
+	anim.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	anim.sprite_frames = frames
+	if frames != null and frames.has_animation(&"idle"):
+		anim.play(&"idle")
+	visual.add_child(anim)
+
+	var muzzle := Marker2D.new()
+	muzzle.name = "MuzzleMarker"
+	muzzle.position = Vector2(74.0, -172.0)
+	visual.add_child(muzzle)
+
+	npcs_container.add_child(companion)
+	return companion
+
+
+func _get_guilherme_sprite_frames() -> SpriteFrames:
+	if player != null and is_instance_valid(player) and player.anim_sprite != null and player.hero_data != null and str(player.hero_data.hero_id).to_lower() == "guilherme":
+		return player.anim_sprite.sprite_frames
+	if PLAYER_SCENE != null:
+		var temp_player := PLAYER_SCENE.instantiate()
+		if temp_player != null:
+			var anim := temp_player.get_node_or_null("Visual/AnimatedSprite2D") as AnimatedSprite2D
+			var frames: SpriteFrames = anim.sprite_frames if anim != null else null
+			temp_player.queue_free()
+			return frames
+	return null
 
 
 func _setup_level_bgm() -> void:

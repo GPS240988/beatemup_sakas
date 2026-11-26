@@ -32,7 +32,7 @@ func _init() -> void:
 	_assert(boss.get_node_or_null("BossHUD") == null, "Boss não deve criar HUD próprio sobre a barra de vida")
 
 	var boss_typed := boss as BossBebadoClass
-	_assert(is_equal_approx(boss_typed.health_component.max_health, 540.0), "Vida base do boss deve ser 540")
+	_assert(is_equal_approx(boss_typed.health_component.max_health, 420.0), "Vida base do boss deve ser 420")
 	_assert(is_equal_approx(BossBebadoClass.FIRST_RECOVERY_RATIO, 0.78), "Primeira recuperação deve revelar a mecânica em 78% da vida")
 	_assert(is_equal_approx(BossBebadoClass.FIRST_RECOVERY_HEAL, 65.0), "Primeira recuperação deve curar 65 HP")
 	_assert(is_equal_approx(BossBebadoClass.PHASE_THREE_RATIO, 0.33), "Terceira fase deve começar em 33% da vida")

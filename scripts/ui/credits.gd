@@ -82,16 +82,12 @@ func _on_video_finished() -> void:
 		fade_out.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 		await fade_out.finished
 
-	# O fluxo do Estágio 02 é deliberadamente restrito a builds de depuração.
-	# Em release, os créditos encerram a campanha sem expor o mapa ainda não publicado.
-	var target_scene: String = MAIN_MENU_SCENE
-	if OS.is_debug_build():
-		var session = get_node_or_null("/root/GameSession")
-		if session != null:
-			session.pending_map_transition_mode = 1
-			session.pending_transition_target = STAGE2_INTRO_SCENE
-			session.has_seen_stage_2_transition = true
-		target_scene = MAP_TRANSITION_SCENE
+	var session = get_node_or_null("/root/GameSession")
+	if session != null:
+		session.pending_map_transition_mode = 1
+		session.pending_transition_target = STAGE2_INTRO_SCENE
+		session.has_seen_stage_2_transition = true
+	var target_scene: String = MAP_TRANSITION_SCENE
 
 	var err := get_tree().change_scene_to_file(target_scene)
 	if err != OK:

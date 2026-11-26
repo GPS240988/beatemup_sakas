@@ -43,7 +43,7 @@ func _run_tests() -> void:
 
 	_assert(map_menu.get("_hotspot_nodes").size() == 6, "Overview preserva os seis marcadores macro")
 	_assert(map_menu.get("_stage2_hotspot_nodes").size() == 4, "Estágio 02 cria quatro marcadores internos")
-	_assert(map_menu.is_stage_unlocked(5) == OS.is_debug_build(), "HAPPEN respeita a trava de build Release/Debug")
+	_assert(map_menu.is_stage_unlocked(5) == true, "HAPPEN fica liberado no contexto continue/deploy")
 
 	var configs: Array = map_menu.STAGE2_MAP_CONFIGS
 	_assert(configs.size() == 4, "Estágio 02 possui quatro localidades")
