@@ -28,7 +28,7 @@ size = Vector2(2000, 20)
 size = Vector2(20, 260)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
-size = Vector2(60, 150)
+size = Vector2(72, 48)
 
 [node name="Map7" type="Node2D"]
 script = ExtResource("1_map7_script")
@@ -37,7 +37,7 @@ section_number = 3
 map_name = "HAPPEN — SALÃO PRINCIPAL"
 map_index = 3
 map_group = "fase2"
-next_map_scene_path = ""
+next_map_scene_path = "res://scenes/levels/map_8.tscn"
 is_final_map = false
 camera_min_x = 640.0
 camera_max_x = 1408.0
@@ -263,7 +263,7 @@ script = ExtResource("15_spawn_director")
 script = ExtResource("4_combat_director")
 
 [node name="ExitArea" type="Area2D" parent="."]
-position = Vector2(1960, 560)
+position = Vector2(1935, 456)
 collision_layer = 0
 collision_mask = 1
 monitoring = false

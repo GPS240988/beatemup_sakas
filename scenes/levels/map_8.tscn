@@ -1,0 +1,206 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/map_8.gd" id="1_map8_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/maps/fase2/Fase2_5.webp" id="2_background"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player/player.tscn" id="3_player"]
+[ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="4_combat_director"]
+[ext_resource type="PackedScene" path="res://scenes/ui/siga_indicator.tscn" id="5_siga"]
+[ext_resource type="PackedScene" path="res://scenes/ui/prototype_hud.tscn" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/components/y_depth_scaler_2d.gd" id="7_depth_scaler"]
+[ext_resource type="NavigationPolygon" path="res://scenes/levels/map_8_navpoly.tres" id="8_navigation"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/pizza_brawler.tscn" id="9_pizza_brawler"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_horizontal_boundary"]
+size = Vector2(2137, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vertical_boundary"]
+size = Vector2(20, 260)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_exit"]
+size = Vector2(60, 150)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_trash"]
+size = Vector2(76, 26)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sink"]
+size = Vector2(240, 22)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_stall"]
+size = Vector2(400, 58)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_urinal"]
+size = Vector2(84, 24)
+
+[node name="Map8" type="Node2D"]
+script = ExtResource("1_map8_script")
+stage_number = 2
+section_number = 4
+map_name = "HAPPEN — TOALETE"
+map_index = 4
+map_group = "fase2"
+next_map_scene_path = ""
+is_final_map = false
+camera_min_x = 640.0
+camera_max_x = 1497.0
+camera_fixed_y = 368.0
+camera_follow_speed = 12.0
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 368)
+position_smoothing_enabled = true
+position_smoothing_speed = 12.0
+
+[node name="Background" type="Node2D" parent="."]
+z_index = -10
+
+[node name="Far" type="Sprite2D" parent="Background"]
+texture = ExtResource("2_background")
+centered = false
+texture_filter = 1
+
+[node name="Mid" type="Node2D" parent="Background"]
+
+[node name="BackProps" type="Node2D" parent="Background"]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = ExtResource("8_navigation")
+
+[node name="StaticWorld" type="Node2D" parent="."]
+
+[node name="WorldBoundaries" type="StaticBody2D" parent="StaticWorld"]
+collision_layer = 2
+collision_mask = 1
+
+[node name="TopWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(1068.5, 495)
+shape = SubResource("RectangleShape2D_horizontal_boundary")
+
+[node name="BottomWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(1068.5, 710)
+shape = SubResource("RectangleShape2D_horizontal_boundary")
+
+[node name="LeftWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(20, 600)
+shape = SubResource("RectangleShape2D_vertical_boundary")
+
+[node name="RightWall" type="CollisionShape2D" parent="StaticWorld/WorldBoundaries"]
+position = Vector2(2117, 600)
+shape = SubResource("RectangleShape2D_vertical_boundary")
+
+[node name="World" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Props" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="StaticProps" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="ToiletTrashCollider" type="StaticBody2D" parent="World/Props/StaticProps"]
+position = Vector2(598, 515)
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/ToiletTrashCollider"]
+shape = SubResource("RectangleShape2D_trash")
+
+[node name="ToiletSinkCollider" type="StaticBody2D" parent="World/Props/StaticProps"]
+position = Vector2(945, 512)
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/ToiletSinkCollider"]
+shape = SubResource("RectangleShape2D_sink")
+
+[node name="ToiletStallCollider" type="StaticBody2D" parent="World/Props/StaticProps"]
+position = Vector2(1565, 525)
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/ToiletStallCollider"]
+shape = SubResource("RectangleShape2D_stall")
+
+[node name="ToiletUrinalCollider" type="StaticBody2D" parent="World/Props/StaticProps"]
+position = Vector2(1945, 514)
+collision_layer = 2
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Props/StaticProps/ToiletUrinalCollider"]
+shape = SubResource("RectangleShape2D_urinal")
+
+[node name="Destructibles" type="Node2D" parent="World/Props"]
+y_sort_enabled = true
+
+[node name="Actors" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Player" parent="World/Actors" instance=ExtResource("3_player")]
+position = Vector2(185, 595)
+
+[node name="Enemies" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="GorduchoLider" parent="World/Actors/Enemies" instance=ExtResource("9_pizza_brawler")]
+position = Vector2(1785, 585)
+display_name = "LÍDER"
+archetype = 2
+palette_variant = 1
+initial_routine = 0
+start_sitting = false
+wake_on_proximity = false
+initial_facing = -1.0
+enable_chair_ambush = false
+
+[node name="Gorducho2" parent="World/Actors/Enemies" instance=ExtResource("9_pizza_brawler")]
+position = Vector2(1895, 550)
+display_name = "GORDUCHO"
+archetype = 1
+palette_variant = 2
+initial_routine = 0
+start_sitting = false
+wake_on_proximity = false
+initial_facing = -1.0
+enable_chair_ambush = false
+
+[node name="Gorducho3" parent="World/Actors/Enemies" instance=ExtResource("9_pizza_brawler")]
+position = Vector2(1930, 640)
+display_name = "GORDUCHO"
+archetype = 3
+palette_variant = 3
+initial_routine = 0
+start_sitting = false
+wake_on_proximity = false
+initial_facing = -1.0
+enable_chair_ambush = false
+
+[node name="NPCs" type="Node2D" parent="World/Actors"]
+y_sort_enabled = true
+
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="YDepthScaler" type="Node" parent="."]
+script = ExtResource("7_depth_scaler")
+far_lane_y = 505.0
+near_lane_y = 700.0
+far_scale = 0.86
+near_scale = 1.0
+smoothing_speed = 12.0
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("4_combat_director")
+
+[node name="ExitArea" type="Area2D" parent="."]
+position = Vector2(120, 595)
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitArea"]
+shape = SubResource("RectangleShape2D_exit")
+
+[node name="SigaIndicator" parent="." instance=ExtResource("5_siga")]
+
+[node name="PrototypeHud" parent="." instance=ExtResource("6_hud")]

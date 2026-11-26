@@ -1,0 +1,5 @@
+[gd_resource type="NavigationPolygon" format=3]
+
+[resource]
+vertices = PackedVector2Array(40, 505, 1365, 505, 1365, 555, 40, 555, 40, 695, 2097, 695, 2097, 555, 1765, 555, 1765, 505, 2097, 505)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3), PackedInt32Array(3, 2, 7, 6, 5, 4), PackedInt32Array(8, 9, 6, 7)])

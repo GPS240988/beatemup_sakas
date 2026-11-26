@@ -69,6 +69,8 @@ const SEATED_VICTORY_CAST: Array[Dictionary] = [
 ]
 
 const PIZZA_PROP_TEXTURE: Texture2D = preload("res://assets/sprites/props/happen/pizza.png")
+const COCA_PICKUP_SCENE: PackedScene = preload("res://scenes/items/coca_pickup.tscn")
+const PIZZA_SLICE_PICKUP_SCRIPT: Script = preload("res://scripts/items/pizza_slice_pickup.gd")
 const GARCONETE_FRAMES: SpriteFrames = preload("res://scenes/actors/npc/garconete_frames.tres")
 const TAPA_SFX: String = "res://assets/audio/sfx/tapa_alessandro.wav"
 const AIIIN_SFX: String = "res://assets/audio/sfx/garconete_aiiin.wav"
@@ -118,6 +120,27 @@ func _ready() -> void:
 			combat_director.enemy_defeated.connect(_on_map7_enemy_defeated)
 
 	_spawn_garconete_at_counter()
+	_spawn_table_pizza_slice_pickup()
+
+
+func _spawn_table_pizza_slice_pickup() -> void:
+	var props_node := get_node_or_null("World/Props")
+	if props_node == null or props_node.get_node_or_null("TablePizzaSlicePickup") != null:
+		return
+	if COCA_PICKUP_SCENE == null or PIZZA_SLICE_PICKUP_SCRIPT == null:
+		return
+	var pickup := COCA_PICKUP_SCENE.instantiate() as Node2D
+	if pickup == null:
+		return
+	pickup.set_script(PIZZA_SLICE_PICKUP_SCRIPT)
+	pickup.name = "TablePizzaSlicePickup"
+	# Em cima do tecido da segunda mesa (RoundTable01 em Vector2(1060, 585))
+	pickup.position = Vector2(1060.0, 588.0)
+	pickup.z_index = 6
+	pickup.set("pickup_range_x", 125.0)
+	pickup.set("pickup_depth_tolerance", 68.0)
+	pickup.set("sprite_offset_y", -224.0)
+	props_node.add_child(pickup)
 
 
 func _update_camera(delta: float) -> void:
@@ -521,6 +544,53 @@ func _on_garconete_returned_to_counter() -> void:
 		_garconete_anim.animation = &"idle"
 		_garconete_anim.frame = 0
 		_garconete_anim.stop()
+	enable_toilet_exit()
+
+
+func enable_toilet_exit() -> void:
+	if exit_area != null and is_instance_valid(exit_area):
+		exit_area.monitoring = true
+	if siga_indicator != null and is_instance_valid(siga_indicator):
+		siga_indicator.activate()
+	_spawn_blinking_toilet_indicator()
+
+
+func _spawn_blinking_toilet_indicator() -> void:
+	if get_node_or_null("ToiletBlinkIndicator") != null:
+		return
+	# Sinalização diegética integrada ao cenário (sem UI/HUD do Godot):
+	# brilho pulsante da luz do toalete na soleira e na porta + seta arcade discreta.
+	var indicator := Node2D.new()
+	indicator.name = "ToiletBlinkIndicator"
+	indicator.position = BATHROOM_DOOR_POS
+	indicator.z_index = 4
+
+	var door_glow := Polygon2D.new()
+	door_glow.name = "DoorLightSpill"
+	door_glow.color = Color(0.32, 0.82, 1.0, 0.24)
+	door_glow.polygon = PackedVector2Array([-38, -142, 38, -142, 38, 4, -38, 4])
+	indicator.add_child(door_glow)
+
+	var mat_glow := Polygon2D.new()
+	mat_glow.name = "ThresholdHighlight"
+	mat_glow.color = Color(1.0, 0.88, 0.30, 0.42)
+	mat_glow.polygon = PackedVector2Array([-44, 0, 44, 0, 52, 22, -52, 22])
+	indicator.add_child(mat_glow)
+
+	var arrow := Polygon2D.new()
+	arrow.name = "DiegeticArrow"
+	arrow.position = Vector2(0.0, -162.0)
+	arrow.color = Color(1.0, 0.88, 0.28, 0.95)
+	arrow.polygon = PackedVector2Array([-12, -10, 12, -10, 12, 0, 22, 0, 0, 18, -22, 0, -12, 0])
+	indicator.add_child(arrow)
+
+	add_child(indicator)
+	var tw := indicator.create_tween().set_loops()
+	tw.tween_property(indicator, "modulate:a", 0.22, 0.36).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(indicator, "modulate:a", 1.0, 0.36).set_trans(Tween.TRANS_SINE)
+	var arrow_tw := arrow.create_tween().set_loops()
+	arrow_tw.tween_property(arrow, "position:y", -152.0, 0.36).set_trans(Tween.TRANS_SINE)
+	arrow_tw.tween_property(arrow, "position:y", -166.0, 0.36).set_trans(Tween.TRANS_SINE)
 
 
 func _show_alessandro_speech_bubble(text: String) -> void:

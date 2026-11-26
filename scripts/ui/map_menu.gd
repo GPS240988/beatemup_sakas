@@ -140,9 +140,9 @@ const STAGE2_MAP_CONFIGS: Array[Dictionary] = [
 		"title": "TOALETE",
 		"tag": "TOALETE",
 		"pos_ratio": Vector2(0.6198, 0.3704), # (1190, 400)
-		"scene": "",
-		"subtitle": "HAPPEN · Setor do toalete em desenvolvimento",
-		"objective": "Localidade planejada. A cena do Map 8 ainda não existe."
+		"scene": "res://scenes/levels/map_8.tscn",
+		"subtitle": "HAPPEN · Toalete",
+		"objective": "Entrar no toalete da HAPPEN e enfrentar os três gorduchos."
 	}
 ]
 

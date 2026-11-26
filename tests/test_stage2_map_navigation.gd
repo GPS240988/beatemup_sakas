@@ -51,12 +51,12 @@ func _run_tests() -> void:
 		_assert(configs[0]["id"] == "2-1" and configs[0]["scene"] == MAP5_PATH, "2-1 aponta para Rua da Vila Ema / Map 5")
 		_assert(configs[1]["id"] == "2-2" and configs[1]["scene"] == MAP6_PATH, "2-2 aponta para Conversa com Pelé / Map 6")
 		_assert(configs[2]["id"] == "2-3" and configs[2]["scene"] == MAP7_PATH, "2-3 aponta para Interior da HAPPEN / Map 7")
-		_assert(configs[3]["id"] == "2-4" and configs[3]["scene"].is_empty(), "2-4 permanece sem destino até existir Map 8")
+		_assert(configs[3]["id"] == "2-4" and configs[3]["scene"] == MAP8_PATH, "2-4 aponta para Toalete / Map 8")
 
 	_assert(ResourceLoader.exists(MAP5_PATH), "Map 5 existe")
 	_assert(ResourceLoader.exists(MAP6_PATH), "Map 6 existe")
 	_assert(ResourceLoader.exists(MAP7_PATH), "Map 7 existe")
-	_assert(not ResourceLoader.exists(MAP8_PATH), "Map 8 ainda não existe no repositório")
+	_assert(ResourceLoader.exists(MAP8_PATH), "Map 8 existe no repositório")
 
 	if OS.is_debug_build():
 		map_menu.call("_enter_stage_02", 0)
@@ -83,8 +83,8 @@ func _run_tests() -> void:
 
 		map_menu.call("_select_stage2_map", 3, false, false)
 		_assert(map_menu.get_node("%StageNumberLabel").text == "2-4", "Seleção permite inspecionar 2-4")
-		_assert(not map_menu.call("is_stage2_map_playable", 3), "2-4 não inicia sem Map 8")
-		_assert(map_menu.get_node("%BtnPlayStage").get("disabled"), "Botão de início de 2-4 fica desabilitado")
+		_assert(map_menu.call("is_stage2_map_playable", 3), "2-4 pode iniciar Map 8 em debug")
+		_assert(not map_menu.get_node("%BtnPlayStage").get("disabled"), "Botão de início de 2-4 fica habilitado")
 
 		map_menu.call("_on_back_pressed")
 		await process_frame
