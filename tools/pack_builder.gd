@@ -57,7 +57,7 @@ const PACK_DEFINITIONS: Dictionary = {
 			"res://assets/videos/stage1",
 			"res://assets/videos/creditos",
 			"res://assets/sprites/characters/sergio",
-			"res://assets/sprites/characters/npc"
+			"res://assets/sprites/characters/npc/loro"
 		]
 	},
 	"stage2": {
@@ -69,7 +69,9 @@ const PACK_DEFINITIONS: Dictionary = {
 			"res://assets/videos/stage2",
 			"res://assets/sprites/stage2",
 			"res://assets/sprites/props/happen",
-			"res://assets/sprites/characters/inimigos/pizza_brawler/frames"
+			"res://assets/sprites/characters/inimigos/pizza_brawler/frames",
+			"res://assets/sprites/characters/npc/pele",
+			"res://assets/sprites/characters/npc/garconete"
 		]
 	}
 }
